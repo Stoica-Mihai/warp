@@ -1,0 +1,130 @@
+# Warp cloud-strip — removal plan
+
+Branch: `surgical-strip` off upstream `0b737e22` (green baseline: `cargo check -p warp` = 0 errors, 129 crates).
+Invariant: **tree stays green after every commit** — never delete a dependency before its callers are refactored off it.
+
+Difficulty rubric:
+- **EASY** — self-contained crate/module, fan-in <10 files, not in render path, or fully feature-gated leaf.
+- **MEDIUM** — fan-in 10–50 files, surgical edits to mixed files, not render-core.
+- **HARD** — fan-in >50 files, OR woven into the render path (`terminal/view.rs`, `terminal/input.rs`, `pane_group/mod.rs`, `root_view.rs`, `workspace/view.rs`), OR inside core engine crate `warp_core`.
+
+Baseline sizes (measured): app/src = 2073 files / 1.0M LoC. AI = 217k LoC (22%).
+
+**Landing-screen principle**: a welcome/landing-screen action is removable if it's also reachable via settings, the command palette, or default behavior. Removing a landing surface (welcome / get-started) means re-pointing new-tab creation at a plain terminal pane (`LeafContents::Terminal`) — a MEDIUM behavior change, not a clean file delete.
+
+**Note on investigator tags**: difficulty/category come from measured fan-in, but a few name-based "useless" guesses didn't survive reading the code (e.g. `welcome_palette` is the new-tab landing surface, not a throwaway). Treat §4 EASY items as "verify by reading before deleting."
+
+---
+
+## Status / progress log
+
+Legend: ✅ done · 🔄 in progress · ⏸️ back-burner · ⬜ todo · 🔍 needs verify
+
+| Item | Status | Commit | Notes |
+|---|---|---|---|
+| Welcome + get-started landing **panes** (`welcome_palette`, `welcome_view`, `get_started_view/pane`) | ✅ done · 🔍 verify | `59562bd7` | New tab now defaults to terminal; `LeafContents::{Welcome,GetStarted}` + palette removed; `welcome_panes` sqlite table dropped. **Visual verify DEFERRED** — see two-surfaces note below. |
+| Orphaned get-started sub-views (`coding_entrypoints/`: `clone_repo_view`, `create_project_view`, `project_buttons`) | ⬜ cleanup todo | — | Dead since `get_started_view` deleted (dead_code warnings, build still green). `project_buttons::init` still called in `lib.rs:1605`. Remove module + init call in a follow-up. |
+| Onboarding (`crate onboarding` + app onboarding flow + first-run login gate) | 🔄 NEXT | — | The actual first-run "Welcome to Warp / Get started / Log in" screen. |
+| Telemetry | ⬜ todo | — | Category 1, mandated (all telemetry). |
+| firebase + experiments + wasm crates | ⬜ todo | — | EASY crate deletions. |
+
+**Two distinct "welcome" surfaces — do not confuse:**
+1. **`welcome_palette` pane** — a tab's content ("Code, build, or search for anything…"). ✅ REMOVED (`59562bd7`).
+2. **First-run onboarding/login gate** — full-screen "Welcome to Warp / Get started / Log in", rendered at `root_view.rs` via `auth_onboarding_state` → `AuthOnboardingState::Auth` when logged-out. This is what shows on launch and currently **masks** surface #1. Belongs to the onboarding/auth removal (🔄 NEXT). A bypass exists (`SkipFirebaseAnonymousUser` path → `Terminal`) but we're doing the proper onboarding removal instead.
+
+**Verify-welcome reminder**: after onboarding/login gate is removed, relaunch and confirm (a) first launch lands on a terminal, (b) `Ctrl+T` opens a terminal, (c) no welcome palette anywhere.
+
+---
+
+## 1. Telemetry — REMOVE ALL (user mandate)
+
+| Finding | Location | Size | Difficulty | Why |
+|---|---|---|---|---|
+| `send_telemetry*` macros | `app/src/server/telemetry/macros.rs` | 5 macros | **EASY** | No-op these FIRST → all 795 call-sites compile to nothing, tree stays green. |
+| Telemetry call-sites | 167 files across `app/src` | **795 calls** | **MEDIUM** | Mechanical once macros are no-op'd; some sit in render files. Delete incrementally. |
+| `TelemetryEvent` enum | `app/src/server/telemetry/events.rs` | 767 variants, 7.3k LoC | **MEDIUM** | Pure data enum; ~196-file fan-in via match arms. Delete after call-sites gone. |
+| Collector + Rudderstack dispatch | `server/telemetry/{collector,mod,rudder_message,context,secret_redaction}.rs` | ~3.7k LoC | **EASY** | Self-contained sender (HTTP → Rudderstack). |
+| Crash reporting / Sentry | `app/src/crash_reporting/` (4 files) | 1.2k LoC | **EASY** | Feature-gated (`crash_reporting`/`cocoa_sentry`), NOT in default. Flip off + delete. |
+| warpui_core telemetry | `crates/warpui_core/src/telemetry/` + `app_focus_telemetry.rs` | ~555 LoC | **MEDIUM** | Backs the macros (event queue, focus tracking). Remove after call-sites. |
+| warp_core telemetry trait + RudderStackConfig | `crates/warp_core/src/{telemetry.rs,channel/config.rs}` | ~380 LoC | **EASY** | Endpoint/write-key config + trait. |
+| Analytics feature flags | `app/src/features.rs` | 4 flags | **EASY** | `GlobalAIAnalyticsCollection`, `AgentModeAnalytics`, `RecordAppActiveEvents`, `WithSandboxTelemetry`. |
+| Profiling (pprof/dhat) | `app/src/profiling.rs` | 121 LoC | **EASY** | Optional heap/CPU upload, self-contained. |
+| Telemetry bootstrap wiring | `app/src/lib.rs` ~773–1555 | scattered | **HARD** | Mixed with auth/db init; final wiring step. |
+
+**Approach**: no-op the macros → green → delete the now-dead call-sites in batches → delete the infra (collector/dispatch/event enum) → strip bootstrap wiring last. ~1188 total touch-points but the no-op-macro trick collapses most risk.
+
+---
+
+## 2. Warp AI — REMOVE (Warp's proprietary LLM agent/assistant)
+
+| Finding | Location | Size | Difficulty | Why |
+|---|---|---|---|---|
+| `ai_assistant` panel | `app/src/ai_assistant/` | 10 files, 3.6k LoC | **EASY** | Self-contained AI panel, feature-gatable. |
+| `ai` engine crate | `crates/ai/` | 75 files, 25k LoC | **MEDIUM** | Fairly self-contained, but 628 app callers — delete only after callers refactored. |
+| Execution profiles + model selector | `app/src/ai/execution_profiles/`, `terminal/profile_model_selector.rs` (2.4k) | 9 files | **MEDIUM** | LLM model picker; 56-file fan-in. |
+| AI context menu / context chips | `app/src/context_chips/` | 23 files, 11.7k LoC | **MEDIUM** | Mixed into terminal input UI. |
+| AI settings pages | `settings_view/{ai_page,execution_profile_view}.rs` | ~9.4k LoC | **MEDIUM** | Profile/LLM settings. |
+| `app/src/ai/agent` (LLM exec core) | `app/src/ai/agent/` | 32 files, 22.5k LoC | **HARD** | Warp agent driver/harness/todos/SDK. |
+| `app/src/ai/blocklist` (AI block render) | `app/src/ai/blocklist/` | 179 files, 102k LoC | **HARD** | AI block rendering + interaction; 296-file fan-in. |
+| Conversation/history models | `app/src/ai/blocklist/history_model.rs`, `agent_conversations_model.rs` | ~15k LoC | **HARD** | AI chat state, conversation IDs; on-disk. |
+| Render-path AI coupling | `terminal/view.rs` (203 refs), `input.rs` (151), `pane_group/mod.rs` (95), `workspace/view.rs` (105) | — | **HARD** | Core spider files — excise AI branches, keep render. Do LAST. |
+
+**Total**: `app/src/ai` 453 files / 217k LoC + `crates/ai` 75 files / 25k LoC. Hotspot: `terminal/view.rs`.
+
+---
+
+## 3. Warp proprietary — needs Warp's backend (login/cloud/sharing/teams/billing)
+
+| Finding | Location | Size | Difficulty | Why |
+|---|---|---|---|---|
+| **firebase crate** | `crates/firebase/` | 1 file, 145 LoC | **EASY** | ✅ Confirmed deletable. Only `server/server_api/auth.rs` + 1 test reference it. |
+| Experiments (A/B) | `app/src/server/experiments/` | 4 files, 521 LoC | **EASY** | Server experiment flags. |
+| Cloud network crates | `graphql`, `warp_server_client`, `warp_graphql_schema`, `websocket`, `managed_secrets`, `warp_web_event_bus` | ~6 crates | **EASY*** | Pure API layers — *but `websocket`/`graphql` pulled by `warp_core`/`ai`, so blocked until those callers go. `warp_web_event_bus` = wasm-only, removable now. |
+| Cloud preferences syncer | `app/src/settings/cloud_preferences*.rs` | 2 files, ~1.1k LoC | **MEDIUM** | Settings→cloud sync; 19 fan-in. |
+| Teams / billing / API keys | `settings_view/{teams_page,billing_and_usage*}`, `app/src/billing/` | ~4.4k LoC | **MEDIUM** | Feature-gated pages. |
+| Shared sessions | `app/src/terminal/shared_session/` | 39 files, 5.1k LoC | **MEDIUM** | Session relay UI/logic. |
+| Auth / login UI | `app/src/auth/` | 22 files, 7.8k LoC | **MEDIUM** | Firebase token + login UI; 174 fan-in. |
+| Cloud sync / Warp Drive | `app/src/drive/` + `cloud_preferences*` | 47 files, 22.6k LoC | **MEDIUM→HARD** | Cloud object indexing/sharing; 100+ fan-in. |
+| Code review (cloud/remote) | `app/src/code_review/` | 40 files, 23.5k LoC | **MEDIUM→HARD** | Remote review/indexing; terminal-coupled. |
+| Oz / ambient agents / cloud mode / orchestration / handoff | `app/src/ai/ambient_agents/` + blocklist orchestration | ~2k+ LoC | **MEDIUM** | Server-side agent runs. |
+| **`server/` cloud API module** | `app/src/server/` | 55 files, 40k LoC | **HARD** | GraphQL/sync/cloud-objects/experiments; **454-file fan-in**. The backend spine. |
+
+**firebase note**: removing it forces touching `server/server_api/auth.rs`, which is inside the HARD `server/` module — so firebase deletes cleanly *as part of* removing the auth/server layer, not standalone.
+
+---
+
+## 4. Useless features — onboarding / tutorials / hints / modals / nags
+
+| Finding | Location | Size | Difficulty | Why |
+|---|---|---|---|---|
+| Build-plan migration modal | `workspace/view/build_plan_migration_modal.rs` | 870 LoC | **EASY** | One-time modal; 6 refs. |
+| One-time modal infra | `workspace/one_time_modal_model.rs` | 508 LoC | **EASY** | Base for migration/launch modals; 11 refs. |
+| Quit warning | `app/src/quit_warning/` | 508 LoC | **EASY** | Feature-gated; 8 refs. |
+| Welcome/landing screen | `app/src/search/welcome_palette/` (858) + `pane_group/pane/{welcome_view,welcome_pane}.rs` | ~1.5k LoC | **MEDIUM** | New-tab landing surface, NOT throwaway. Remove → new tab defaults to `LeafContents::Terminal`; drop `Welcome` variant + sqlite persistence. Its actions (terminal/workflows/search/add-repo) all exist in command palette; strip AI "new conversation" + telemetry branches. |
+| Changelog section | `resource_center/section_views/changelog_section.rs` | ~100 LoC | **EASY** | Removable subsection. |
+| Launch/announcement modals | `workspace/view/launch_modal{,_oz,_orchestration}.rs` | 1.9k LoC | **MEDIUM** | `workspace/view.rs` 56 refs; 3 flavors. |
+| Resource center | `app/src/resource_center/` | 35 files, 2.2k LoC | **MEDIUM** | Menu subsystem; 35 fan-in. |
+| Get-started landing tab | `pane_group/pane/get_started*.rs` | 484 LoC | **MEDIUM** | Sibling landing surface (`get_started_tab` feature). Same as welcome screen — remove → new tab defaults to terminal pane. Feature-gated; 21 refs. |
+| Referrals | `referral_theme_status.rs` + `referrals_page.rs` | ~400 LoC | **MEDIUM** | Settings subsection; auth-coupled. |
+| Bonus grant notification | `workspace/bonus_grant_notification_model.rs` | 132 LoC | **MEDIUM** | Billing-coupled. |
+| Onboarding crate | `crates/onboarding/` | 36 files, 11.5k LoC | **MEDIUM** | ⚠ Depended on by `ai` crate — partly blocked by AI removal. Feature-gated. |
+| Onboarding UI (block + HOA) | `terminal/view/block_onboarding/` (1.6k) + `workspace/hoa_onboarding/` (1.1k) | ~2.7k LoC | **MEDIUM** | ~104 refs in `terminal/view.rs`, modular. |
+| Agent tips | `app/src/ai/agent_tips.rs` | 673 LoC | **MEDIUM** | Feature-gated; AI-coupled. |
+| Warpify footer/banner | `app/src/terminal/warpify/` | 53 files, 1.8k LoC | **HARD** | 155 refs in `terminal/view.rs` render path. |
+| Tips/hints sidebar | `app/src/tips/` | 47 files, 726 LoC | **HARD** | 138 refs in `terminal/view.rs`; cascades to AI panel. |
+| Notebooks (cloud) | `app/src/notebooks/` | 30 files, 22.4k LoC | **HARD** | 226 fan-in; drive/search/AI-coupled. |
+
+---
+
+## Recommended removal order (green at each step)
+
+1. **Telemetry no-op + crash-reporting/profiling** (EASY, mandated). No-op macros → delete crash_reporting/profiling/analytics flags. Big risk-reduction early.
+2. **firebase + experiments + wasm-only crates** (`warp_web_event_bus`) — small clean deletions.
+3. **Useless EASY items** — quit_warning, welcome_palette, one-time/migration/launch modals, changelog, resource_center, referrals, bonus-grant. Visible, low-coupling wins.
+4. **Teams/billing/shared-sessions/cloud-prefs/auth UI** (MEDIUM) — feature-gated proprietary panels.
+5. **Telemetry infra + call-site cleanup** — delete event enum, collector, dispatch, warpui_core/warp_core telemetry; remove dead call-sites.
+6. **AI mid-tier** — ai_assistant panel, execution_profiles, context_chips, AI settings pages, agent_tips, onboarding crate.
+7. **Drive / code_review / notebooks / server cloud API** (HARD) — the backend spine + large cloud subsystems.
+8. **Core spider files LAST** — `terminal/view.rs`, `terminal/input.rs`, `pane_group/mod.rs`, `workspace/view.rs`, `root_view.rs`: excise AI/cloud/warpify/tips branches, **preserve render**.
+9. **Delete drained engine crates** — `ai`, `graphql`, `warp_server_client`, `websocket`, `managed_secrets`, `onboarding` once fan-in is zero.
+10. **Scrub** — dead feature flags, dormant config, grep for phone-home (warp.dev/firebase/rudderstack). Build `warp-oss --features gui`, launch, verify render.
