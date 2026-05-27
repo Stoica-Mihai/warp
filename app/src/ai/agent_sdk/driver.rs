@@ -38,7 +38,7 @@ use crate::ai::agent::{
 };
 use crate::ai::agent_sdk::driver::harness::{
     harness_model_env_vars, task_env_vars, HarnessCleanupDisposition, HarnessKind, HarnessRunner,
-    ResumePayload, SavePoint, ThirdPartyHarness, ThirdPartyHarnessTelemetryEvent,
+    ResumePayload, SavePoint, ThirdPartyHarness,
 };
 use crate::ai::agent_sdk::setup_observability::{SetupClientEventReporter, SetupStep};
 use crate::ai::ambient_agents::task::HarnessModelConfig;
@@ -2277,19 +2277,6 @@ impl AgentDriver {
                             error.pattern,
                             error.excerpt,
                         );
-                        let telemetry_harness = harness_name.clone();
-                        let telemetry_pattern = error.pattern.clone();
-                        let _ = foreground
-                            .spawn(move |_, _ctx| {
-                                
-                                let _event =
-                                    ThirdPartyHarnessTelemetryEvent::RuntimeErrorDetected {
-                                        harness: telemetry_harness,
-                                        pattern: telemetry_pattern,
-                                    };
-                                send_telemetry_from_app_ctx!(event, ctx);
-                            })
-                            .await;
                         let session_status = foreground
                             .spawn(|me, ctx| {
                                 let view_id =

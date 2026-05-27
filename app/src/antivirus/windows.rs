@@ -5,7 +5,6 @@ use windows::Win32::System::Com::{
 };
 use windows::Win32::System::SecurityCenter::*;
 
-use crate::antivirus::telemetry::AntivirusInfoTelemetryEvent;
 use crate::antivirus::{AntivirusInfo, AntivirusInfoEvent};
 
 impl AntivirusInfo {
