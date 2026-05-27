@@ -161,11 +161,12 @@ Both must be 0 errors before each commit.
 - ✅ Onboarding action stubs + dead variants/enums + helper methods removed (`d444c2b6`). `ImportSettings` was NOT a stub to delete — it was a mis-stubbed local feature, restored (`e9a3dc2e`).
 - **Remaining 79 warnings — DEFERRED to subsystem passes (not blindly swept).** They are orphaned unused imports + dead fns left by the onboarding `AgentOnboardingEvent` handler removal, but they belong to other subsystems and are cleanest removed *with* those subsystems (advisor guidance — avoids feature-gate false-positives + keeps per-pass attribution):
   - Login pass: `login_slide.rs` (`VISUAL_IMAGE_PATHS`, `resolve_visual_path`, `is_auth_token_input_visible`/`new`/`handle_auth_manager_event`, `LoginSlideSource` variants), `paste_auth_token_modal::new`, root_view imports `LoginSlide*`/`PasteAuthTokenModalEvent`.
-  - AI pass: `LLMPreferences`/`refresh_*_models`, `HistoryEvent`, `apply_natural_language_detection_setting`'s old setting (`AISettings`), `EntrypointType`/`StaticQueryType`.
+  - AI pass: `LLMPreferences`/`refresh_*_models`, `HistoryEvent`, `AISettings`, `EntrypointType`/`StaticQueryType`.
+  - Themes pass: `ThemeKind`, `WarpThemeConfig`, `ThemeSettings`.
   - Cloud/billing pass: `CloudPreferencesSyncer*`, `PricingInfoModelEvent`, `build_plan_yearly_price_cents`, `upgrade_url`.
   - Experiments pass: `is_free_user_no_ai_experiment_active`.
-  - Teams pass: `TeamUpdateManager`, `UserWorkspaces*`.
-  - Generic orphans (could sweep anytime, low value): root_view `ClipboardContent`/`report_if_error`/`TabSettings`/`ThemeKind`/`WarpThemeConfig`/`AISettings`/`ThemeSettings`; terminal/view `TerminalKeybindings`.
+  - Teams pass: `TeamUpdateManager`, `UserWorkspaces*`, `TabSettings`.
+  - Generic orphans (could sweep anytime, low value): root_view `ClipboardContent`/`report_if_error`; terminal/view `TerminalKeybindings`.
   - Upstream style (NOT ours): slash_commands `binding if guard => {}` unused-var cluster (~40 warnings) in `terminal/input/slash_commands/mod.rs`.
   - callout_bubble (`callout_title_color`/`callout_body_color`/`CalloutArrowPosition::{Start,End}`): onboarding-callout leftover but `callout_bubble` is shared — verify other users before trimming.
 - 2 `let _ = (...)` placeholders: `workspace/view.rs` (insert-drive caller), session-config `(has_worktree, has_params)`.
