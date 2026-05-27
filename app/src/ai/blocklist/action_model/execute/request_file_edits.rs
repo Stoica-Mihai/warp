@@ -18,7 +18,6 @@ pub(crate) use telemetry::MalformedFinalLineProxyEvent;
 pub use telemetry::{EditAcceptAndContinueClickedEvent, EditAcceptClickedEvent};
 pub use telemetry::{
     EditResolvedEvent, EditStats, RequestFileEditsFormatKind,
-    RequestFileEditsTelemetryEvent,
 };
 use vec1::{vec1, Vec1};
 use warp_core::send_telemetry_from_ctx;

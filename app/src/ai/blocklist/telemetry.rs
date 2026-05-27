@@ -5,16 +5,6 @@ use warp_core::telemetry::{EnablementState, TelemetryEvent, TelemetryEventDesc};
 
 use crate::ai::agent::conversation::AIConversationId;
 
-#[derive(Debug, EnumDiscriminants)]
-#[strum_discriminants(derive(EnumIter))]
-pub(crate) enum BlocklistOrchestrationTelemetryEvent {
-    TeamAgentCommunicationFailed(TeamAgentCommunicationFailedEvent),
-    PlanConfigApprovalToggled(PlanConfigApprovalToggledEvent),
-    RunAgentsCardDecision(RunAgentsCardDecisionEvent),
-    PillBarInteraction(PillBarInteractionEvent),
-    OrchestrationEntered(OrchestrationEnteredEvent),
-    AgentProposedConfig(AgentProposedConfigEvent),
-}
 
 #[derive(Clone, Copy, Debug, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -276,79 +266,3 @@ pub(crate) struct PillBarInteractionEvent {
     pub switch_outcome: Option<PillSwitchOutcome>,
 }
 
-impl TelemetryEvent for BlocklistOrchestrationTelemetryEvent {
-    fn name(&self) -> &'static str {
-        BlocklistOrchestrationTelemetryEventDiscriminants::from(self).name()
-    }
-
-    fn payload(&self) -> Option<Value> {
-        match self {
-            Self::TeamAgentCommunicationFailed(event) => Some(json!(event)),
-            Self::PlanConfigApprovalToggled(event) => Some(json!(event)),
-            Self::RunAgentsCardDecision(event) => Some(json!(event)),
-            Self::PillBarInteraction(event) => Some(json!(event)),
-            Self::OrchestrationEntered(event) => Some(json!(event)),
-            Self::AgentProposedConfig(event) => Some(json!(event)),
-        }
-    }
-
-    fn description(&self) -> &'static str {
-        BlocklistOrchestrationTelemetryEventDiscriminants::from(self).description()
-    }
-
-    fn enablement_state(&self) -> EnablementState {
-        BlocklistOrchestrationTelemetryEventDiscriminants::from(self).enablement_state()
-    }
-
-    fn contains_ugc(&self) -> bool {
-        false
-    }
-
-    fn event_descs() -> impl Iterator<Item = Box<dyn TelemetryEventDesc>> {
-        warp_core::telemetry::enum_events::<Self>()
-    }
-}
-
-impl TelemetryEventDesc for BlocklistOrchestrationTelemetryEventDiscriminants {
-    fn name(&self) -> &'static str {
-        match self {
-            Self::TeamAgentCommunicationFailed => {
-                "AgentMode.Orchestration.TeamAgentCommunicationFailed"
-            }
-            Self::PlanConfigApprovalToggled => "AgentMode.Orchestration.PlanConfigApprovalToggled",
-            Self::RunAgentsCardDecision => "AgentMode.Orchestration.RunAgentsCardDecision",
-            Self::PillBarInteraction => "AgentMode.Orchestration.PillBarInteraction",
-            Self::OrchestrationEntered => "AgentMode.Orchestration.Entered",
-            Self::AgentProposedConfig => "AgentMode.Orchestration.AgentProposedConfig",
-        }
-    }
-
-    fn description(&self) -> &'static str {
-        match self {
-            Self::TeamAgentCommunicationFailed => {
-                "Failed to send an orchestration message or lifecycle event for a TeamAgent"
-            }
-            Self::PlanConfigApprovalToggled => {
-                "User toggled the Use orchestration switch on a plan card"
-            }
-            Self::RunAgentsCardDecision => {
-                "User accepted, accepted-without-orchestration, or rejected a run_agents confirmation card. Reports which config fields diverged from the original tool call and/or the active approved config."
-            }
-            Self::PillBarInteraction => {
-                "User interacted with the orchestration pill bar (switch, pin, open in pane/tab, stop, kill, etc.)"
-            }
-            Self::OrchestrationEntered => {
-                "Orchestration was activated in a conversation via /orchestrate or a run_agents confirmation card surfacing. Plan-card entries are tracked separately via AgentProposedConfig + PlanConfigApprovalToggled."
-            }
-            Self::AgentProposedConfig => {
-                "An agent-authored orchestration config snapshot first became visible to the user on a plan card"
-            }
-        }
-    }
-
-    fn enablement_state(&self) -> EnablementState {
-        EnablementState::Always
-    }
-}
-
-warp_core::register_telemetry_event!(BlocklistOrchestrationTelemetryEvent);
