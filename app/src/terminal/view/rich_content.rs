@@ -17,7 +17,6 @@ use crate::terminal::ssh::error::SshErrorBlock;
 use crate::terminal::ssh::install_tmux::SshInstallTmuxBlock;
 use crate::terminal::ssh::warpify::SshWarpifyBlock;
 use crate::terminal::view::ambient_agent::AmbientAgentEntryBlock;
-use crate::terminal::view::block_onboarding::onboarding_agentic_suggestions_block::OnboardingAgenticSuggestionsBlock;
 use crate::terminal::view::init_environment::InitEnvironmentBlock;
 use crate::terminal::view::ssh_remote_server_choice_view::SshRemoteServerChoiceView;
 use crate::terminal::view::ssh_remote_server_failed_banner::SshRemoteServerFailedBanner;
@@ -236,9 +235,6 @@ pub enum RichContentMetadata {
     },
     InitEnvironment {
         block_handle: ViewHandle<InitEnvironmentBlock>,
-    },
-    OnboardingAgenticSuggestions {
-        agentic_suggestions_block_handle: ViewHandle<OnboardingAgenticSuggestionsBlock>,
     },
     EnvVarCollectionBlock {
         env_var_collection_block_handle: ViewHandle<EnvVarCollectionBlock>,

@@ -24,7 +24,7 @@ Legend: ✅ done · 🔄 in progress · ⏸️ back-burner · ⬜ todo · 🔍 n
 |---|---|---|---|
 | Welcome + get-started landing **panes** (`welcome_palette`, `welcome_view`, `get_started_view/pane`) | ✅ done · 🔍 verify | `59562bd7` | New tab now defaults to terminal; `LeafContents::{Welcome,GetStarted}` + palette removed; `welcome_panes` sqlite table dropped. **Visual verify DEFERRED** — see two-surfaces note below. |
 | Orphaned get-started sub-views (`coding_entrypoints/`: `clone_repo_view`, `create_project_view`, `project_buttons`) | ⬜ cleanup todo | — | Dead since `get_started_view` deleted (dead_code warnings, build still green). `project_buttons::init` still called in `lib.rs:1605`. Remove module + init call in a follow-up. |
-| Onboarding (`crate onboarding` + app onboarding flow + first-run login gate) | 🔄 NEXT | — | The actual first-run "Welcome to Warp / Get started / Log in" screen. |
+| Onboarding (`crate onboarding` + app onboarding flow) | 🔄 IN PROGRESS | — | Login KEPT (separate pass). Crate IS deletable (app-only dep). See sub-plan below. |
 | Telemetry | ⬜ todo | — | Category 1, mandated (all telemetry). |
 | firebase + experiments + wasm crates | ⬜ todo | — | EASY crate deletions. |
 
@@ -33,6 +33,16 @@ Legend: ✅ done · 🔄 in progress · ⏸️ back-burner · ⬜ todo · 🔍 n
 2. **First-run onboarding/login gate** — full-screen "Welcome to Warp / Get started / Log in", rendered at `root_view.rs` via `auth_onboarding_state` → `AuthOnboardingState::Auth` when logged-out. This is what shows on launch and currently **masks** surface #1. Belongs to the onboarding/auth removal (🔄 NEXT). A bypass exists (`SkipFirebaseAnonymousUser` path → `Terminal`) but we're doing the proper onboarding removal instead.
 
 **Verify-welcome reminder**: after onboarding/login gate is removed, relaunch and confirm (a) first launch lands on a terminal, (b) `Ctrl+T` opens a terminal, (c) no welcome palette anywhere.
+
+### Onboarding removal sub-plan (in progress)
+
+Scope: remove the onboarding experience + crate. **KEEP login** (`AuthView`, `AuthOnboardingState::Auth`) — separate later pass. Crate `onboarding` is app-only-dep → deletable. Login seam is small/clean: `login_slide.rs` uses `slides::layout` (380) + `slides::slide_content` (71) + `OnboardingIntention` + `AI_FEATURES`/`WARP_DRIVE_FEATURES`, all self-contained (~470 LoC, no intra-crate deps).
+
+- **Commit 1 — remove flow** (big): delete app onboarding modules (`ai/onboarding.rs`, `settings/onboarding.rs`+tests, `workspace/view/onboarding.rs` `OnboardingTutorial`, `workspace/hoa_onboarding/`, `terminal/view/block_onboarding/`, `experiments/block_onboarding_layer.rs`, orphaned `coding_entrypoints/`); remove `lib.rs onboarding::init`, `workspace hoa_onboarding::init`; `root_view` `AuthOnboardingState::Onboarding` + `create_agent_onboarding_view` + the ~283-LoC `AgentOnboardingEvent` handler; `workspace/view` `check_and_trigger_onboarding`/`trigger_*`; `terminal/view` `onboarding_callout_view` field + handler + `OnboardingFlow` action; feature flags `agent_onboarding`/`hoa_onboarding_flow` + assets. After: app references crate only via login_slide + `terminal/view/action` re-export.
+- **Commit 2 — relocate login bits**: move `layout`/`slide_content`/`OnboardingIntention`/`AI_FEATURES`/`WARP_DRIVE_FEATURES` into `app/src/auth/`; re-point `login_slide.rs` + drop `onboarding` from `app/Cargo.toml`. Login works, sourced from auth/.
+- **Commit 3 — delete crate**: remove `crates/onboarding/` + workspace `Cargo.toml` member.
+
+Green (`cargo check -p warp`) at every commit.
 
 ---
 

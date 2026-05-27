@@ -31,7 +31,6 @@ pub mod harness_availability;
 pub(crate) mod harness_display;
 pub(crate) mod llms;
 pub(crate) mod local_child_harnesses;
-pub mod onboarding;
 pub(crate) mod persisted_workspace;
 pub(crate) mod predict;
 pub mod request_usage_model;
