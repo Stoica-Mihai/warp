@@ -206,11 +206,6 @@ impl AliasBar {
                 alias.env_vars = sync_id;
                 self.mark_dirty(true, ctx);
 
-                let env_vars_space = sync_id
-                    .and_then(|id| CloudModel::as_ref(ctx).get_env_var_collection(&id))
-                    .map(|env_vars| env_vars.space(ctx))
-                    .map(Into::into);
-
                 send_telemetry_from_ctx!(
                     TelemetryEvent::WorkflowAliasEnvVarsAttached {
                         workflow_id: self.workflow_id.into_server().map(Into::into),

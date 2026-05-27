@@ -10289,19 +10289,14 @@ impl TerminalView {
                     InlineBannerItem::new(banner_id, InlineBannerType::ShellProcessTerminated),
                 );
         } else {
-            let (termination_reason, termination_details, exit_reason) = match &termination_type {
+            let termination_reason = match &termination_type {
                 shell_terminated_banner::TerminationType::PtySpawnFailure { .. } => {
-                    (Some("PtySpawnFailure".to_string()), None, None)
+                    Some("PtySpawnFailure".to_string())
                 }
-                shell_terminated_banner::TerminationType::Premature {
-                    shell_detail,
-                    reason,
-                } => (
-                    Some("Premature".to_string()),
-                    Some(shell_detail.into()),
-                    Some(reason),
-                ),
-                _ => (None, None, None),
+                shell_terminated_banner::TerminationType::Premature { .. } => {
+                    Some("Premature".to_string())
+                }
+                _ => None,
             };
 
             if let Some(termination_reason) = termination_reason {

@@ -7139,11 +7139,6 @@ impl Input {
             } => {
                 let workflow_id = workflow.server_id();
                 let workflow_source = *workflow_source;
-                let space = workflow_id.and_then(|id| {
-                    CloudViewModel::as_ref(ctx)
-                        .object_space(&id.to_string(), ctx)
-                        .map(Into::into)
-                });
 
                 send_telemetry_from_ctx!(
                     TelemetryEvent::WorkflowSelected(WorkflowTelemetryMetadata {
