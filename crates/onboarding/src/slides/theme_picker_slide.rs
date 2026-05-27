@@ -22,7 +22,6 @@ use warpui::{
 use super::OnboardingSlide;
 use crate::model::{OnboardingStateEvent, OnboardingStateModel};
 use crate::slides::{bottom_nav, layout, slide_content};
-use crate::telemetry::OnboardingEvent;
 use crate::visuals::theme_picker_visual;
 use crate::OnboardingIntention;
 

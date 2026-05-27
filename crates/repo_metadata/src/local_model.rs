@@ -24,7 +24,6 @@ use warp_util::standardized_path::StandardizedPath;
 
 use crate::entry::{BuildTreeError, Entry, FileId, IgnoredPathStrategy};
 use crate::repository::Repository;
-use crate::telemetry::RepoMetadataTelemetryEvent;
 use crate::{gitignores_for_directory, matches_gitignores, RepoMetadataError};
 cfg_if::cfg_if! {
     if #[cfg(feature = "local_fs")] {

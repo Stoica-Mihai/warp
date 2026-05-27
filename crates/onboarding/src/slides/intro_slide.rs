@@ -23,7 +23,6 @@ use warpui::{
 
 use super::OnboardingSlide;
 use crate::model::OnboardingStateModel;
-use crate::OnboardingEvent;
 
 #[derive(Clone, Debug)]
 pub enum IntroSlideEvent {
