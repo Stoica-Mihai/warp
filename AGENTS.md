@@ -16,7 +16,14 @@ Personal fork of [warpdotdev/warp](https://github.com/warpdotdev/warp), strippin
 
 **`plan.md` (this directory) is the single source of truth** for status, per-finding difficulty, removal order, resume notes, and lessons. Read it first. Strategy detail: `docs/superpowers/specs/2026-05-27-surgical-cloud-strip-design.md`. Keep §1–§2 here synced with `plan.md`; let `plan.md` hold everything volatile.
 
-Done + verified so far: welcome/get-started panes, onboarding app flow (app launches straight to a terminal). Login kept (separate later pass).
+Done so far (all green on 4 gates — `cargo check -p warp` default/`--tests`/`--features gui`/`--features local_fs`):
+- Welcome/get-started panes, onboarding app flow — app launches straight to a terminal.
+- Settings-import regression fix (over-stubbed in the onboarding pass; restored as a standalone command).
+- **Telemetry (mostly stripped)**: send-macros no-op'd → live send path removed (nothing phones home) → central `TelemetryEvent` enum deleted (−6966 LoC) → warning sweep 795→142 (`cargo fix`) → all 16 satellite `*TelemetryEvent` enums removed. No telemetry event type exists or is constructed anywhere.
+
+**Telemetry remaining (HARD foundation = next pass)**: the inert plumbing — warp_core `TelemetryEvent`/`TelemetryEventDesc` traits + `register_telemetry_event!` macro + `enum_events` + `EnablementState`; warpui_core record layer (`record_event`, `record_telemetry_*` macros, queue); app dispatch infra (`collector`/`rudder_message`/`TelemetryApi` + ServerApi flush/persist); `lib.rs` bootstrap wiring. Coupled across warp_core+warpui_core+server+bootstrap — one teardown. Then firebase / login pass. Login KEPT throughout.
+
+Telemetry-strip techniques that worked (detail in `plan.md`): no-op the send-macros first so their args aren't type-checked → event enums delete without touching the ~782 call-sites; recast (crate::-anchored) for import sweeps; `cargo fix` for bulk unused removal but **re-verify all 4 gates** (it drops `#[cfg(test)]`/other-feature-only imports → broke `--tests` twice); satellite modules are MIXED (event enum + helper types real code uses) → surgically delete enum+impls+`register_telemetry_event!`, keep helpers.
 
 ## 4. Build / verify
 
