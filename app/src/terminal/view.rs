@@ -13020,6 +13020,35 @@ impl TerminalView {
         vi_mode_in_plugins || vi_mode_in_opts
     }
 
+    #[cfg(feature = "local_fs")]
+    fn add_settings_import_block(&mut self, ctx: &mut ViewContext<Self>) {
+        let block_view_handle = ctx.add_typed_action_view(SettingsImportView::new);
+
+        ctx.subscribe_to_view(
+            &block_view_handle,
+            move |terminal_view, settings_import_view_handle, event, _ctx| match event {
+                SettingsImportEvent::NoConfigsFound => {
+                    terminal_view
+                        .model
+                        .lock()
+                        .block_list_mut()
+                        .remove_rich_content(settings_import_view_handle.id());
+                }
+                _ => {}
+            },
+        );
+
+        self.insert_rich_content(
+            None,
+            block_view_handle,
+            None,
+            RichContentInsertionPosition::Append {
+                insert_below_long_running_block: false,
+            },
+            ctx,
+        );
+    }
+
     #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
     fn get_ps1_grid_info(&mut self) -> Option<(BlockGrid, SizeInfo)> {
         let model = self.model.lock();
@@ -25184,7 +25213,10 @@ impl TypedActionView for TerminalView {
             }
             VimModeBanner(action) => self.handle_vim_banner_action(*action, ctx),
             OnboardingFlow(_) => {}
-            ImportSettings => {}
+            ImportSettings => {
+                #[cfg(feature = "local_fs")]
+                self.add_settings_import_block(ctx);
+            }
             OpenShareSessionModal { source } => self.open_share_session_modal(*source, ctx),
             StopSharingCurrentSession { source } => self.stop_sharing_session(*source, ctx),
             ToggleBlockFilterOnSelectedOrLastBlock(source) => {
