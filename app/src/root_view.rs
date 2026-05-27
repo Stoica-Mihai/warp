@@ -81,7 +81,6 @@ use crate::terminal::general_settings::GeneralSettings;
 use crate::terminal::keys_settings::KeysSettings;
 use crate::terminal::shell::ShellType;
 use crate::terminal::view::{cell_size_and_padding, TerminalAction};
-use crate::themes::onboarding_theme_picker_themes;
 use crate::themes::theme::{AnsiColorIdentifier, Blend, Fill, ThemeKind, WarpThemeConfig};
 use crate::uri::OpenMCPSettingsArgs;
 use crate::util::bindings::{self, is_binding_pty_compliant};
@@ -1549,14 +1548,6 @@ pub(crate) fn has_completed_local_onboarding(ctx: &AppContext) -> bool {
         .unwrap_or_default()
         .and_then(|s| serde_json::from_str::<bool>(&s).ok())
         .unwrap_or(false)
-}
-
-/// Persists the local onboarding-completed flag so we don't show onboarding again.
-fn mark_local_onboarding_completed(ctx: &AppContext) {
-    let _ = ctx.private_user_preferences().write_value(
-        HAS_COMPLETED_ONBOARDING_KEY,
-        serde_json::to_string(&true).expect("bool serializes to JSON"),
-    );
 }
 
 /// Whether auth and onboarding have completed and we should render the `Workspace`.

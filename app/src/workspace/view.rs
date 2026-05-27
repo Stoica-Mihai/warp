@@ -392,9 +392,8 @@ use crate::terminal::view::load_ai_conversation::{
 };
 use crate::terminal::view::ssh_file_upload::FileUploadId;
 use crate::terminal::view::{
-    AgentOnboardingVersion, ConversationRestorationInNewPaneType, LeftPanelTargetView,
-    OnboardingIntention, OnboardingVersion, SyncEvent, SyncInputType, TerminalAction,
-    NOTIFICATIONS_TROUBLESHOOT_URL,
+    ConversationRestorationInNewPaneType, LeftPanelTargetView, SyncEvent, SyncInputType,
+    TerminalAction, NOTIFICATIONS_TROUBLESHOOT_URL,
 };
 use crate::terminal::warpify::settings::WarpifySettings;
 use crate::terminal::{self, BlockListSettings, SizeInfo, TerminalModel, TerminalView};
@@ -2095,16 +2094,6 @@ impl Workspace {
         _selection: &crate::tab_configs::session_config::SessionConfigSelection,
         _ctx: &mut ViewContext<Self>,
     ) {
-    }
-
-    /// Opens the vertical tabs panel if the setting was enabled.
-    /// Called from the onboarding flow before the session config modal is shown.
-    pub(crate) fn open_vertical_tabs_panel_if_enabled(&mut self, ctx: &mut ViewContext<Self>) {
-        if FeatureFlag::VerticalTabs.is_enabled() && *TabSettings::as_ref(ctx).use_vertical_tabs {
-            self.vertical_tabs_panel_open = true;
-            self.sync_window_button_visibility(ctx);
-            ctx.notify();
-        }
     }
 
     pub(crate) fn show_session_config_modal(&mut self, ctx: &mut ViewContext<Self>) {

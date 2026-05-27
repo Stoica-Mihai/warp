@@ -60,7 +60,7 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 
 use action::RememberForWarpification;
-pub use action::{AgentOnboardingVersion, OnboardingIntention, OnboardingVersion, TerminalAction};
+pub use action::{OnboardingIntention, TerminalAction};
 use ai::api_keys::{ApiKeyManager, AwsCredentialsState};
 use ai::index::full_source_code_embedding::manager::{BuildSource, CodebaseIndexManager};
 use async_channel::{Receiver, Sender};
@@ -424,7 +424,6 @@ use crate::terminal::model::ansi::{ClearMode, Handler};
 use crate::terminal::model::block::{
     AgentInteractionMetadata, Block, BlockId, BlockMetadata, LONG_RUNNING_BOTTOM_PADDING_LINES,
 };
-use crate::terminal::model::blockgrid::BlockGrid;
 use crate::terminal::model::blocks::{
     BlockFilter, BlockHeight, BlockHeightItem, BlockHeightSummary, BlockList, BlockListPoint, Gap,
     RemovableBlocklistItem,
@@ -13049,16 +13048,6 @@ impl TerminalView {
         );
     }
 
-    #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
-    fn get_ps1_grid_info(&mut self) -> Option<(BlockGrid, SizeInfo)> {
-        let model = self.model.lock();
-        let ps1_grid_info = model
-            .prompt_grid()
-            .cloned()
-            .zip(Some(*model.block_list().size()));
-        ps1_grid_info
-    }
-
     pub fn open_repo_folder(
         &mut self,
         path: String,
@@ -13694,13 +13683,6 @@ impl TerminalView {
         });
     }
 
-    fn agent_view_zero_state_save_position_id(&self, app: &AppContext) -> Option<String> {
-        self.agent_view_controller
-            .as_ref(app)
-            .agent_view_state()
-            .zero_state_position_id()
-    }
-
     /// Gets the selected text from the terminal, if any.
     pub fn selected_text(&self, ctx: &AppContext) -> Option<String> {
         let semantic_selection = SemanticSelection::handle(ctx).as_ref(ctx);
@@ -13766,18 +13748,6 @@ fn fork_label_for_query(query: &str) -> String {
 }
 
 impl TerminalView {
-    fn apply_natural_language_detection_setting(
-        &mut self,
-        enable: bool,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        AISettings::handle(ctx).update(ctx, |settings, ctx| {
-            report_if_error!(settings
-                .nld_in_terminal_enabled_internal
-                .set_value(enable, ctx));
-        });
-    }
-
     fn resize_alt_screen_redundantly(&mut self, ctx: &mut ViewContext<Self>) {
         use futures_lite::StreamExt;
 
@@ -24684,7 +24654,6 @@ impl TypedActionView for TerminalView {
             | InsertMostRecentCommandCorrection
             | StopSharingCurrentSession { .. }
             | RequestSharedSessionRole(_)
-            | OnboardingFlow(_)
             | ImportSettings
             | DragAndDropFiles(_)
             | WarpifySSHSession
@@ -24764,7 +24733,6 @@ impl TypedActionView for TerminalView {
             | StopFileDropTarget
             | RunNativeShellCompletions { .. }
             | OpenTeamSettingsPage
-            | SelectAgenticSuggestion(_)
             | HideTelemetryBannerPermanently
             | GenerateCodebaseIndex
             | LoadAgentModeConversation
@@ -25212,7 +25180,6 @@ impl TypedActionView for TerminalView {
                 self.open_block_filter_editor(*block_index, OpenedFromClick::Yes, ctx)
             }
             VimModeBanner(action) => self.handle_vim_banner_action(*action, ctx),
-            OnboardingFlow(_) => {}
             ImportSettings => {
                 #[cfg(feature = "local_fs")]
                 self.add_settings_import_block(ctx);
@@ -25410,7 +25377,6 @@ impl TypedActionView for TerminalView {
                 selected_range,
             } => self.set_marked_text_on_terminal(marked_text, selected_range, ctx),
             ClearMarkedText => self.clear_marked_text_on_terminal(ctx),
-            SelectAgenticSuggestion(_) => {}
             HideTelemetryBannerPermanently => self.hide_telemetry_banner_permanently(ctx),
             ShowInitializationBlock => self.show_initialization_block(),
             GenerateCodebaseIndex => {
@@ -25925,9 +25891,6 @@ impl View for TerminalView {
     }
 
     fn render(&self, app: &AppContext) -> Box<dyn Element> {
-        // Grab this here, before we take the terminal model lock.
-        let menu_positioning = self.input.as_ref(app).menu_positioning(app);
-
         let appearance = Appearance::as_ref(app);
         let semantic_selection = SemanticSelection::as_ref(app);
         let model = self.model.lock();

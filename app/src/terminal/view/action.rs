@@ -47,24 +47,6 @@ use crate::terminal::view::passive_suggestions::PromptSuggestionResolution;
 use crate::terminal::view::RichContentSecretTooltipInfo;
 use crate::workflows::workflow::Workflow;
 
-/// Version of the agent onboarding flow (non-legacy).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum AgentOnboardingVersion {
-    UniversalInput {
-        has_project: bool,
-    },
-    AgentModality {
-        has_project: bool,
-        intention: OnboardingIntention,
-    },
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum OnboardingVersion {
-    Legacy,
-    Agent(AgentOnboardingVersion),
-}
-
 /// This represents whether entering a subshell for a particular command should become automatic in
 /// the future, or to ask again.
 #[derive(Clone, Debug)]
@@ -295,7 +277,6 @@ pub enum TerminalAction {
     AliasExpansionBanner(AliasExpansionBannerAction),
     OpenInWarpBanner(OpenInWarpBannerAction),
     OpenBlockFilterEditor(BlockIndex),
-    OnboardingFlow(OnboardingVersion),
     ImportSettings,
     StopSharingCurrentSession {
         source: SharedSessionActionSource,
@@ -342,7 +323,6 @@ pub enum TerminalAction {
         selected_range: Range<usize>,
     },
     ClearMarkedText,
-    SelectAgenticSuggestion(i32),
     HideTelemetryBannerPermanently,
     ShowInitializationBlock,
     GenerateCodebaseIndex,
@@ -621,7 +601,6 @@ impl fmt::Debug for TerminalAction {
             OpenBlockFilterEditor(block_index) => {
                 write!(f, "OpenBlockFilterEditor({block_index:?})")
             }
-            OnboardingFlow(version) => write!(f, "OnboardingFlow({version:?})"),
             ImportSettings => write!(f, "ImportSettings"),
             StopSharingCurrentSession { source } => {
                 write!(f, "StopSharingCurrentSession({source:?})")
@@ -671,7 +650,6 @@ impl fmt::Debug for TerminalAction {
                 selected_range,
             } => write!(f, "SetMarkedText {{{marked_text:?}, {selected_range:?}}}"),
             ClearMarkedText => write!(f, "ClearMarkedText"),
-            SelectAgenticSuggestion(index) => write!(f, "SelectAgenticSuggestion({index:?})"),
             HideTelemetryBannerPermanently => write!(f, "HideTelemetryBannerPermanently"),
             ShowInitializationBlock => write!(f, "ShowInitializationBlock"),
             GenerateCodebaseIndex => write!(f, "GenerateIndexForRepo"),
