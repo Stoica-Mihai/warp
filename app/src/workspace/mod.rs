@@ -171,11 +171,6 @@ pub fn init(app: &mut AppContext) {
             )
             .with_context_predicate(id!("Workspace")),
         ]);
-        app.register_fixed_bindings([FixedBinding::empty(
-            "[Debug] View first-time user experience",
-            WorkspaceAction::AddGetStartedTab,
-            id!("Workspace"),
-        )]);
         #[cfg(debug_assertions)]
         {
             // Debug actions for build plan migration modal (command palette only)

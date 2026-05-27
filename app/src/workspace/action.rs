@@ -156,7 +156,6 @@ pub enum WorkspaceAction {
         shell: AvailableShell,
         source: AddTabWithShellSource,
     },
-    AddGetStartedTab,
     AddAmbientAgentTab,
     /// Add a new tab that immediately enters agent view with a new conversation.
     AddAgentTab,
@@ -777,7 +776,6 @@ impl WorkspaceAction {
             | AddDefaultTab
             | AddTerminalTab { .. }
             | AddTabWithShell { .. }
-            | AddGetStartedTab
             | AddAgentTab
             | AddAmbientAgentTab
             | AddDockerSandboxTab
