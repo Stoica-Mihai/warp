@@ -22,9 +22,10 @@ Legend: ✅ done · 🔄 in progress · ⏸️ back-burner · ⬜ todo · 🔍 n
 
 | Item | Status | Commit | Notes |
 |---|---|---|---|
-| Welcome + get-started landing **panes** (`welcome_palette`, `welcome_view`, `get_started_view/pane`) | ✅ done · 🔍 verify | `59562bd7` | New tab now defaults to terminal; `LeafContents::{Welcome,GetStarted}` + palette removed; `welcome_panes` sqlite table dropped. **Visual verify DEFERRED** — see two-surfaces note below. |
+| Welcome + get-started landing **panes** (`welcome_palette`, `welcome_view`, `get_started_view/pane`) | ✅ done · ✅ verified | `59562bd7` | New tab defaults to terminal; `LeafContents::{Welcome,GetStarted}` + palette removed; `welcome_panes` sqlite table dropped. |
+| Onboarding experience (app-side flow) | ✅ done · ✅ verified | `3e87396f` | App launches straight to terminal — the "Welcome to Warp/Get started/Log in" screen was the onboarding intro slide, now gone. `crates/onboarding` retained (login_slide); crate-delete = login pass. 87 warnings + 3 no-op stubs to clean. |
 | Orphaned get-started sub-views (`coding_entrypoints/`: `clone_repo_view`, `create_project_view`, `project_buttons`) | ⬜ cleanup todo | — | Dead since `get_started_view` deleted (dead_code warnings, build still green). `project_buttons::init` still called in `lib.rs:1605`. Remove module + init call in a follow-up. |
-| Onboarding (`crate onboarding` + app onboarding flow) | 🔄 IN PROGRESS | — | Login KEPT (separate pass). Crate IS deletable (app-only dep). See sub-plan below. |
+| Onboarding app flow | ✅ done (`3e87396f`) | — | Login KEPT. `crates/onboarding` retained (login_slide seam) → delete in login pass. |
 | Telemetry | ⬜ todo | — | Category 1, mandated (all telemetry). |
 | firebase + experiments + wasm crates | ⬜ todo | — | EASY crate deletions. |
 
