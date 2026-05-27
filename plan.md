@@ -54,6 +54,36 @@ Green (`cargo check -p warp`) at every commit.
 
 ---
 
+### Telemetry foundation teardown (steps b/c/d) — precise target map
+
+Verified file:line map (baseline `cargo check -p warp` = green @ this point). All inert — no event type is constructed or sent anywhere. Delete as ONE coupled pass (spans warp_core + warpui_core + server + lib.rs); fix break-sites cargo-check-driven; verify all 4 gates before commit.
+
+**(b) warp_core — `crates/warp_core/src/telemetry.rs`:**
+- `:20` trait `TelemetryEvent` · `:81` trait `TelemetryEventDesc`
+- `:62` macro `register_telemetry_event!` · `:120` fn `enum_events`
+- `:163` enum `EnablementState` · `:193` type alias `TelemetryContextModel`
+- `:147` no-op macro `send_telemetry_from_ctx` · `:157` no-op macro `send_telemetry_from_app_ctx`
+
+**(b) warpui_core record layer — `crates/warpui_core/src/telemetry/`:**
+- `mod.rs:17` macro `record_telemetry_from_ctx` · `mod.rs:36` macro `record_telemetry_on_executor`
+- `mod.rs:75` fn `record_event` (public) · `event_store.rs:18` struct `EventStore` (queue) · `event_store.rs:27` struct `Event` (exported via `mod.rs:7`)
+
+**(c) app dispatch infra — `app/src/server/telemetry/`:**
+- `collector.rs:35` struct `TelemetryCollector` · timers `collector.rs:170` `schedule_send_active_usage_event`, `collector.rs:200` `schedule_event_queue_flush`
+- `mod.rs:50` struct `TelemetryApi` (collector module re-export `mod.rs:1`)
+- `rudder_message.rs` `Message`/message types · `context.rs:14` `TELEMETRY_CONTEXT` static + `:30` `TelemetryContext` · `secret_redaction.rs:34` `TELEMETRY_SECRETS_REGEX` + `:49` `update_telemetry_secrets_regex`
+- `macros.rs:9/14/19` 3 no-op macros `send_telemetry_sync_from_ctx`/`send_telemetry_sync_from_app_ctx`/`send_telemetry_on_executor`
+- ServerApi: `server_api.rs:1087` `flush_telemetry_events`, `:1110` `persist_telemetry_events`
+
+**(d) bootstrap wiring — `app/src/lib.rs`:**
+- `:283` `TelemetryCollector` import · `:1544` `TelemetryCollector::new` instantiation · `:1546` `.initialize_telemetry_collection` call
+
+**Then cleanup:** delete the 5 now-empty no-op send-macros (2 warp_core + 3 app/macros.rs) + the ~15 dead `dead_code` payload structs remaining in `app/src/server/telemetry/events.rs`.
+
+Total: ~19 defs + 5 wiring sites. Order: delete defs → cargo-check enumerates breaks → fix → repeat to 0 → re-verify 4 gates.
+
+---
+
 ## 1. Telemetry — REMOVE ALL (user mandate)
 
 | Finding | Location | Size | Difficulty | Why |
