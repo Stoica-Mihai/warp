@@ -30,9 +30,7 @@ use warpui::{
 };
 
 use crate::code::editor::{add_color, remove_color};
-use crate::code_review::telemetry_event::{
-    CodeReviewTelemetryEvent, GitDialogStatus, GitOperationKind,
-};
+use crate::code_review::telemetry_event::GitOperationKind;
 use crate::settings::AISettings;
 #[cfg(feature = "local_tty")]
 use crate::terminal::local_shell::LocalShellState;
@@ -795,7 +793,7 @@ impl TypedActionView for GitDialog {
         match action {
             GitDialogAction::Cancel => {
                 if !self.loading {
-                    let operation = match &self.mode {
+                    let _operation = match &self.mode {
                         GitDialogMode::Commit(state) => match state.intent {
                             CommitIntent::CommitOnly => GitOperationKind::CommitOnly,
                             CommitIntent::CommitAndPush => GitOperationKind::CommitAndPush,

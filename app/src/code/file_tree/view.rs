@@ -44,8 +44,6 @@ use crate::code::buffer_location::LocalOrRemotePath;
 use crate::coding_panel_enablement_state::CodingPanelEnablementState;
 use crate::editor::{EditorOptions, EditorView, TextOptions};
 use crate::menu::{Menu, MenuItem, MenuItemFields};
-#[cfg(feature = "local_fs")]
-use crate::server::telemetry::CodePanelsFileOpenEntrypoint;
 use crate::terminal::input::InputDropTargetData;
 use crate::terminal::view::{TerminalDropTargetData, TerminalView};
 use crate::ui_components::icons::Icon;
@@ -2478,7 +2476,7 @@ impl FileTreeView {
             return;
         };
 
-        let is_directory = matches!(item, FileTreeItem::DirectoryHeader { .. });
+        let _is_directory = matches!(item, FileTreeItem::DirectoryHeader { .. });
         send_telemetry_from_ctx!(
             TelemetryEvent::FileTreeItemAttachedAsContext { is_directory },
             ctx

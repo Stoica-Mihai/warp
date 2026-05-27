@@ -1683,7 +1683,7 @@ impl TypedActionView for DisplayChip {
                         }
                         ctx.emit(PromptDisplayChipEvent::ToggleMenu { open: is_menu_open });
                         if is_menu_open {
-                            let is_udi_enabled = InputSettings::as_ref(ctx)
+                            let _is_udi_enabled = InputSettings::as_ref(ctx)
                                 .is_universal_developer_input_enabled(ctx);
 
                             send_telemetry_from_ctx!(
@@ -1718,7 +1718,7 @@ impl TypedActionView for DisplayChip {
                         }
                         ctx.emit(PromptDisplayChipEvent::ToggleMenu { open: is_menu_open });
                         if is_menu_open {
-                            let is_udi_enabled = InputSettings::as_ref(ctx)
+                            let _is_udi_enabled = InputSettings::as_ref(ctx)
                                 .is_universal_developer_input_enabled(ctx);
 
                             send_telemetry_from_ctx!(

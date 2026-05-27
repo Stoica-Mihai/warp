@@ -30,11 +30,6 @@ use crate::ai::blocklist::inline_action::inline_action_header::HeaderConfig;
 use crate::ai::blocklist::inline_action::requested_action::RenderableAction;
 use crate::ai::persisted_workspace::PersistedWorkspace;
 use crate::appearance::Appearance;
-use crate::code::lsp_telemetry::{LspEnablementSource, LspTelemetryEvent};
-use crate::server::telemetry::{
-    AgentModeSetupCodebaseContextActionType, AgentModeSetupCreateEnvironmentActionType,
-    AgentModeSetupProjectScopedRulesActionType,
-};
 use crate::ui_components::icons::Icon;
 use crate::view_components::DismissibleToast;
 use crate::workspace::ToastStack;
@@ -1107,7 +1102,7 @@ impl TypedActionView for InitStepBlock {
                 }
 
                 // Send telemetry for each enabled server
-                for server_type in enabled_servers.iter().chain(servers_to_install.iter()) {
+                for _server_type in enabled_servers.iter().chain(servers_to_install.iter()) {
                     send_telemetry_from_ctx!(
                         LspTelemetryEvent::ServerEnabled {
                             server_type: server_type.binary_name().to_string(),
@@ -1176,7 +1171,7 @@ impl TypedActionView for InitStepBlock {
                 });
             }
             InitProjectBlockAction::LinkFromExisting(path) => {
-                let file_name = path
+                let _file_name = path
                     .file_name()
                     .and_then(|name| name.to_str())
                     .unwrap_or("")

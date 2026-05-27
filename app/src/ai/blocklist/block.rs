@@ -146,7 +146,6 @@ use crate::ai::get_relevant_files::controller::{
 };
 #[cfg(feature = "local_fs")]
 use crate::ai::skills::SkillOpenOrigin;
-use crate::ai::skills::{SkillManager, SkillTelemetryEvent};
 use crate::ai::{AIRequestUsageModel, AIRequestUsageModelEvent};
 use crate::auth::AuthStateProvider;
 use crate::cloud_object::model::generic_string_model::GenericStringObjectId;
@@ -160,13 +159,12 @@ use crate::code_review::comments::{
     CommentId, CommentOrigin,
 };
 use crate::code_review::telemetry_event::CodeReviewPaneEntrypoint;
-use crate::code_review::CodeReviewTelemetryEvent;
 use crate::editor::InteractionState;
 use crate::notebooks::editor::model::FileLinkResolutionContext;
 use crate::notebooks::editor::view::{EditorViewEvent, RichTextEditorView};
 use crate::server::ids::SyncId;
 use crate::server::telemetry::{
-    AgentModeRewindEntrypoint, AutonomySettingToggleSource, InteractionSource,
+    AgentModeRewindEntrypoint, InteractionSource,
 };
 use crate::settings::{
     AISettings, AISettingsChangedEvent, AgentModeCodingPermissionsType, FontSettings,
@@ -1721,18 +1719,18 @@ impl AIBlock {
             self.time_to_last_token = Some(latency);
         }
 
-        let was_autodetected_ai_query = self.model.was_autodetected_ai_query(ctx);
-        let client_exchange_id = self.client_ids.client_exchange_id.to_string();
-        let conversation_id = self.client_ids.conversation_id;
-        let time_to_first_token_ms = self
+        let _was_autodetected_ai_query = self.model.was_autodetected_ai_query(ctx);
+        let _client_exchange_id = self.client_ids.client_exchange_id.to_string();
+        let _conversation_id = self.client_ids.conversation_id;
+        let _time_to_first_token_ms = self
             .time_to_first_token
             .get()
             .map(|duration| duration.num_milliseconds() as u128);
-        let time_to_last_token_ms = self
+        let _time_to_last_token_ms = self
             .time_to_last_token
             .map(|duration| duration.num_milliseconds() as u128);
         let status = self.model.status(ctx);
-        let is_udi_enabled = InputSettings::as_ref(ctx).is_universal_developer_input_enabled(ctx);
+        let _is_udi_enabled = InputSettings::as_ref(ctx).is_universal_developer_input_enabled(ctx);
 
         match status {
             AIBlockOutputStatus::Pending => {
@@ -1745,7 +1743,7 @@ impl AIBlock {
             }
             AIBlockOutputStatus::Complete { output } => {
                 let output = output.get();
-                let server_output_id = self.model.server_output_id(ctx);
+                let _server_output_id = self.model.server_output_id(ctx);
                 self.handle_updated_output(&output, ctx);
                 self.handle_complete_output(&output, ctx);
                 send_telemetry_from_ctx!(
@@ -1771,7 +1769,7 @@ impl AIBlock {
                 self.spawn_link_detection(ctx);
                 self.finish(FinishReason::Cancelled, ctx);
 
-                let server_output_id = self.model.server_output_id(ctx);
+                let _server_output_id = self.model.server_output_id(ctx);
                 send_telemetry_from_ctx!(
                     TelemetryEvent::AgentModeCreatedAIBlock {
                         client_exchange_id,
@@ -1788,7 +1786,7 @@ impl AIBlock {
                 );
             }
             AIBlockOutputStatus::Failed { error, .. } => {
-                let server_output_id = self.model.server_output_id(ctx);
+                let _server_output_id = self.model.server_output_id(ctx);
                 send_telemetry_from_ctx!(
                     TelemetryEvent::AgentModeCreatedAIBlock {
                         client_exchange_id,
@@ -3864,13 +3862,13 @@ impl AIBlock {
 
     pub fn dismiss_pending_suggested_prompt(
         &mut self,
-        interaction_source: InteractionSource,
+        _interaction_source: InteractionSource,
         ctx: &mut ViewContext<Self>,
     ) -> bool {
         let Some(suggested_prompt) = self.pending_unit_test_suggestion(ctx) else {
             return false;
         };
-        let identifiers = suggested_prompt.as_ref(ctx).identifiers().clone();
+        let _identifiers = suggested_prompt.as_ref(ctx).identifiers().clone();
 
         // Complete the suggest prompt executor with Cancelled so the async action
         // finishes cleanly (the action auto-executes and is no longer in pending_actions).
@@ -3901,7 +3899,7 @@ impl AIBlock {
     fn accept_unit_test_suggestion(
         &mut self,
         view: ViewHandle<SuggestedUnitTestsView>,
-        interaction_source: InteractionSource,
+        _interaction_source: InteractionSource,
         ctx: &mut ViewContext<Self>,
     ) -> bool {
         let Some(query) = view.as_ref(ctx).query() else {
@@ -3937,12 +3935,12 @@ impl AIBlock {
             view.set_is_hidden(true);
         });
 
-        let identifiers = view.as_ref(ctx).identifiers().clone();
+        let _identifiers = view.as_ref(ctx).identifiers().clone();
         let query = view.as_ref(ctx).query().unwrap_or_default();
 
         let should_collect_ugc =
             should_collect_ai_ugc_telemetry(ctx, PrivacySettings::as_ref(ctx).is_telemetry_enabled);
-        let redacted_query = if should_collect_ugc {
+        let _redacted_query = if should_collect_ugc {
             let mut redacted_query = query.clone();
             redact_secrets(&mut redacted_query);
             Some(redacted_query)
@@ -4505,11 +4503,11 @@ impl AIBlock {
             return;
         };
 
-        let raw_count = comments.len();
+        let _raw_count = comments.len();
         let pending = convert_insert_review_comments(comments);
-        let converted_count = pending.len();
+        let _converted_count = pending.len();
         let flattened = attach_pending_imported_comments(pending, &repo_location);
-        let thread_count = flattened.len();
+        let _thread_count = flattened.len();
 
         if !self.model.is_restored() {
             send_telemetry_from_ctx!(
@@ -6125,12 +6123,12 @@ impl TypedActionView for AIBlock {
             }
             AIBlockAction::OpenCitation(citation) => {
                 ctx.emit(AIBlockEvent::OpenCitation(citation.clone()));
-                let server_output_id = self
+                let _server_output_id = self
                     .model
                     .status(ctx)
                     .output_to_render()
                     .and_then(|output| output.get().server_output_id.clone());
-                if let Some(citation) = citation.for_telemetry(ctx) {
+                if let Some(_citation) = citation.for_telemetry(ctx) {
                     send_telemetry_from_ctx!(
                         TelemetryEvent::AgentModeOpenedCitation {
                             citation,
@@ -6423,7 +6421,7 @@ impl TypedActionView for AIBlock {
 
                 // Sends a telemetry event when a skill is opened from an 'open skill' button
                 if let CodeSource::Skill {
-                    reference, origin, ..
+                    reference: _, origin: _, ..
                 } = source
                 {
                     send_telemetry_from_ctx!(

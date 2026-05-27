@@ -19,7 +19,6 @@ use crate::ai::blocklist::context_model::block_context_from_terminal_model;
 use crate::ai::blocklist::{
     BlocklistAIActionEvent, BlocklistAIActionModel, BlocklistAIController, BlocklistAIHistoryEvent,
 };
-use crate::server::telemetry::{CLISubagentControlState};
 use crate::terminal::model::block::BlockId;
 use crate::terminal::model_events::{ModelEvent, ModelEventDispatcher};
 use crate::terminal::TerminalModel;
@@ -453,12 +452,12 @@ impl CLISubagentController {
 
         if active_block.toggle_subagent_response_visibility() {
             let conversation_id = active_block.ai_conversation_id();
-            let block_id = active_block.id().clone();
-            let is_hidden = active_block.should_hide_responses();
+            let _block_id = active_block.id().clone();
+            let _is_hidden = active_block.should_hide_responses();
 
             ctx.emit(CLISubagentEvent::ToggledHideResponses);
 
-            if let Some(conversation_id) = conversation_id {
+            if let Some(_conversation_id) = conversation_id {
                 send_telemetry_from_ctx!(
                     TelemetryEvent::CLISubagentResponsesToggled {
                         conversation_id,

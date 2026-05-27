@@ -813,10 +813,10 @@ fn search_availability_for_status(
 }
 
 fn emit_status_changed_telemetry(
-    update: RemoteCodebaseIndexStatusTelemetryUpdate,
-    mutation_kind: Option<RemoteCodebaseIndexUpdateOperation>,
-    source: RemoteCodebaseIndexStatusTelemetrySource,
-    ctx: &mut ModelContext<RemoteCodebaseIndexModel>,
+    _update: RemoteCodebaseIndexStatusTelemetryUpdate,
+    _mutation_kind: Option<RemoteCodebaseIndexUpdateOperation>,
+    _source: RemoteCodebaseIndexStatusTelemetrySource,
+    _ctx: &mut ModelContext<RemoteCodebaseIndexModel>,
 ) {
     send_telemetry_from_ctx!(
         TelemetryEvent::RemoteCodebaseIndexStatusChanged {
@@ -835,9 +835,9 @@ fn emit_status_changed_telemetry(
     );
 }
 fn emit_auto_index_requested_telemetry(
-    trigger: RemoteCodebaseAutoIndexTrigger,
+    _trigger: RemoteCodebaseAutoIndexTrigger,
     requested_count: usize,
-    ctx: &mut ModelContext<RemoteCodebaseIndexModel>,
+    _ctx: &mut ModelContext<RemoteCodebaseIndexModel>,
 ) {
     if requested_count == 0 {
         return;

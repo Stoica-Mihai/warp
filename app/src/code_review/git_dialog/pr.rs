@@ -19,9 +19,7 @@ use crate::code_review::git_dialog::{
     should_send_git_ops_ai_request, show_toast, user_facing_git_error, GitDialog, GitDialogAction,
     GitDialogEvent, GitDialogMode,
 };
-use crate::code_review::telemetry_event::{
-    CodeReviewTelemetryEvent, GitDialogStatus, GitOperationKind,
-};
+use crate::code_review::telemetry_event::GitDialogStatus;
 use crate::server::server_api::ai::AIClient;
 use crate::server::server_api::ServerApiProvider;
 use crate::ui_components::icons::Icon;
@@ -146,7 +144,7 @@ pub(super) fn start_confirm(me: &mut GitDialog, ctx: &mut ViewContext<GitDialog>
             }
         },
         move |_me, result, ctx| {
-            let (status, error) = match &result {
+            let (_status, _error) = match &result {
                 Ok(_) => (GitDialogStatus::Succeeded, None),
                 Err(err) => (GitDialogStatus::Failed, Some(err.to_string())),
             };

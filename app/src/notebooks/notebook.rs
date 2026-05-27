@@ -70,7 +70,7 @@ use crate::pane_group::{BackingView, PaneConfiguration, PaneEvent};
 use crate::server::cloud_objects::update_manager::{FetchSingleObjectOption, UpdateManager};
 use crate::server::ids::{ClientId, ServerId, SyncId};
 use crate::server::telemetry::{
-    CloudObjectTelemetryMetadata, NotebookActionEvent, NotebookTelemetryMetadata,
+    CloudObjectTelemetryMetadata, NotebookTelemetryMetadata,
     SharingDialogSource, TelemetryCloudObjectType,
 };
 use crate::settings::app_installation_detection::{
@@ -867,7 +867,7 @@ impl NotebookView {
 
         if self.send_edit_telemetry {
             let content = self.content(ctx);
-            let delta = content.len().abs_diff(self.last_content_length);
+            let _delta = content.len().abs_diff(self.last_content_length);
             self.last_content_length = content.len();
             self.send_edit_telemetry = false;
 
@@ -1073,7 +1073,7 @@ impl NotebookView {
     }
 
     /// Send a [`NotebookTelemetryAction`] telemetry event.
-    fn send_telemetry_action(&self, action: NotebookTelemetryAction, ctx: &mut ViewContext<Self>) {
+    fn send_telemetry_action(&self, _action: NotebookTelemetryAction, _ctx: &mut ViewContext<Self>) {
         send_telemetry_from_ctx!(
             TelemetryEvent::NotebookAction(NotebookActionEvent {
                 action,

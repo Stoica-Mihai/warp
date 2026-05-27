@@ -402,7 +402,7 @@ impl CommandSearchView {
     }
 
     fn blur(&self, ctx: &mut ViewContext<Self>) {
-        let buffer_length = self.search_bar.as_ref(ctx).query(ctx).len();
+        let _buffer_length = self.search_bar.as_ref(ctx).query(ctx).len();
         send_telemetry_from_ctx!(
             TelemetryEvent::CommandSearchExited {
                 query_filter: self.active_query_filter(ctx),
@@ -421,7 +421,7 @@ impl CommandSearchView {
     ) {
         match event {
             SearchBarEvent::Close => {
-                let buffer_length = self.search_bar.as_ref(ctx).query(ctx).len();
+                let _buffer_length = self.search_bar.as_ref(ctx).query(ctx).len();
                 send_telemetry_from_ctx!(
                     TelemetryEvent::CommandSearchExited {
                         query_filter: self.active_query_filter(ctx),
@@ -432,7 +432,7 @@ impl CommandSearchView {
                 self.close(ctx);
             }
             // ctrl-c should close the command search view
-            SearchBarEvent::BufferCleared { buffer_len } => {
+            SearchBarEvent::BufferCleared { buffer_len: _ } => {
                 send_telemetry_from_ctx!(
                     TelemetryEvent::CommandSearchExited {
                         query_filter: self.active_query_filter(ctx),
@@ -449,7 +449,7 @@ impl CommandSearchView {
                 self.state.list_state.scroll_to(*index);
                 ctx.notify();
             }
-            SearchBarEvent::QueryFilterChanged { new_filter } => {
+            SearchBarEvent::QueryFilterChanged { new_filter: _ } => {
                 send_telemetry_from_ctx!(
                     TelemetryEvent::CommandSearchFilterChanged {
                         new_filter: *new_filter
@@ -523,7 +523,7 @@ impl CommandSearchView {
 
             // Recompute the result index - the incoming index is the index in the
             // uniform list, but what we want is the "distance from first result".
-            let result_index = match self.search_bar_state.as_ref(ctx).query_result_renderers() {
+            let _result_index = match self.search_bar_state.as_ref(ctx).query_result_renderers() {
                 Some(renderers) => renderers.len() - result_index - 1,
                 None => result_index,
             };

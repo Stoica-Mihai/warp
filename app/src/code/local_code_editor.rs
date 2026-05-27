@@ -88,7 +88,6 @@ use super::editor::scroll::{ScrollPosition, ScrollTrigger};
 use super::editor::view::{CodeEditorEvent, CodeEditorView};
 use super::find_references_view::{FindReferencesView, FindReferencesViewEvent};
 use super::language_server_extension::ProcessedDiagnostic;
-use super::lsp_telemetry::LspTelemetryEvent;
 use super::ImmediateSaveError;
 
 type SaveCallback =
@@ -735,7 +734,7 @@ impl LocalCodeEditorView {
         request_offset: CharOffset,
         ctx: &mut ViewContext<Self>,
     ) {
-        if let Some(server) = &self.lsp_server {
+        if let Some(_server) = &self.lsp_server {
             send_telemetry_from_ctx!(
                 LspTelemetryEvent::FindReferencesShown {
                     server_type: server.as_ref(ctx).server_name(),
@@ -1997,9 +1996,9 @@ impl LocalCodeEditorView {
         self.call_goto_definition(
             lsp_position,
             move |_me, result, ctx| {
-                let had_result = matches!(&result, Ok(locations) if !locations.is_empty());
+                let _had_result = matches!(&result, Ok(locations) if !locations.is_empty());
 
-                if let Some(server_type) = server_type_name {
+                if let Some(_server_type) = server_type_name {
                     send_telemetry_from_ctx!(
                         LspTelemetryEvent::GotoDefinition {
                             server_type,

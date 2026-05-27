@@ -17,7 +17,7 @@ pub(crate) use telemetry::MalformedFinalLineProxyEvent;
 #[allow(unused_imports)]
 pub use telemetry::{EditAcceptAndContinueClickedEvent, EditAcceptClickedEvent};
 pub use telemetry::{
-    EditReceivedEvent, EditResolvedEvent, EditStats, RequestFileEditsFormatKind,
+    EditResolvedEvent, EditStats, RequestFileEditsFormatKind,
     RequestFileEditsTelemetryEvent,
 };
 use vec1::{vec1, Vec1};
@@ -35,7 +35,7 @@ use crate::ai::agent::{
 use crate::ai::blocklist::inline_action::code_diff_view::{
     CodeDiffView, CodeDiffViewEvent, DiffSessionType, FileDiff,
 };
-use crate::ai::blocklist::{BlocklistAIPermissions, RequestedEditResolution};
+use crate::ai::blocklist::BlocklistAIPermissions;
 use crate::ai::paths::host_native_absolute_path;
 use crate::terminal::model::session::active_session::ActiveSession;
 use crate::terminal::model::session::SessionType;
@@ -159,7 +159,7 @@ impl RequestFileEditsExecutor {
             ));
         }
 
-        let identifiers = self
+        let _identifiers = self
             .generate_ai_identifiers(&input.conversation_id, id, ctx)
             .unwrap_or_else(|| AIIdentifiers {
                 client_conversation_id: Some(input.conversation_id),
@@ -204,7 +204,7 @@ impl RequestFileEditsExecutor {
                     return;
                 }
 
-                let passive_diff = BlocklistAIHistoryModel::as_ref(ctx)
+                let _passive_diff = BlocklistAIHistoryModel::as_ref(ctx)
                     .is_entirely_passive_conversation(&input.conversation_id);
                 send_telemetry_from_ctx!(
                     RequestFileEditsTelemetryEvent::EditResolved(EditResolvedEvent {

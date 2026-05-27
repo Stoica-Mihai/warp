@@ -21,15 +21,13 @@ use std::sync::Arc;
 
 use chrono::Local;
 pub(crate) use execute::{
-    apply_edits, coerce_integer_args, FileReadResult, MalformedFinalLineProxyEvent,
+    apply_edits, coerce_integer_args, FileReadResult,
 };
 #[cfg(test)]
 pub(crate) use execute::{compose_run_agents_child_prompt, run_agents_to_start_agent_mode};
 pub use execute::{
-    read_local_file_context, EditAcceptAndContinueClickedEvent, EditAcceptClickedEvent,
-    EditResolvedEvent, EditStats, NewConversationDecision, PromptSuggestionExecutor,
-    ReadFileContextResult, RequestFileEditsExecutor, RequestFileEditsFormatKind,
-    RequestFileEditsTelemetryEvent, RunAgentsExecutor, RunAgentsExecutorEvent,
+    read_local_file_context, NewConversationDecision, PromptSuggestionExecutor,
+    ReadFileContextResult, RequestFileEditsExecutor, RequestFileEditsFormatKind, RunAgentsExecutor, RunAgentsExecutorEvent,
     RunAgentsSpawningSnapshot, ShellCommandExecutor, ShellCommandExecutorEvent, StartAgentExecutor,
     StartAgentExecutorEvent, StartAgentRequest, StartAgentRequestId,
 };
@@ -1111,7 +1109,7 @@ impl BlocklistAIActionModel {
             pending_action.action,
             AIAgentActionType::RequestComputerUse(_)
         ) {
-            let server_conversation_id = BlocklistAIHistoryModel::as_ref(ctx)
+            let _server_conversation_id = BlocklistAIHistoryModel::as_ref(ctx)
                 .conversation(&conversation_id)
                 .and_then(|c| c.server_conversation_token())
                 .map(|t| t.as_str().to_string());

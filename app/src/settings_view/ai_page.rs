@@ -131,10 +131,6 @@ use crate::ai::{AIRequestUsageModel, AIRequestUsageModelEvent};
 use crate::appearance::Appearance;
 use crate::editor::{EditorView, Event as EditorEvent, TextOptions};
 use crate::menu::{MenuItem, MenuItemFields};
-use crate::server::telemetry::{
-    AgentModeAutoDetectionSettingOrigin, AutonomySettingToggleSource,
-    ToggleCodeSuggestionsSettingSource,
-};
 use crate::settings::{AISettings, VoiceInputToggleKey};
 use crate::ui_components::blended_colors;
 use crate::ui_components::icons::Icon;
@@ -2714,7 +2710,7 @@ impl TypedActionView for AISettingsPageView {
                 match AISettings::handle(ctx).update(ctx, |settings, ctx| {
                     settings.is_any_ai_enabled.toggle_and_save_value(ctx)
                 }) {
-                    Ok(new_value) => {
+                    Ok(_new_value) => {
                         send_telemetry_from_ctx!(
                             TelemetryEvent::ToggleGlobalAI {
                                 is_ai_enabled: new_value,
@@ -2734,7 +2730,7 @@ impl TypedActionView for AISettingsPageView {
                         .is_active_ai_enabled_internal
                         .toggle_and_save_value(ctx)
                 }) {
-                    Ok(new_value) => {
+                    Ok(_new_value) => {
                         send_telemetry_from_ctx!(
                             TelemetryEvent::ToggleActiveAI {
                                 is_active_ai_enabled: new_value,
@@ -2754,7 +2750,7 @@ impl TypedActionView for AISettingsPageView {
                         .intelligent_autosuggestions_enabled_internal
                         .toggle_and_save_value(ctx)
                 }) {
-                    Ok(new_value) => {
+                    Ok(_new_value) => {
                         send_telemetry_from_ctx!(
                             TelemetryEvent::ToggleIntelligentAutosuggestionsSetting {
                                 is_intelligent_autosuggestions_enabled: new_value,
@@ -2777,7 +2773,7 @@ impl TypedActionView for AISettingsPageView {
                         .prompt_suggestions_enabled_internal
                         .toggle_and_save_value(ctx)
                 }) {
-                    Ok(new_value) => {
+                    Ok(_new_value) => {
                         send_telemetry_from_ctx!(
                             TelemetryEvent::TogglePromptSuggestionsSetting {
                                 is_prompt_suggestions_enabled: new_value,
@@ -2797,7 +2793,7 @@ impl TypedActionView for AISettingsPageView {
                         .code_suggestions_enabled_internal
                         .toggle_and_save_value(ctx)
                 }) {
-                    Ok(new_value) => {
+                    Ok(_new_value) => {
                         send_telemetry_from_ctx!(
                             TelemetryEvent::ToggleCodeSuggestionsSetting {
                                 source: ToggleCodeSuggestionsSettingSource::Settings,
@@ -2818,7 +2814,7 @@ impl TypedActionView for AISettingsPageView {
                         .natural_language_autosuggestions_enabled_internal
                         .toggle_and_save_value(ctx)
                 }) {
-                    Ok(new_value) => {
+                    Ok(_new_value) => {
                         send_telemetry_from_ctx!(
                             TelemetryEvent::ToggleNaturalLanguageAutosuggestionsSetting {
                                 is_natural_language_autosuggestions_enabled: new_value,
@@ -2865,7 +2861,7 @@ impl TypedActionView for AISettingsPageView {
                         .git_operations_autogen_enabled_internal
                         .toggle_and_save_value(ctx)
                 }) {
-                    Ok(new_value) => {
+                    Ok(_new_value) => {
                         send_telemetry_from_ctx!(
                             TelemetryEvent::ToggleGitOperationsAutogenSetting {
                                 is_git_operations_autogen_enabled: new_value,
@@ -2885,7 +2881,7 @@ impl TypedActionView for AISettingsPageView {
                         .ai_autodetection_enabled_internal
                         .toggle_and_save_value(ctx)
                 }) {
-                    Ok(new_value) => {
+                    Ok(_new_value) => {
                         send_telemetry_from_ctx!(
                             TelemetryEvent::AgentModeToggleAutoDetectionSetting {
                                 is_autodetection_enabled: new_value,
@@ -2919,7 +2915,7 @@ impl TypedActionView for AISettingsPageView {
                         .should_render_cli_agent_footer
                         .toggle_and_save_value(ctx)
                 }) {
-                    Ok(new_value) => {
+                    Ok(_new_value) => {
                         send_telemetry_from_ctx!(
                             TelemetryEvent::ToggleCLIAgentToolbarSetting {
                                 is_enabled: new_value,
@@ -2961,7 +2957,7 @@ impl TypedActionView for AISettingsPageView {
                         .should_render_use_agent_footer_for_user_commands
                         .toggle_and_save_value(ctx)
                 }) {
-                    Ok(new_value) => {
+                    Ok(_new_value) => {
                         send_telemetry_from_ctx!(
                             TelemetryEvent::ToggleUseAgentToolbarSetting {
                                 is_enabled: new_value,
@@ -2979,7 +2975,7 @@ impl TypedActionView for AISettingsPageView {
                 match CodeSettings::handle(ctx).update(ctx, |settings, ctx| {
                     settings.codebase_context_enabled.toggle_and_save_value(ctx)
                 }) {
-                    Ok(new_value) => {
+                    Ok(_new_value) => {
                         send_telemetry_from_ctx!(
                             TelemetryEvent::ToggleCodebaseContext {
                                 is_codebase_context_enabled: new_value
@@ -2999,7 +2995,7 @@ impl TypedActionView for AISettingsPageView {
                         .voice_input_enabled_internal
                         .toggle_and_save_value(ctx)
                 }) {
-                    Ok(new_value) => {
+                    Ok(_new_value) => {
                         send_telemetry_from_ctx!(
                             TelemetryEvent::ToggleVoiceInputSetting {
                                 is_voice_input_enabled: new_value,
@@ -3043,7 +3039,7 @@ impl TypedActionView for AISettingsPageView {
                     .show_agent_tips
                     .toggle_and_save_value(ctx)
                 {
-                    Ok(new_value) => {
+                    Ok(_new_value) => {
                         send_telemetry_from_ctx!(
                             TelemetryEvent::ToggleShowAgentTips {
                                 is_enabled: new_value,

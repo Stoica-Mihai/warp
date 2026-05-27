@@ -14,12 +14,10 @@ use warpui::ui_components::button::ButtonVariant;
 use warpui::ui_components::components::{Coords, UiComponent as _, UiComponentStyles};
 use warpui::{AppContext, Element, Entity, SingletonEntity as _, View, ViewContext, ViewHandle};
 
-use crate::features::FeatureFlag;
 use crate::menu::MenuItemFields;
 use crate::modal::{Modal, ModalEvent, MODAL_PADDING, MODAL_WIDTH};
 use crate::pricing::{PricingInfoModel, PricingInfoModelEvent};
 use crate::send_telemetry_from_ctx;
-use crate::server::telemetry::{AutoReloadModalAction};
 use crate::settings_view::create_discount_badge;
 use crate::ui_components::blended_colors;
 use crate::view_components::{Dropdown, ToastFlavor};
@@ -48,7 +46,7 @@ pub struct EnableAutoReloadModal {
 }
 
 /// Called when user clicks the 'x' OR cancel button
-fn send_auto_reload_dismissed_telemetry<V: View>(ctx: &mut ViewContext<V>) {
+fn send_auto_reload_dismissed_telemetry<V: View>(_ctx: &mut ViewContext<V>) {
     send_telemetry_from_ctx!(
         TelemetryEvent::AutoReloadModalClosed {
             action: AutoReloadModalAction::Dismissed,
@@ -82,7 +80,7 @@ impl EnableAutoReloadModalBody {
                             me.update_workspace_settings_loading = false;
 
                             // Emit telemetry for successful auto-reload enablement
-                            let selected_credits = me
+                            let _selected_credits = me
                                 .addon_credits_options
                                 .get(me.selected_denomination_index)
                                 .map(|option| option.credits);

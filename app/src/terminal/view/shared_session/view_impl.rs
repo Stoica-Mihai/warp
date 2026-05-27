@@ -559,7 +559,7 @@ impl TerminalView {
             scrollback_type,
             source,
         });
-        if let Some(action_source) = action_source {
+        if let Some(_action_source) = action_source {
             send_telemetry_from_ctx!(
                 TelemetryEvent::StartedSharingCurrentSession {
                     includes_scrollback: !matches!(
@@ -643,7 +643,7 @@ impl TerminalView {
 
     fn stop_sharing_session_for_reason(
         &mut self,
-        source: SharedSessionActionSource,
+        _source: SharedSessionActionSource,
         reason: SessionEndedReason,
         ctx: &mut ViewContext<Self>,
     ) {
@@ -1395,8 +1395,8 @@ impl TerminalView {
 
     pub fn open_shared_session_on_desktop(
         &mut self,
-        source: SharedSessionActionSource,
-        ctx: &mut ViewContext<Self>,
+        _source: SharedSessionActionSource,
+        _ctx: &mut ViewContext<Self>,
     ) {
         #[cfg(target_family = "wasm")]
         {
@@ -1504,7 +1504,7 @@ impl TerminalView {
     // logic in TerminalView and Workspace (when starting a share).
     pub fn copy_shared_session_link(
         &mut self,
-        source: SharedSessionActionSource,
+        _source: SharedSessionActionSource,
         ctx: &mut ViewContext<Self>,
     ) {
         let manager = Manager::as_ref(ctx);

@@ -505,7 +505,7 @@ impl AIExecutionProfilesModel {
             ctx,
         );
 
-        if let Some(model_id) = &llm_id {
+        if let Some(_model_id) = &llm_id {
             send_telemetry_from_ctx!(
                 TelemetryEvent::AIExecutionProfileModelSelected {
                     model_type: "base".to_string(),
@@ -534,7 +534,7 @@ impl AIExecutionProfilesModel {
             ctx,
         );
 
-        if let Some(model_id) = &model_id {
+        if let Some(_model_id) = &model_id {
             send_telemetry_from_ctx!(
                 TelemetryEvent::AIExecutionProfileModelSelected {
                     model_type: "coding".to_string(),
@@ -563,7 +563,7 @@ impl AIExecutionProfilesModel {
             ctx,
         );
 
-        if let Some(model_id) = &model_id {
+        if let Some(_model_id) = &model_id {
             send_telemetry_from_ctx!(
                 TelemetryEvent::AIExecutionProfileModelSelected {
                     model_type: "cli_agent".to_string(),
@@ -592,7 +592,7 @@ impl AIExecutionProfilesModel {
             ctx,
         );
 
-        if let Some(model_id) = &model_id {
+        if let Some(_model_id) = &model_id {
             send_telemetry_from_ctx!(
                 TelemetryEvent::AIExecutionProfileModelSelected {
                     model_type: "computer_use".to_string(),
@@ -626,7 +626,7 @@ impl AIExecutionProfilesModel {
                 return;
             };
             let llm_preferences = LLMPreferences::as_ref(ctx);
-            let model_info = profile
+            let _model_info = profile
                 .data()
                 .base_model
                 .as_ref()

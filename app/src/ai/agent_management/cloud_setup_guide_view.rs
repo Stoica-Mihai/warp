@@ -20,7 +20,7 @@ use warpui::text_layout::TextStyle;
 use warpui::ui_components::components::{UiComponent, UiComponentStyles};
 use warpui::{AppContext, Entity, SingletonEntity, TypedActionView, View, ViewContext, ViewHandle};
 
-use crate::ai::agent_management::telemetry::{AgentManagementTelemetryEvent, SetupGuideStep};
+use crate::ai::agent_management::telemetry::SetupGuideStep;
 use crate::ai::blocklist::code_block::{
     render_code_block_plain, CodeBlockOptions, CodeSnippetButtonHandles,
 };
@@ -637,7 +637,7 @@ impl TypedActionView for CloudSetupGuideView {
 
     fn handle_action(&mut self, action: &Self::Action, ctx: &mut ViewContext<Self>) {
         match action {
-            CloudSetupGuideAction::CopyCode { code, step } => {
+            CloudSetupGuideAction::CopyCode { code, step: _ } => {
                 send_telemetry_from_ctx!(
                     AgentManagementTelemetryEvent::SetupGuideStepCopy { step: *step },
                     ctx
@@ -645,7 +645,7 @@ impl TypedActionView for CloudSetupGuideView {
                 ctx.clipboard()
                     .write(ClipboardContent::plain_text(code.clone()));
             }
-            CloudSetupGuideAction::RunWorkflow { workflow, step } => {
+            CloudSetupGuideAction::RunWorkflow { workflow, step: _ } => {
                 send_telemetry_from_ctx!(
                     AgentManagementTelemetryEvent::SetupGuideStepRun { step: *step },
                     ctx

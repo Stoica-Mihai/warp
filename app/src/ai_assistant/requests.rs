@@ -16,7 +16,6 @@ use crate::auth::AuthStateProvider;
 use crate::send_telemetry_from_ctx;
 use crate::server::server_api::ai::AIClient;
 use crate::server::server_api::ServerApi;
-use crate::server::telemetry::{WarpAIRequestResult};
 use crate::workspaces::user_workspaces::UserWorkspaces;
 
 /// The key for the corresponding entry in UserDefaults.
@@ -230,7 +229,7 @@ impl Requests {
                             model.current_transcript_summarized |= transcript_summarized;
 
 
-                            let req_latency = end_time.signed_duration_since(start_time).num_milliseconds();
+                            let _req_latency = end_time.signed_duration_since(start_time).num_milliseconds();
                             send_telemetry_from_ctx!(
                                 TelemetryEvent::WarpAIRequestIssued { result: WarpAIRequestResult::Succeeded { latency_ms: req_latency, truncated }},
                                 ctx

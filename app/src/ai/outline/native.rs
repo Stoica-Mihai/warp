@@ -228,7 +228,7 @@ impl RepoOutlines {
                     // The abort handle doesn't always abort.
                     if me.should_build_outlines(ctx) {
                         match res {
-                            Ok((canonicalized_path, outline, parse_duration)) => {
+                            Ok((canonicalized_path, outline, _parse_duration)) => {
                                 send_telemetry_from_ctx!(
                                     TelemetryEvent::RepoOutlineConstructionSuccess {
                                         total_parse_seconds: parse_duration.as_secs() as usize,

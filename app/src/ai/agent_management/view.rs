@@ -50,9 +50,6 @@ use crate::ai::agent_management::cloud_setup_guide_view::{
 use crate::ai::agent_management::details_action_buttons::{
     ActionButtonsConfig, AgentDetailsButtonEvent, ConversationActionButtonsRow,
 };
-use crate::ai::agent_management::telemetry::{
-    AgentManagementTelemetryEvent, ArtifactType, FilterType, OpenedFrom,
-};
 use crate::ai::ambient_agents::{cancel_task_with_toast, AgentSource};
 use crate::ai::artifacts::{Artifact, ArtifactButtonsRow, ArtifactButtonsRowEvent};
 use crate::ai::blocklist::format_credits;
@@ -1145,7 +1142,7 @@ impl AgentManagementView {
             }
             AgentDetailsButtonEvent::CopyLink { link } => {
                 match item_id {
-                    ManagementCardItemId::Conversation(conversation_id) => {
+                    ManagementCardItemId::Conversation(_conversation_id) => {
                         send_telemetry_from_ctx!(
                             AgentManagementTelemetryEvent::ConversationLinkCopied {
                                 conversation_id: conversation_id.to_string(),
@@ -1154,7 +1151,7 @@ impl AgentManagementView {
                             ctx
                         );
                     }
-                    ManagementCardItemId::AmbientRun(task_id) => {
+                    ManagementCardItemId::AmbientRun(_task_id) => {
                         send_telemetry_from_ctx!(
                             AgentManagementTelemetryEvent::SessionLinkCopied {
                                 task_id: task_id.to_string(),
@@ -2360,7 +2357,7 @@ impl TypedActionView for AgentManagementView {
                 };
 
                 match item_id {
-                    ManagementCardItemId::Conversation(conversation_id) => {
+                    ManagementCardItemId::Conversation(_conversation_id) => {
                         send_telemetry_from_ctx!(
                             AgentManagementTelemetryEvent::ConversationOpened {
                                 conversation_id: conversation_id.to_string(),
@@ -2369,7 +2366,7 @@ impl TypedActionView for AgentManagementView {
                             ctx
                         );
                     }
-                    ManagementCardItemId::AmbientRun(task_id) => {
+                    ManagementCardItemId::AmbientRun(_task_id) => {
                         send_telemetry_from_ctx!(
                             AgentManagementTelemetryEvent::CloudRunOpened {
                                 task_id: task_id.to_string(),

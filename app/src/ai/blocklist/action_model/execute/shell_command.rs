@@ -128,7 +128,7 @@ impl ShellCommandExecutor {
                     Some(self.terminal_view_id),
                     ctx,
                 );
-                if let CommandExecutionPermission::Allowed(reason) = autoexecution_permission {
+                if let CommandExecutionPermission::Allowed(_reason) = autoexecution_permission {
                     send_telemetry_from_ctx!(
                         TelemetryEvent::AutoexecutedAgentModeRequestedCommand { reason },
                         ctx

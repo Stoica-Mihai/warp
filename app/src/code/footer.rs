@@ -35,7 +35,6 @@ use crate::ai::persisted_workspace::PersistedWorkspaceEvent;
 use crate::ai::persisted_workspace::{
     LSPEnablementResultForFile, LspRepoStatus, PersistedWorkspace,
 };
-use crate::code::lsp_telemetry::{LspControlActionType, LspEnablementSource, LspTelemetryEvent};
 use crate::settings::AISettings;
 use crate::ui_components::blended_colors;
 #[cfg(feature = "local_fs")]
@@ -1829,7 +1828,7 @@ impl TypedActionView for CodeFooterView {
                         _ => None,
                     };
 
-                    if let Some(st) = server_type {
+                    if let Some(_st) = server_type {
                         send_telemetry_from_ctx!(
                             LspTelemetryEvent::ServerEnabled {
                                 server_type: st.binary_name().to_string(),
@@ -1855,7 +1854,7 @@ impl TypedActionView for CodeFooterView {
             }
             CodeFooterViewAction::OpenLogs => {
                 self.is_lsp_menu_open = false;
-                let server_name = self
+                let _server_name = self
                     .lsp_servers
                     .first()
                     .and_then(|w| w.upgrade(ctx))

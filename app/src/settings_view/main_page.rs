@@ -195,7 +195,7 @@ impl TypedActionView for MainSettingsPageView {
                 ctx.notify();
             }
             MainPageAction::ToggleSettingsSync => {
-                let new_value =
+                let _new_value =
                     CloudPreferencesSettings::handle(ctx).update(ctx, |prefs_settings, ctx| {
                         report_if_error!(prefs_settings
                             .settings_sync_enabled

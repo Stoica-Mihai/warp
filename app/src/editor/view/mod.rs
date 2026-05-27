@@ -3046,17 +3046,17 @@ impl EditorView {
             ctx.subscribe_to_view(
                 &ai_context_menu,
                 |me, _, event: &AIContextMenuEvent, ctx| {
-                    let is_udi_enabled =
+                    let _is_udi_enabled =
                         InputSettings::as_ref(ctx).is_universal_developer_input_enabled(ctx);
-                    let current_input_mode = if me.is_ai_input {
+                    let _current_input_mode = if me.is_ai_input {
                         InputType::AI
                     } else {
                         InputType::Shell
                     };
                     match event {
                         AIContextMenuEvent::Close {
-                            item_count,
-                            query_length,
+                            item_count: _,
+                            query_length: _,
                         } => {
                             send_telemetry_from_ctx!(
                                 TelemetryEvent::AtMenuInteracted {
@@ -3075,8 +3075,8 @@ impl EditorView {
                         }
                         AIContextMenuEvent::ResultAccepted {
                             action,
-                            item_count,
-                            query_length,
+                            item_count: _,
+                            query_length: _,
                         } => {
                             send_telemetry_from_ctx!(
                                 TelemetryEvent::AtMenuInteracted {
@@ -5199,7 +5199,7 @@ impl EditorView {
             return;
         }
 
-        let is_udi_enabled = InputSettings::as_ref(ctx).is_universal_developer_input_enabled(ctx);
+        let _is_udi_enabled = InputSettings::as_ref(ctx).is_universal_developer_input_enabled(ctx);
 
         send_telemetry_from_ctx!(
             TelemetryEvent::AttachedImagesToAgentModeQuery {

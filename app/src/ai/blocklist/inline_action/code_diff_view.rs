@@ -49,9 +49,7 @@ use super::malformed_line_heuristics::has_malformed_terminal_correction_signal;
 use crate::ai::agent::icons::{self, yellow_stop_icon};
 use crate::ai::agent::{AIAgentActionId, AIIdentifiers, FileEdit, FileLocations, ServerOutputId};
 use crate::ai::blocklist::action_model::{
-    AIActionStatus, BlocklistAIActionEvent, BlocklistAIActionModel,
-    EditAcceptAndContinueClickedEvent, EditAcceptClickedEvent, EditResolvedEvent, EditStats,
-    MalformedFinalLineProxyEvent, RequestFileEditsFormatKind, RequestFileEditsTelemetryEvent,
+    AIActionStatus, BlocklistAIActionEvent, BlocklistAIActionModel, RequestFileEditsFormatKind,
 };
 use crate::ai::blocklist::history_model::BlocklistAIHistoryModel;
 use crate::ai::blocklist::inline_action::inline_action_header::INLINE_ACTION_HORIZONTAL_PADDING;
@@ -65,8 +63,7 @@ use crate::ai::mcp::{mcp_provider_from_file_path, MCPProvider};
 use crate::ai::paths::host_native_absolute_path;
 use crate::ai::predict::prompt_suggestions::ACCEPT_PROMPT_SUGGESTION_KEYBINDING;
 use crate::ai::skills::{
-    icon_override_for_skill_name, render_skill_button, skill_path_from_file_path, SkillManager,
-    SkillOpenOrigin, SkillReference, SkillTelemetryEvent,
+    icon_override_for_skill_name, render_skill_button, skill_path_from_file_path, SkillManager, SkillReference,
 };
 use crate::code::buffer_location::LocalOrRemotePath;
 use crate::code::diff_viewer::{DiffViewer, DisplayMode};
@@ -79,9 +76,6 @@ use crate::menu::{Event as MenuEvent, Menu, MenuItemFields, MenuVariant};
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::pane_group::pane::{view, PaneId};
 use crate::pane_group::{BackingView, PaneEvent};
-use crate::server::telemetry::{
-    AgentModeCodeFileNavigationSource, ToggleCodeSuggestionsSettingSource,
-};
 use crate::settings::AISettings;
 use crate::terminal::input::SET_INPUT_MODE_AGENT_ACTION_NAME;
 use crate::terminal::ShellLaunchData;
@@ -650,7 +644,7 @@ impl CodeDiffView {
                 }
                 me.user_edited_file_contents = true;
 
-                let Some(output_id) = me.server_output_id() else {
+                let Some(_output_id) = me.server_output_id() else {
                     return;
                 };
 
@@ -2091,7 +2085,7 @@ impl CodeDiffView {
                 .update(ctx, |v, ctx| v.navigate_previous_diff_hunk(ctx)),
         };
 
-        if let Some(output_id) = self.server_output_id() {
+        if let Some(_output_id) = self.server_output_id() {
             send_telemetry_from_ctx!(
                 TelemetryEvent::AgentModeCodeDiffHunksNavigated { output_id },
                 ctx
@@ -2124,7 +2118,7 @@ impl CodeDiffView {
         });
         ctx.notify();
 
-        if let Some(output_id) = self.server_output_id() {
+        if let Some(_output_id) = self.server_output_id() {
             send_telemetry_from_ctx!(
                 TelemetryEvent::AgentModeCodeFilesNavigated {
                     output_id,
@@ -2238,10 +2232,10 @@ impl CodeDiffView {
     /// Consolidates the common telemetry logic for reject operations.
     fn send_telemetry_for_edit_resolution(
         &self,
-        response: RequestedEditResolution,
+        _response: RequestedEditResolution,
         ctx: &mut ViewContext<Self>,
     ) {
-        let (lines_added, lines_removed) = self.pending_diffs_line_counts(ctx);
+        let (_lines_added, _lines_removed) = self.pending_diffs_line_counts(ctx);
         send_telemetry_from_ctx!(
             RequestFileEditsTelemetryEvent::EditResolved(EditResolvedEvent {
                 identifiers: self.identifiers.clone(),
@@ -2782,7 +2776,7 @@ impl TypedActionView for CodeDiffView {
                     self.selected_tab = *idx;
                     ctx.notify();
 
-                    if let Some(output_id) = self.server_output_id() {
+                    if let Some(_output_id) = self.server_output_id() {
                         send_telemetry_from_ctx!(
                             TelemetryEvent::AgentModeCodeFilesNavigated {
                                 output_id,
@@ -2824,7 +2818,7 @@ impl TypedActionView for CodeDiffView {
                 });
                 ctx.notify();
 
-                if let Ok(checked) = checked {
+                if let Ok(_checked) = checked {
                     send_telemetry_from_ctx!(
                         TelemetryEvent::ToggleCodeSuggestionsSetting {
                             source: ToggleCodeSuggestionsSettingSource::Speedbump,

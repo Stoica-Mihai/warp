@@ -1,91 +1,25 @@
-use std::collections::HashSet;
-use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
-use session_sharing_protocol::common::{ParticipantId, Role, SessionId as SharedSessionId};
-use session_sharing_protocol::sharer::{SessionEndedReason, SessionSourceType};
-use strum_macros::{EnumDiscriminants, EnumIter};
-use warp_completer::completer::MatchType;
-use warp_core::command::ExitCode;
+use session_sharing_protocol::common::SessionId as SharedSessionId;
 use warp_core::interval_timer::TimingDataPoint;
 use warp_core::telemetry::{
-    EnablementState, TelemetryEvent as TelemetryEventTrait, TelemetryEventDesc,
+    TelemetryEvent as TelemetryEventTrait, TelemetryEventDesc,
 };
-use warpui::keymap::Keystroke;
-use warpui::notification::{NotificationSendError, RequestPermissionsOutcome};
-use warpui::rendering::ThinStrokes;
 
-use crate::ai::agent::api::ServerConversationToken;
-use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::{
-    AIAgentActionId, AIAgentExchangeId, AIAgentInput as FullAIAgentInput, AIIdentifiers,
-    EntrypointType, PassiveSuggestionTrigger, ServerOutputId, SuggestedLoggingId,
+    AIAgentActionId, AIAgentInput as FullAIAgentInput, PassiveSuggestionTrigger,
 };
 use crate::ai::agent_management::notifications::NotificationSourceAgent;
-use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::blocklist::agent_view::AgentViewEntryOrigin;
-use crate::ai::blocklist::{
-    AIBlockResponseRating, CommandExecutionPermissionAllowedReason, InputType,
-    InputTypeAutoDetectionSource,
-};
-use crate::ai::execution_profiles::AskUserQuestionPermission;
-use crate::ai::mcp::TemplateVariable;
-use crate::ai::predict::generate_ai_input_suggestions::{
-    GenerateAIInputSuggestionsRequest, GenerateAIInputSuggestionsResponseV2,
-};
-use crate::ai::predict::next_command_model::HistoryBasedAutosuggestionState;
-use crate::auth::auth_manager::LoginGatedFeature;
-use crate::channel::Channel;
 use crate::cloud_object::model::generic_string_model::GenericStringObjectId;
 use crate::cloud_object::{GenericStringObjectFormat, ObjectType, Space};
-#[cfg(feature = "local_fs")]
-use crate::code::editor_management::CodeSource;
-use crate::drive::{CloudObjectTypeAndId, DriveSortOrder};
-use crate::features::FeatureFlag;
-use crate::launch_configs::save_modal::SaveState;
+use crate::drive::CloudObjectTypeAndId;
 use crate::notebooks::telemetry::NotebookTelemetryAction;
 use crate::notebooks::{NotebookId, NotebookLocation};
-use crate::palette::PaletteMode;
-use crate::pane_group::PaneDragDropLocation;
-use crate::prompt::editor_modal::OpenSource as PromptEditorOpenSource;
 use crate::search::command_search::searcher::CommandSearchItemAction;
-use crate::search::QueryFilter;
-use crate::server::block::DisplaySetting;
 use crate::server::ids::{ObjectUid, ServerId};
-use crate::settings::import::config::{ParsedTerminalSetting, SettingType};
-use crate::settings::import::model::TerminalType;
-use crate::settings::AgentModeCodingPermissionsType;
-use crate::settings_view::TeamsInviteOption;
-use crate::tab::TabTelemetryAction;
-use crate::terminal::block_list_viewport::InputMode;
-use crate::terminal::cli_agent_sessions::{CLIAgentInputEntrypoint, CLIAgentRichInputCloseReason};
-use crate::terminal::input::TelemetryInputSuggestionsMode;
-use crate::terminal::model::ansi::WarpificationUnavailableReason;
-use crate::terminal::model::block::BlockId;
 use crate::terminal::model::session::SessionId;
-use crate::terminal::model::terminal_model::{BlockSelectionCardinality, TmuxInstallationState};
-use crate::terminal::settings::AltScreenPaddingMode;
-use crate::terminal::shared_session::SharedSessionActionSource;
-use crate::terminal::shell::ShellType;
-use crate::terminal::ssh::ssh_detection::SshInteractiveSessionDetected;
-use crate::terminal::view::inline_banner::{
-    ZeroStatePromptSuggestionTriggeredFrom, ZeroStatePromptSuggestionType,
-};
-use crate::terminal::view::{
-    BlockEntity, BlockSelectionDetails, ContextMenuInfo, GridHighlightedLink,
-    NotificationsDiscoveryBannerAction, NotificationsErrorBannerAction, NotificationsTrigger,
-    PromptPart,
-};
-use crate::terminal::ShareBlockType;
-use crate::tips::WelcomeTipFeature;
-#[cfg(feature = "local_fs")]
-use crate::util::file::external_editor::settings::EditorLayout;
-#[cfg(feature = "local_fs")]
-use crate::util::openable_file_type::FileTarget;
 use crate::workflows::{WorkflowId, WorkflowSelectionSource, WorkflowSource};
-use crate::workspace::tab_settings::{TabCloseButtonPosition, WorkspaceDecorationVisibility};
-use crate::workspace::TabMovement;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct BootstrappingInfo {

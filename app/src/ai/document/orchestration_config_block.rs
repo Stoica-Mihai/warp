@@ -31,10 +31,7 @@ use crate::ai::blocklist::inline_action::orchestration_controls::{
     self as oc, AuthSecretSelection, OrchestrationControlAction, OrchestrationEditState,
     OrchestrationPickerHandles,
 };
-use crate::ai::blocklist::telemetry::{
-    AgentProposedConfigEvent, BlocklistOrchestrationTelemetryEvent, OrchestrationApprovalStatus,
-    OrchestrationExecutionModeKind, OrchestrationHarnessKind, PlanConfigApprovalToggledEvent,
-};
+use crate::ai::blocklist::telemetry::OrchestrationApprovalStatus;
 use crate::ai::blocklist::BlocklistAIHistoryEvent;
 use crate::ai::connected_self_hosted_workers::{
     ConnectedSelfHostedWorkersEvent, ConnectedSelfHostedWorkersModel,
@@ -891,8 +888,8 @@ impl TypedActionView for OrchestrationConfigBlockView {
 impl OrchestrationConfigBlockView {
     fn emit_plan_config_approval_toggled(
         &self,
-        status: OrchestrationApprovalStatus,
-        ctx: &mut ViewContext<Self>,
+        _status: OrchestrationApprovalStatus,
+        _ctx: &mut ViewContext<Self>,
     ) {
         send_telemetry_from_ctx!(
             BlocklistOrchestrationTelemetryEvent::PlanConfigApprovalToggled(
@@ -914,7 +911,7 @@ impl OrchestrationConfigBlockView {
         );
     }
 
-    fn emit_agent_proposed_config(&self, ctx: &mut ViewContext<Self>) {
+    fn emit_agent_proposed_config(&self, _ctx: &mut ViewContext<Self>) {
         send_telemetry_from_ctx!(
             BlocklistOrchestrationTelemetryEvent::AgentProposedConfig(AgentProposedConfigEvent {
                 conversation_id: self.conversation_id,

@@ -4,7 +4,7 @@ use warpui::{SingletonEntity, UpdateView};
 use super::{
     fork_label_for_query, mark_feature_used_and_write_to_user_defaults, AIAgentExchangeId,
     AIConversationId, AgentModeRewindEntrypoint, AppContext, BlocklistAIHistoryModel, ChannelState,
-    ClipboardContent, ContextMenuAction, ContextMenuInfo, ContextMenuState, ContextMenuType,
+    ClipboardContent, ContextMenuAction, ContextMenuState, ContextMenuType,
     EntityId, FeatureFlag, ForkAIConversationParams, ForkFromExchange,
     ForkedConversationDestination, MenuItem, MenuItemFields, RichContentLink,
     ServerConversationToken, ServerOutputId, ShareableObject, TerminalAction,

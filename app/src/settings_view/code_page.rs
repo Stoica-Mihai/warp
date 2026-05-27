@@ -53,7 +53,6 @@ use crate::ai::persisted_workspace::{
 };
 use crate::appearance::Appearance;
 use crate::code::buffer_location::LocalOrRemotePath;
-use crate::code::lsp_telemetry::{LspControlActionType, LspEnablementSource, LspTelemetryEvent};
 #[cfg(not(target_family = "wasm"))]
 use crate::remote_server::codebase_index_model::{
     RemoteCodebaseIndexModel, RemoteCodebaseIndexModelEvent, RemoteCodebaseIndexSettingsEntry,
@@ -688,7 +687,7 @@ impl TypedActionView for CodeSettingsPageView {
 
                 CodeSettings::handle(ctx).update(ctx, |settings, ctx| {
                     match settings.codebase_context_enabled.toggle_and_save_value(ctx) {
-                        Ok(new_value) => {
+                        Ok(_new_value) => {
                             send_telemetry_from_ctx!(
                                 TelemetryEvent::ToggleCodebaseContext {
                                     is_codebase_context_enabled: new_value
@@ -707,7 +706,7 @@ impl TypedActionView for CodeSettingsPageView {
             CodeSettingsPageAction::ToggleAutoIndexing => {
                 CodeSettings::handle(ctx).update(ctx, |settings, ctx| {
                     match settings.auto_indexing_enabled.toggle_and_save_value(ctx) {
-                        Ok(new_value) => {
+                        Ok(_new_value) => {
                             send_telemetry_from_ctx!(
                                 TelemetryEvent::ToggleAutoIndexing {
                                     is_autoindexing_enabled: new_value
@@ -802,7 +801,7 @@ impl TypedActionView for CodeSettingsPageView {
                 ctx.notify();
             }
             CodeSettingsPageAction::RestartLspServer { server } => {
-                let server_name = server.as_ref(ctx).server_name();
+                let _server_name = server.as_ref(ctx).server_name();
                 send_telemetry_from_ctx!(
                     LspTelemetryEvent::ControlAction {
                         action: LspControlActionType::Restart,

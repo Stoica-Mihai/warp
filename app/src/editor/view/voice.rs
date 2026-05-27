@@ -294,10 +294,10 @@ impl EditorView {
                     self.set_voice_input_state(VoiceInputState::Listening, ctx);
 
                     // Send telemetry for start
-                    let is_udi_enabled = crate::settings::InputSettings::handle(ctx)
+                    let _is_udi_enabled = crate::settings::InputSettings::handle(ctx)
                         .as_ref(ctx)
                         .is_universal_developer_input_enabled(ctx);
-                    let current_input_mode = if self.is_ai_input {
+                    let _current_input_mode = if self.is_ai_input {
                         InputType::AI
                     } else {
                         InputType::Shell
@@ -411,10 +411,10 @@ impl EditorView {
             return;
         }
 
-        let is_udi_enabled = crate::settings::InputSettings::handle(ctx)
+        let _is_udi_enabled = crate::settings::InputSettings::handle(ctx)
             .as_ref(ctx)
             .is_universal_developer_input_enabled(ctx);
-        let current_input_mode = if self.is_ai_input {
+        let _current_input_mode = if self.is_ai_input {
             InputType::AI
         } else {
             InputType::Shell
@@ -423,7 +423,7 @@ impl EditorView {
         match result {
             VoiceSessionResult::Audio {
                 wav_base64,
-                session_duration_ms,
+                session_duration_ms: _,
             } => {
                 send_telemetry_from_ctx!(
                     TelemetryEvent::VoiceInputUsed {
@@ -458,7 +458,7 @@ impl EditorView {
                 }
             }
             VoiceSessionResult::Aborted {
-                session_duration_ms,
+                session_duration_ms: _,
             } => {
                 log::info!("Aborted listening for voice input");
 

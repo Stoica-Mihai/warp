@@ -22,7 +22,7 @@ use crate::code_review::git_dialog::{
     GitDialogEvent, GitDialogMode,
 };
 use crate::code_review::telemetry_event::{
-    CodeReviewTelemetryEvent, GitDialogStatus, GitOperationKind,
+    GitDialogStatus, GitOperationKind,
 };
 use crate::editor::{
     EditorOptions, EditorView, Event as EditorEvent, InteractionState,
@@ -421,12 +421,12 @@ pub(super) fn start_confirm(me: &mut GitDialog, ctx: &mut ViewContext<GitDialog>
             anyhow::Ok(outcome)
         },
         move |_me, result, ctx| {
-            let operation = match intent {
+            let _operation = match intent {
                 CommitIntent::CommitOnly => GitOperationKind::CommitOnly,
                 CommitIntent::CommitAndPush => GitOperationKind::CommitAndPush,
                 CommitIntent::CommitAndCreatePr => GitOperationKind::CommitAndCreatePr,
             };
-            let (status, error) = match &result {
+            let (_status, _error) = match &result {
                 Ok(_) => (GitDialogStatus::Succeeded, None),
                 Err(err) => (GitDialogStatus::Failed, Some(err.to_string())),
             };

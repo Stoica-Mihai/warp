@@ -368,7 +368,7 @@ impl SuggestedRuleView {
             }
             EditorEvent::Edited(_) => {
                 // todo this seems noisy?
-                if let Some(SuggestedRuleAndId { rule, .. }) = &self.rule_and_id {
+                if let Some(SuggestedRuleAndId { rule: _, .. }) = &self.rule_and_id {
                     send_telemetry_from_ctx!(
                         TelemetryEvent::AISuggestedRuleContentChanged {
                             rule_id: rule.logging_id.clone(),

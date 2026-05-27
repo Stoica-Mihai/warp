@@ -43,13 +43,10 @@ use crate::server::cloud_objects::update_manager::{
     ObjectOperation, UpdateManager, UpdateManagerEvent,
 };
 use crate::server::ids::ServerId;
-use crate::server::telemetry::{
-    CloudObjectTelemetryMetadata, OpenedSharingDialogEvent, SharingDialogSource,
-};
+use crate::server::telemetry::SharingDialogSource;
 use crate::terminal::shared_session::permissions_manager::{
     SessionPermissionsEvent, SessionPermissionsManager,
 };
-use crate::terminal::shared_session::SharedSessionActionSource;
 use crate::terminal::TerminalView;
 use crate::ui_components::buttons::icon_button_with_color;
 use crate::ui_components::icons::Icon;
@@ -60,7 +57,6 @@ use crate::word_block_editor::{
 };
 use crate::workspace::{ToastStack, WorkspaceAction};
 use crate::workspaces::user_workspaces::UserWorkspaces;
-use crate::{send_telemetry_from_ctx};
 
 mod inheritance;
 

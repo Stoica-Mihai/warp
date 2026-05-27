@@ -17,7 +17,6 @@ use warpui::elements::{
 use warpui::{AppContext, Element, SingletonEntity, ViewContext};
 
 use super::editor::view::{CodeEditorRenderOptions, CodeEditorView};
-use super::lsp_telemetry::LspTelemetryEvent;
 use crate::code::local_code_editor::{
     HoverContentSegment, LocalCodeEditorView, LspHoverState, HOVER_TOOLTIP_MAX_HEIGHT,
     HOVER_TOOLTIP_MAX_WIDTH,
@@ -356,9 +355,9 @@ impl LocalCodeEditorView {
                 if segments.is_empty() && diagnostics.is_empty() {
                     me.lsp_hover_state.clear();
                 } else {
-                    let had_content = !segments.is_empty();
-                    let had_diagnostics = !diagnostics.is_empty();
-                    if let Some(server) = me.lsp_server.as_ref() {
+                    let _had_content = !segments.is_empty();
+                    let _had_diagnostics = !diagnostics.is_empty();
+                    if let Some(_server) = me.lsp_server.as_ref() {
                         send_telemetry_from_ctx!(
                             LspTelemetryEvent::HoverShown {
                                 server_type: server.as_ref(ctx).server_name(),
