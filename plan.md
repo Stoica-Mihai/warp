@@ -139,3 +139,32 @@ Green (`cargo check -p warp`) at every commit.
 8. **Core spider files LAST** — `terminal/view.rs`, `terminal/input.rs`, `pane_group/mod.rs`, `workspace/view.rs`, `root_view.rs`: excise AI/cloud/warpify/tips branches, **preserve render**.
 9. **Delete drained engine crates** — `ai`, `graphql`, `warp_server_client`, `websocket`, `managed_secrets`, `onboarding` once fan-in is zero.
 10. **Scrub** — dead feature flags, dormant config, grep for phone-home (warp.dev/firebase/rudderstack). Build `warp-oss --features gui`, launch, verify render.
+
+---
+
+## Resume notes (post-compaction continuation)
+
+**Where**: worktree `~/Documents/git/warp-upstream`, branch `surgical-strip` off upstream `0b737e22` (green baseline). `strip-cloud` (old delete-foundation-first attempt) is abandoned — ignore its `AGENTS.md`; this `plan.md` + `docs/superpowers/specs/2026-05-27-surgical-cloud-strip-design.md` are the living docs.
+
+**Verify green** (background it — slow):
+- build/launch path: `cargo check -p warp`
+- tests: `cargo check -p warp --tests`
+Both must be 0 errors before each commit.
+
+**Build + launch the GUI**: `cargo run --bin warp-oss --features gui` (NOT `./script/bootstrap` — Debian/apt-only; CachyOS deps already present). First `--features gui` build is long. Confirmed: app launches straight to a terminal (no welcome/onboarding/login).
+
+**Done + verified**: welcome panes (`59562bd7`), onboarding flow (`3e87396f`). Login KEPT.
+
+### Cleanup TODO (from onboarding pass — non-blocking, build+tests green)
+- 87 warnings: orphaned unused imports (root_view, terminal/view, oz_launch, workspace/view, one_time_modal) + newly-dead methods (`get_ps1_grid_info`, `apply_natural_language_detection_setting`, `open_vertical_tabs_panel_if_enabled`, `interrupt_block`, callout helpers).
+- 3 no-op action stubs in `terminal/view.rs` (`OnboardingFlow(_)=>{}`, `ImportSettings=>{}`, `SelectAgenticSuggestion(_)=>{}`) + dead `TerminalAction::{OnboardingFlow,ImportSettings,SelectAgenticSuggestion}` + `OnboardingVersion`/`AgentOnboardingVersion` enums.
+- 2 `let _ = (...)` placeholders: `workspace/view.rs` (insert-drive caller), session-config `(has_worktree, has_params)`.
+- `crates/onboarding` still present (only `auth/login_slide.rs` uses `onboarding::slides::{layout,slide_content}` + `OnboardingIntention` + `AI_FEATURES`/`WARP_DRIVE_FEATURES`). Delete crate in the **login pass** after relocating those ~470 LoC into `auth/`.
+
+### Techniques & lessons (reusable for remaining passes)
+- **cargo-check-driven loop**: delete the def (enum variant / module / method), let `cargo check` enumerate every break site, fix in batches, repeat to 0. Worked for welcome + onboarding.
+- **sed range-delete pitfall**: deleting `[fn_start, next_fn-1]` by a grep'd fn-map can silently eat a *free fn* or an `impl Foo {` opener sitting between two methods → "unexpected closing delimiter" brace imbalance far away. Before range-deleting, check what's between adjacent methods (free fns, impl boundaries). Recovery: find the orphaned `impl {` / free fn via `git show HEAD:<file>` and re-insert. (This pass: lost `fork_label_for_query` + an `impl TerminalView {` opener.)
+- **LSP works on the worktree now** (session rooted here). But injected diagnostics LAG edits — they show stale errors at old line numbers. Trust `cargo check`, not the diagnostic stream.
+- **Name-based "useless" guesses need code-reading**: `welcome_palette` was the new-tab landing surface; the "Welcome to Warp/Get started/Log in" screen was the *onboarding intro slide*, not the plain login gate. Read before deleting.
+- **no-op-stub-then-clean**: to reach green fast on a deeply-woven match arm, stub `Variant(_) => {}` + flag it, rather than cascading a variant removal through a 767-arm enum mid-pass. Clean in a follow-up.
+- **`recast`** is available for repeated multi-file identical edits; **LSP `findReferences`** for complete call-site maps.
