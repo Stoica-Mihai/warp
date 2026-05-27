@@ -49,7 +49,6 @@ use crate::ui_components::render_file_search_row::{render_file_search_row, FileS
 use crate::view_components::action_button::{ActionButton, ButtonSize, NakedTheme};
 use crate::workspace::view::global_search::model::GlobalSearch;
 use crate::workspace::view::global_search::SearchConfig;
-use crate::TelemetryEvent;
 
 const BORDER_RADIUS: f32 = 6.;
 const BORDER_WIDTH: f32 = 1.;

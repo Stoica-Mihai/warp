@@ -149,7 +149,6 @@ use crate::view_components::DismissibleToast;
 use crate::workspace::view::right_panel::{ReviewDestination, ReviewSubmissionResult};
 use crate::workspace::{ToastStack, Workspace, WorkspaceAction};
 #[cfg(feature = "local_fs")]
-use crate::TelemetryEvent;
 
 pub struct CodeReviewHeaderFields {
     pub is_in_split_pane: bool,

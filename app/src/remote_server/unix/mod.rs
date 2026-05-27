@@ -20,7 +20,7 @@ use warpui::r#async::executor;
 use warpui::SingletonEntity;
 
 use super::server_model::{ConnectionId, ServerModel};
-use crate::{send_telemetry_from_app_ctx, TelemetryEvent};
+use crate::{send_telemetry_from_app_ctx};
 
 /// Run the `remote-server-daemon` subcommand.
 ///

@@ -29,7 +29,6 @@ use crate::channel::Channel;
 use crate::features::FeatureFlag;
 use crate::server::datetime_ext::DateTimeExt;
 use crate::server::server_api::ServerApi;
-use crate::server::telemetry::TelemetryEvent;
 use crate::workspace::Workspace;
 use crate::{
     report_if_error, send_telemetry_from_ctx, send_telemetry_sync_from_app_ctx, ChannelState,
@@ -905,13 +904,6 @@ pub fn initiate_relaunch_for_update(app: &mut AppContext) {
                     return;
                 }
 
-                // Report that we're attempting to relaunch for an update, so that we can track failed
-                // relaunches (e.g. if the update got corrupted). This is sent synchronously because
-                // the app is about to quit.
-                let event = TelemetryEvent::AutoupdateRelaunchAttempt {
-                    new_version: new_version_string,
-                };
-                send_telemetry_sync_from_app_ctx!(event, app);
 
                 // Request termination of the app.
                 app.terminate_app(TerminationMode::Cancellable, None);

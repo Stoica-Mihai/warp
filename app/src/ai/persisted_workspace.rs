@@ -47,7 +47,7 @@ use crate::settings::CodeSettings;
 use crate::terminal::local_shell::LocalShellState;
 use crate::terminal::TerminalView;
 use crate::workspaces::user_workspaces::{UserWorkspaces, UserWorkspacesEvent};
-use crate::{report_if_error, send_telemetry_from_ctx, TelemetryEvent};
+use crate::{report_if_error, send_telemetry_from_ctx};
 #[cfg(feature = "local_fs")]
 use crate::{view_components::DismissibleToast, workspace::ToastStack};
 

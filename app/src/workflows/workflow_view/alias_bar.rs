@@ -29,7 +29,7 @@ use crate::server::telemetry::TelemetrySpace;
 use crate::ui_components::buttons::icon_button;
 use crate::ui_components::icons::Icon;
 use crate::workflows::aliases::{WorkflowAlias, WorkflowAliases};
-use crate::{send_telemetry_from_ctx, TelemetryEvent};
+use crate::{send_telemetry_from_ctx};
 
 /// Width of the alias name editor.
 const ALIAS_EDITOR_WIDTH: f32 = 100.;

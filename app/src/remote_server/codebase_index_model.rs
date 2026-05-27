@@ -20,7 +20,7 @@ use crate::server::telemetry::{
     RemoteCodebaseAutoIndexTrigger, RemoteCodebaseIndexStatusTelemetrySource,
 };
 use crate::workspaces::user_workspaces::{UserWorkspaces, UserWorkspacesEvent};
-use crate::{send_telemetry_from_ctx, TelemetryEvent};
+use crate::{send_telemetry_from_ctx};
 
 #[derive(Clone, Debug)]
 pub struct RemoteCodebaseSearchContext {

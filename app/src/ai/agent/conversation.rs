@@ -3962,7 +3962,6 @@ impl AIAgentExchange {
                         server_output_id: Some(server_output_id),
                         api_metadata_bytes: None,
                         suggestions: None,
-                        telemetry_events: vec![],
                         model_info: None,
                         request_cost: None,
                     }));

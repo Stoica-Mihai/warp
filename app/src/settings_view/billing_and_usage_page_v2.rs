@@ -45,7 +45,6 @@ use crate::auth::{AuthManager, AuthStateProvider};
 use crate::modal::{Modal, ModalEvent, ModalViewState};
 use crate::pricing::PricingInfoModel;
 use crate::server::ids::ServerId;
-use crate::server::telemetry::TelemetryEvent;
 use crate::settings::ai::AISettings;
 use crate::ui_components::blended_colors;
 use crate::ui_components::buttons::icon_button;

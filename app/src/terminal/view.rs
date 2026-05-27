@@ -347,7 +347,7 @@ use crate::server::telemetry::{
     CommandCorrectionAcceptedType, CommandCorrectionEvent, InteractionSource, LinkOpenMethod,
     NotificationAgentVariant, NotificationsTurnedOnSource, PaletteSource, PromptSuggestionViewType,
     SaveAsWorkflowModalSource, SecretInteraction, SharingDialogSource, SlowBootstrapInfo,
-    TelemetryEvent, ToggleBlockFilterSource, WorkflowTelemetryMetadata,
+    ToggleBlockFilterSource, WorkflowTelemetryMetadata,
 };
 use crate::session_management::{CommandContext, SessionNavigationPromptElements};
 use crate::settings::ai::FocusedTerminalInfo;
@@ -9275,7 +9275,6 @@ impl TerminalView {
         title: &str,
         lowercase_title: &str,
         warpify_keybinding: Option<Keystroke>,
-        telemetry_event: TelemetryEvent,
         ctx: &mut ViewContext<Self>,
     ) {
         if FeatureFlag::WarpifyFooter.is_enabled() {
@@ -9313,8 +9312,6 @@ impl TerminalView {
             WarpA11yRole::TextRole,
         );
         ctx.emit_a11y_content(a11y_content);
-
-        send_telemetry_from_ctx!(telemetry_event, ctx);
 
         ctx.notify();
     }
@@ -23628,24 +23625,7 @@ impl TerminalView {
                 (session.is_legacy_ssh_session(), shell_name)
             });
 
-        if let Some((is_ssh, shell)) = session_info {
-            let auth_state = self.auth_state.clone();
-            let executor = ctx.background_executor().clone();
-            ctx.on_next_frame_drawn(move || {
-                let block_event = TelemetryEvent::BaselineCommandLatency(BlockLatencyInfo {
-                    command: block_latency_data.command,
-                    shell,
-                    is_ssh,
-                    // The execution time is from the time the block started (i.e. user hit
-                    // enter) to when the first frame after the block completed is finished
-                    // drawing.
-                    execution_ms: block_latency_data.started_at.elapsed().as_millis() as u64,
-                });
-                send_telemetry_on_executor!(auth_state, block_event, executor);
-            })
-        } else {
-            log::warn!("Could not log block latency telemetry since session info was none");
-        }
+        let _ = (session_info, block_latency_data);
     }
 
     /// Toggles the block filter on the last selected block, or the last non-hidden
@@ -24420,7 +24400,7 @@ impl TerminalView {
         cli_agent: Option<crate::server::telemetry::CLIAgentType>,
         ctx: &mut ViewContext<Self>,
     ) {
-        use crate::server::telemetry::{FileTreeSource, TelemetryEvent};
+        use crate::server::telemetry::{FileTreeSource};
 
         self.toggle_left_panel_file_tree(false, ctx);
         send_telemetry_from_ctx!(
@@ -25139,7 +25119,6 @@ impl TypedActionView for TerminalView {
                     "Subshell",
                     "subshell",
                     warpify_keybinding,
-                    TelemetryEvent::ShowSubshellBanner,
                     ctx,
                 );
             }
@@ -25151,7 +25130,6 @@ impl TypedActionView for TerminalView {
                     "SSH Session",
                     "SSH session",
                     warpify_keybinding,
-                    TelemetryEvent::SshTmuxWarpifyBannerDisplayed,
                     ctx,
                 );
             }

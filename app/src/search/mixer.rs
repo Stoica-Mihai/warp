@@ -15,7 +15,6 @@ use super::data_source::{Query, QueryResult};
 use crate::debounce::debounce;
 use crate::search::QueryFilter;
 use crate::send_telemetry_from_ctx;
-use crate::server::telemetry::TelemetryEvent;
 
 /// Maximum time to wait for matching data sources to return results before showing
 /// partial results.

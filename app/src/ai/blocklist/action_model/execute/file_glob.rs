@@ -20,7 +20,7 @@ use crate::terminal::model::session::active_session::ActiveSession;
 use crate::terminal::model::session::{ExecuteCommandOptions, Session};
 use crate::terminal::shell::ShellType;
 use crate::terminal::ShellLaunchData;
-use crate::{send_telemetry_from_app_ctx, TelemetryEvent};
+use crate::{send_telemetry_from_app_ctx};
 
 const FILE_GLOB_TIMEOUT: Duration = Duration::from_secs(10);
 

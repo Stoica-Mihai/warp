@@ -14,7 +14,7 @@ use warpui::{App, AppContext, Entity, ModelContext, SingletonEntity};
 use crate::server::telemetry;
 use crate::system::memory_footprint;
 use crate::terminal::TerminalView;
-use crate::{send_telemetry_from_app_ctx, send_telemetry_sync_from_ctx, TelemetryEvent};
+use crate::{send_telemetry_from_app_ctx, send_telemetry_sync_from_ctx};
 
 /// The threshold at which we emit a memory usage warning.
 const MEMORY_USAGE_WARNING_THRESHOLD: Option<Byte> = byte_unit::Byte::GIGABYTE.multiply(10);
@@ -505,20 +505,6 @@ impl MemoryUsageStats {
             stats.num_blocks += 1;
             stats.num_lines += num_lines;
             stats.estimated_memory_usage_bytes += block.estimated_memory_usage_bytes();
-        }
-    }
-}
-
-impl From<MemoryUsageStats> for TelemetryEvent {
-    fn from(value: MemoryUsageStats) -> Self {
-        TelemetryEvent::MemoryUsageStats {
-            total_application_usage_bytes: value.total_application_usage_bytes,
-            total_blocks: value.total_blocks,
-            total_lines: value.total_lines,
-            active_block_stats: value.active_block_stats.into(),
-            inactive_5m_stats: value.inactive_5m_stats.into(),
-            inactive_1h_stats: value.inactive_1h_stats.into(),
-            inactive_24h_stats: value.inactive_24h_stats.into(),
         }
     }
 }

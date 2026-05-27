@@ -46,7 +46,7 @@ use crate::uri::browser_url_handler::{parse_current_url, update_browser_url};
 use crate::workspaces::team_tester::TeamTesterStatus;
 use crate::{
     persistence, report_error, report_if_error, send_telemetry_from_ctx,
-    send_telemetry_sync_from_ctx, GlobalResourceHandlesProvider, TelemetryEvent,
+    send_telemetry_sync_from_ctx, GlobalResourceHandlesProvider,
 };
 
 #[derive(Debug)]
@@ -451,14 +451,6 @@ impl AuthManager {
                         warpui::telemetry::record_identify_user_event(
                             user_id.as_string(),
                             anonymous_id.clone(),
-                            warpui::time::get_current_time(),
-                        );
-                        warpui::telemetry::record_event(
-                            Some(user_id.as_string()),
-                            anonymous_id,
-                            TelemetryEvent::Login.name().into(),
-                            TelemetryEvent::Login.payload(),
-                            TelemetryEvent::Login.contains_ugc(),
                             warpui::time::get_current_time(),
                         );
 

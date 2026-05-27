@@ -23,7 +23,7 @@ use crate::ai::get_relevant_files::controller::{
 };
 use crate::features::FeatureFlag;
 use crate::terminal::model::session::active_session::ActiveSession;
-use crate::{send_telemetry_from_ctx, TelemetryEvent};
+use crate::{send_telemetry_from_ctx};
 
 pub struct SearchCodebaseExecutor {
     active_session: ModelHandle<ActiveSession>,

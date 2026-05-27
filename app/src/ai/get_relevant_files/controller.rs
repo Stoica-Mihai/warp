@@ -20,7 +20,7 @@ use crate::ai::blocklist::SessionContext;
 use crate::ai::get_relevant_files::api::{FileContext as FileContextRequest, GetRelevantFiles};
 use crate::ai::outline::{OutlineStatus, RepoOutlines};
 use crate::server::server_api::{AIApiError, ServerApiProvider};
-use crate::{report_error, send_telemetry_from_ctx, TelemetryEvent};
+use crate::{report_error, send_telemetry_from_ctx};
 #[cfg_attr(not(target_family = "wasm"), path = "remote_search/native.rs")]
 #[cfg_attr(target_family = "wasm", path = "remote_search/wasm.rs")]
 mod remote_search;

@@ -17,7 +17,7 @@ use crate::{
         blocklist::{action_model::AIAgentActionType, BlocklistAIPermissions},
         mcp::TemplatableMCPServerManager,
     },
-    send_telemetry_from_app_ctx, TelemetryEvent,
+    send_telemetry_from_app_ctx,
 };
 
 pub struct CallMCPToolExecutor {

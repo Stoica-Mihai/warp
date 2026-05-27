@@ -16,7 +16,7 @@ use crate::auth::AuthStateProvider;
 use crate::send_telemetry_from_ctx;
 use crate::server::server_api::ai::AIClient;
 use crate::server::server_api::ServerApi;
-use crate::server::telemetry::{TelemetryEvent, WarpAIRequestResult};
+use crate::server::telemetry::{WarpAIRequestResult};
 use crate::workspaces::user_workspaces::UserWorkspaces;
 
 /// The key for the corresponding entry in UserDefaults.

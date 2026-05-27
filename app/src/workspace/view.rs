@@ -490,7 +490,7 @@ use crate::workspace::{ForkFromExchange, ForkedConversationDestination};
 use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::{
     autoupdate, report_if_error, send_telemetry_from_ctx, settings, AgentNotificationsModel,
-    BlocklistAIHistoryModel, GlobalResourceHandles, TelemetryEvent,
+    BlocklistAIHistoryModel, GlobalResourceHandles,
 };
 
 /// The padding that should be applied to the workspace as a whole.

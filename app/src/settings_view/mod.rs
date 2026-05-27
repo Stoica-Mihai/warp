@@ -68,7 +68,7 @@ use crate::ui_components::icons;
 use crate::util::bindings::{keybinding_name_to_display_string, BindingGroup, CustomAction};
 use crate::view_components::ToastFlavor;
 use crate::workspace::WorkspaceAction;
-use crate::{GlobalResourceHandlesProvider, TelemetryEvent};
+use crate::{GlobalResourceHandlesProvider};
 
 mod about_page;
 mod admin_actions;
