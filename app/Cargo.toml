@@ -1,7 +1,7 @@
 [package]
-authors = ["Warp Team <dev@warp.dev>"]
-default-run = "warp-oss"
-description = "The cloud-backed terminal for individuals and teams"
+authors = ["Sublight contributors", "Warp Team <dev@warp.dev>"]
+default-run = "sublight"
+description = "Local-only terminal — fork of Warp with the cloud surfaces stripped"
 edition = "2021"
 autobins = false
 name = "warp"
@@ -18,7 +18,7 @@ path = "src/lib.rs"
 # flag overrides). Otherwise these binaries are exactly identical to our main binary.
 
 [[bin]]
-name = "warp-oss"
+name = "sublight"
 path = "src/bin/oss.rs"
 test = false
 
@@ -946,8 +946,8 @@ git_credential_refresh = []
 [package.metadata.bundle.bin.warp-oss]
 category = "public.app-category.developer-tools"
 copyright = "© 2025, Denver Technologies, Inc"
-identifier = "dev.warp.WarpOss"
-name = "WarpOss"
+identifier = "local.sublight.Sublight"
+name = "Sublight"
 icon = ["channels/oss/icon/no-padding/512x512.png", "channels/oss/icon/no-padding/icon.ico"]
 short_description = "The open-source, cloud-backed terminal for individuals and teams."
 

@@ -146,7 +146,7 @@ All telemetry surfaces removed across ~10 commits. Total: ~8918 LoC across step 
 7. **Drive / code_review / notebooks / server cloud API** (HARD) — the backend spine + large cloud subsystems.
 8. **Core spider files LAST** — `terminal/view.rs`, `terminal/input.rs`, `pane_group/mod.rs`, `workspace/view.rs`, `root_view.rs`: excise AI/cloud/warpify/tips branches, **preserve render**.
 9. **Delete drained engine crates** — `ai`, `graphql`, `warp_server_client`, `websocket`, `managed_secrets`, `onboarding` once fan-in is zero.
-10. **Scrub** — dead feature flags, dormant config, grep for phone-home (warp.dev/firebase/rudderstack). Build `warp-oss --features gui`, launch, verify render.
+10. **Scrub** — dead feature flags, dormant config, grep for phone-home (warp.dev/firebase/rudderstack). Build `sublight --features gui`, launch, verify render.
 
 ---
 
@@ -161,7 +161,7 @@ All telemetry surfaces removed across ~10 commits. Total: ~8918 LoC across step 
 
 All 3 must be 0 errors before each commit.
 
-**Build + launch the GUI**: `cargo run --bin warp-oss --features gui` (NOT `./script/bootstrap` — Debian/apt-only; CachyOS deps already present). First `--features gui` build is long. Confirmed: app launches straight to a terminal (no welcome/onboarding/login). GUI binary build verified post-telemetry-strip (`c7319c0a`): 914 MB, 2m08s, 0 errors.
+**Build + launch the GUI**: `cargo run --bin sublight --features gui` (NOT `./script/bootstrap` — Debian/apt-only; CachyOS deps already present). First `--features gui` build is long. Confirmed: app launches straight to a terminal (no welcome/onboarding/login). GUI binary build verified post-telemetry-strip (`c7319c0a` as `warp-oss`, then again post-rebrand as `sublight`).
 
 **Done + verified**: welcome panes (`59562bd7`), onboarding flow (`3e87396f`), **telemetry strip COMPLETE** (`c7319c0a`). Login KEPT. Brand assets done in `brand/` (untracked).
 

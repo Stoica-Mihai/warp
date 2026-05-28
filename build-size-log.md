@@ -2,8 +2,8 @@
 
 Track GUI binary size over the strip. Goal: number trends down as cloud crates die.
 
-Binary path: `target/debug/warp-oss`
-Build command: `cargo build --bin warp-oss --features gui`
+Binary path: `target/debug/sublight` (was `target/debug/warp-oss` until the `a83cc3a5` rebrand)
+Build command: `cargo build --bin sublight --features gui`
 Profile: **debug** (release run separately if needed; note in row).
 
 ## Convention

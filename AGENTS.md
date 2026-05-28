@@ -33,7 +33,7 @@ Telemetry-strip techniques that worked (detail in `plan.md`): no-op the send-mac
 
 ## 4. Build / verify
 
-- Build + launch GUI: `cargo run --bin warp-oss --features gui`. Do **not** run `./script/bootstrap` (Debian/apt-only; on this CachyOS box the deps are already present). First `--features gui` build is long.
+- Build + launch GUI: `cargo run --bin sublight --features gui`. Do **not** run `./script/bootstrap` (Debian/apt-only; on this CachyOS box the deps are already present). First `--features gui` build is long. Binary lands at `target/debug/sublight`.
 - Verify green: 3-gate matrix — `cargo check -p warp` + `--tests` + `--features local_fs,gui`. Background them in parallel — they're slow.
 - LSP works on this worktree, but injected diagnostics lag edits (stale line numbers). Trust `cargo check`, not the diagnostic stream.
 
