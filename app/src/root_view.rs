@@ -42,7 +42,6 @@ use crate::auth::auth_override_warning_modal::{
 use crate::auth::auth_state::AuthState;
 use crate::auth::auth_view_modal::{AuthRedirectPayload, AuthView, AuthViewVariant};
 use crate::auth::needs_sso_link_view::NeedsSsoLinkView;
-use crate::auth::paste_auth_token_modal::PasteAuthTokenModalView;
 #[cfg(target_family = "wasm")]
 use crate::auth::web_handoff::{WebHandoffEvent, WebHandoffView};
 use crate::auth::{AuthStateProvider, LoginFailureReason};
@@ -1546,7 +1545,6 @@ pub struct RootView {
     /// in the [`Self::render`] method, but there is no [`ViewContext`] available there. So, we
     /// need to store it in a field instead.
     window_id: WindowId,
-    paste_auth_token_modal: Option<ViewHandle<PasteAuthTokenModalView>>,
 }
 
 impl RootView {
@@ -1620,7 +1618,6 @@ impl RootView {
             model_event_sender,
             mouse_states: Default::default(),
             window_id: ctx.window_id(),
-            paste_auth_token_modal: None,
         };
 
         match &root_view.auth_onboarding_state {
@@ -2306,8 +2303,6 @@ impl RootView {
 
         match event {
             AuthManagerEvent::AuthComplete => {
-                self.paste_auth_token_modal = None;
-
                 // If onboarding was completed pre-login, sync the server-side flag now
                 // that the user is authenticated. This must happen regardless of the
                 // current `auth_onboarding_state` so we also cover users who skipped
@@ -2484,11 +2479,6 @@ impl RootView {
     }
 
     pub fn focus(&mut self, ctx: &mut ViewContext<Self>) -> bool {
-        if let Some(modal) = &self.paste_auth_token_modal {
-            ctx.focus(modal);
-            ctx.notify();
-            return true;
-        }
         match &self.auth_onboarding_state {
             AuthOnboardingState::Auth(_) => {
                 ctx.focus(&self.auth_view);
@@ -2581,8 +2571,6 @@ impl View for RootView {
     fn on_focus(&mut self, focus_ctx: &FocusContext, ctx: &mut ViewContext<Self>) {
         if focus_ctx.is_self_focused() {
             self.focus(ctx);
-        } else if self.paste_auth_token_modal.is_some() {
-            // Modal is open — focus belongs to the editor inside it.
         }
     }
 
@@ -2602,10 +2590,6 @@ impl View for RootView {
 
         let mut stack = Stack::new();
         stack.add_child(child);
-
-        if let Some(modal) = &self.paste_auth_token_modal {
-            stack.add_child(ChildView::new(modal).finish());
-        }
 
         if let Some(traffic_light_data) = self.traffic_light_data(app) {
             let theme = Appearance::as_ref(app).theme();

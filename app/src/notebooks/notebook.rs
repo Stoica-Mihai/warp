@@ -113,12 +113,6 @@ const FEATURE_NOT_AVAILABLE_MESSAGE: &str = "This notebook could not be saved to
 /// object updates.
 const SAVE_PERIOD: Duration = Duration::from_secs(2);
 
-/// The minimum size of an edit delta (in terms of the change in byte length of the serialized
-/// Markdown) for it to be considered "meaningful". We're likely going to tune this over time:
-/// * By refining the threshold
-/// * By using a more advanced diff algorithm
-const MEANINGFUL_EDIT_THRESHOLD: usize = 30;
-
 #[cfg(not(test))]
 const EDIT_WINDOW_DURATION: Duration = Duration::from_secs(60);
 // Use a shorter window to make testing reasonable.

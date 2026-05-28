@@ -10,7 +10,6 @@ pub mod credentials;
 mod login_error_modal;
 mod login_failure_notification;
 pub mod needs_sso_link_view;
-pub mod paste_auth_token_modal;
 pub mod user;
 pub mod user_uid;
 #[cfg(target_family = "wasm")]
@@ -63,7 +62,6 @@ pub fn init(app: &mut AppContext) {
     auth_view_modal::init(app);
     auth_view_body::init(app);
     auth_override_warning_body::init(app);
-    paste_auth_token_modal::init(app);
 }
 
 /// If the app has running processes or dirty objects, we'll show a confirmation modal before logging out.

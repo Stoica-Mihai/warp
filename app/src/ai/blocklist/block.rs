@@ -280,15 +280,6 @@ pub enum AIBlockResponseRating {
     Negative,
 }
 
-impl AIBlockResponseRating {
-    pub fn name(&self) -> &'static str {
-        match self {
-            AIBlockResponseRating::Positive => "positive",
-            AIBlockResponseRating::Negative => "negative",
-        }
-    }
-}
-
 #[derive(Clone)]
 struct ActionButtons {
     run_button: CompactibleActionButton,
