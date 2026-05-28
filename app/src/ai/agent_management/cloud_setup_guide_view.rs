@@ -20,7 +20,6 @@ use warpui::text_layout::TextStyle;
 use warpui::ui_components::components::{UiComponent, UiComponentStyles};
 use warpui::{AppContext, Entity, SingletonEntity, TypedActionView, View, ViewContext, ViewHandle};
 
-use crate::ai::agent_management::telemetry::SetupGuideStep;
 use crate::ai::blocklist::code_block::{
     render_code_block_plain, CodeBlockOptions, CodeSnippetButtonHandles,
 };
@@ -63,11 +62,9 @@ pub struct CloudSetupGuideView {
 pub enum CloudSetupGuideAction {
     CopyCode {
         code: String,
-        step: SetupGuideStep,
     },
     RunWorkflow {
         workflow: Box<WorkflowType>,
-        step: SetupGuideStep,
     },
     VisitOz,
     OpenDocs {
@@ -343,44 +340,30 @@ impl CloudSetupGuideView {
             .unwrap_or_default();
 
         // Match command to formatted workflow with correct args.
-        let Some((workflow, setup_step)) = (match code {
-            CREATE_ENV_SLASH_CMD => Some((
-                WorkflowType::Local(
-                    Workflow::new("Create Environment", CREATE_ENV_SLASH_CMD).with_arguments(vec![
-                        Argument::new("github link or local filepath", ArgumentType::Text)
-                            .with_description("GitHub link or local filepath to the repository"),
-                    ]),
-                ),
-                SetupGuideStep::CreateEnvironment,
+        let Some(workflow) = (match code {
+            CREATE_ENV_SLASH_CMD => Some(WorkflowType::Local(
+                Workflow::new("Create Environment", CREATE_ENV_SLASH_CMD).with_arguments(vec![
+                    Argument::new("github link or local filepath", ArgumentType::Text)
+                        .with_description("GitHub link or local filepath to the repository"),
+                ]),
             )),
-            CREATE_ENV_CLI_CMD => Some((
-                WorkflowType::Local(
-                    Workflow::new("Create Environment (CLI)", CREATE_ENV_CLI_CMD).with_arguments(
-                        vec![
-                            Argument::new("NAME", ArgumentType::Text)
-                                .with_description("Name for the environment"),
-                            Argument::new("DOCKER_IMAGE", ArgumentType::Text)
-                                .with_description("Docker image to use for the environment"),
-                        ],
-                    ),
-                ),
-                SetupGuideStep::CreateEnvironmentCli,
+            CREATE_ENV_CLI_CMD => Some(WorkflowType::Local(
+                Workflow::new("Create Environment (CLI)", CREATE_ENV_CLI_CMD).with_arguments(vec![
+                    Argument::new("NAME", ArgumentType::Text)
+                        .with_description("Name for the environment"),
+                    Argument::new("DOCKER_IMAGE", ArgumentType::Text)
+                        .with_description("Docker image to use for the environment"),
+                ]),
             )),
-            CREATE_SLACK_INTEGRATION_CMD => Some((
-                WorkflowType::Local(
-                    Workflow::new("Create Slack Integration", CREATE_SLACK_INTEGRATION_CMD)
-                        .with_arguments(vec![Argument::new("environment_id", ArgumentType::Text)
-                            .with_description("ID of the environment to integrate with")]),
-                ),
-                SetupGuideStep::CreateSlackIntegration,
+            CREATE_SLACK_INTEGRATION_CMD => Some(WorkflowType::Local(
+                Workflow::new("Create Slack Integration", CREATE_SLACK_INTEGRATION_CMD)
+                    .with_arguments(vec![Argument::new("environment_id", ArgumentType::Text)
+                        .with_description("ID of the environment to integrate with")]),
             )),
-            CREATE_LINEAR_INTEGRATION_CMD => Some((
-                WorkflowType::Local(
-                    Workflow::new("Create Linear Integration", CREATE_LINEAR_INTEGRATION_CMD)
-                        .with_arguments(vec![Argument::new("environment_id", ArgumentType::Text)
-                            .with_description("ID of the environment to integrate with")]),
-                ),
-                SetupGuideStep::CreateLinearIntegration,
+            CREATE_LINEAR_INTEGRATION_CMD => Some(WorkflowType::Local(
+                Workflow::new("Create Linear Integration", CREATE_LINEAR_INTEGRATION_CMD)
+                    .with_arguments(vec![Argument::new("environment_id", ArgumentType::Text)
+                        .with_description("ID of the environment to integrate with")]),
             )),
             _ => None,
         }) else {
@@ -399,13 +382,11 @@ impl CloudSetupGuideView {
                 on_execute: Some(Box::new(move |_code, ctx| {
                     ctx.dispatch_typed_action(CloudSetupGuideAction::RunWorkflow {
                         workflow: Box::new(workflow.clone()),
-                        step: setup_step,
                     });
                 })),
                 on_copy: Some(Box::new(move |_code, ctx| {
                     ctx.dispatch_typed_action(CloudSetupGuideAction::CopyCode {
                         code: code.to_string().clone(),
-                        step: setup_step,
                     });
                 })),
                 on_insert: None,
@@ -636,11 +617,11 @@ impl TypedActionView for CloudSetupGuideView {
 
     fn handle_action(&mut self, action: &Self::Action, ctx: &mut ViewContext<Self>) {
         match action {
-            CloudSetupGuideAction::CopyCode { code, step: _ } => {
+            CloudSetupGuideAction::CopyCode { code } => {
                 ctx.clipboard()
                     .write(ClipboardContent::plain_text(code.clone()));
             }
-            CloudSetupGuideAction::RunWorkflow { workflow, step: _ } => {
+            CloudSetupGuideAction::RunWorkflow { workflow } => {
                 ctx.emit(CloudSetupGuideEvent::OpenNewTabAndInsertWorkflow(
                     (**workflow).clone(),
                 ));
