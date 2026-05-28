@@ -175,15 +175,6 @@ pub enum SharingDialogSource {
     AIBlockContextMenu,
 }
 
-/// The possible sources notifications can turned on from.
-/// The possible types of toggles in the find bar
-#[derive(Clone, Serialize, Deserialize)]
-pub enum FindOption {
-    CaseSensitive,
-    FindInBlock,
-    Regex,
-}
-
 #[derive(Clone, Serialize, Deserialize)]
 pub enum LinkOpenMethod {
     CmdClick,
@@ -260,16 +251,6 @@ impl From<NotificationSourceAgent> for NotificationAgentVariant {
     }
 }
 
-/// The action taken on a plugin chip (for telemetry purposes).
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-pub enum CloseTarget {
-    App,
-    Window,
-    Tab,
-    Pane,
-    EditorTab,
-}
-
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub enum PtySpawnMode {
     /// The pty was spawned using the terminal server.
@@ -280,15 +261,6 @@ pub enum PtySpawnMode {
     /// The terminal server is not in use, and we spawned the pty directly
     /// (in tests, for example).
     Direct,
-}
-
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-pub enum OpenedWarpAISource {
-    GlobalEntryButton,
-    HelpWithBlock,
-    HelpWithTextSelection,
-    FromAICommandSearch,
-    WarmWelcome,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
