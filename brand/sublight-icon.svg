@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="sublight app icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0e2230"/>
+      <stop offset="1" stop-color="#08131c"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="60" fill="url(#bg)"/>
+  <g transform="translate(32 33.5) scale(1.5)" fill="none" stroke="#5ad7ff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M52 40 L24 57 L52 74"/>
+    <path d="M24 86 L54 86"/>
+    <path d="M99 47 A22 22 0 1 0 99 73"/>
+  </g>
+</svg>
