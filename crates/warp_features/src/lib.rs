@@ -12,9 +12,6 @@ pub enum FeatureFlag {
     WithSandboxTelemetry,
     RecordAppActiveEvents,
 
-    WelcomeTips,
-    ThinStrokes,
-    WelcomeBlock,
     KnowledgeSidebar,
 
     RuntimeFeatureFlags,
