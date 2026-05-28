@@ -157,7 +157,6 @@ use repo_metadata::{
 };
 use server::network_log_pane_manager::NetworkLogPaneManager;
 use server::network_logging::NetworkLogModel;
-use server::telemetry::context_provider::AppTelemetryContextProvider;
 use server::voice_transcriber::ServerVoiceTranscriber;
 #[cfg(feature = "local_fs")]
 use settings::import::model::ImportedConfigModel;
@@ -1129,8 +1128,6 @@ pub(crate) fn initialize_app(
     let ai_client = server_api_provider.as_ref(ctx).get_ai_client();
 
     ctx.add_singleton_model(|_ctx| AuthStateProvider::new(auth_state.clone()));
-
-    ctx.add_singleton_model(AppTelemetryContextProvider::new_context_provider);
 
     ctx.add_singleton_model(|ctx| {
         AuthManager::new(

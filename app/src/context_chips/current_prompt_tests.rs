@@ -29,7 +29,6 @@ use crate::context_chips::{
 use crate::features::FeatureFlag;
 use crate::menu::MenuItem;
 use crate::server::server_api::ServerApiProvider;
-use crate::server::telemetry::context_provider::AppTelemetryContextProvider;
 use crate::settings::WarpPromptSeparator;
 #[cfg(windows)]
 use crate::system::SystemInfo;
@@ -243,7 +242,6 @@ fn test_shell_chip_is_disabled_when_required_executable_is_missing() {
         });
         app.add_singleton_model(|_| ServerApiProvider::new_for_test());
         app.add_singleton_model(|_| AuthStateProvider::new_for_test());
-        app.add_singleton_model(AppTelemetryContextProvider::new_context_provider);
         app.add_singleton_model(AuthManager::new_for_test);
         app.add_singleton_model(|_| crate::settings::manager::SettingsManager::default());
         crate::settings::InputSettings::register(&mut app);
@@ -417,7 +415,6 @@ fn test_github_pr_chip_is_disabled_when_github_cli_is_missing() {
         });
         app.add_singleton_model(|_| ServerApiProvider::new_for_test());
         app.add_singleton_model(|_| AuthStateProvider::new_for_test());
-        app.add_singleton_model(AppTelemetryContextProvider::new_context_provider);
         app.add_singleton_model(AuthManager::new_for_test);
         app.add_singleton_model(|_| crate::settings::manager::SettingsManager::default());
         crate::settings::InputSettings::register(&mut app);
@@ -503,7 +500,6 @@ fn test_github_pr_chip_empty_success_does_not_set_failure_suppression() {
         });
         app.add_singleton_model(|_| ServerApiProvider::new_for_test());
         app.add_singleton_model(|_| AuthStateProvider::new_for_test());
-        app.add_singleton_model(AppTelemetryContextProvider::new_context_provider);
         app.add_singleton_model(AuthManager::new_for_test);
         app.add_singleton_model(|_| crate::settings::manager::SettingsManager::default());
         crate::settings::InputSettings::register(&mut app);
@@ -597,7 +593,6 @@ fn test_github_pr_chip_revisiting_empty_result_directory_reruns_and_clears_previ
         });
         app.add_singleton_model(|_| ServerApiProvider::new_for_test());
         app.add_singleton_model(|_| AuthStateProvider::new_for_test());
-        app.add_singleton_model(AppTelemetryContextProvider::new_context_provider);
         app.add_singleton_model(AuthManager::new_for_test);
         app.add_singleton_model(|_| crate::settings::manager::SettingsManager::default());
         crate::settings::InputSettings::register(&mut app);
@@ -738,7 +733,6 @@ fn test_github_pr_chip_revisiting_failed_directory_uses_failure_suppression() {
         });
         app.add_singleton_model(|_| ServerApiProvider::new_for_test());
         app.add_singleton_model(|_| AuthStateProvider::new_for_test());
-        app.add_singleton_model(AppTelemetryContextProvider::new_context_provider);
         app.add_singleton_model(AuthManager::new_for_test);
         app.add_singleton_model(|_| crate::settings::manager::SettingsManager::default());
         crate::settings::InputSettings::register(&mut app);
@@ -881,7 +875,6 @@ fn test_github_pr_chip_transient_failure_retries_with_same_fingerprint() {
         });
         app.add_singleton_model(|_| ServerApiProvider::new_for_test());
         app.add_singleton_model(|_| AuthStateProvider::new_for_test());
-        app.add_singleton_model(AppTelemetryContextProvider::new_context_provider);
         app.add_singleton_model(AuthManager::new_for_test);
         app.add_singleton_model(|_| crate::settings::manager::SettingsManager::default());
         crate::settings::InputSettings::register(&mut app);
@@ -1050,7 +1043,6 @@ fn test_disabling_chips() {
         });
         app.add_singleton_model(|_| ServerApiProvider::new_for_test());
         app.add_singleton_model(|_| AuthStateProvider::new_for_test());
-        app.add_singleton_model(AppTelemetryContextProvider::new_context_provider);
         app.add_singleton_model(AuthManager::new_for_test);
 
         // Register required singleton models to fix the singleton model error
