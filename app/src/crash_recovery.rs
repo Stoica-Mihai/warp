@@ -3,8 +3,6 @@ use std::collections::HashMap;
 
 use ::settings::Setting as _;
 use cfg_if::cfg_if;
-use lazy_static::lazy_static;
-use parking_lot::RwLock;
 use warp_cli::RecoveryMechanism;
 use warp_core::channel::{Channel, ChannelState};
 use warpui::{Entity, ModelContext, SingletonEntity, WindowId};
@@ -14,14 +12,6 @@ use crate::{report_if_error, settings};
 
 /// Keep in sync with [`warp_cli::AppArgs`].
 pub const RECOVERY_MECHANISM_ARG: &str = "crash-recovery-mechanism";
-
-lazy_static! {
-    static ref IS_CRASH_RECOVERY_PROCESS_RUNNING: RwLock<bool> = RwLock::new(false);
-}
-
-pub fn is_crash_recovery_process_running() -> bool {
-    *IS_CRASH_RECOVERY_PROCESS_RUNNING.read()
-}
 
 pub enum Event {
     /// User has acknowledged the fact that the application crashed and
@@ -76,7 +66,6 @@ impl CrashRecoveryProcess {
         let _ = self.process.kill();
         let _ = self.process.wait();
 
-        *IS_CRASH_RECOVERY_PROCESS_RUNNING.write() = false;
         self.is_alive = false;
         warp_logging::on_crash_recovery_process_killed();
     }
@@ -195,7 +184,6 @@ impl CrashRecovery {
                     }
                 };
 
-                *IS_CRASH_RECOVERY_PROCESS_RUNNING.write() = true;
                 return Self {
                     child_process: RefCell::new(Some(CrashRecoveryProcess::new(child_process))),
                     should_notify_user_about_crash,
