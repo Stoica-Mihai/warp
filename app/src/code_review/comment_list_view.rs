@@ -278,10 +278,6 @@ impl CommentListView {
         }
     }
 
-    fn repo_is_local(&self) -> Option<bool> {
-        self.repo_path.as_ref().map(LocalOrRemotePath::is_local)
-    }
-
     pub fn debug_state(&self, ctx: &AppContext) -> CommentListDebugState {
         let ai_available = AIRequestUsageModel::as_ref(ctx).has_any_ai_remaining(ctx);
         let ai_enabled = AISettings::as_ref(ctx).is_any_ai_enabled(ctx);
