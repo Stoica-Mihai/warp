@@ -20,7 +20,7 @@ use warp_cli::mcp::MCPCommand;
 use warp_cli::model::ModelCommand;
 use warp_cli::share::ShareRequest;
 use warp_cli::task::TaskCommand;
-use warp_cli::{CliCommand, GlobalOptions, OZ_HARNESS_ENV};
+use warp_cli::{CliCommand, GlobalOptions};
 use warp_core::features::FeatureFlag;
 use warp_graphql::object_permissions::OwnerType;
 use warp_isolation_platform::IsolationPlatformError;
@@ -1549,20 +1549,6 @@ fn report_fatal_error(err: anyhow::Error, ctx: &mut AppContext) {
 
     let error = anyhow::anyhow!(message);
     ctx.terminate_app(TerminationMode::ForceTerminate, Some(Err(error)));
-}
-
-fn resolve_orchestration_harness_label() -> &'static str {
-    let Ok(raw) = std::env::var(OZ_HARNESS_ENV) else {
-        return "unknown";
-    };
-    match Harness::parse_orchestration_harness(&raw) {
-        Some(Harness::Oz) => "oz",
-        Some(Harness::Claude) => "claude",
-        Some(Harness::OpenCode) => "opencode",
-        Some(Harness::Gemini) => "gemini",
-        Some(Harness::Codex) => "codex",
-        Some(Harness::Unknown) | None => "unknown",
-    }
 }
 
 #[cfg(test)]

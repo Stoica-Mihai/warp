@@ -5715,7 +5715,6 @@ impl Entity for AIBlock {
 /// User's final response to an AI-suggested code edit.
 #[derive(Clone, Copy, Debug, Serialize)]
 pub enum RequestedEditResolution {
-    Accept,
     Reject,
 }
 
