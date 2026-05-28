@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use chrono::{Duration, Utc};
 use futures_util::future::BoxFuture;
-use itertools::Itertools;
 use warp_core::ui::appearance::Appearance;
 use warp_editor::editor::EditorView;
 use warpui::platform::WindowStyle;

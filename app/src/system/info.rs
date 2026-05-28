@@ -396,6 +396,7 @@ impl Default for ResourceUsageReporter {
 }
 
 /// Statistics about CPU usage.
+#[allow(dead_code)]
 struct CpuUsageStats {
     /// The number of "CPUs" on the machine.  This actually measure the number
     /// of _logical_ CPUs, i.e.: CPU cores (including SMT pseudo-cores).
@@ -409,6 +410,7 @@ struct CpuUsageStats {
 }
 
 #[derive(Copy, Clone)]
+#[allow(dead_code)]
 struct MemoryUsageStats {
     total_application_usage_bytes: usize,
     total_blocks: usize,
