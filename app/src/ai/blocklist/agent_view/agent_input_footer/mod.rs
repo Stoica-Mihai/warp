@@ -65,10 +65,9 @@ use crate::context_chips::prompt_type::PromptType;
 use crate::context_chips::{self, ContextChipKind};
 use crate::features::FeatureFlag;
 use crate::network::NetworkStatus;
-use crate::send_telemetry_from_ctx;
 #[cfg(feature = "voice_input")]
 use crate::server::server_api::TranscribeError;
-use crate::server::telemetry::{PluginChipTelemetryKind};
+use crate::server::telemetry::PluginChipTelemetryKind;
 use crate::settings::{
     AISettings, AISettingsChangedEvent, PrivacySettings, PrivacySettingsChangedEvent,
 };
@@ -1289,22 +1288,8 @@ impl AgentInputFooter {
                 me.plugin_operation_in_progress = false;
 
                 if result.is_ok() {
-                    send_telemetry_from_ctx!(
-                        TelemetryEvent::CLIAgentPluginOperationSucceeded {
-                            cli_agent: agent.into(),
-                            operation: operation_kind,
-                        },
-                        ctx
-                    );
                     ctx.emit(AgentInputFooterEvent::PluginInstalled(agent));
                 } else {
-                    send_telemetry_from_ctx!(
-                        TelemetryEvent::CLIAgentPluginOperationFailed {
-                            cli_agent: agent.into(),
-                            operation: operation_kind,
-                        },
-                        ctx
-                    );
                 }
 
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
@@ -1739,14 +1724,7 @@ impl AgentInputFooter {
                         self.cli_voice_input_state = CLIVoiceInputState::Listening;
                         self.update_cli_mic_button_state(ctx);
 
-                        if let Some(_agent) = self.cli_agent(ctx) {
-                            send_telemetry_from_ctx!(
-                                TelemetryEvent::CLIAgentToolbarVoiceInputUsed {
-                                    cli_agent: agent.into(),
-                                },
-                                ctx
-                            );
-                        }
+                        if let Some(_agent) = self.cli_agent(ctx) {}
 
                         if matches!(*source, voice_input::VoiceInputToggledFrom::Button) {
                             self.maybe_show_first_time_cli_voice_toast(ctx);
@@ -2369,14 +2347,7 @@ impl TypedActionView for AgentInputFooter {
                 }
             }
             AgentInputFooterAction::InsertFilePath(path) => {
-                if let Some(_agent) = self.cli_agent(ctx) {
-                    send_telemetry_from_ctx!(
-                        TelemetryEvent::CLIAgentToolbarImageAttached {
-                            cli_agent: agent.into(),
-                        },
-                        ctx
-                    );
-                }
+                if let Some(_agent) = self.cli_agent(ctx) {}
                 let path_with_space = format!("{path} ");
                 if self.has_active_cli_agent_input_session(ctx) {
                     ctx.emit(AgentInputFooterEvent::InsertIntoCLIRichInput(
@@ -2420,15 +2391,7 @@ impl TypedActionView for AgentInputFooter {
             AgentInputFooterAction::InstallPlugin => {
                 #[cfg(not(target_family = "wasm"))]
                 {
-                    if let Some(_agent) = self.cli_agent(ctx) {
-                        send_telemetry_from_ctx!(
-                            TelemetryEvent::CLIAgentPluginChipClicked {
-                                cli_agent: agent.into(),
-                                action: PluginChipTelemetryAction::Install,
-                            },
-                            ctx
-                        );
-                    }
+                    if let Some(_agent) = self.cli_agent(ctx) {}
                     if !self.handle_install_plugin(ctx) {
                         self.record_plugin_auto_failure_and_notify(ctx);
                     }
@@ -2437,15 +2400,7 @@ impl TypedActionView for AgentInputFooter {
             AgentInputFooterAction::UpdatePlugin => {
                 #[cfg(not(target_family = "wasm"))]
                 {
-                    if let Some(_agent) = self.cli_agent(ctx) {
-                        send_telemetry_from_ctx!(
-                            TelemetryEvent::CLIAgentPluginChipClicked {
-                                cli_agent: agent.into(),
-                                action: PluginChipTelemetryAction::Update,
-                            },
-                            ctx
-                        );
-                    }
+                    if let Some(_agent) = self.cli_agent(ctx) {}
                     if !self.handle_update_plugin(ctx) {
                         self.record_plugin_auto_failure_and_notify(ctx);
                     }
@@ -2454,13 +2409,6 @@ impl TypedActionView for AgentInputFooter {
             AgentInputFooterAction::OpenPluginInstallInstructionsPane => {
                 #[cfg(not(target_family = "wasm"))]
                 if let Some(agent) = self.cli_agent(ctx) {
-                    send_telemetry_from_ctx!(
-                        TelemetryEvent::CLIAgentPluginChipClicked {
-                            cli_agent: agent.into(),
-                            action: PluginChipTelemetryAction::InstallInstructions,
-                        },
-                        ctx
-                    );
                     ctx.emit(AgentInputFooterEvent::OpenPluginInstructionsPane(
                         agent,
                         PluginModalKind::Install,
@@ -2470,13 +2418,6 @@ impl TypedActionView for AgentInputFooter {
             AgentInputFooterAction::OpenPluginUpdateInstructionsPane => {
                 #[cfg(not(target_family = "wasm"))]
                 if let Some(agent) = self.cli_agent(ctx) {
-                    send_telemetry_from_ctx!(
-                        TelemetryEvent::CLIAgentPluginChipClicked {
-                            cli_agent: agent.into(),
-                            action: PluginChipTelemetryAction::UpdateInstructions,
-                        },
-                        ctx
-                    );
                     ctx.emit(AgentInputFooterEvent::OpenPluginInstructionsPane(
                         agent,
                         PluginModalKind::Update,
@@ -2487,15 +2428,7 @@ impl TypedActionView for AgentInputFooter {
                 let chip_kind = self.plugin_chip_kind(ctx);
                 let is_update = matches!(chip_kind, Some(PluginChipKind::Update));
                 if let Some(_agent) = self.cli_agent(ctx) {
-                    if let Some(_kind) = chip_kind {
-                        send_telemetry_from_ctx!(
-                            TelemetryEvent::CLIAgentPluginChipDismissed {
-                                cli_agent: agent.into(),
-                                chip_kind: kind.into(),
-                            },
-                            ctx
-                        );
-                    }
+                    if let Some(_kind) = chip_kind {}
                 }
                 let session = CLIAgentSessionsModel::as_ref(ctx)
                     .session(self.terminal_view_id)

@@ -1,8 +1,4 @@
 use serde::Serialize;
-use serde_json::json;
-use strum_macros::{EnumDiscriminants, EnumIter};
-
-use crate::ai::agent_management::cloud_setup_guide_view::SetupGuideDocs;
 
 /// Which setup guide workflow step the user interacted with
 #[derive(Clone, Copy, Debug, Serialize)]
@@ -50,4 +46,3 @@ pub enum FilterType {
     Owner,
     Harness,
 }
-

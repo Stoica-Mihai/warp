@@ -26,7 +26,6 @@ use crate::editor::{
 };
 use crate::modal::{Modal, ModalEvent};
 use crate::network::NetworkStatus;
-use crate::send_telemetry_from_ctx;
 use crate::server::cloud_objects::update_manager::{
     ObjectOperation, OperationSuccessType, UpdateManager, UpdateManagerEvent,
 };
@@ -368,15 +367,7 @@ impl SuggestedRuleView {
             }
             EditorEvent::Edited(_) => {
                 // todo this seems noisy?
-                if let Some(SuggestedRuleAndId { rule: _, .. }) = &self.rule_and_id {
-                    send_telemetry_from_ctx!(
-                        TelemetryEvent::AISuggestedRuleContentChanged {
-                            rule_id: rule.logging_id.clone(),
-                            is_saved: self.is_saved
-                        },
-                        ctx
-                    );
-                }
+                if let Some(SuggestedRuleAndId { rule: _, .. }) = &self.rule_and_id {}
             }
             EditorEvent::Navigate(NavigationKey::Tab)
             | EditorEvent::Navigate(NavigationKey::ShiftTab) => {

@@ -1,9 +1,4 @@
 use serde::Serialize;
-use serde_json::{json, Value};
-use strum_macros::{EnumDiscriminants, EnumIter};
-use warp_core::features::FeatureFlag;
-
-use crate::server::ids::ServerId;
 
 /// The entry point through which Cloud Mode was entered.
 #[derive(Clone, Copy, Debug, Serialize)]
@@ -33,4 +28,3 @@ pub enum HandoffEntryPoint {
     /// The client automatically initiated handoff for an eligible local agent.
     Automatic,
 }
-

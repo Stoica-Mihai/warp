@@ -1,9 +1,8 @@
-use serde_json::json;
 use warp_cli::agent::Harness;
 use warp_cli::artifact::{
     ArtifactCommand, DownloadArtifactArgs, GetArtifactArgs, UploadArtifactArgs,
 };
-use warp_cli::task::{MessageCommand, MessageSendArgs, MessageWatchArgs, TaskCommand};
+use warp_cli::task::{MessageCommand, MessageSendArgs, TaskCommand};
 use warp_cli::CliCommand;
 
 use super::{command_requires_auth, reconcile_task_harness};
@@ -94,4 +93,3 @@ fn reconcile_task_harness_rejects_explicit_mismatch() {
     assert!(err.to_string().contains("--harness gemini"));
     assert!(err.to_string().contains("claude"));
 }
-

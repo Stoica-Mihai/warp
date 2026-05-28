@@ -13,7 +13,6 @@ use std::path::PathBuf;
 
 use pathfinder_geometry::vector::vec2f;
 use warp_core::features::FeatureFlag;
-use warp_core::send_telemetry_from_ctx;
 use warp_core::ui::appearance::Appearance;
 use warpui::elements::{
     Align, Border, ChildAnchor, ChildView, ClippedScrollStateHandle, ClippedScrollable,
@@ -808,15 +807,6 @@ impl TypedActionView for GitDialog {
                         }
                         GitDialogMode::CreatePr(_) => GitOperationKind::CreatePr,
                     };
-                    send_telemetry_from_ctx!(
-                        CodeReviewTelemetryEvent::GitDialogCompleted {
-                            is_local: Some(true),
-                            operation,
-                            status: GitDialogStatus::Cancelled,
-                            error: None,
-                        },
-                        ctx
-                    );
                     ctx.emit(GitDialogEvent::Cancelled);
                 }
             }

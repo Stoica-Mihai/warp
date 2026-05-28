@@ -25,7 +25,6 @@ use crate::terminal::event::{
 use crate::terminal::model::session::Sessions;
 use crate::terminal::shell::ShellType;
 use crate::terminal::ClipboardType;
-use crate::{send_telemetry_from_ctx};
 
 /// Model that dispatches events that have been emitted by the [`crate::terminal::TerminalModel`],
 /// allowing other models/views to subscribe to `TerminalModel` events like it would any other
@@ -188,14 +187,8 @@ impl ModelEventDispatcher {
                             .duration_since(control_mode.start_time)
                             .as_millis()
                             // Clip large durations to u64::MAX
-                            .min(u64::MAX as u128) as u64;
-                        send_telemetry_from_ctx!(
-                            TelemetryEvent::SshTmuxWarpificationSuccess {
-                                duration_ms,
-                                tmux_installation: control_mode.tmux_installation,
-                            },
-                            ctx
-                        );
+                            .min(u64::MAX as u128)
+                            as u64;
                     }
                 }
                 ModelEvent::Handler(AnsiHandlerEvent::TmuxControlModeReady { primary_pane })

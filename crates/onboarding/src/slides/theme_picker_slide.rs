@@ -1,7 +1,6 @@
 use pathfinder_color::ColorU;
 use ui_components::{button, Component as _, Options as _};
 use warp_core::features::FeatureFlag;
-use warp_core::send_telemetry_from_ctx;
 use warp_core::ui::appearance::Appearance;
 use warp_core::ui::theme::color::internal_colors;
 use warp_core::ui::theme::WarpTheme;
@@ -638,13 +637,6 @@ impl ThemePickerSlide {
         self.sync_with_os = false;
         self.selected_theme_index = index;
         let theme_name = self.theme_display_name(index);
-        send_telemetry_from_ctx!(
-            OnboardingEvent::SettingChanged {
-                setting: "theme".to_string(),
-                value: theme_name.clone(),
-            },
-            ctx
-        );
         ctx.emit(ThemePickerSlideEvent::ThemeSelected { theme_name });
         ctx.notify();
     }
@@ -710,13 +702,6 @@ impl TypedActionView for ThemePickerSlide {
             }
             ThemePickerSlideAction::ToggleSyncWithOs => {
                 self.sync_with_os = !self.sync_with_os;
-                send_telemetry_from_ctx!(
-                    OnboardingEvent::SettingChanged {
-                        setting: "sync_with_os".to_string(),
-                        value: self.sync_with_os.to_string(),
-                    },
-                    ctx
-                );
                 ctx.emit(ThemePickerSlideEvent::SyncWithOsToggled {
                     enabled: self.sync_with_os,
                 });

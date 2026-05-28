@@ -4,7 +4,6 @@ use std::sync::Arc;
 use instant::Instant;
 use parking_lot::FairMutex;
 use serde::{Deserialize, Serialize};
-use warp_core::send_telemetry_from_ctx;
 use warpui::{Entity, EntityId, ModelContext, ModelHandle, SingletonEntity};
 
 use crate::ai::agent::conversation::AIConversationId;
@@ -348,15 +347,6 @@ impl CLISubagentController {
             requested_command_action_id: action_id,
             agent_has_control,
         });
-
-        send_telemetry_from_ctx!(
-            TelemetryEvent::CLISubagentControlStateChanged {
-                conversation_id,
-                block_id,
-                control_state: CLISubagentControlState::UserInControl,
-            },
-            ctx
-        );
     }
 
     pub fn handoff_active_command_control_to_agent(&self, ctx: &mut ModelContext<Self>) {
@@ -435,15 +425,6 @@ impl CLISubagentController {
         if was_transfer_from_agent {
             ctx.emit(CLISubagentEvent::ControlHandedBackAfterTransfer);
         }
-
-        send_telemetry_from_ctx!(
-            TelemetryEvent::CLISubagentControlStateChanged {
-                conversation_id,
-                block_id,
-                control_state: CLISubagentControlState::AgentInControl,
-            },
-            ctx
-        );
     }
 
     pub fn toggle_hide_responses(&self, ctx: &mut ModelContext<Self>) {
@@ -457,16 +438,7 @@ impl CLISubagentController {
 
             ctx.emit(CLISubagentEvent::ToggledHideResponses);
 
-            if let Some(_conversation_id) = conversation_id {
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::CLISubagentResponsesToggled {
-                        conversation_id,
-                        block_id,
-                        is_hidden,
-                    },
-                    ctx
-                );
-            }
+            if let Some(_conversation_id) = conversation_id {}
         }
     }
 

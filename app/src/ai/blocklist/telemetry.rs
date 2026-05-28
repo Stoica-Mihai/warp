@@ -1,9 +1,6 @@
 use serde::Serialize;
-use serde_json::{json, Value};
-use strum_macros::{EnumDiscriminants, EnumIter};
 
 use crate::ai::agent::conversation::AIConversationId;
-
 
 #[derive(Clone, Copy, Debug, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -264,4 +261,3 @@ pub(crate) struct PillBarInteractionEvent {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub switch_outcome: Option<PillSwitchOutcome>,
 }
-

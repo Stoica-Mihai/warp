@@ -4,7 +4,6 @@ use std::ops::Range;
 use string_offset::CharOffset;
 #[cfg(not(target_family = "wasm"))]
 use warp_core::channel::ChannelState;
-use warp_core::send_telemetry_from_ctx;
 #[cfg(not(target_family = "wasm"))]
 use warp_editor::content::find::SearchConfig;
 #[cfg(not(target_family = "wasm"))]
@@ -119,14 +118,6 @@ impl CodeReviewFindModel {
         ctx: &mut ModelContext<Self>,
     ) {
         self.case_sensitive = case_sensitive;
-        send_telemetry_from_ctx!(
-            CodeReviewTelemetryEvent::FindBarModeChanged {
-                is_local: self.repo_is_local(ctx),
-                case_sensitive: self.case_sensitive,
-                regex: self.regex,
-            },
-            ctx
-        );
         self.run_search(editor_handles, ctx);
     }
 
@@ -137,14 +128,6 @@ impl CodeReviewFindModel {
         ctx: &mut ModelContext<Self>,
     ) {
         self.regex = regex;
-        send_telemetry_from_ctx!(
-            CodeReviewTelemetryEvent::FindBarModeChanged {
-                is_local: self.repo_is_local(ctx),
-                case_sensitive: self.case_sensitive,
-                regex: self.regex,
-            },
-            ctx
-        );
         self.run_search(editor_handles, ctx);
     }
 
@@ -162,14 +145,6 @@ impl CodeReviewFindModel {
         if results.is_empty() {
             return;
         }
-
-        send_telemetry_from_ctx!(
-            CodeReviewTelemetryEvent::FindNavigated {
-                is_local: self.repo_is_local(ctx),
-                direction,
-            },
-            ctx
-        );
 
         let next_index = if let Some(selected) = &self.selected_match {
             match direction {

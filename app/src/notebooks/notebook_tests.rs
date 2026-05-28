@@ -13,7 +13,7 @@ use warpui::{
     ViewHandle, WindowId,
 };
 
-use super::{NotebookEvent, NotebookView, EDIT_WINDOW_DURATION, SAVE_PERIOD};
+use super::{NotebookEvent, NotebookView, SAVE_PERIOD};
 use crate::auth::auth_manager::AuthManager;
 use crate::auth::user::{TEST_USER_EMAIL, TEST_USER_UID};
 use crate::auth::{AuthStateProvider, UserUid};

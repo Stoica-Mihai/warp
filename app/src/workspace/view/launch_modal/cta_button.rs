@@ -46,7 +46,6 @@ impl<S: Slide> CTAButton<S> {
             action: CTAButtonAction::Custom(Rc::new(callback)),
         }
     }
-
 }
 
 pub enum CTAButtonAction<S: Slide> {

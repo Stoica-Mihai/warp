@@ -1,6 +1,4 @@
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
-use strum_macros::{EnumDiscriminants, EnumIter};
 
 /// The source from which the user enabled an LSP server.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -29,4 +27,3 @@ pub enum LspControlActionType {
     #[serde(rename = "stop_all")]
     StopAll,
 }
-

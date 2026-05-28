@@ -18,7 +18,7 @@ use crate::ai::agent::{AIIdentifiers, FileEdit};
 use crate::ai::blocklist::SessionContext;
 use crate::ai::paths::host_native_absolute_path;
 use crate::auth::auth_state::AuthState;
-use crate::{safe_debug, safe_warn, send_telemetry_on_executor};
+use crate::{safe_debug, safe_warn};
 
 /// Result of reading a file from disk or a remote server.
 ///
@@ -176,17 +176,9 @@ where
 
     for error in result.errors.iter() {
         match error {
-            DiffApplicationError::UnmatchedDiffs { match_failures: _, .. } => {
-                send_telemetry_on_executor!(
-                    auth_state,
-                    RequestFileEditsTelemetryEvent::DiffMatchFailed(DiffMatchFailedEvent {
-                        identifiers: ai_identifiers.clone(),
-                        failures: *match_failures,
-                        passive_diff,
-                    }),
-                    background_executor
-                );
-            }
+            DiffApplicationError::UnmatchedDiffs {
+                match_failures: _, ..
+            } => {}
             DiffApplicationError::MissingFile { .. }
             | DiffApplicationError::ReadFailed { .. }
             | DiffApplicationError::AlreadyExists { .. }
@@ -200,17 +192,7 @@ where
         }
     }
 
-    if invalid_file_count > 0 {
-        send_telemetry_on_executor!(
-            auth_state,
-            RequestFileEditsTelemetryEvent::DiffInvalidFile(DiffInvalidFileEvent {
-                count: invalid_file_count,
-                identifiers: ai_identifiers.clone(),
-                passive_diff,
-            }),
-            background_executor
-        );
-    }
+    if invalid_file_count > 0 {}
 
     // Send telemetry for any warnings, which don't necessarily prevent diff application.
 
@@ -222,17 +204,7 @@ where
         })
         .sum();
 
-    if total_missing_line_numbers > 0 {
-        send_telemetry_on_executor!(
-            auth_state,
-            RequestFileEditsTelemetryEvent::MissingLineNumbers(MissingLineNumbersEvent {
-                identifiers: ai_identifiers.clone(),
-                count: total_missing_line_numbers,
-                passive_diff,
-            }),
-            background_executor
-        );
-    }
+    if total_missing_line_numbers > 0 {}
 
     match Vec1::try_from_vec(result.errors) {
         Ok(errors) => Err(errors),

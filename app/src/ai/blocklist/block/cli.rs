@@ -93,7 +93,7 @@ use crate::view_components::compactible_action_button::{
 use crate::view_components::compactible_split_action_button::CompactibleSplitActionButton;
 use crate::view_components::DismissibleToast;
 use crate::workspace::WorkspaceAction;
-use crate::{send_telemetry_from_ctx, BlocklistAIHistoryModel, ToastStack};
+use crate::{BlocklistAIHistoryModel, ToastStack};
 const MENU_WIDTH: f32 = 200.0;
 const MAX_HEIGHT: f32 = 320.0;
 const AVATAR_RIGHT_MARGIN: f32 = 8.;
@@ -508,15 +508,6 @@ impl CLISubagentView {
         if is_autoexecuted {
             self.enable_autoexecute_override(ctx);
         }
-
-        send_telemetry_from_ctx!(
-            TelemetryEvent::CLISubagentActionExecuted {
-                conversation_id: self.conversation_id,
-                block_id: self.block_id.clone(),
-                is_autoexecuted,
-            },
-            ctx
-        );
     }
 
     fn handle_reject_blocked_action(
@@ -525,15 +516,6 @@ impl CLISubagentView {
         ctx: &mut ViewContext<Self>,
     ) {
         self.reject_blocked_action(should_user_take_over, ctx);
-
-        send_telemetry_from_ctx!(
-            TelemetryEvent::CLISubagentActionRejected {
-                conversation_id: self.conversation_id,
-                block_id: self.block_id.clone(),
-                user_took_over: should_user_take_over,
-            },
-            ctx
-        );
     }
 
     fn take_control_of_running_command(&mut self, ctx: &mut ViewContext<Self>) {
@@ -1482,13 +1464,6 @@ impl TypedActionView for CLISubagentView {
                     handle.abort();
                 }
                 ctx.notify();
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::CLISubagentInputDismissed {
-                        conversation_id: self.conversation_id,
-                        block_id: self.block_id.clone(),
-                    },
-                    ctx
-                );
             }
             CLISubagentAction::SelectText => {
                 self.clear_other_selections(None, ctx);

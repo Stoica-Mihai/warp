@@ -54,7 +54,7 @@ use crate::view_components::ToastFlavor;
 use crate::workspaces::update_manager::TeamUpdateManager;
 use crate::workspaces::user_workspaces::{UserWorkspaces, UserWorkspacesEvent};
 use crate::workspaces::workspace::{CustomerType, Workspace, WorkspaceUid};
-use crate::{send_telemetry_from_ctx, WorkspaceAction};
+use crate::WorkspaceAction;
 
 const ADDON_CREDITS_DESCRIPTION: &str = "Add-on credits are purchased in prepaid packages that roll over each billing cycle and expire after one year. The more you purchase, the better the per-credit rate. Once your base plan credits are used, add-on credits will be consumed.";
 const ADDITIONAL_ADDON_CREDITS_DESCRIPTION_FOR_TEAM: &str =
@@ -2099,16 +2099,6 @@ impl TypedActionView for BillingAndUsagePageV2View {
                 } else {
                     None
                 };
-                send_telemetry_from_ctx!(
-                    TelemetryEvent::AutoReloadToggledFromBillingSettings {
-                        enabled: *enabled,
-                        banner_toggle_flag_enabled: FeatureFlag::BuildPlanAutoReloadBannerToggle
-                            .is_enabled(),
-                        post_purchase_modal_flag_enabled:
-                            FeatureFlag::BuildPlanAutoReloadPostPurchaseModal.is_enabled(),
-                    },
-                    ctx
-                );
                 self.pending_auto_reload_toast = Some(if *enabled {
                     let credits = auto_reload_denomination_credits
                         .map(|c| c.separate_with_commas())

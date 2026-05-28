@@ -8,7 +8,6 @@ use std::time::Duration;
 use async_channel::Sender;
 use pathfinder_geometry::vector::vec2f;
 use string_offset::{ByteOffset, CharCounter};
-use warp_core::send_telemetry_from_ctx;
 use warp_core::ui::appearance::Appearance;
 use warp_core::ui::theme::color::internal_colors;
 use warp_core::ui::theme::{AnsiColorIdentifier, Fill as ThemeFill};
@@ -923,8 +922,6 @@ impl GlobalSearchView {
     fn handle_find_model_event(&mut self, event: &GlobalSearchEvent, ctx: &mut ViewContext<Self>) {
         match event {
             GlobalSearchEvent::Started { search_id } => {
-                send_telemetry_from_ctx!(TelemetryEvent::GlobalSearchQueryStarted, ctx);
-
                 self.current_search_id = Some(*search_id);
 
                 self.is_search_in_progress = true;

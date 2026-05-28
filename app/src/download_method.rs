@@ -3,8 +3,7 @@ use std::sync::Arc;
 use warpui::r#async::executor::Background;
 
 use crate::auth::auth_state::AuthState;
-use crate::send_telemetry_on_executor;
-use crate::server::telemetry::{DownloadSource};
+use crate::server::telemetry::DownloadSource;
 
 /// Determine the Warp download method (if possible) and send a telemetry event reporting that
 /// method
@@ -13,12 +12,6 @@ pub fn determine_and_report(_auth_state: Arc<AuthState>, executor: Arc<Backgroun
     executor
         .spawn(async move {
             let _download_source = check_download_source().await;
-
-            send_telemetry_on_executor!(
-                auth_state,
-                TelemetryEvent::DownloadSource(download_source),
-                telemetry_executor
-            );
         })
         .detach();
 }

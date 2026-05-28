@@ -20,16 +20,15 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use chrono::Local;
-pub(crate) use execute::{
-    apply_edits, coerce_integer_args, FileReadResult,
-};
+pub(crate) use execute::{apply_edits, coerce_integer_args, FileReadResult};
 #[cfg(test)]
 pub(crate) use execute::{compose_run_agents_child_prompt, run_agents_to_start_agent_mode};
 pub use execute::{
     read_local_file_context, NewConversationDecision, PromptSuggestionExecutor,
-    ReadFileContextResult, RequestFileEditsExecutor, RequestFileEditsFormatKind, RunAgentsExecutor, RunAgentsExecutorEvent,
-    RunAgentsSpawningSnapshot, ShellCommandExecutor, ShellCommandExecutorEvent, StartAgentExecutor,
-    StartAgentExecutorEvent, StartAgentRequest, StartAgentRequestId,
+    ReadFileContextResult, RequestFileEditsExecutor, RequestFileEditsFormatKind, RunAgentsExecutor,
+    RunAgentsExecutorEvent, RunAgentsSpawningSnapshot, ShellCommandExecutor,
+    ShellCommandExecutorEvent, StartAgentExecutor, StartAgentExecutorEvent, StartAgentRequest,
+    StartAgentRequestId,
 };
 use futures::future::{join_all, BoxFuture};
 use itertools::Itertools;
@@ -57,7 +56,6 @@ use crate::ai::get_relevant_files::controller::GetRelevantFilesController;
 use crate::terminal::model::session::active_session::ActiveSession;
 use crate::terminal::model_events::ModelEventDispatcher;
 use crate::terminal::TerminalModel;
-use crate::{send_telemetry_from_ctx};
 
 /// The status of an action from an AI output.
 #[derive(Clone, Debug)]
@@ -1113,14 +1111,6 @@ impl BlocklistAIActionModel {
                 .conversation(&conversation_id)
                 .and_then(|c| c.server_conversation_token())
                 .map(|t| t.as_str().to_string());
-            send_telemetry_from_ctx!(
-                TelemetryEvent::ComputerUseCancelled {
-                    client_conversation_id: conversation_id,
-                    server_conversation_id,
-                    ambient_agent_task_id: self.ambient_agent_task_id,
-                },
-                ctx
-            );
         }
 
         let result = Arc::new(AIAgentActionResult {

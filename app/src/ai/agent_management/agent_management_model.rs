@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use warp_core::features::FeatureFlag;
-use warp_core::send_telemetry_from_ctx;
 use warpui::{AppContext, Entity, EntityId, ModelContext, SingletonEntity, ViewHandle, WindowId};
 
 use crate::ai::active_agent_views_model::{ActiveAgentViewsEvent, ActiveAgentViewsModel};
@@ -435,14 +434,7 @@ impl AgentNotificationsModel {
             artifacts,
             branch,
         );
-        if show_agent_notifications {
-            send_telemetry_from_ctx!(
-                TelemetryEvent::AgentNotificationShown {
-                    agent_variant: agent.into(),
-                },
-                ctx
-            );
-        }
+        if show_agent_notifications {}
 
         let id = item.id;
         self.notifications.push(item);

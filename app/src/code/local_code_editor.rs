@@ -81,8 +81,6 @@ const DROP_SHADOW_COLOR: ColorU = ColorU {
 
 const HOVER_DEBOUNCE_PERIOD: Duration = Duration::from_millis(500);
 
-use warp_core::send_telemetry_from_ctx;
-
 use super::diff_viewer::DiffViewer;
 use super::editor::scroll::{ScrollPosition, ScrollTrigger};
 use super::editor::view::{CodeEditorEvent, CodeEditorView};
@@ -734,15 +732,7 @@ impl LocalCodeEditorView {
         request_offset: CharOffset,
         ctx: &mut ViewContext<Self>,
     ) {
-        if let Some(_server) = &self.lsp_server {
-            send_telemetry_from_ctx!(
-                LspTelemetryEvent::FindReferencesShown {
-                    server_type: server.as_ref(ctx).server_name(),
-                    num_references: references.len(),
-                },
-                ctx
-            );
-        }
+        if let Some(_server) = &self.lsp_server {}
 
         // Get workspace root for relative path display from the LSP server
         let workspace_root = self
@@ -1998,15 +1988,7 @@ impl LocalCodeEditorView {
             move |_me, result, ctx| {
                 let _had_result = matches!(&result, Ok(locations) if !locations.is_empty());
 
-                if let Some(_server_type) = server_type_name {
-                    send_telemetry_from_ctx!(
-                        LspTelemetryEvent::GotoDefinition {
-                            server_type,
-                            had_result,
-                        },
-                        ctx
-                    );
-                }
+                if let Some(_server_type) = server_type_name {}
 
                 match result {
                     Ok(locations) => {

@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 use instant::Instant;
 use remote_server::manager::{RemoteServerManager, RemoteServerManagerEvent};
-use warp_core::{send_telemetry_from_ctx, HostId, SessionId};
+use warp_core::{HostId, SessionId};
 use warp_util::remote_path::RemotePath;
 use warp_util::standardized_path::StandardizedPath;
 use warpui::{ModelContext, SingletonEntity};
@@ -337,15 +337,6 @@ impl RemoteDiffStateModel {
                     .tracked_diff_load_start_time
                     .take()
                     .map(|start| start.elapsed());
-                send_telemetry_from_ctx!(
-                    CodeReviewTelemetryEvent::LoadDiffFailed {
-                        is_local: Some(false),
-                        mode: self.mode.clone(),
-                        error: "Server reported diff error".to_string(),
-                        load_duration,
-                    },
-                    ctx
-                );
                 self.state = InternalRemoteDiffState::Error(msg);
                 ctx.emit(DiffStateModelEvent::NewDiffsComputed {
                     diffs: None,
@@ -360,15 +351,6 @@ impl RemoteDiffStateModel {
                         .tracked_diff_load_start_time
                         .take()
                         .map(|start| start.elapsed());
-                    send_telemetry_from_ctx!(
-                        CodeReviewTelemetryEvent::LoadDiffFailed {
-                            is_local: Some(false),
-                            mode: self.mode.clone(),
-                            error: "Empty diff data".to_string(),
-                            load_duration,
-                        },
-                        ctx
-                    );
                     self.state = InternalRemoteDiffState::Error(error);
                     ctx.emit(DiffStateModelEvent::NewDiffsComputed {
                         diffs: None,

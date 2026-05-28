@@ -4,12 +4,9 @@
 /// V4A patch format used by `apply_patch`.
 use ai::diff_validation::DiffMatchFailures;
 use serde::Serialize;
-use serde_json::json;
-use strum_macros::{EnumDiscriminants, EnumIter};
 
 use crate::ai::agent::AIIdentifiers;
 use crate::ai::blocklist::RequestedEditResolution;
-
 
 /// Emitted when a user Accepts or Rejects a code diff suggestsion from Agent Mode.
 #[derive(Serialize, Debug)]
@@ -134,4 +131,3 @@ pub struct MalformedFinalLineProxyEvent {
     /// Whether this is a passive diff.
     pub passive_diff: bool,
 }
-

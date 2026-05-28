@@ -27,6 +27,7 @@ use crate::editor::{
     TextOptions,
 };
 use crate::referral_theme_status::ReferralThemeStatus;
+use crate::report_if_error;
 use crate::resource_center::{
     mark_feature_used_and_write_to_user_defaults, Tip, TipAction, TipsCompleted,
 };
@@ -41,7 +42,6 @@ use crate::user_config::{load_theme_configs, themes_dir, WarpConfig, WarpConfigU
 use crate::util::traffic_lights::{traffic_light_data, TrafficLightData, TrafficLightSide};
 use crate::window_settings::WindowSettings;
 use crate::workspace::PANEL_HEADER_HEIGHT;
-use crate::{report_if_error, send_telemetry_from_ctx};
 
 // All units in px
 const THEME_CHOOSER_TITLE: &str = "Themes";
@@ -353,12 +353,10 @@ impl ThemeChooser {
     }
 
     pub fn record_open_theme(&mut self, _ctx: &mut ViewContext<Self>) -> bool {
-        send_telemetry_from_ctx!(TelemetryEvent::OpenThemeChooser, ctx);
         true
     }
 
     pub fn open_theme_creator_modal(&mut self, ctx: &mut ViewContext<Self>) {
-        send_telemetry_from_ctx!(TelemetryEvent::OpenThemeCreatorModal, ctx);
         ctx.emit(ThemeChooserEvent::OpenThemeCreatorModal);
     }
 
@@ -411,13 +409,6 @@ impl ThemeChooser {
         ctx: &mut ViewContext<Self>,
     ) {
         self.select_theme(selected_kind.clone(), ctx);
-        send_telemetry_from_ctx!(
-            TelemetryEvent::ThemeSelection {
-                theme: selected_kind.to_string(),
-                entrypoint: "theme_chooser".to_string()
-            },
-            ctx
-        );
         let theme_settings = ThemeSettings::handle(ctx);
 
         let selected_themes = respect_system_theme(theme_settings.as_ref(ctx))

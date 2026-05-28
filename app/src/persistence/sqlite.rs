@@ -110,7 +110,7 @@ use crate::workflows::{CloudWorkflow, CloudWorkflowModel, WorkflowId};
 use crate::workspaces::team::Team as TeamMetadata;
 use crate::workspaces::user_profiles::UserProfileWithUID;
 use crate::workspaces::workspace::{Workspace as WorkspaceMetadata, WorkspaceUid};
-use crate::{report_error, report_if_error, safe_info, send_telemetry_from_app_ctx};
+use crate::{report_error, report_if_error, safe_info};
 
 diesel::define_sql_function! {
     fn json_extract(target: diesel::sql_types::Text, path: diesel::sql_types::Text) -> diesel::sql_types::Text;
@@ -150,10 +150,6 @@ pub fn initialize(
             let writer_handles = match start_writer(conn, database_path.clone()) {
                 Ok(writer_handles) => Some(writer_handles),
                 Err(err) => {
-                    send_telemetry_from_app_ctx!(
-                        TelemetryEvent::DatabaseWriteError(err.to_string()),
-                        ctx
-                    );
                     report_db_error("starting writer", err, &database_path);
                     None
                 }
@@ -161,10 +157,6 @@ pub fn initialize(
             (persisted_data, writer_handles)
         }
         Err(err) => {
-            send_telemetry_from_app_ctx!(
-                TelemetryEvent::DatabaseStartUpError(err.to_string()),
-                ctx
-            );
             report_db_error("initialization", err, &database_path);
             (None, None)
         }
@@ -179,7 +171,6 @@ fn read_persisted_data(
     match read_sqlite_data(conn, user_uid) {
         Ok(app_state) => Some(Box::new(app_state)),
         Err(err) => {
-            send_telemetry_from_app_ctx!(TelemetryEvent::DatabaseReadError(err.to_string()), ctx);
             report_error!(anyhow::Error::new(err).context("Failed to read persisted data"));
             None
         }

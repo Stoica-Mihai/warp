@@ -28,7 +28,6 @@ use session_sharing_protocol::sharer::{
 };
 use settings::Setting as _;
 use warp_core::execution_mode::AppExecutionMode;
-use warp_core::send_telemetry_from_ctx;
 use warpui::r#async::executor::Background;
 use warpui::{AppContext, ModelContext, ModelHandle, SingletonEntity, ViewHandle, WindowId};
 #[cfg(unix)]
@@ -106,7 +105,7 @@ use crate::terminal::{
     TerminalView, PTY_READS_BROADCAST_CHANNEL_SIZE,
 };
 use crate::view_components::ToastFlavor;
-use crate::{send_telemetry_on_executor, NetworkStatus};
+use crate::NetworkStatus;
 
 type PtyController = writeable_pty::PtyController<mio_channel::Sender<Message>>;
 type RemoteServerController =
@@ -603,13 +602,6 @@ impl TerminalManager {
                                 ctx,
                             );
                         }
-                        send_telemetry_from_ctx!(
-                            TelemetryEvent::AgentViewExited {
-                                origin: TelemetryAgentViewEntryOrigin::from(*origin),
-                                was_empty: *final_exchange_count == 0,
-                            },
-                            ctx
-                        );
                     }
                     AgentViewControllerEvent::ExitConfirmed { .. } => {}
                 },
@@ -2572,15 +2564,7 @@ fn get_shell_starter_internal(
             unsupported_shell,
             starter,
         } => {
-            if let Some(_unsupported_shell) = unsupported_shell {
-                send_telemetry_on_executor!(
-                    auth_state,
-                    TelemetryEvent::UnsupportedShell {
-                        shell: unsupported_shell
-                    },
-                    background_executor
-                );
-            }
+            if let Some(_unsupported_shell) = unsupported_shell {}
 
             ShellStarter::Direct(starter)
         }

@@ -12,7 +12,6 @@ pub mod workspace;
 
 use std::borrow::Cow;
 use std::fmt;
-use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -56,7 +55,6 @@ use crate::auth::auth_state::AuthState;
 use crate::auth::UserUid;
 use crate::server::graphql::default_request_options;
 use crate::server::server_api::presigned_upload::HttpStatusError;
-use crate::settings::PrivacySettingsSnapshot;
 use crate::{settings_view, ChannelState};
 
 pub const FETCH_CHANNEL_VERSIONS_TIMEOUT: std::time::Duration = Duration::from_secs(60);
@@ -1073,7 +1071,6 @@ impl ServerApi {
         }
     }
 
-
     /// Hits the /ai/generate_input_suggestions endpoint to get the predicted next action, based on past context.
     pub async fn generate_ai_input_suggestions(
         &self,
@@ -1457,10 +1454,8 @@ impl ServerApiProvider {
 
         if ContextFlag::NetworkLogConsole.is_enabled() {
             super::network_logging::init(
-                [
-                    Arc::get_mut(&mut server_api.client)
-                        .expect("guaranteed there is only one copy of client"),
-                ],
+                [Arc::get_mut(&mut server_api.client)
+                    .expect("guaranteed there is only one copy of client")],
                 ctx,
             );
         }

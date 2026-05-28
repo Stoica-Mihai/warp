@@ -17,7 +17,7 @@ use repo_metadata::{FileTreeEntry, RepoMetadataModel};
 use warp_core::features::FeatureFlag;
 use warp_core::ui::theme::color::internal_colors;
 use warp_core::ui::theme::Fill;
-use warp_core::{send_telemetry_from_ctx, HostId};
+use warp_core::HostId;
 use warp_util::path::LineAndColumnArg;
 use warp_util::standardized_path::StandardizedPath;
 use warpui::clipboard::ClipboardContent;
@@ -2215,14 +2215,6 @@ impl FileTreeView {
             )
         };
 
-        send_telemetry_from_ctx!(
-            TelemetryEvent::CodePanelsFileOpened {
-                entrypoint: CodePanelsFileOpenEntrypoint::ProjectExplorer,
-                target: target.clone(),
-            },
-            ctx
-        );
-
         ctx.emit(FileTreeEvent::OpenFile {
             path: LocalOrRemotePath::Local(path.to_path_buf()),
             target,
@@ -2477,10 +2469,6 @@ impl FileTreeView {
         };
 
         let _is_directory = matches!(item, FileTreeItem::DirectoryHeader { .. });
-        send_telemetry_from_ctx!(
-            TelemetryEvent::FileTreeItemAttachedAsContext { is_directory },
-            ctx
-        );
 
         ctx.emit(FileTreeEvent::AttachAsContext {
             path: relative_path,

@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use futures::future::{self, BoxFuture, FutureExt as _};
-use warp_core::{safe_warn, send_telemetry_from_ctx};
+use warp_core::safe_warn;
 use warp_util::sync::Condition;
 use warpui::ModelHandle;
 
@@ -983,8 +983,7 @@ impl LocalRepoMetadataModel {
                                 safe: ("Repository exceeded max file limit; indexed in degraded mode"),
                                 full: ("Repository {repo_path_str} exceeded max file limit ({MAX_FILES_PER_REPO}); indexed only first level — subdirectories load on expand")
                             );
-                            send_telemetry_from_ctx!(RepoMetadataTelemetryEvent::BuildTreeFailed { error: format!("{:#}", BuildTreeError::ExceededMaxFileLimit) }, ctx);
-                        } else {
+                                                    } else {
                             log::info!(
                                 "Successfully indexed repository: {} with {} files",
                                 repo_path_str,
@@ -997,8 +996,7 @@ impl LocalRepoMetadataModel {
                             safe: ("Failed to build file tree for repository: {e:?}"),
                             full: ("Failed to build file tree for repository {repo_path_str}: {e:?}")
                         );
-                        send_telemetry_from_ctx!(RepoMetadataTelemetryEvent::BuildTreeFailed { error: format!("{e:#}") }, ctx);
-                        model.mark_repository_failed(
+                                                model.mark_repository_failed(
                             std_repo_path,
                             RepoMetadataError::BuildTree(e),
                             ctx,

@@ -1,4 +1,3 @@
-
 use serde::{Deserialize, Serialize};
 use session_sharing_protocol::common::SessionId as SharedSessionId;
 use warp_core::interval_timer::TimingDataPoint;
@@ -1161,4 +1160,3 @@ pub enum RemoteCodebaseAutoIndexTrigger {
     NavigatedToGitRepo,
     CodebaseContextEnablementChanged,
 }
-

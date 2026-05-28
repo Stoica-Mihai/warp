@@ -57,7 +57,7 @@ use crate::settings::AISettings;
 use crate::view_components::DismissibleToast;
 use crate::workspace::ToastStack;
 use crate::workspaces::user_workspaces::UserWorkspaces;
-use crate::{send_telemetry_from_ctx, GlobalResourceHandlesProvider};
+use crate::GlobalResourceHandlesProvider;
 
 /// Controls the behavior of `spawn_server_impl`.
 enum SpawnMode {
@@ -908,21 +908,7 @@ impl TemplatableMCPServerManager {
                     }
                 };
 
-                if should_send_telemetry {
-                    send_telemetry_from_ctx!(
-                        TelemetryEvent::MCPServerSpawned {
-                            transport_type: match server.transport_type {
-                                TransportType::CLIServer { .. } =>
-                                    MCPServerTelemetryTransportType::CLIServer,
-                                TransportType::ServerSentEvents { .. } =>
-                                    MCPServerTelemetryTransportType::ServerSentEvents,
-                            },
-                            server_model: MCPServerModel::Templatable,
-                            error
-                        },
-                        ctx
-                    );
-                }
+                if should_send_telemetry {}
             },
         );
 
@@ -1428,16 +1414,7 @@ impl TemplatableMCPServerManager {
                 ctx,
             );
             match result {
-                Ok(_result) => {
-                    send_telemetry_from_ctx!(
-                        TelemetryEvent::MCPTemplateCreated {
-                            source: MCPTemplateCreationSource::Conversion,
-                            variables: result.templatable_mcp_server.template.variables,
-                            name: result.templatable_mcp_server.name,
-                        },
-                        ctx
-                    );
-                }
+                Ok(_result) => {}
                 Err(e) => log::error!("{e}"),
             }
         }
@@ -1468,7 +1445,6 @@ impl TemplatableMCPServerManager {
                         ctx,
                     );
                 });
-                send_telemetry_from_ctx!(TelemetryEvent::MCPTemplateShared, ctx);
             }
         }
     }

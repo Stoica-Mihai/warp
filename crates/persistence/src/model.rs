@@ -467,7 +467,6 @@ pub struct SettingsPane {
     pub current_page: String,
 }
 
-
 /// Maps to the `ai_memory_panes` table
 /// (where table name is historical and not worth a migration to change).
 #[derive(Identifiable, Queryable, Selectable)]

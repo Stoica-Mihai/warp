@@ -21,7 +21,6 @@ cfg_if::cfg_if! {
 }
 #[cfg(not(target_family = "wasm"))]
 use warp_core::channel::ChannelState;
-use warp_core::send_telemetry_from_ctx;
 #[cfg(feature = "local_fs")]
 use warp_core::sync_queue::SyncQueue;
 use warp_util::git::run_git_command;
@@ -249,17 +248,6 @@ impl LocalDiffStateModel {
                     }
                     Err(err) => {
                         log::error!("File invalidation error: {err}");
-                        send_telemetry_from_ctx!(
-                            CodeReviewTelemetryEvent::LoadDiffFailed {
-                                is_local: Some(true),
-                                mode: me.mode.clone(),
-                                error: err.to_string(),
-                                // Per-file invalidation errors are not tied to a full
-                                // tracked load, so `load_duration` is intentionally `None`.
-                                load_duration: None,
-                            },
-                            ctx
-                        );
                     }
                 }
             },
@@ -1429,14 +1417,6 @@ impl LocalDiffStateModel {
                 self.metadata = Some(metadata);
             }
             Err(_e) => {
-                send_telemetry_from_ctx!(
-                    CodeReviewTelemetryEvent::LoadMetadataFailed {
-                        is_local: Some(true),
-                        mode: self.mode.clone(),
-                        error: e.to_string(),
-                    },
-                    ctx
-                );
                 self.metadata = None;
             }
         }
@@ -1490,15 +1470,6 @@ impl LocalDiffStateModel {
                     .tracked_diff_load_start_time
                     .take()
                     .map(|start| start.elapsed());
-                send_telemetry_from_ctx!(
-                    CodeReviewTelemetryEvent::LoadDiffFailed {
-                        is_local: Some(true),
-                        mode: self.mode.clone(),
-                        error: e.to_string(),
-                        load_duration,
-                    },
-                    ctx
-                );
                 None
             }
         };

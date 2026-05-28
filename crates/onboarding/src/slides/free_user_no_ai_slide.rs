@@ -1,5 +1,4 @@
 use ui_components::{button, Component as _, Options as _};
-use warp_core::send_telemetry_from_ctx;
 use warp_core::ui::appearance::Appearance;
 use warp_core::ui::theme::color::internal_colors;
 use warp_core::ui::theme::Fill;
@@ -570,7 +569,6 @@ impl TypedActionView for FreeUserNoAiSlide {
                     .update(ctx, |model, ctx| model.complete(ctx));
             }
             FreeUserNoAiSlideAction::UpgradeClicked => {
-                send_telemetry_from_ctx!(OnboardingEvent::FreeUserNoAiUpgradeClicked, ctx);
                 self.onboarding_state
                     .update(ctx, |model, ctx| model.request_upgrade(ctx));
             }

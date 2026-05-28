@@ -11,7 +11,6 @@ use pathfinder_color::ColorU;
 use pathfinder_geometry::vector::vec2f;
 use warp_cli::agent::Harness;
 use warp_core::channel::ChannelState;
-use warp_core::send_telemetry_from_ctx;
 use warp_core::ui::appearance::Appearance;
 use warp_core::ui::color::blend::Blend;
 use warp_core::ui::color::coloru_with_opacity;
@@ -53,10 +52,7 @@ use crate::ai::blocklist::agent_view::{
 use crate::ai::blocklist::orchestration_topology::{
     aggregated_orchestrator_status, descendant_conversation_ids_in_spawn_order,
 };
-use crate::ai::blocklist::telemetry::{
-    PillBarActionKind,
-    PillBarPillKind, PillSwitchOutcome,
-};
+use crate::ai::blocklist::telemetry::{PillBarActionKind, PillBarPillKind, PillSwitchOutcome};
 use crate::ai::blocklist::{BlocklistAIHistoryEvent, BlocklistAIHistoryModel};
 use crate::ai::harness_display;
 use crate::features::FeatureFlag;
@@ -786,18 +782,6 @@ impl OrchestrationPillBar {
         else {
             return;
         };
-        send_telemetry_from_ctx!(
-            BlocklistOrchestrationTelemetryEvent::PillBarInteraction(PillBarInteractionEvent {
-                action,
-                pill_kind,
-                total_pills,
-                total_pinned,
-                source_conversation_id,
-                target_conversation_id,
-                switch_outcome,
-            }),
-            ctx
-        );
     }
 
     /// Dispatches the focus-existing-pane navigation. Pulled out of

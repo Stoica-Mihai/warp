@@ -20,7 +20,6 @@ use crate::terminal::model::session::active_session::ActiveSession;
 use crate::terminal::model::session::{ExecuteCommandOptions, Session};
 use crate::terminal::shell::ShellType;
 use crate::terminal::ShellLaunchData;
-use crate::{send_telemetry_from_app_ctx};
 
 const FILE_GLOB_TIMEOUT: Duration = Duration::from_secs(10);
 
@@ -36,7 +35,6 @@ pub struct FileGlobExecutor {
 
 fn log_file_glob_error(conversation_id: AIConversationId, ctx: &mut AppContext) {
     let _server_output_id = get_server_output_id(conversation_id, ctx);
-    send_telemetry_from_app_ctx!(TelemetryEvent::FileGlobToolFailed { server_output_id }, ctx);
 }
 
 impl FileGlobExecutor {
@@ -145,12 +143,7 @@ impl FileGlobExecutor {
                             log::warn!("Executing file_glob resulted in error: {e:?}");
                             log_file_glob_error(conversation_id_clone, ctx);
                         }
-                        FileGlobV2Result::Success { .. } => {
-                            send_telemetry_from_app_ctx!(
-                                TelemetryEvent::FileGlobToolSucceeded,
-                                ctx
-                            );
-                        }
+                        FileGlobV2Result::Success { .. } => {}
                         _ => {}
                     }
                     // Convert FileGlobV2Result to FileGlobResult if the request was not V2.

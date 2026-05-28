@@ -11,8 +11,8 @@ use warpui::r#async::FutureExt as AsyncFutureExt;
 use warpui::{AppContext, Entity, EntityId, ModelContext, ModelHandle, SingletonEntity};
 
 use super::{
-    is_file_path, is_git_repository, ActionExecution, AnyActionExecution,
-    ExecuteActionInput, PreprocessActionInput,
+    is_file_path, is_git_repository, ActionExecution, AnyActionExecution, ExecuteActionInput,
+    PreprocessActionInput,
 };
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::{
@@ -25,7 +25,6 @@ use crate::terminal::model::session::active_session::ActiveSession;
 use crate::terminal::model::session::{ExecuteCommandOptions, Session};
 use crate::terminal::shell::ShellType;
 use crate::terminal::ShellLaunchData;
-use crate::send_telemetry_from_app_ctx;
 
 const GREP_TIMEOUT: Duration = Duration::from_secs(10);
 const NON_ZERO_EXIT_CODE_ERROR: &str = "Grep command exited with non-zero exit code";
@@ -110,7 +109,6 @@ impl GrepError {
         }
     }
 }
-
 
 #[allow(clippy::too_many_arguments)]
 fn log_grep_error(
@@ -244,9 +242,7 @@ impl GrepExecutor {
                                 ctx,
                             );
                         }
-                        GrepResult::Success { .. } => {
-                            send_telemetry_from_app_ctx!(TelemetryEvent::GrepToolSucceeded, ctx);
-                        }
+                        GrepResult::Success { .. } => {}
                         _ => {}
                     }
                     AIAgentActionResultType::Grep(grep_result)

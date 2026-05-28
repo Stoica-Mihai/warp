@@ -16,8 +16,8 @@ use warpui::{AppContext, Element, Entity, SingletonEntity, TypedActionView, View
 use crate::appearance::Appearance;
 use crate::settings::{active_theme_kind, ThemeSettings};
 use crate::themes::theme::{ThemeKind, WarpTheme};
+use crate::user_config;
 use crate::user_config::util::from_yaml;
-use crate::{send_telemetry_from_ctx, user_config};
 
 const BUTTON_PADDING: f32 = 12.;
 const BUTTON_FONT_SIZE: f32 = 14.;
@@ -97,7 +97,6 @@ impl ThemeDeletionBody {
                             ctx.emit(ThemeDeletionBodyEvent::DeleteCurrentTheme)
                         }
                         errored = false;
-                        send_telemetry_from_ctx!(TelemetryEvent::DeleteCustomTheme, ctx);
                         self.close(ctx);
                         ctx.notify();
                     }

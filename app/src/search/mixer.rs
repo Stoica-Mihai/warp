@@ -14,7 +14,6 @@ use warpui::{Action, AppContext, Entity, ModelContext};
 use super::data_source::{Query, QueryResult};
 use crate::debounce::debounce;
 use crate::search::QueryFilter;
-use crate::send_telemetry_from_ctx;
 
 /// Maximum time to wait for matching data sources to return results before showing
 /// partial results.
@@ -430,13 +429,6 @@ impl<T: Action + Clone> SearchMixer<T> {
                         }
                         let _error_payload =
                             new_results.as_ref().err().map(|e| e.telemetry_payload());
-                        send_telemetry_from_ctx!(
-                            TelemetryEvent::CommandSearchAsyncQueryCompleted {
-                                filters,
-                                error_payload,
-                            },
-                            ctx
-                        );
                         mixer.add_new_results(data_source_id, new_results, ctx);
                         source.on_query_finished(ctx);
                     },

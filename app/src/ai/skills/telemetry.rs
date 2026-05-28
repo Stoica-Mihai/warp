@@ -1,9 +1,4 @@
-use ai::skills::{SkillProvider, SkillReference, SkillScope};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use strum_macros::{EnumDiscriminants, EnumIter};
-
-use crate::features::FeatureFlag;
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]

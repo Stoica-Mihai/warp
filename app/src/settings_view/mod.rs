@@ -28,7 +28,6 @@ use teams_page::{TeamsPageView, TeamsPageViewEvent};
 use warp_core::channel::ChannelState;
 use warp_core::context_flag::ContextFlag;
 use warp_core::features::FeatureFlag;
-use warp_core::send_telemetry_from_ctx;
 use warp_core::settings::ToggleableSetting as _;
 use warp_core::ui::theme::color::internal_colors;
 use warp_editor::editor::NavigationKey;
@@ -66,7 +65,7 @@ use crate::ui_components::icons;
 use crate::util::bindings::{keybinding_name_to_display_string, BindingGroup, CustomAction};
 use crate::view_components::ToastFlavor;
 use crate::workspace::WorkspaceAction;
-use crate::{GlobalResourceHandlesProvider};
+use crate::GlobalResourceHandlesProvider;
 
 mod about_page;
 mod admin_actions;
@@ -1917,9 +1916,7 @@ impl SettingsView {
             self.clear_search_query(ctx);
         }
         self.current_settings_page = section;
-        if previous_section != section && section == SettingsSection::CloudEnvironments {
-            send_telemetry_from_ctx!(SettingsTelemetryEvent::EnvironmentsPageOpened, ctx);
-        }
+        if previous_section != section && section == SettingsSection::CloudEnvironments {}
 
         // When navigating to a subpage, update the backing page's active subpage mode
         // and auto-expand the umbrella containing it.
@@ -2550,14 +2547,7 @@ impl TypedActionView for SettingsView {
             SettingsAction::SelectAndRefresh(section) => {
                 self.set_and_refresh_current_page_internal(*section, false, true, ctx);
 
-                if *section == SettingsSection::MCPServers {
-                    send_telemetry_from_ctx!(
-                        TelemetryEvent::MCPServerCollectionPaneOpened {
-                            entrypoint: MCPServerCollectionPaneEntrypoint::MCPSettingsTab,
-                        },
-                        ctx
-                    );
-                }
+                if *section == SettingsSection::MCPServers {}
             }
             SettingsAction::ToggleUmbrella(nav_index) => {
                 if let Some(SettingsNavItem::Umbrella(umbrella)) =

@@ -4,7 +4,6 @@
 
 use std::path::Path;
 
-use warp_core::send_telemetry_from_ctx;
 use warp_core::ui::appearance::Appearance;
 use warpui::elements::{
     ChildView, ClippedScrollStateHandle, Container, CornerRadius, CrossAxisAlignment, Element,
@@ -21,9 +20,7 @@ use crate::code_review::git_dialog::{
     should_send_git_ops_ai_request, show_toast, user_facing_git_error, GitDialog, GitDialogAction,
     GitDialogEvent, GitDialogMode,
 };
-use crate::code_review::telemetry_event::{
-    GitDialogStatus, GitOperationKind,
-};
+use crate::code_review::telemetry_event::{GitDialogStatus, GitOperationKind};
 use crate::editor::{
     EditorOptions, EditorView, Event as EditorEvent, InteractionState,
     PropagateAndNoOpNavigationKeys, TextOptions,
@@ -445,15 +442,6 @@ pub(super) fn start_confirm(me: &mut GitDialog, ctx: &mut ViewContext<GitDialog>
                     show_toast(user_facing_git_error(&err.to_string()), ctx);
                 }
             }
-            send_telemetry_from_ctx!(
-                CodeReviewTelemetryEvent::GitDialogCompleted {
-                    is_local: Some(true),
-                    operation,
-                    status,
-                    error,
-                },
-                ctx
-            );
             // Success or failure, the dialog is done and the parent should
             // close it and refresh.
             ctx.emit(GitDialogEvent::Completed);

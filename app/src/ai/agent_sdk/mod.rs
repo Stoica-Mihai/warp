@@ -15,19 +15,11 @@ use driver::AgentDriverError;
 use warp_cli::agent::{
     AgentCommand, AgentProfileCommand, Harness, OutputFormat, Prompt, RunAgentArgs,
 };
-use warp_cli::api_key::ApiKeyCommand;
-use warp_cli::artifact::ArtifactCommand;
 use warp_cli::environment::{EnvironmentCommand, ImageCommand};
-use warp_cli::federate::FederateCommand;
-use warp_cli::harness_support::{HarnessSupportCommand, ReportArtifactCommand, TaskStatus};
-use warp_cli::integration::IntegrationCommand;
 use warp_cli::mcp::MCPCommand;
 use warp_cli::model::ModelCommand;
-use warp_cli::provider::ProviderCommand;
-use warp_cli::schedule::ScheduleSubcommand;
-use warp_cli::secret::SecretCommand;
 use warp_cli::share::ShareRequest;
-use warp_cli::task::{MessageCommand, TaskCommand};
+use warp_cli::task::TaskCommand;
 use warp_cli::{CliCommand, GlobalOptions, OZ_HARNESS_ENV};
 use warp_core::features::FeatureFlag;
 use warp_graphql::object_permissions::OwnerType;
@@ -63,7 +55,6 @@ use crate::auth::auth_manager::{AuthManager, AuthManagerEvent};
 use crate::auth::AuthStateProvider;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::CloudObjectLookup as _;
-use crate::send_telemetry_sync_from_app_ctx;
 use crate::server::ids::{ServerId, SyncId};
 use crate::server::server_api::ai::{AIClient, AgentConfigSnapshot};
 use crate::server::server_api::ServerApiProvider;
@@ -1573,7 +1564,6 @@ fn resolve_orchestration_harness_label() -> &'static str {
         Some(Harness::Unknown) | None => "unknown",
     }
 }
-
 
 #[cfg(test)]
 #[path = "mod_tests.rs"]

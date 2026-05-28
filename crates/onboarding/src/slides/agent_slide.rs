@@ -4,7 +4,6 @@ use pathfinder_geometry::vector::vec2f;
 use ui_components::button::State as ButtonState;
 use ui_components::{button, Component as _, Options as _};
 use warp_core::features::FeatureFlag;
-use warp_core::send_telemetry_from_ctx;
 use warp_core::ui::appearance::Appearance;
 use warp_core::ui::icons::Icon;
 use warp_core::ui::theme::color::internal_colors;
@@ -1612,7 +1611,6 @@ impl TypedActionView for AgentSlide {
                 self.next(ctx);
             }
             AgentSlideAction::UpgradeClicked => {
-                send_telemetry_from_ctx!(OnboardingEvent::AgentSlideUpgradeClicked, ctx);
                 if !matches!(
                     self.onboarding_state.as_ref(ctx).auth_state(),
                     OnboardingAuthState::PayingUser,
