@@ -17,6 +17,7 @@ Don't add a row for pure docs commits — size unchanged.
 | Date       | Commit     | Profile | Step / milestone                                  | Bytes        | MiB   | MB (SI) | Build time | Notes |
 |------------|------------|---------|---------------------------------------------------|--------------|-------|---------|------------|-------|
 | 2026-05-28 | `c7319c0a` | debug   | Telemetry strip COMPLETE (cleanup-2)              | 914,048,408  | 871.7 | 914     | 2m08s      | First tracked datapoint — post-telemetry baseline. No pre-strip number captured. |
+| 2026-05-28 | `7faa67bb` | debug   | Wasm orphans gone (serve-wasm, managed_secrets_wasm, warp_web_event_bus) | 914,048,408 | 871.7 | 914 | n/a (cached) | Zero binary delta — all three crates were wasm-only or wasm-served; never linked into the linux GUI build to begin with. Cleanup is repo hygiene, not size reduction. |
 
 ## Next milestones to log
 
