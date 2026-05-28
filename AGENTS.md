@@ -11,24 +11,25 @@ Personal fork of [warpdotdev/warp](https://github.com/warpdotdev/warp), strippin
 - **Branch `surgical-strip`, forked from the last green upstream commit `0b737e22`** (worktree: `~/Documents/git/warp-upstream`). This replaced an earlier `strip-cloud` branch that deleted the `ai` crate before its callers and never compiled — that approach is abandoned.
 - **Invariant: `cargo check -p warp` = 0 errors after every commit.** Remove cloud feature-by-feature; never delete a dependency before refactoring its callers off it. Also keep `cargo check -p warp --tests` green.
 - Removal loop: delete the def (enum variant / module / method), let `cargo check` enumerate every break site, fix in batches, repeat to 0.
+- **Gate matrix (3 runs)**: `cargo check -p warp` (default) + `--tests` + `--features local_fs,gui` (combined). The combined feature run covers both feature gates simultaneously — features compose, so no need for separate `--features gui` and `--features local_fs` passes.
 
 ## 3. Status, plan, lessons → `plan.md`
 
 **`plan.md` (this directory) is the single source of truth** for status, per-finding difficulty, removal order, resume notes, and lessons. Read it first. Strategy detail: `docs/superpowers/specs/2026-05-27-surgical-cloud-strip-design.md`. Keep §1–§2 here synced with `plan.md`; let `plan.md` hold everything volatile.
 
-Done so far (all green on 4 gates — `cargo check -p warp` default/`--tests`/`--features gui`/`--features local_fs`):
+Done so far (all green on the 3-gate matrix):
 - Welcome/get-started panes, onboarding app flow — app launches straight to a terminal.
 - Settings-import regression fix (over-stubbed in the onboarding pass; restored as a standalone command).
-- **Telemetry (mostly stripped)**: send-macros no-op'd → live send path removed (nothing phones home) → central `TelemetryEvent` enum deleted (−6966 LoC) → warning sweep 795→142 (`cargo fix`) → all 16 satellite `*TelemetryEvent` enums removed. No telemetry event type exists or is constructed anywhere.
+- **Telemetry — STRIP COMPLETE.** No queue, no dispatcher, no sender, no payload structs, no macros, no traits, no event types. ~13.8k LoC total across step 1 (no-op macros) → step 2 (kill live send path) → step 3 (delete central enum, −6966 LoC) → step a (16 satellite enums) → step e (cargo fix warning sweep 795→142) → step b (warp_core traits + register macro + EnablementState) → step c (TelemetryCollector + TelemetryApi + rudder_message + telemetry_ext + secret_redaction + context + AppTelemetryContextProvider) → step d (lib.rs bootstrap wiring) → cleanup-1 (819 macro call-sites + 5 macro defs + import sweep, −5802 LoC across 193 files) → cleanup-2 (43 dead payload structs in events.rs). 42 surviving payload items are plain data carriers for non-telemetry features (PaletteSource, CLIAgentType, AIAgentInput, etc.). Last commit: `c7319c0a`. Verified GUI binary builds (`cargo build --bin warp-oss --features gui` = 0 errors, 2m08s, 914 MB binary).
 
-**Telemetry remaining (HARD foundation = next pass)**: the inert plumbing — warp_core `TelemetryEvent`/`TelemetryEventDesc` traits + `register_telemetry_event!` macro + `enum_events` + `EnablementState`; warpui_core record layer (`record_event`, `record_telemetry_*` macros, queue); app dispatch infra (`collector`/`rudder_message`/`TelemetryApi` + ServerApi flush/persist); `lib.rs` bootstrap wiring. Coupled across warp_core+warpui_core+server+bootstrap — one teardown. Then firebase / login pass. Login KEPT throughout.
+**Next**: firebase + experiments + wasm crates (EASY). Then login pass (relocate ~470 LoC from `crates/onboarding` into `auth/`, delete the crate). README rebrand parked.
 
-Telemetry-strip techniques that worked (detail in `plan.md`): no-op the send-macros first so their args aren't type-checked → event enums delete without touching the ~782 call-sites; recast (crate::-anchored) for import sweeps; `cargo fix` for bulk unused removal but **re-verify all 4 gates** (it drops `#[cfg(test)]`/other-feature-only imports → broke `--tests` twice); satellite modules are MIXED (event enum + helper types real code uses) → surgically delete enum+impls+`register_telemetry_event!`, keep helpers.
+Telemetry-strip techniques that worked (detail in `plan.md`): no-op the send-macros first so their args aren't type-checked → event enums delete without touching the ~819 call-sites; recast (regex non-greedy `(?s)NAME!\(.*?\);` matched all invocations in 1 sweep — but `\b` matched starting at the macro name and left `crate::` prefixes orphaned, requiring a follow-up sweep); `cargo fix` for bulk unused removal but **re-verify gates** (it drops `#[cfg(test)]`/other-feature-only imports — broke `--tests` twice and dropped `permissions::CommandExecutionPermissionAllowedReason` re-export needed by a test); satellite modules are MIXED (event enum + helper types real code uses) → surgically delete enum+impls+`register_telemetry_event!`, keep helpers; the events.rs payload-struct prune needs intra-file ref tracking (items only referenced by other items in the same file need cascade or a graph walk).
 
 ## 4. Build / verify
 
 - Build + launch GUI: `cargo run --bin warp-oss --features gui`. Do **not** run `./script/bootstrap` (Debian/apt-only; on this CachyOS box the deps are already present). First `--features gui` build is long.
-- Verify green: `cargo check -p warp` (build path) and `cargo check -p warp --tests`. Background them — they're slow.
+- Verify green: 3-gate matrix — `cargo check -p warp` + `--tests` + `--features local_fs,gui`. Background them in parallel — they're slow.
 - LSP works on this worktree, but injected diagnostics lag edits (stale line numbers). Trust `cargo check`, not the diagnostic stream.
 
 ## 5. Conventions

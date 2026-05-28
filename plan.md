@@ -33,8 +33,11 @@ Legend: ✅ done · 🔄 in progress · ⏸️ back-burner · ⬜ todo · 🔍 n
 | Telemetry — step 3: delete `TelemetryEvent` enum + all construction | ✅ done | `a9b89f9b` | −6966 LoC. Enum + discriminants + impls + events_tests gone; 127 imports swept (recast, crate::-anchored); ~33 real-code sites (From/TryFrom impls, page-builders, struct fields `AIAgentOutput.telemetry_events`/`CTAButton.telemetry_event`, `let event=…;send!` sites, direct `record_event(Login)`). Green on all 4 gates. Payload structs in events.rs KEPT (used by real code). |
 | Telemetry — step a: all 16 satellite `*TelemetryEvent` enums | ✅ done | `e466235a` `2eebd0fe` `8921cfcb` | Batch 1: 4 pure. Batch 2: 9 mixed (surgical — keep helper types real code uses). Batch 3: 3 crate-level (ai/onboarding/repo_metadata). Helpers kept (events.rs pattern); construction was in no-op'd macro args, only re-export chains + builder fns needed fixing. |
 | Telemetry — step e: warning sweep | ✅ partial | `bcd1fc6a` | `cargo fix --features gui,local_fs` swept unused imports/vars **795 → ~142**. Remaining ~142 = `dead_code` on never-constructed payload structs in `events.rs` (die with b). ⚠ `cargo fix` under one feature set drops `#[cfg(test)]`/other-feature-only imports → re-verify all 4 gates (it broke `--tests`). |
-| Telemetry — steps b/c/d: foundation teardown | ⬜ **NEXT** | — | The inert plumbing, all coupled (one pass): (b) warp_core `TelemetryEvent`/`TelemetryEventDesc` traits + `register_telemetry_event!` + `enum_events` + `EnablementState` + `TelemetryContextModel`; warpui_core record layer (`record_event`, `record_telemetry_*` macros, queue). (c) app dispatch infra (`collector`/`rudder_message`/`context`/`secret_redaction`/`TelemetryApi` + ServerApi `flush_telemetry_events`/`persist_telemetry_events`). (d) `lib.rs` bootstrap wiring (`ImportedConfigModel`-style flush/persist timer + `TelemetryCollector` setup). Spans warp_core+warpui_core+server+lib.rs (HARD). After: also delete the now-empty 5 no-op send-macros + the ~142 dead events.rs payload structs. |
-| firebase + experiments + wasm crates | ⬜ todo | — | EASY crate deletions. |
+| Telemetry — step b: warp_core trait machinery | ✅ done | `081a425a` | Deleted `TelemetryEvent`/`TelemetryEventDesc`/`RegisteredTelemetryEvent` traits + `register_telemetry_event!` + `enum_events` + `all_events` + `EnablementState` enum + dead `TelemetryApi::send_telemetry_event` method. Swept 11 orphan trait imports. −273 LoC. |
+| Telemetry — step c: app dispatch infra (8 commits) | ✅ done | `7c2fe36b` `b7ba00d9` `dec01756` `2ea55e2d` `5f1d030b` `879ef26b` `106f62e3` `3dadef72` | c1-c8: TelemetryCollector entry points (lib.rs + auth_manager) → collector module → ServerApi flush/persist surface → TelemetryApi + rudder_message + telemetry_ext + mod_tests → secret_redaction → context.rs + shared_session telemetry_context → AppTelemetryContextProvider + TelemetryContext{Model,Provider} → warpui_core record layer + app_focus_telemetry. Includes step d (lib.rs:283/1545/1546 bootstrap was in c1). −2579 LoC. |
+| Telemetry — cleanup: 819 macro call-sites + 5 macro defs | ✅ done | `a052b2a3` | recast deleted 819 `send_telemetry_*!(...)` invocations across ~178 files (754 + 38 + 9 + 12 + 6). cargo fix swept orphan imports across `warp`/`ai`/`onboarding`/`repo_metadata`. Hand-fixed: recast leftovers (`crate::\n`, `crate::    }`), pub re-exports, Windows-only imports. Deleted 5 no-op macro defs + parent module decls. −5802 LoC across 193 files. |
+| Telemetry — cleanup: 43 dead events.rs payload structs | ✅ done | `c7319c0a` | Script-driven pruning of items with zero external refs + 3 cascade-deleted orphan `impl From<X> for DELETED` blocks. events.rs: 1163 → 626 lines. **Telemetry strip = COMPLETE.** GUI binary builds (`cargo build --bin warp-oss --features gui` = 0 errors, 914 MB). |
+| firebase + experiments + wasm crates | ⬜ **NEXT** | — | EASY crate deletions. |
 
 **Two distinct "welcome" surfaces — do not confuse:**
 1. **`welcome_palette` pane** — a tab's content ("Code, build, or search for anything…"). ✅ REMOVED (`59562bd7`).
@@ -54,52 +57,13 @@ Green (`cargo check -p warp`) at every commit.
 
 ---
 
-### Telemetry foundation teardown (steps b/c/d) — precise target map
+## 1. Telemetry — STRIP COMPLETE ✅
 
-Verified file:line map (baseline `cargo check -p warp` = green @ this point). All inert — no event type is constructed or sent anywhere. Delete as ONE coupled pass (spans warp_core + warpui_core + server + lib.rs); fix break-sites cargo-check-driven; verify all 4 gates before commit.
+All telemetry surfaces removed across ~10 commits. Total: ~8918 LoC across step 1 (no-op macros, `4b2d993f`) → step 2 (kill live send path, `a8ae755c`) → step 3 (delete central `TelemetryEvent` enum, `a9b89f9b`, −6966 LoC) → step a (16 satellite enums, `e466235a`/`2eebd0fe`/`8921cfcb`) → step e (warning sweep 795→142, `bcd1fc6a`) → step b (warp_core trait machinery, `081a425a`) → step c (c1-c8: dispatch infra, `7c2fe36b`..`3dadef72`) → cleanup-1 (819 macro call-sites + 5 macro defs, `a052b2a3`, −5802 LoC across 193 files) → cleanup-2 (43 dead events.rs payload structs, `c7319c0a`).
 
-**(b) warp_core — `crates/warp_core/src/telemetry.rs`:**
-- `:20` trait `TelemetryEvent` · `:81` trait `TelemetryEventDesc`
-- `:62` macro `register_telemetry_event!` · `:120` fn `enum_events`
-- `:163` enum `EnablementState` · `:193` type alias `TelemetryContextModel`
-- `:147` no-op macro `send_telemetry_from_ctx` · `:157` no-op macro `send_telemetry_from_app_ctx`
+**State**: zero telemetry queue / dispatcher / sender / payload struct / macro / trait / event type anywhere in the workspace. 42 surviving payload items in events.rs are plain data carriers for non-telemetry features (PaletteSource, CLIAgentType, AIAgentInput, etc.). GUI binary builds: `cargo build --bin warp-oss --features gui` = 0 errors, 914 MB.
 
-**(b) warpui_core record layer — `crates/warpui_core/src/telemetry/`:**
-- `mod.rs:17` macro `record_telemetry_from_ctx` · `mod.rs:36` macro `record_telemetry_on_executor`
-- `mod.rs:75` fn `record_event` (public) · `event_store.rs:18` struct `EventStore` (queue) · `event_store.rs:27` struct `Event` (exported via `mod.rs:7`)
-
-**(c) app dispatch infra — `app/src/server/telemetry/`:**
-- `collector.rs:35` struct `TelemetryCollector` · timers `collector.rs:170` `schedule_send_active_usage_event`, `collector.rs:200` `schedule_event_queue_flush`
-- `mod.rs:50` struct `TelemetryApi` (collector module re-export `mod.rs:1`)
-- `rudder_message.rs` `Message`/message types · `context.rs:14` `TELEMETRY_CONTEXT` static + `:30` `TelemetryContext` · `secret_redaction.rs:34` `TELEMETRY_SECRETS_REGEX` + `:49` `update_telemetry_secrets_regex`
-- `macros.rs:9/14/19` 3 no-op macros `send_telemetry_sync_from_ctx`/`send_telemetry_sync_from_app_ctx`/`send_telemetry_on_executor`
-- ServerApi: `server_api.rs:1087` `flush_telemetry_events`, `:1110` `persist_telemetry_events`
-
-**(d) bootstrap wiring — `app/src/lib.rs`:**
-- `:283` `TelemetryCollector` import · `:1544` `TelemetryCollector::new` instantiation · `:1546` `.initialize_telemetry_collection` call
-
-**Then cleanup:** delete the 5 now-empty no-op send-macros (2 warp_core + 3 app/macros.rs) + the ~15 dead `dead_code` payload structs remaining in `app/src/server/telemetry/events.rs`.
-
-Total: ~19 defs + 5 wiring sites. Order: delete defs → cargo-check enumerates breaks → fix → repeat to 0 → re-verify 4 gates.
-
----
-
-## 1. Telemetry — REMOVE ALL (user mandate)
-
-| Finding | Location | Size | Difficulty | Why |
-|---|---|---|---|---|
-| `send_telemetry*` macros | `app/src/server/telemetry/macros.rs` | 5 macros | **EASY** | No-op these FIRST → all 795 call-sites compile to nothing, tree stays green. |
-| Telemetry call-sites | 167 files across `app/src` | **795 calls** | **MEDIUM** | Mechanical once macros are no-op'd; some sit in render files. Delete incrementally. |
-| `TelemetryEvent` enum | `app/src/server/telemetry/events.rs` | 767 variants, 7.3k LoC | **MEDIUM** | Pure data enum; ~196-file fan-in via match arms. Delete after call-sites gone. |
-| Collector + Rudderstack dispatch | `server/telemetry/{collector,mod,rudder_message,context,secret_redaction}.rs` | ~3.7k LoC | **EASY** | Self-contained sender (HTTP → Rudderstack). |
-| Crash reporting / Sentry | `app/src/crash_reporting/` (4 files) | 1.2k LoC | **EASY** | Feature-gated (`crash_reporting`/`cocoa_sentry`), NOT in default. Flip off + delete. |
-| warpui_core telemetry | `crates/warpui_core/src/telemetry/` + `app_focus_telemetry.rs` | ~555 LoC | **MEDIUM** | Backs the macros (event queue, focus tracking). Remove after call-sites. |
-| warp_core telemetry trait + RudderStackConfig | `crates/warp_core/src/{telemetry.rs,channel/config.rs}` | ~380 LoC | **EASY** | Endpoint/write-key config + trait. |
-| Analytics feature flags | `app/src/features.rs` | 4 flags | **EASY** | `GlobalAIAnalyticsCollection`, `AgentModeAnalytics`, `RecordAppActiveEvents`, `WithSandboxTelemetry`. |
-| Profiling (pprof/dhat) | `app/src/profiling.rs` | 121 LoC | **EASY** | Optional heap/CPU upload, self-contained. |
-| Telemetry bootstrap wiring | `app/src/lib.rs` ~773–1555 | scattered | **HARD** | Mixed with auth/db init; final wiring step. |
-
-**Approach**: no-op the macros → green → delete the now-dead call-sites in batches → delete the infra (collector/dispatch/event enum) → strip bootstrap wiring last. ~1188 total touch-points but the no-op-macro trick collapses most risk.
+**Still to scrub** (orthogonal, separate cuts): `crash_reporting`, `profiling`, the 4 analytics feature flags (`GlobalAIAnalyticsCollection`, `AgentModeAnalytics`, `RecordAppActiveEvents`, `WithSandboxTelemetry`) — none of these are telemetry-dispatcher dependent now; they're just inert flag definitions / optional heap-uploader scaffolding. Delete when convenient.
 
 ---
 
@@ -183,14 +147,16 @@ Total: ~19 defs + 5 wiring sites. Order: delete defs → cargo-check enumerates 
 
 **Where**: worktree `~/Documents/git/warp-upstream`, branch `surgical-strip` off upstream `0b737e22` (green baseline). `strip-cloud` (old delete-foundation-first attempt) is abandoned — ignore its `AGENTS.md`; this `plan.md` + `docs/superpowers/specs/2026-05-27-surgical-cloud-strip-design.md` are the living docs.
 
-**Verify green** (background it — slow):
-- build/launch path: `cargo check -p warp`
-- tests: `cargo check -p warp --tests`
-Both must be 0 errors before each commit.
+**Verify green** (3-gate matrix — background in parallel, slow):
+- `cargo check -p warp` (default)
+- `cargo check -p warp --tests`
+- `cargo check -p warp --features local_fs,gui` (combined — features compose)
 
-**Build + launch the GUI**: `cargo run --bin warp-oss --features gui` (NOT `./script/bootstrap` — Debian/apt-only; CachyOS deps already present). First `--features gui` build is long. Confirmed: app launches straight to a terminal (no welcome/onboarding/login).
+All 3 must be 0 errors before each commit.
 
-**Done + verified**: welcome panes (`59562bd7`), onboarding flow (`3e87396f`). Login KEPT.
+**Build + launch the GUI**: `cargo run --bin warp-oss --features gui` (NOT `./script/bootstrap` — Debian/apt-only; CachyOS deps already present). First `--features gui` build is long. Confirmed: app launches straight to a terminal (no welcome/onboarding/login). GUI binary build verified post-telemetry-strip (`c7319c0a`): 914 MB, 2m08s, 0 errors.
+
+**Done + verified**: welcome panes (`59562bd7`), onboarding flow (`3e87396f`), **telemetry strip COMPLETE** (`c7319c0a`). Login KEPT. Brand assets done in `brand/` (untracked).
 
 ### Cleanup TODO (from onboarding pass — non-blocking, build+tests green)
 - ✅ Onboarding action stubs + dead variants/enums + helper methods removed (`d444c2b6`). `ImportSettings` was NOT a stub to delete — it was a mis-stubbed local feature, restored (`e9a3dc2e`).
@@ -216,6 +182,10 @@ Both must be 0 errors before each commit.
 - **no-op-stub can hide a regression**: a stub silences the compiler but also silently kills a still-reachable feature. `ImportSettings=>{}` looked like onboarding dead code but the "Import External Settings" command is gated on config-detection (`HAS_SETTINGS_TO_IMPORT_FLAG`, `local_fs`), independent of onboarding — stubbing it left a dead palette command. **Before deleting a stub, trace its trigger on the baseline (`git show 0b737e22:` / `git grep <Action> <baseline>`) — if anything other than the removed feature dispatches it, it's a regression to restore, not dead code.** Helper-method names lie too (`add_settings_import_block` set `block_onboarding_active` but wasn't onboarding-only).
 - **feature-gate trap for dead-code sweeps**: `cargo check` (default) flags imports/fns unused for *that* build; an item used only under an off-by-default feature (e.g. `local_fs`, wasm) is still flagged. Removing it breaks that feature build. Verify restored `local_fs` code with `cargo check -p warp --features local_fs`. Don't blindly sweep default-unused imports that may be feature-gated-used.
 - **`recast`** is available for repeated multi-file identical edits; **LSP `findReferences`** for complete call-site maps.
+- **macro call-site sweep with non-greedy regex**: `(?s)NAME!\(.*?\);` reliably matches a whole macro invocation (single- or multi-line). Counted match-count against `\rg -c 'NAME!'` to confirm 1-for-1 — equal counts mean no inner `);` ate the regex early. **Trap**: `\b` matches starting at the macro name, so a `crate::NAME!(...)` prefix leaves a dangling `crate::` after the deletion. Follow-up pattern `(?m)^(\s*)crate::[ \t]*\n` and `(?m)^(\s*)crate::[ \t]+\}` cleaned the orphans. Anchor the leading path next time: `(?s)(?:[\w:]+::)?NAME!\(.*?\);`.
+- **cargo fix on `pub use` lines and cfg-test re-exports**: `cargo fix` *will not* touch `pub use` (treated as intentional API) but *will* drop a regular `pub use foo::{X, Y}` brace entry whose Y is only used by `#[cfg(test)]` code. Restoring it (e.g. `pub use permissions::CommandExecutionPermissionAllowedReason`) is mechanical once `cargo check --tests` flags the unresolved import. Bake a `--tests` check into the post-fix re-verify, not just default.
+- **events.rs payload-struct prune needs intra-file ref tracking**: a script that counts external refs only (`\rg name --type rust | grep -v <file>`) misses the case where item X is a field type in item Y that's also in the file. Items used only by other items in the same file appear dead but are alive transitively. Fix: cargo-check-driven cascade (delete → fix breaks → repeat) or build the intra-file ref graph first.
+- **gate matrix: 3 runs, not 4**: `cargo check -p warp` + `--tests` + `--features local_fs,gui` (combined). Features compose for warp, so the combined run catches both gui- and local_fs-gated regressions in one pass.
 
 ### Known upstream gaps (found while stripping — not our bugs, out of scope)
 - **Alacritty importer ignores modern config layout.** `app/src/settings/import/alacritty_parser.rs` `AlacrittyConfig` deserializes **top-level** `import` + `colors` only. Alacritty ≥0.13 moved `import` (and several keys) under `[general]`, so a config using `[general].import = [...]` parses to `import: None` → theme never resolved → `is_valid()` false → 0 configs → `HAS_SETTINGS_TO_IMPORT_FLAG` never set → "Import External Settings" command stays hidden. Verified via production parse path (`Config::create_from_external_configs::<AlacrittyConfig>`): `CONFIGS_COUNT=0` with `[general].import`, `=1` with top-level `[colors.*]`. Fix (if ever wanted, beyond strip scope): add a `general: Option<{ import: Vec<String> }>` field + merge it into top-level. Workaround for testing the import UI: inline `[colors.*]` at top level.
