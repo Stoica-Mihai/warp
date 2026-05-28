@@ -437,7 +437,6 @@ agent_mode_computer_use = []
 agent_mode_debug = []
 agent_mode_primary_xml = []
 agent_mode_pre_plan_xml = []
-agent_onboarding = []
 agent_shared_sessions = []
 ask_user_question = []
 async_find = []
@@ -566,7 +565,6 @@ default = [
     "named_agents",
     "agent_tips",
     "pluggable_notifications",
-    "agent_onboarding",
     "global_search",
     "cloud_conversations",
     "list_skills",
@@ -625,7 +623,6 @@ default = [
     "vertical_tabs_summary_mode",
     "tab_configs",
     "agent_harness",
-    "hoa_onboarding_flow",
     "hoa_remote_control",
     "codex_notifications",
     "trim_trailing_blank_lines",
@@ -954,7 +951,6 @@ solo_user_byok = []
 billing_and_usage_page_v2 = []
 configurable_toolbar = []
 warpify_footer = []
-hoa_onboarding_flow = []
 git_operations_in_code_review = []
 hoa_remote_control = []
 codex_notifications = []
@@ -969,7 +965,6 @@ category = "public.app-category.developer-tools"
 copyright = "© 2025, Denver Technologies, Inc"
 identifier = "dev.warp.WarpOss"
 name = "WarpOss"
-resources = ["assets/onboarding"]
 icon = ["channels/oss/icon/no-padding/512x512.png", "channels/oss/icon/no-padding/icon.ico"]
 short_description = "The open-source, cloud-backed terminal for individuals and teams."
 
@@ -981,7 +976,6 @@ name = "Warp"
 osx_frameworks = [
     "frameworks/default/Sentry-Dynamic-WithARM64e.xcframework/macos-arm64_arm64e_x86_64/Sentry.framework",
 ]
-resources = ["assets/onboarding"]
 short_description = "The cloud-backed terminal for individuals and teams, stable build."
 
 [package.metadata.bundle.bin.preview]
@@ -992,7 +986,6 @@ name = "WarpPreview"
 osx_frameworks = [
     "frameworks/default/Sentry-Dynamic-WithARM64e.xcframework/macos-arm64_arm64e_x86_64/Sentry.framework",
 ]
-resources = ["assets/onboarding"]
 short_description = "The cloud-backed terminal for individuals and teams, feature preview build."
 
 [package.metadata.bundle.bin.dev]
@@ -1003,7 +996,6 @@ name = "WarpDev"
 osx_frameworks = [
     "frameworks/dev/Sentry-Dynamic-WithARM64e.xcframework/macos-arm64_arm64e_x86_64/Sentry.framework",
 ]
-resources = ["assets/onboarding"]
 short_description = "The cloud-backed terminal for individuals and teams, developer build."
 
 [package.metadata.bundle.bin.warp]
@@ -1011,7 +1003,6 @@ category = "public.app-category.developer-tools"
 copyright = "© 2025, Denver Technologies, Inc"
 identifier = "dev.warp.Warp-Local"
 name = "WarpLocal"
-resources = ["assets/onboarding"]
 short_description = "The cloud-backed terminal for individuals and teams, developer build."
 
 [package.metadata.cargo-udeps.ignore]
