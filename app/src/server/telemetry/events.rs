@@ -17,66 +17,10 @@ use crate::server::ids::{ObjectUid, ServerId};
 use crate::terminal::model::session::SessionId;
 use crate::workflows::{WorkflowId, WorkflowSelectionSource, WorkflowSource};
 
-#[derive(Clone, Serialize, Deserialize)]
-pub struct BootstrappingInfo {
-    pub shell: &'static str,
-    pub is_ssh: bool,
-    pub is_subshell: bool,
-    pub is_wsl: bool,
-    pub is_msys2: bool,
-    /// `true` if the bootstrapping process was triggered by an RC file snippet.
-    ///
-    /// This should only be true if `is_subshell` is true.
-    pub was_triggered_by_rc_file: bool,
-    /// The total time it took to bootstrap the shell, in seconds.
-    pub bootstrap_duration_seconds: Option<f64>,
-    /// The time it took to source the user's rcfiles, in seconds.  May be None
-    /// if we weren't able to get that information from the shell.
-    pub rcfiles_duration_seconds: Option<f64>,
-    /// The difference between the total bootstrap time and the rcfile sourcing
-    /// time, which roughly equals the time cost of running our bootstrap
-    /// script.  Will be None if `bootstrap_duration_seconds` or
-    /// `rcfiles_duration_seconds` is None.
-    pub warp_attributed_bootstrap_duration_seconds: Option<f64>,
-    pub shell_version: Option<String>,
-    pub terminal_session_id: Option<SessionId>,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct SlowBootstrapInfo {
-    pub shell: &'static str,
-    pub is_ssh: bool,
-    pub is_subshell: bool,
-    pub is_wsl: bool,
-    pub is_msys2: bool,
-    /// Contents of the bootstrap block when the slow bootstrap was detected.
-    /// This includes both command and output content from the block.
-    pub bootstrap_block_contents: String,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct AppStartupInfo {
-    pub is_session_restoration_on: bool,
-    /// Whether or not a screen reader is enabled at the time the app is
-    /// launched.  Should be set to None if we do not know for sure.
-    pub is_screen_reader_enabled: Option<bool>,
-    pub from_relaunch: bool,
-    pub is_crash_reporting_enabled: bool,
-    pub timing_data: Vec<TimingDataPoint>,
-}
-
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub enum DownloadSource {
     Website,
     Homebrew,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct BlockLatencyInfo {
-    pub command: &'static str,
-    pub shell: &'static str,
-    pub is_ssh: bool,
-    pub execution_ms: u64,
 }
 
 // For use when recording what type of cloud object a particular telemetry is for.
@@ -195,14 +139,6 @@ impl NotebookTelemetryMetadata {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct NotebookActionEvent {
-    #[serde(flatten)]
-    pub action: NotebookTelemetryAction,
-    #[serde(flatten)]
-    pub metadata: NotebookTelemetryMetadata,
-}
-
 #[derive(Clone, Serialize, Deserialize)]
 pub struct EnvVarTelemetryMetadata {
     /// The object ID, only available for cloud env vars that have been synced to the server.
@@ -210,23 +146,6 @@ pub struct EnvVarTelemetryMetadata {
     /// The team UID, only available for cloud env vars in a shared team.
     pub team_uid: Option<ServerId>,
     pub space: TelemetrySpace,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct MCPServerTelemetryMetadata {
-    pub object_id: GenericStringObjectId,
-    pub name: String,
-    pub transport_type: MCPServerTelemetryTransportType,
-    /// The MCP server string extracted from '@modelcontextprotocol/<...>'.
-    pub mcp_server: Option<String>,
-}
-
-#[derive(Clone, Debug, Copy, Serialize, Deserialize)]
-pub enum MCPTemplateCreationSource {
-    #[serde(rename = "json")]
-    Json,
-    #[serde(rename = "conversion")]
-    Conversion,
 }
 
 #[derive(Clone, Debug, Copy, Serialize, Deserialize)]
@@ -237,69 +156,6 @@ pub enum MCPTemplateInstallationSource {
     Shared,
     #[serde(rename = "gallery")]
     Gallery,
-}
-
-#[derive(Clone, Debug, Copy, Serialize, Deserialize)]
-pub enum MCPServerModel {
-    #[serde(rename = "legacy")]
-    Legacy,
-    #[serde(rename = "templatable")]
-    Templatable,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub enum MCPServerTelemetryTransportType {
-    CLIServer,
-    ServerSentEvents,
-}
-
-#[derive(Debug, Clone, serde::Serialize)]
-pub enum MCPServerTelemetryError {
-    Initialization(String),
-    RequestCancelled,
-    ResponseError(String),
-    SerializationError(String),
-    CapabilityUnsupported(String),
-    InternalError(String),
-    TransportError(String),
-}
-
-#[cfg(not(target_family = "wasm"))]
-impl From<rmcp::RmcpError> for MCPServerTelemetryError {
-    fn from(err: rmcp::RmcpError) -> Self {
-        match err {
-            rmcp::RmcpError::ClientInitialize(err) => Self::Initialization(err.to_string()),
-            rmcp::RmcpError::ServerInitialize(err) => Self::Initialization(err.to_string()),
-            rmcp::RmcpError::TransportCreation { error, .. } => {
-                Self::TransportError(error.to_string())
-            }
-            rmcp::RmcpError::Runtime(err) => Self::InternalError(err.to_string()),
-            rmcp::RmcpError::Service(err) => match err {
-                rmcp::ServiceError::McpError(_) => Self::ResponseError(err.to_string()),
-                rmcp::ServiceError::TransportSend(_) => Self::TransportError(err.to_string()),
-                rmcp::ServiceError::TransportClosed => Self::TransportError(err.to_string()),
-                rmcp::ServiceError::UnexpectedResponse => Self::ResponseError(err.to_string()),
-                rmcp::ServiceError::Cancelled { .. } => Self::InternalError(err.to_string()),
-                rmcp::ServiceError::Timeout { .. } => Self::TransportError(err.to_string()),
-                // The enum is marked as non-exhaustive, so we need a catch-all.
-                _ => Self::InternalError(err.to_string()),
-            },
-            // The enum is marked as non-exhaustive, so we need a catch-all.
-            _ => Self::InternalError(err.to_string()),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OpenedSharingDialogEvent {
-    pub source: SharingDialogSource,
-
-    /// Metadata for the object being shared, if it's a Warp Drive object.
-    #[serde(flatten)]
-    pub object_metadata: Option<CloudObjectTelemetryMetadata>,
-
-    /// Metadata for the session being shared, if there is one.
-    pub session_id: Option<SharedSessionId>,
 }
 
 /// How the user opened the Warp Drive sharing dialog.
@@ -325,20 +181,7 @@ pub enum SharingDialogSource {
     AIBlockContextMenu,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
-pub enum TabRenameEvent {
-    OpenedEditor,
-    CustomNameSet,
-    CustomNameCleared,
-}
-
 /// The possible sources notifications can turned on from.
-#[derive(Clone, Serialize, Deserialize)]
-pub enum NotificationsTurnedOnSource {
-    Settings,
-    Banner,
-}
-
 /// The possible types of toggles in the find bar
 #[derive(Clone, Serialize, Deserialize)]
 pub enum FindOption {
@@ -375,26 +218,6 @@ pub enum PaletteSource {
     PaneHeader,
     AgentTip,
     TitleBarSearchBar,
-}
-
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-pub enum FileTreeSource {
-    /// Opened from the pane header toolbelt button.
-    PaneHeader,
-    Keybinding,
-    LeftPanelToolbelt,
-    ForceOpened,
-    /// Opened from the CLI agent view footer (e.g., Claude Code).
-    CLIAgentView,
-}
-
-#[cfg(feature = "local_fs")]
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum CodePanelsFileOpenEntrypoint {
-    CodeReview,
-    ProjectExplorer,
-    GlobalSearch,
 }
 
 /// The CLI agent being used (for telemetry purposes).
@@ -445,74 +268,6 @@ impl From<NotificationSourceAgent> for NotificationAgentVariant {
 
 /// The action taken on a plugin chip (for telemetry purposes).
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum PluginChipTelemetryAction {
-    /// User clicked the auto-install button.
-    Install,
-    /// User clicked the auto-update button.
-    Update,
-    /// User clicked the manual install instructions button.
-    InstallInstructions,
-    /// User clicked the manual update instructions button.
-    UpdateInstructions,
-}
-
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-pub enum WarpDriveSource {
-    Legacy,
-    LeftPanelToolbelt,
-    ForceOpened,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub enum CommandCorrectionAcceptedType {
-    /// TODO: We don't use the Autosuggestion variant yet. We need to wire through
-    /// when an autosuggestion is accepted to be able to check this.
-    Autosuggestion,
-    Banner,
-    Keybinding,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub enum CommandCorrectionEvent {
-    Proposed {
-        rule: &'static str,
-    },
-    Accepted {
-        via: CommandCorrectionAcceptedType,
-        rule: &'static str,
-    },
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub enum CommandSearchResultType {
-    History,
-    Workflow,
-    OpenWarpAI,
-    TranslateUsingWarpAI,
-    Notebook,
-    EnvVarCollection,
-    ViewInWarpDrive,
-    AIQuery,
-    Project,
-}
-
-impl From<&CommandSearchItemAction> for CommandSearchResultType {
-    fn from(action: &CommandSearchItemAction) -> Self {
-        use crate::search::command_search::searcher::CommandSearchItemAction::*;
-        match action {
-            AcceptHistory(_) | ExecuteHistory(_) => Self::History,
-            AcceptWorkflow(_) => Self::Workflow,
-            AcceptNotebook(_) => Self::Notebook,
-            AcceptEnvVarCollection(_) => Self::EnvVarCollection,
-            OpenWarpAI => Self::OpenWarpAI,
-            TranslateUsingWarpAI => Self::TranslateUsingWarpAI,
-            AcceptAIQuery(_) | RunAIQuery(_) => Self::AIQuery,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum CloseTarget {
     App,
     Window,
@@ -543,22 +298,6 @@ pub enum OpenedWarpAISource {
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-pub enum WarpAIRequestResult {
-    Succeeded { latency_ms: i64, truncated: bool },
-    OutOfRequests,
-    Failed,
-}
-
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-pub enum WarpAIActionType {
-    CopyTranscript,
-    Restart,
-    CopyAnswer,
-    CopyCode,
-    InsertIntoInput,
-}
-
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum SaveAsWorkflowModalSource {
     Block,
     Input,
@@ -581,12 +320,6 @@ pub enum AICommandSearchEntrypoint {
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-pub enum SecretInteraction {
-    RevealSecret,
-    HideSecret,
-}
-
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum AnonymousUserSignupEntrypoint {
     HitDriveObjectLimit,
     LoginGatedFeature,
@@ -595,13 +328,6 @@ pub enum AnonymousUserSignupEntrypoint {
     SignUpAIPrompt,
     NextCommandSuggestionsUpgradeBanner,
     Unknown,
-}
-
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-pub enum UndoCloseItemType {
-    Window,
-    Tab,
-    Pane,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -616,50 +342,6 @@ pub enum ToggleBlockFilterSource {
     /// This includes the keybinding and the command palette items.
     Binding,
     ContextMenu,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct TierLimitHitEvent {
-    pub team_uid: ServerId,
-    pub feature: String,
-}
-
-#[derive(Clone, Debug, Copy, Serialize, Deserialize)]
-pub enum KnowledgePaneEntrypoint {
-    /// Triggered by either the command palette or the mac menus
-    #[serde(rename = "global")]
-    Global,
-
-    #[serde(rename = "settings")]
-    Settings,
-
-    #[serde(rename = "warp_drive")]
-    WarpDrive,
-
-    #[serde(rename = "ai_blocklist")]
-    AIBlocklist,
-
-    #[serde(rename = "slash_command")]
-    SlashCommand,
-}
-
-#[derive(Clone, Debug, Copy, Serialize, Deserialize)]
-pub enum MCPServerCollectionPaneEntrypoint {
-    /// Triggered by either the command palette or the mac menus
-    #[serde(rename = "global")]
-    Global,
-
-    #[serde(rename = "settings")]
-    Settings,
-
-    #[serde(rename = "warp_drive")]
-    WarpDrive,
-
-    #[serde(rename = "slash_command")]
-    SlashCommand,
-
-    #[serde(rename = "mcp_settings_tab")]
-    MCPSettingsTab,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -717,18 +399,6 @@ pub enum AgentModeEntrypoint {
     AgentManagementView,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum AutonomySettingToggleSource {
-    Speedbump,
-    SettingsPage,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum ToggleCodeSuggestionsSettingSource {
-    Speedbump,
-    Settings,
-}
-
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum InteractionSource {
     Button,
@@ -739,15 +409,6 @@ pub enum InteractionSource {
 pub enum PromptSuggestionViewType {
     TerminalView,
     AgentView,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum AgentModeAttachContextMethod {
-    #[serde(rename = "keyboard")]
-    Keyboard,
-
-    #[serde(rename = "mouse")]
-    Mouse,
 }
 
 /// The entrypoint from which the rewind dialog was opened.
@@ -788,36 +449,6 @@ pub enum PromptSuggestionFallbackReason {
     /// Failed to send AI request.
     #[serde(rename = "failed_to_send_ai_request")]
     FailedToSendAIRequest,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum AgentModeSetupProjectScopedRulesActionType {
-    #[serde(rename = "link_from_existing")]
-    LinkFromExisting(String),
-    #[serde(rename = "generate_warp_md")]
-    GenerateWarpMd,
-    #[serde(rename = "skip_rules")]
-    SkipRules,
-    #[serde(rename = "regenerate_warp_md")]
-    RegenerateWarpMd,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum AgentModeSetupCodebaseContextActionType {
-    #[serde(rename = "index_codebase")]
-    IndexCodebase,
-    #[serde(rename = "skip_indexing")]
-    SkipIndexing,
-    #[serde(rename = "view_index_status")]
-    ViewIndexStatus,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum AgentModeSetupCreateEnvironmentActionType {
-    #[serde(rename = "create_environment")]
-    CreateEnvironment,
-    #[serde(rename = "skip_environment")]
-    SkipEnvironment,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -862,17 +493,6 @@ pub struct BlockMemoryUsageStats {
 }
 
 /// Entrypoints to toggle the input auto-detection setting for Agent Mode.
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-pub enum AgentModeAutoDetectionSettingOrigin {
-    /// The "speed bump" banner shown that's shown to the user when input is autodetected.
-    #[serde(rename = "banner")]
-    Banner,
-
-    /// The AI settings page.
-    #[serde(rename = "settings_page")]
-    SettingsPage,
-}
-
 /// Payload for the [`AgentModePotentialAutodetectionFalsePositive`] event.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -885,14 +505,6 @@ pub enum AgentModeAutoDetectionFalsePositivePayload {
 }
 
 /// How the user triggered the [`AgentModeCodeFilesNavigated`] event.
-#[derive(Clone, Copy, Debug, Serialize)]
-pub enum AgentModeCodeFileNavigationSource {
-    /// User used the next/previous actions.
-    NavigationCommand,
-    /// User directly selected the file's tab.
-    SelectedFileTab,
-}
-
 /// How the user triggered the [`AddTabWithShell`] event.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub enum AddTabWithShellSource {
@@ -928,14 +540,6 @@ pub enum AgentModeCitation {
 pub enum ImageProtocol {
     Kitty,
     ITerm,
-}
-
-#[derive(Clone, Copy, Debug, Serialize, Default)]
-#[serde(rename_all = "snake_case")]
-pub enum InputUXChangeOrigin {
-    #[default]
-    Settings,
-    ADELaunchModal,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -1004,148 +608,7 @@ impl From<FullAIAgentInput> for AIAgentInput {
 }
 
 /// The origin of an agent view entry, for telemetry purposes.
-#[derive(Clone, Copy, Debug, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum TelemetryAgentViewEntryOrigin {
-    Input { was_prompt_autodetected: bool },
-    ConversationSelector,
-    AgentModeHomepage,
-    AgentViewBlock,
-    AIDocument,
-    AutoFollowUp,
-    RestoreExistingConversation,
-    SharedSessionSelection,
-    AgentRequestedNewConversation,
-    AcceptedPromptSuggestion,
-    AcceptedUnitTestSuggestion,
-    AcceptedPassiveCodeDiff,
-    InlineCodeReview,
-    AmbientAgent,
-    Cli,
-    ImageAdded,
-    SlashCommand,
-    CodeReviewContext,
-    ContinueConversationButton,
-    ViewPassiveCodeDiffDetails,
-    ResumeConversationButton,
-    CodexModal,
-    LongRunningCommand,
-    HistoryMenu,
-    InlineConversationMenu,
-    PromptChip,
-    OnboardingCallout,
-    ConversationListView,
-    Onboarding,
-    Keybinding,
-    SlashInit,
-    CreateEnvironment,
-    ProjectEntry,
-    ClearBuffer,
-    DefaultSessionMode,
-    ChildAgent,
-    LinearDeepLink,
-    ThirdPartyCloudAgent,
-    OrchestrationPillBar,
-}
-
-impl From<AgentViewEntryOrigin> for TelemetryAgentViewEntryOrigin {
-    fn from(origin: AgentViewEntryOrigin) -> Self {
-        match origin {
-            AgentViewEntryOrigin::Input {
-                was_prompt_autodetected,
-            } => Self::Input {
-                was_prompt_autodetected,
-            },
-            AgentViewEntryOrigin::ConversationSelector => Self::ConversationSelector,
-            AgentViewEntryOrigin::AgentModeHomepage => Self::AgentModeHomepage,
-            AgentViewEntryOrigin::AgentViewBlock => Self::AgentViewBlock,
-            AgentViewEntryOrigin::AIDocument => Self::AIDocument,
-            AgentViewEntryOrigin::AutoFollowUp => Self::AutoFollowUp,
-            AgentViewEntryOrigin::RestoreExistingConversation => Self::RestoreExistingConversation,
-            AgentViewEntryOrigin::SharedSessionSelection => Self::SharedSessionSelection,
-            AgentViewEntryOrigin::AgentRequestedNewConversation => {
-                Self::AgentRequestedNewConversation
-            }
-            AgentViewEntryOrigin::AcceptedPromptSuggestion => Self::AcceptedPromptSuggestion,
-            AgentViewEntryOrigin::AcceptedUnitTestSuggestion => Self::AcceptedUnitTestSuggestion,
-            AgentViewEntryOrigin::AcceptedPassiveCodeDiff => Self::AcceptedPassiveCodeDiff,
-            AgentViewEntryOrigin::InlineCodeReview => Self::InlineCodeReview,
-            AgentViewEntryOrigin::CloudAgent => Self::AmbientAgent,
-            AgentViewEntryOrigin::ThirdPartyCloudAgent => Self::ThirdPartyCloudAgent,
-            AgentViewEntryOrigin::Cli => Self::Cli,
-            AgentViewEntryOrigin::ImageAdded => Self::ImageAdded,
-            AgentViewEntryOrigin::SlashCommand { .. } => Self::SlashCommand,
-            AgentViewEntryOrigin::CodeReviewContext => Self::CodeReviewContext,
-            AgentViewEntryOrigin::LongRunningCommand => Self::LongRunningCommand,
-            AgentViewEntryOrigin::ContinueConversationButton => Self::ContinueConversationButton,
-            AgentViewEntryOrigin::ViewPassiveCodeDiffDetails => Self::ViewPassiveCodeDiffDetails,
-            AgentViewEntryOrigin::ResumeConversationButton => Self::ResumeConversationButton,
-            AgentViewEntryOrigin::CodexModal => Self::CodexModal,
-            AgentViewEntryOrigin::InlineHistoryMenu => Self::HistoryMenu,
-            AgentViewEntryOrigin::InlineConversationMenu => Self::InlineConversationMenu,
-            AgentViewEntryOrigin::PromptChip => Self::PromptChip,
-            AgentViewEntryOrigin::OnboardingCallout => Self::OnboardingCallout,
-            AgentViewEntryOrigin::ConversationListView => Self::ConversationListView,
-            AgentViewEntryOrigin::Onboarding => Self::Onboarding,
-            AgentViewEntryOrigin::Keybinding => Self::Keybinding,
-            AgentViewEntryOrigin::SlashInit => Self::SlashInit,
-            AgentViewEntryOrigin::CreateEnvironment => Self::CreateEnvironment,
-            AgentViewEntryOrigin::ProjectEntry => Self::ProjectEntry,
-            AgentViewEntryOrigin::ClearBuffer => Self::ClearBuffer,
-            AgentViewEntryOrigin::DefaultSessionMode => Self::DefaultSessionMode,
-            AgentViewEntryOrigin::ChildAgent => Self::ChildAgent,
-            AgentViewEntryOrigin::LinearDeepLink => Self::LinearDeepLink,
-            AgentViewEntryOrigin::OrchestrationPillBar => Self::OrchestrationPillBar,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Serialize)]
-pub enum SlashMenuSource {
-    SlashButton,
-    UserTyped,
-}
-
-#[derive(Clone, Copy, Debug, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum LoginEventSource {
-    OnboardingSlide,
-    AuthModal,
-}
-
 /// Details about which type of slash command was accepted
-#[derive(Clone, Debug, Serialize)]
-pub enum SlashCommandAcceptedDetails {
-    /// A built-in static command with its specific name (e.g., "/init", "/diff-review")
-    StaticCommand { command_name: String },
-    /// A user-created saved prompt/workflow
-    SavedPrompt,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum AutoReloadModalAction {
-    #[serde(rename = "dismissed")]
-    Dismissed,
-    #[serde(rename = "enabled_auto_reload")]
-    EnabledAutoReload,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum OutOfCreditsBannerAction {
-    #[serde(rename = "dismissed")]
-    Dismissed,
-    #[serde(rename = "credits_purchased")]
-    CreditsPurchased,
-}
-
-#[derive(Clone, Copy, Debug, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum CLISubagentControlState {
-    AgentInControl,
-    UserInControl,
-    AgentTaggedIn,
-    AgentTaggedOut,
-}
 #[derive(Clone, Copy, Debug, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RemoteCodebaseIndexStatusTelemetrySource {
