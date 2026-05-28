@@ -48,7 +48,7 @@ use warpui::{
 use crate::ai::agent::icons::{self, yellow_stop_icon};
 use crate::ai::agent::{AIAgentActionId, AIIdentifiers, FileEdit, FileLocations, ServerOutputId};
 use crate::ai::blocklist::action_model::{
-    AIActionStatus, BlocklistAIActionEvent, BlocklistAIActionModel, RequestFileEditsFormatKind,
+    AIActionStatus, BlocklistAIActionEvent, BlocklistAIActionModel,
 };
 use crate::ai::blocklist::history_model::BlocklistAIHistoryModel;
 use crate::ai::blocklist::inline_action::inline_action_header::INLINE_ACTION_HORIZONTAL_PADDING;
@@ -472,8 +472,6 @@ pub struct CodeDiffView {
     focus_handle: Option<PaneFocusHandle>,
     /// Client and server identifiers for the AI output associated with the code diffs.
     identifiers: AIIdentifiers,
-    #[allow(dead_code)]
-    edit_format_kind: RequestFileEditsFormatKind,
     /// `False` until a user makes the first edit to one of the diffs in the view.
     #[cfg_attr(target_family = "wasm", allow(dead_code))]
     user_edited_file_contents: bool,
@@ -659,7 +657,6 @@ impl CodeDiffView {
         model: &dyn AIBlockModel<View = crate::ai::blocklist::AIBlock>,
         title: Option<String>,
         identifiers: AIIdentifiers,
-        edit_format_kind: RequestFileEditsFormatKind,
         should_show_speedbump: bool,
         action_model: ModelHandle<BlocklistAIActionModel>,
         session_platform: Option<SessionPlatform>,
@@ -680,7 +677,6 @@ impl CodeDiffView {
             initial_state,
             title,
             identifiers,
-            edit_format_kind,
             should_show_speedbump,
             session_platform,
             ctx,
@@ -731,7 +727,6 @@ impl CodeDiffView {
         action_id: &AIAgentActionId,
         title: Option<String>,
         identifiers: AIIdentifiers,
-        edit_format_kind: RequestFileEditsFormatKind,
         should_show_speedbump: bool,
         session_platform: Option<SessionPlatform>,
         ctx: &mut ViewContext<Self>,
@@ -742,7 +737,6 @@ impl CodeDiffView {
             CodeDiffState::WaitingForUser,
             title,
             identifiers,
-            edit_format_kind,
             should_show_speedbump,
             session_platform,
             ctx,
@@ -756,7 +750,6 @@ impl CodeDiffView {
         initial_state: CodeDiffState,
         title: Option<String>,
         identifiers: AIIdentifiers,
-        edit_format_kind: RequestFileEditsFormatKind,
         should_show_speedbump: bool,
         session_platform: Option<SessionPlatform>,
         ctx: &mut ViewContext<Self>,
@@ -911,7 +904,6 @@ impl CodeDiffView {
             title,
             focus_handle: None,
             identifiers,
-            edit_format_kind,
             user_edited_file_contents: false,
             original_pane_id: None,
             scrollable_state: Default::default(),

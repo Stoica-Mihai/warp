@@ -256,7 +256,7 @@ use crate::ai::blocklist::{
     ClientIdentifiers, ConversationStatusUpdate, InputConfig, InputType,
     InputTypeAutoDetectionSource, LegacyPassiveSuggestionsEvent, LegacyPassiveSuggestionsModel,
     MaaPassiveSuggestionsEvent, MaaPassiveSuggestionsModel, PassiveSuggestionsModels,
-    PendingAttachment, PendingQueryState, RequestFileEditsFormatKind, ShellCommandExecutor,
+    PendingAttachment, PendingQueryState, ShellCommandExecutor,
     ShellCommandExecutorEvent, SlashCommandRequest, StartAgentExecutor, StartAgentExecutorEvent,
     StartAgentRequest, ATTACH_AS_AGENT_MODE_CONTEXT_TEXT, PRE_REWIND_PREFIX,
 };
@@ -13800,7 +13800,6 @@ impl TerminalView {
             }
             MaaPassiveSuggestionsEvent::NewCodeDiffSuggestion {
                 diffs,
-                edit_format_kind,
                 title,
                 original_edits,
                 conversation_id,
@@ -13810,7 +13809,6 @@ impl TerminalView {
             } => {
                 self.on_maa_code_diff_generated(
                     diffs.clone(),
-                    *edit_format_kind,
                     title.clone(),
                     original_edits.clone(),
                     *conversation_id,
@@ -13873,7 +13871,6 @@ impl TerminalView {
     fn on_maa_code_diff_generated(
         &mut self,
         diffs: Vec<FileDiff>,
-        edit_format_kind: RequestFileEditsFormatKind,
         title: Option<String>,
         original_edits: Vec<PassiveCodeDiffEntry>,
         conversation_id: Option<AIConversationId>,
@@ -13900,7 +13897,6 @@ impl TerminalView {
                 &action_id,
                 title,
                 identifiers,
-                edit_format_kind,
                 false,
                 session_platform,
                 ctx,

@@ -70,7 +70,7 @@ use warpui::{
 #[cfg(feature = "agent_mode_debug")]
 use self::code_diff_view::FileDiff;
 use self::model::{AIBlockModel, AIBlockModelHelper};
-use super::action_model::{AIActionStatus, BlocklistAIActionEvent, RequestFileEditsFormatKind};
+use super::action_model::{AIActionStatus, BlocklistAIActionEvent};
 use super::code_block::CodeSnippetButtonHandles;
 use super::controller::ClientIdentifiers;
 use super::inline_action::code_diff_view::{
@@ -2831,25 +2831,6 @@ impl AIBlock {
             server_conversation_id: None,
             model_id: self.model.model_id(ctx),
         };
-        let contains_str_replace = file_edits.iter().any(|file_edit| {
-            matches!(
-                file_edit,
-                FileEdit::Edit(ai::diff_validation::ParsedDiff::StrReplaceEdit { .. })
-            )
-        });
-        let contains_v4a = file_edits.iter().any(|file_edit| {
-            matches!(
-                file_edit,
-                FileEdit::Edit(ai::diff_validation::ParsedDiff::V4AEdit { .. })
-            )
-        });
-        let edit_format_kind = match (contains_str_replace, contains_v4a) {
-            (true, false) => RequestFileEditsFormatKind::StrReplace,
-            (false, true) => RequestFileEditsFormatKind::V4A,
-            (true, true) => RequestFileEditsFormatKind::Mixed,
-            (false, false) => RequestFileEditsFormatKind::Unknown,
-        };
-
         // Only show the speedbump once, update the setting afterwards.
         let should_show_code_suggestion_speedbump =
             self.model.request_type(ctx).is_passive_code_diff()
@@ -2872,7 +2853,6 @@ impl AIBlock {
                 self.model.as_ref(),
                 title.clone(),
                 identifiers,
-                edit_format_kind,
                 should_show_code_suggestion_speedbump,
                 self.action_model.clone(),
                 self.shell_launch_data.clone().map(|data| data.into()),

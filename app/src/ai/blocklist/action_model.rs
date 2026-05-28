@@ -25,7 +25,7 @@ pub(crate) use execute::{apply_edits, coerce_integer_args, FileReadResult};
 pub(crate) use execute::{compose_run_agents_child_prompt, run_agents_to_start_agent_mode};
 pub use execute::{
     read_local_file_context, NewConversationDecision, PromptSuggestionExecutor,
-    ReadFileContextResult, RequestFileEditsExecutor, RequestFileEditsFormatKind, RunAgentsExecutor,
+    ReadFileContextResult, RequestFileEditsExecutor, RunAgentsExecutor,
     RunAgentsExecutorEvent, RunAgentsSpawningSnapshot, ShellCommandExecutor,
     ShellCommandExecutorEvent, StartAgentExecutor, StartAgentExecutorEvent, StartAgentRequest,
     StartAgentRequestId,
