@@ -66,7 +66,9 @@ pub(crate) use passive_suggestions::{
     LegacyPassiveSuggestionsEvent, LegacyPassiveSuggestionsModel, MaaPassiveSuggestionsEvent,
     MaaPassiveSuggestionsModel, PassiveSuggestionsModels,
 };
-pub use permissions::{BlocklistAIPermissions, CommandExecutionPermissionAllowedReason};
+pub use permissions::BlocklistAIPermissions;
+#[cfg(test)]
+pub use permissions::CommandExecutionPermissionAllowedReason;
 #[cfg_attr(target_family = "wasm", allow(unused))]
 pub(crate) use persistence::PersistedAIInputType;
 pub(crate) use persistence::{PersistedAIInput, SerializedBlockListItem};
