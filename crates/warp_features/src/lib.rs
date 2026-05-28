@@ -9,19 +9,13 @@ pub enum FeatureFlag {
     Changelog,
     DebugMode,
     Autoupdate,
-    WithSandboxTelemetry,
     RecordAppActiveEvents,
 
     KnowledgeSidebar,
 
     RuntimeFeatureFlags,
 
-    /// Enables cloud object related features for an explicit allowlist of team testers.
-    CloudObjects,
 
-    /// If `true`, fetch updated Warp channel versions from the Warp server endpoint instead of
-    /// from GCP directly.
-    FetchChannelVersionsFromWarpServer,
 
     /// Does grid storage go forwards or backwards
     SequentialStorage,
@@ -51,8 +45,6 @@ pub enum FeatureFlag {
     /// Enables the joining / viewing of shared sessions (_not_ creation).
     ViewingSharedSessions,
 
-    /// Enabling context chips functionality for prompt
-    ContextChips,
 
     /// Ligature Support in the Editor and Grid
     Ligatures,
@@ -66,12 +58,7 @@ pub enum FeatureFlag {
     /// to get a sense of PTY throughput over time.
     RecordPtyThroughput,
 
-    /// Whether to fetch generic string objects from the server.
-    FetchGenericStringObjects,
 
-    /// Enables a setting on Intel Dual-GPU Macs to enable use of the integrated GPU over the
-    /// discrete GPU.
-    IntegratedGPU,
 
     /// Warp Agent Mode.
     AgentMode,
@@ -116,8 +103,6 @@ pub enum FeatureFlag {
     /// Enable dynamic enum parameter types for workflow arguments
     DynamicWorkflowEnums,
 
-    /// Enables next action prediction within Warp, powered by AI.
-    AgentPredict,
 
     /// Enables receiving shared Warp Drive objects.
     SharedWithMe,
@@ -138,9 +123,6 @@ pub enum FeatureFlag {
     /// Enables writing to long-running commands in shared sessions.
     SharedSessionWriteToLongRunningCommands,
 
-    /// Lazily builds scenes at render time instead of eagerly when a view
-    /// changes.
-    LazySceneBuilding,
 
     /// Enables support for ACLs in Session Sharing. Should be disabled if the
     /// corresponding `use_acls` flag in the session sharing server is disabled.
@@ -167,8 +149,6 @@ pub enum FeatureFlag {
     SshDragAndDrop,
     DragTabsToWindows,
 
-    /// Enables the overflow menu on AI blocks.
-    AIBlockOverflowMenu,
 
     /// Enables cycling through the next command suggestions with down arrow.
     CycleNextCommandSuggestion,
@@ -184,7 +164,6 @@ pub enum FeatureFlag {
     /// Enables partial next command suggestions with a prefix.
     PartialNextCommandSuggestions,
 
-    AIGeneratedOnboardingSuggestions,
 
     /// Enables iTerm image rendering
     ITermImages,
@@ -218,8 +197,6 @@ pub enum FeatureFlag {
     /// Enables actual collection of AI analytics data per the revised AI analytics policy.
     GlobalAIAnalyticsCollection,
 
-    /// Enables auto-generated AI memories.
-    AIMemories,
 
     /// Enables the XML output system prompt for the primary (terminal) agent in Agent Mode.
     AgentModePrimaryXML,
@@ -367,8 +344,6 @@ pub enum FeatureFlag {
     /// Gates the bundled skill-based implementation of PR comment fetching.
     PRCommentsSkill,
 
-    /// A new first-time user experience which prioritizes choosing a coding repository.
-    GetStartedTab,
 
     /// Enables Projects and Project management
     Projects,
@@ -488,8 +463,6 @@ pub enum FeatureFlag {
     /// Displays debugging IDs for MCP servers, installations, and gallery items.
     McpDebuggingIds,
 
-    /// Enables rendering of images in markdown files and AI responses.
-    MarkdownImages,
     /// Enables rendering Mermaid diagrams in markdown notebooks.
     MarkdownMermaid,
     /// Enables editable Mermaid diagrams to behave atomically in notebook and plan editors.
@@ -547,8 +520,6 @@ pub enum FeatureFlag {
     /// Enables starting cloud mode from a local session.
     CloudModeFromLocalSession,
 
-    /// Enables host selection in cloud mode.
-    CloudModeHostSelector,
 
     /// Enables Warp Managed Secrets functionality.
     WarpManagedSecrets,
@@ -885,7 +856,6 @@ pub const DOGFOOD_FLAGS: &[FeatureFlag] = &[
     #[cfg(not(windows))]
     FeatureFlag::SSHTmuxWrapper,
     FeatureFlag::AgentModeAnalytics,
-    FeatureFlag::LazySceneBuilding,
     FeatureFlag::SshDragAndDrop,
     FeatureFlag::MultiWorkspace,
     FeatureFlag::ImeMarkedText,
@@ -895,7 +865,6 @@ pub const DOGFOOD_FLAGS: &[FeatureFlag] = &[
     FeatureFlag::RunGeneratorsWithCmdExe,
     FeatureFlag::Projects,
     FeatureFlag::ProviderCommand,
-    FeatureFlag::MarkdownImages,
     FeatureFlag::FileAndDiffSetComments,
     FeatureFlag::FileGlobV2Warnings,
     FeatureFlag::SummarizationViaMessageReplacement,
