@@ -15,7 +15,7 @@ Personal fork of [warpdotdev/warp](https://github.com/warpdotdev/warp), strippin
 
 ## 3. Status, plan, lessons → `plan.md`
 
-**`plan.md` (this directory) is the single source of truth** for status, per-finding difficulty, removal order, resume notes, and lessons. Read it first. Strategy detail: `docs/superpowers/specs/2026-05-27-surgical-cloud-strip-design.md`. Keep §1–§2 here synced with `plan.md`; let `plan.md` hold everything volatile.
+**`plan.md` (this directory) is the single source of truth** for status, per-finding difficulty, removal order, resume notes, and lessons. Read it first. Strategy detail: `docs/superpowers/specs/2026-05-27-surgical-cloud-strip-design.md`. Build-size trend across the strip: `build-size-log.md` — add a row after every meaningful strip lands. Keep §1–§2 here synced with `plan.md`; let `plan.md` hold everything volatile.
 
 Done so far (all green on the 3-gate matrix):
 - Welcome/get-started panes, onboarding app flow — app launches straight to a terminal.
