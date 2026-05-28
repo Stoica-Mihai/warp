@@ -368,47 +368,6 @@ pub enum PromptSuggestionFallbackReason {
     FailedToSendAIRequest,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct CpuUsageStats {
-    /// The number of logical CPUs on the system.
-    pub num_cpus: usize,
-
-    /// The maximum CPU usage over the measurement interval.
-    ///
-    /// This number is in the range [0, num_cpus].  The CPU utilization, as a
-    /// percentage, can be determined via `max_usage / num_cpus * 100`.
-    pub max_usage: f32,
-
-    /// The average CPU usage over the measurement interval.
-    ///
-    /// This number is in the range [0, num_cpus].  The CPU utilization, as a
-    /// percentage, can be determined via `avg_usage / num_cpus * 100`.
-    pub avg_usage: f32,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct MemoryUsageStats {
-    pub total_application_usage_bytes: usize,
-    pub total_blocks: usize,
-    pub total_lines: usize,
-
-    /// Statistics about blocks that have been seen in the past 5 minutes.
-    pub active_block_stats: BlockMemoryUsageStats,
-    /// Statistics about blocks that haven't been seen since [5m, 1h).
-    pub inactive_5m_stats: BlockMemoryUsageStats,
-    /// Statistics about blocks that haven't been seen since [1h, 24h).
-    pub inactive_1h_stats: BlockMemoryUsageStats,
-    /// Statistics about blocks that haven't been seen since [24h, ..).
-    pub inactive_24h_stats: BlockMemoryUsageStats,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct BlockMemoryUsageStats {
-    pub num_blocks: usize,
-    pub num_lines: usize,
-    pub estimated_memory_usage_bytes: usize,
-}
-
 /// Entrypoints to toggle the input auto-detection setting for Agent Mode.
 /// Payload for the [`AgentModePotentialAutodetectionFalsePositive`] event.
 #[derive(Clone, Debug, Serialize, Deserialize)]
