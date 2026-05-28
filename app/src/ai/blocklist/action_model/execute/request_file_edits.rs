@@ -14,8 +14,6 @@ use futures::future::BoxFuture;
 use futures::FutureExt;
 use itertools::Itertools;
 pub use telemetry::RequestFileEditsFormatKind;
-#[allow(unused_imports)]
-pub use telemetry::{EditAcceptAndContinueClickedEvent, EditAcceptClickedEvent};
 use vec1::{vec1, Vec1};
 use warp_util::file::FileSaveError;
 use warpui::{Entity, EntityId, ModelContext, ModelHandle, SingletonEntity as _, ViewHandle};
