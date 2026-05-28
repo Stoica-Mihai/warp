@@ -3,22 +3,6 @@ use std::fmt::Display;
 use serde::Serialize;
 use serde_with::SerializeDisplay;
 
-/// Identifies which git button the user clicked in the code review header.
-/// Each variant maps to one of the primary action button / dropdown items.
-#[derive(Clone, Copy, Debug, Serialize)]
-pub enum GitButtonKind {
-    #[serde(rename = "commit")]
-    Commit,
-    #[serde(rename = "push")]
-    Push,
-    #[serde(rename = "publish")]
-    Publish,
-    #[serde(rename = "create_pr")]
-    CreatePr,
-    #[serde(rename = "view_pr")]
-    ViewPr,
-}
-
 /// Identifies which git operation actually ran when a `GitDialog` completed.
 /// Distinguishes commit-dialog chained intents (e.g. commit-and-push) from
 /// standalone push/publish/create-PR dialogs so analytics can tell the user
@@ -55,10 +39,6 @@ pub enum GitDialogStatus {
     /// User confirmed the dialog and the underlying git operation failed.
     #[serde(rename = "failed")]
     Failed,
-    /// User cancelled the dialog (ESC / close button / cancel button) before
-    /// the async op ran.
-    #[serde(rename = "cancelled")]
-    Cancelled,
 }
 
 /// Entry points for opening the code review pane.
@@ -107,20 +87,6 @@ impl Display for CodeReviewPaneEntrypoint {
     }
 }
 
-/// Origin of an "Add to context" action.
-#[derive(Clone, Copy, Debug, Serialize)]
-pub enum AddToContextOrigin {
-    /// User selected text and added it to context.
-    #[serde(rename = "selected_text")]
-    SelectedText,
-    /// User clicked the gutter to add a line/hunk to context.
-    #[serde(rename = "gutter")]
-    Gutter,
-    /// User clicked the "Add diff set as context" button in code review header.
-    #[serde(rename = "code_review_header")]
-    #[allow(unused)]
-    CodeReviewHeader,
-}
 
 /// Where code review content was sent after the user action.
 #[derive(Clone, Copy, Debug, Serialize)]
