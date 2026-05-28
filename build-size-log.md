@@ -18,6 +18,7 @@ Don't add a row for pure docs commits — size unchanged.
 |------------|------------|---------|---------------------------------------------------|--------------|-------|---------|------------|-------|
 | 2026-05-28 | `c7319c0a` | debug   | Telemetry strip COMPLETE (cleanup-2)              | 914,048,408  | 871.7 | 914     | 2m08s      | First tracked datapoint — post-telemetry baseline. No pre-strip number captured. |
 | 2026-05-28 | `7faa67bb` | debug   | Wasm orphans gone (serve-wasm, managed_secrets_wasm, warp_web_event_bus) | 914,048,408 | 871.7 | 914 | n/a (cached) | Zero binary delta — all three crates were wasm-only or wasm-served; never linked into the linux GUI build to begin with. Cleanup is repo hygiene, not size reduction. |
+| 2026-05-28 | `007c18e8` | debug   | Onboarding crate deleted; login-slide seam relocated into app/src/auth/ | 913,583,608 | 871.3 | 913.6 | full rebuild | −464,800 B (−454 KiB) vs prior. ~10.6k LoC of slide/visual/callout code removed; small binary impact because most onboarding code paths were already dead-stripped by the linker — only metadata/symbol residue shrinks. |
 
 ## Next milestones to log
 
