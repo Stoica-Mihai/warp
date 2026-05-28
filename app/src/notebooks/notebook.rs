@@ -70,8 +70,7 @@ use crate::pane_group::{BackingView, PaneConfiguration, PaneEvent};
 use crate::server::cloud_objects::update_manager::{FetchSingleObjectOption, UpdateManager};
 use crate::server::ids::{ClientId, ServerId, SyncId};
 use crate::server::telemetry::{
-    CloudObjectTelemetryMetadata, NotebookTelemetryMetadata, SharingDialogSource,
-    TelemetryCloudObjectType,
+    CloudObjectTelemetryMetadata, SharingDialogSource, TelemetryCloudObjectType,
 };
 use crate::settings::app_installation_detection::{
     UserAppInstallDetectionSettings, UserAppInstallStatus,
@@ -1022,29 +1021,6 @@ impl NotebookView {
     /// The server ID of this notebook, if it has been saved to the server.
     fn server_id(&self, ctx: &ViewContext<Self>) -> Option<NotebookId> {
         self.notebook_id(ctx)?.into_server().map(Into::into)
-    }
-
-    /// The current notebook metadata for telemetry.
-    fn telemetry_metadata(&self, ctx: &ViewContext<Self>) -> NotebookTelemetryMetadata {
-        let active_notebook_data = self.active_notebook_data.as_ref(ctx);
-        let owner = active_notebook_data.owner(ctx);
-        let space = active_notebook_data.space(ctx);
-        NotebookTelemetryMetadata::new(
-            self.server_id(ctx),
-            owner.and_then(Into::into),
-            owner.map_or(NotebookLocation::PersonalCloud, Into::into),
-            space.map(Into::into),
-        )
-    }
-
-    fn open_telemetry_metadata(&self, ctx: &ViewContext<Self>) -> NotebookTelemetryMetadata {
-        self.telemetry_metadata(ctx).with_markdown_table_count(
-            self.input
-                .as_ref(ctx)
-                .model()
-                .as_ref(ctx)
-                .markdown_table_count(ctx),
-        )
     }
 
     #[cfg_attr(not(target_family = "wasm"), allow(dead_code))]

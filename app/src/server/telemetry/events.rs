@@ -1,13 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::ai::agent::{
-    AIAgentActionId, AIAgentInput as FullAIAgentInput, PassiveSuggestionTrigger,
-};
 use crate::ai::agent_management::notifications::NotificationSourceAgent;
 use crate::cloud_object::model::generic_string_model::GenericStringObjectId;
 use crate::cloud_object::{GenericStringObjectFormat, ObjectType, Space};
 use crate::drive::CloudObjectTypeAndId;
-use crate::notebooks::{NotebookId, NotebookLocation};
 use crate::server::ids::{ObjectUid, ServerId};
 use crate::workflows::{WorkflowId, WorkflowSelectionSource, WorkflowSource};
 
@@ -86,51 +82,6 @@ pub struct WorkflowTelemetryMetadata {
     pub workflow_id: Option<WorkflowId>,
     // Any referenced workflow enums that have been synced to the cloud
     pub enum_ids: Vec<GenericStringObjectId>,
-}
-
-/// Metadata to include in all notebook telemetry events.
-///
-/// There are 4 expected configurations:
-/// * Personal cloud notebooks: `notebook_id` is `Some`, `team_uid` is `None`, and location is `PersonalCloud`
-/// * Team cloud notebooks: `notebook_id` is `Some`, `team_uid` is `Some`, and location is `Team`
-/// * Local file-based notebooks: `notebook_id` and `team_uid` are `None`, and location is `LocalFile`
-/// * Remote file-based notebooks: `notebook_id` and `team_uid` are `None`, and location is `RemoteFile`
-///
-/// This representation allows for invalid combinations, but makes querying the data easier (for
-/// example, to find all notebook events for a given team).
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-pub struct NotebookTelemetryMetadata {
-    /// The notebook ID, only available for cloud notebooks that have been synced to the server.
-    pub notebook_id: Option<NotebookId>,
-    /// The team UID, only available for cloud notebooks in a shared team.
-    pub team_uid: Option<ServerId>,
-    pub space: Option<TelemetrySpace>,
-    /// Where the notebook is canonically located.
-    pub location: NotebookLocation,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub markdown_table_count: Option<usize>,
-}
-
-impl NotebookTelemetryMetadata {
-    pub fn new(
-        notebook_id: impl Into<Option<NotebookId>>,
-        team_uid: impl Into<Option<ServerId>>,
-        location: impl Into<NotebookLocation>,
-        space: Option<TelemetrySpace>,
-    ) -> Self {
-        Self {
-            notebook_id: notebook_id.into(),
-            team_uid: team_uid.into(),
-            location: location.into(),
-            space,
-            markdown_table_count: None,
-        }
-    }
-
-    pub fn with_markdown_table_count(mut self, markdown_table_count: usize) -> Self {
-        self.markdown_table_count = Some(markdown_table_count);
-        self
-    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -482,7 +433,6 @@ pub enum AddTabWithShellSource {
 #[serde(rename_all = "snake_case")]
 pub enum CodeContextDestination {
     Pty,
-    AgentInput,
     RichInput,
 }
 
@@ -506,71 +456,6 @@ pub enum AgentModeCitation {
 pub enum ImageProtocol {
     Kitty,
     ITerm,
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub enum AIAgentInput {
-    UserQuery { query: String },
-    AutoCodeDiffQuery { query: String },
-    ResumeConversation,
-    InitProjectRules { display_query: Option<String> },
-    CreateEnvironment { display_query: Option<String> },
-    TriggerSuggestPrompt { trigger: PassiveSuggestionTrigger },
-    ActionResult { action_id: AIAgentActionId },
-    CreateNewProject { query: String },
-    CloneRepository { url: String },
-    CodeReview,
-    FetchReviewComments,
-    SummarizeConversation,
-    InvokeSkill { skill_name: String },
-    StartFromAmbientRunPrompt,
-    MessagesReceivedFromAgents { message_count: usize },
-    EventsFromAgents { event_count: usize },
-    PassiveSuggestionResult,
-    OrchestrationConfigUpdate,
-}
-
-impl From<FullAIAgentInput> for AIAgentInput {
-    fn from(input: FullAIAgentInput) -> Self {
-        match input {
-            FullAIAgentInput::UserQuery { query, .. } => Self::UserQuery { query },
-            FullAIAgentInput::AutoCodeDiffQuery { query, .. } => Self::AutoCodeDiffQuery { query },
-            FullAIAgentInput::ResumeConversation { .. } => Self::ResumeConversation,
-            FullAIAgentInput::InitProjectRules { display_query, .. } => {
-                Self::InitProjectRules { display_query }
-            }
-            FullAIAgentInput::CreateEnvironment { display_query, .. } => {
-                Self::CreateEnvironment { display_query }
-            }
-            FullAIAgentInput::TriggerPassiveSuggestion { trigger, .. } => {
-                Self::TriggerSuggestPrompt { trigger }
-            }
-            FullAIAgentInput::ActionResult { result, .. } => Self::ActionResult {
-                action_id: result.id,
-            },
-            FullAIAgentInput::CreateNewProject { query, .. } => Self::CreateNewProject { query },
-            FullAIAgentInput::CloneRepository { clone_repo_url, .. } => Self::CloneRepository {
-                url: clone_repo_url.into_url(),
-            },
-            FullAIAgentInput::CodeReview { .. } => Self::CodeReview,
-            FullAIAgentInput::FetchReviewComments { .. } => Self::FetchReviewComments,
-            FullAIAgentInput::SummarizeConversation { .. } => Self::SummarizeConversation,
-            FullAIAgentInput::InvokeSkill { skill, .. } => Self::InvokeSkill {
-                skill_name: skill.name.clone(),
-            },
-            FullAIAgentInput::StartFromAmbientRunPrompt { .. } => Self::StartFromAmbientRunPrompt,
-            FullAIAgentInput::MessagesReceivedFromAgents { messages } => {
-                Self::MessagesReceivedFromAgents {
-                    message_count: messages.len(),
-                }
-            }
-            FullAIAgentInput::EventsFromAgents { events } => Self::EventsFromAgents {
-                event_count: events.len(),
-            },
-            FullAIAgentInput::PassiveSuggestionResult { .. } => Self::PassiveSuggestionResult,
-            FullAIAgentInput::OrchestrationConfigUpdate { .. } => Self::OrchestrationConfigUpdate,
-        }
-    }
 }
 
 /// The origin of an agent view entry, for telemetry purposes.
