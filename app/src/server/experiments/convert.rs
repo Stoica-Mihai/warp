@@ -32,8 +32,6 @@ impl Display for ServerExperiment {
             Self::PromptSuggestionsViaMaaOutOfBandExperiment => {
                 "PROMPT_SUGGESTIONS_VIA_MAA_OOB_EXPERIMENT"
             }
-            Self::FreeUserNoAiControl => "FREE_USER_NO_AI_CONTROL",
-            Self::FreeUserNoAiExperiment => "FREE_USER_NO_AI_EXPERIMENT",
             Self::OzMultiHarnessControl => "OZ_MULTI_HARNESS_CONTROL",
             Self::OzMultiHarnessExperiment => "OZ_MULTI_HARNESS_EXPERIMENT",
             Self::SshRemoteServerControl => "SSH_REMOTE_SERVER_CONTROL",
@@ -67,8 +65,6 @@ impl ServerExperiment {
             }
             "PROMPT_SUGGESTIONS_VIA_MAA_CONTROL" => Ok(Self::PromptSuggestionsViaMaaControl),
             "PROMPT_SUGGESTIONS_VIA_MAA_EXPERIMENT" => Ok(Self::PromptSuggestionsViaMaaExperiment),
-            "FREE_USER_NO_AI_CONTROL" => Ok(Self::FreeUserNoAiControl),
-            "FREE_USER_NO_AI_EXPERIMENT" => Ok(Self::FreeUserNoAiExperiment),
             "OZ_MULTI_HARNESS_CONTROL" => Ok(Self::OzMultiHarnessControl),
             "OZ_MULTI_HARNESS_EXPERIMENT" => Ok(Self::OzMultiHarnessExperiment),
             "SSH_REMOTE_SERVER_CONTROL" => Ok(Self::SshRemoteServerControl),
@@ -108,8 +104,6 @@ impl TryFrom<Experiment> for ServerExperiment {
             Experiment::PromptSuggestionsViaMaaOob => {
                 Ok(Self::PromptSuggestionsViaMaaOutOfBandExperiment)
             }
-            Experiment::FreeUserNoAiControl => Ok(Self::FreeUserNoAiControl),
-            Experiment::FreeUserNoAiExperiment => Ok(Self::FreeUserNoAiExperiment),
             Experiment::OzMultiHarnessControl => Ok(Self::OzMultiHarnessControl),
             Experiment::OzMultiHarnessExperiment => Ok(Self::OzMultiHarnessExperiment),
             Experiment::SshRemoteServerControl => Ok(Self::SshRemoteServerControl),
