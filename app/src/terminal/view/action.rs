@@ -4,7 +4,6 @@ use std::path::PathBuf;
 
 use ai::skills::SkillReference;
 use command_corrections::Correction;
-pub use crate::auth::login_slide::OnboardingIntention;
 use pathfinder_geometry::vector::Vector2F;
 use session_sharing_protocol::common::Role;
 use session_sharing_protocol::sharer::RoleUpdateReason;

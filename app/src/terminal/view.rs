@@ -60,7 +60,7 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 
 use action::RememberForWarpification;
-pub use action::{OnboardingIntention, TerminalAction};
+pub use action::TerminalAction;
 use ai::api_keys::{ApiKeyManager, AwsCredentialsState};
 use ai::index::full_source_code_embedding::manager::{BuildSource, CodebaseIndexManager};
 use async_channel::{Receiver, Sender};
