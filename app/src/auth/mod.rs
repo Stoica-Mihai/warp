@@ -10,6 +10,8 @@ pub mod credentials;
 mod login_error_modal;
 mod login_failure_notification;
 pub mod login_slide;
+mod login_slide_content;
+mod login_slide_layout;
 pub mod needs_sso_link_view;
 pub mod paste_auth_token_modal;
 pub mod user;

@@ -1,7 +1,7 @@
 use std::cell::Cell;
 
-use onboarding::slides::{layout, slide_content};
-use onboarding::{OnboardingIntention, AI_FEATURES, WARP_DRIVE_FEATURES};
+use super::login_slide_content as slide_content;
+use super::login_slide_layout as layout;
 use pathfinder_color::ColorU;
 use pathfinder_geometry::vector::vec2f;
 use ui_components::{button, Component as _, Options as _};
@@ -38,6 +38,38 @@ use crate::themes::theme::Fill as ThemeFill;
 use crate::util::bindings::CustomAction;
 
 const TOS_URL: &str = "https://www.warp.dev/terms-of-service";
+
+/// The user's intention selected during the login slide.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OnboardingIntention {
+    Terminal,
+    AgentDrivenDevelopment,
+}
+
+impl std::fmt::Display for OnboardingIntention {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OnboardingIntention::AgentDrivenDevelopment => write!(f, "agent_driven"),
+            OnboardingIntention::Terminal => write!(f, "terminal"),
+        }
+    }
+}
+
+/// User-facing names of the AI features enabled when the agent intention is selected.
+/// Used by the skip-login confirmation dialog.
+pub const AI_FEATURES: &[&str] = &[
+    "Warp agents",
+    "Oz cloud agents platform",
+    "Next command predictions",
+    "Prompt suggestions",
+    "Codebase context",
+    "Remote control with Claude Code, Codex, and other agents",
+    "Agents over SSH",
+];
+
+/// User-facing names of the Warp Drive features enabled when the terminal
+/// intention is selected with Warp Drive turned on.
+pub const WARP_DRIVE_FEATURES: &[&str] = &["Warp Drive", "Session Sharing"];
 
 // ---------------------------------------------------------------------------
 // Init (keybindings)
