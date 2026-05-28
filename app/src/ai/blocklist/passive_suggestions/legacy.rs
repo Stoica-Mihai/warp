@@ -16,7 +16,7 @@ use warpui::{Entity, EntityId, ModelContext, ModelHandle, SingletonEntity};
 use super::static_prompt_suggestions::static_suggested_query;
 #[cfg(not(target_family = "wasm"))]
 use crate::ai::agent::PassiveSuggestionTrigger;
-use crate::ai::agent::{AIAgentExchangeId, CancellationReason};
+use crate::ai::agent::CancellationReason;
 use crate::ai::blocklist::controller::response_stream::ResponseStreamId;
 use crate::ai::blocklist::controller::{BlocklistAIController, BlocklistAIControllerEvent};
 use crate::ai::blocklist::{
@@ -58,11 +58,7 @@ pub enum PassiveSuggestionsEvent {
         command: String,
         request_duration_ms: u64,
     },
-    PassiveCodeDiffRequestStarted {
-        prompt_suggestion_id: String,
-        code_exchange_id: Option<AIAgentExchangeId>,
-        block_id: BlockId,
-    },
+    PassiveCodeDiffRequestStarted,
     PassiveCodeDiffFailed {
         reason: PromptSuggestionFallbackReason,
     },
@@ -503,11 +499,7 @@ impl PassiveSuggestionsModel {
                             .conversation(&conversation_id)
                             .and_then(|conversation| conversation.root_task_exchanges().next())
                             .map(|exchange| exchange.id);
-                        ctx.emit(PassiveSuggestionsEvent::PassiveCodeDiffRequestStarted {
-                            prompt_suggestion_id: prompt_suggestion_id.clone(),
-                            code_exchange_id,
-                            block_id: block_id.clone(),
-                        });
+                        ctx.emit(PassiveSuggestionsEvent::PassiveCodeDiffRequestStarted);
                         me.start_code_diff_timeout(stream_id, ctx);
                     }
                     Err(_) => {
