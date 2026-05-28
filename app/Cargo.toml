@@ -23,32 +23,6 @@ path = "src/bin/oss.rs"
 test = false
 
 [[bin]]
-name = "warp"
-path = "src/bin/local.rs"
-test = false
-
-[[bin]]
-name = "integration"
-path = "src/bin/integration.rs"
-test = false
-
-[[bin]]
-name = "stable"
-path = "src/bin/stable.rs"
-test = false
-
-[[bin]]
-name = "dev"
-path = "src/bin/dev.rs"
-test = false
-
-[[bin]]
-name = "preview"
-path = "src/bin/preview.rs"
-required-features = ["preview_channel"]
-test = false
-
-[[bin]]
 name = "generate_settings_schema"
 path = "src/bin/generate_settings_schema.rs"
 test = false
@@ -943,41 +917,13 @@ configurable_context_window = []
 handoff_cloud_cloud = ["cloud_mode_setup_v2"]
 git_credential_refresh = []
 
-[package.metadata.bundle.bin.warp-oss]
+[package.metadata.bundle.bin.sublight]
 category = "public.app-category.developer-tools"
-copyright = "© 2025, Denver Technologies, Inc"
+copyright = "Sublight contributors. Based on Warp © Denver Technologies, Inc."
 identifier = "local.sublight.Sublight"
 name = "Sublight"
 icon = ["channels/oss/icon/no-padding/512x512.png", "channels/oss/icon/no-padding/icon.ico"]
-short_description = "The open-source, cloud-backed terminal for individuals and teams."
-
-[package.metadata.bundle.bin.stable]
-category = "public.app-category.developer-tools"
-copyright = "© 2025, Denver Technologies, Inc"
-identifier = "dev.warp.Warp-Stable"
-name = "Warp"
-short_description = "The cloud-backed terminal for individuals and teams, stable build."
-
-[package.metadata.bundle.bin.preview]
-category = "public.app-category.developer-tools"
-copyright = "© 2025, Denver Technologies, Inc"
-identifier = "dev.warp.Warp-Preview"
-name = "WarpPreview"
-short_description = "The cloud-backed terminal for individuals and teams, feature preview build."
-
-[package.metadata.bundle.bin.dev]
-category = "public.app-category.developer-tools"
-copyright = "© 2025, Denver Technologies, Inc"
-identifier = "dev.warp.Warp-Dev"
-name = "WarpDev"
-short_description = "The cloud-backed terminal for individuals and teams, developer build."
-
-[package.metadata.bundle.bin.warp]
-category = "public.app-category.developer-tools"
-copyright = "© 2025, Denver Technologies, Inc"
-identifier = "dev.warp.Warp-Local"
-name = "WarpLocal"
-short_description = "The cloud-backed terminal for individuals and teams, developer build."
+short_description = "Local-only terminal — fork of Warp with the cloud surfaces stripped."
 
 [package.metadata.cargo-udeps.ignore]
 normal = ["embed_plist"]
