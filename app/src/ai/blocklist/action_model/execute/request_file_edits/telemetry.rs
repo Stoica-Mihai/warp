@@ -6,7 +6,6 @@ use ai::diff_validation::DiffMatchFailures;
 use serde::Serialize;
 use serde_json::json;
 use strum_macros::{EnumDiscriminants, EnumIter};
-use warp_core::telemetry::{EnablementState, TelemetryEvent, TelemetryEventDesc};
 
 use crate::ai::agent::AIIdentifiers;
 use crate::ai::blocklist::RequestedEditResolution;

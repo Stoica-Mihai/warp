@@ -5,7 +5,6 @@ use warp_cli::artifact::{
 };
 use warp_cli::task::{MessageCommand, MessageSendArgs, MessageWatchArgs, TaskCommand};
 use warp_cli::CliCommand;
-use warp_core::telemetry::TelemetryEvent;
 
 use super::{command_requires_auth, reconcile_task_harness};
 

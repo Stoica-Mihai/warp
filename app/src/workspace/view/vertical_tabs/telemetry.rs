@@ -1,7 +1,6 @@
 use serde_json::{json, Value};
 use strum_macros::{EnumDiscriminants, EnumIter};
 use warp_core::features::FeatureFlag;
-use warp_core::telemetry::{EnablementState, TelemetryEvent, TelemetryEventDesc};
 
 use crate::workspace::tab_settings::{
     VerticalTabsCompactSubtitle, VerticalTabsDisplayGranularity, VerticalTabsPrimaryInfo,

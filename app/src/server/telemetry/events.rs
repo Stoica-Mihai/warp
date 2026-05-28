@@ -2,9 +2,6 @@
 use serde::{Deserialize, Serialize};
 use session_sharing_protocol::common::SessionId as SharedSessionId;
 use warp_core::interval_timer::TimingDataPoint;
-use warp_core::telemetry::{
-    TelemetryEvent as TelemetryEventTrait, TelemetryEventDesc,
-};
 
 use crate::ai::agent::{
     AIAgentActionId, AIAgentInput as FullAIAgentInput, PassiveSuggestionTrigger,

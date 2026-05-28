@@ -5,7 +5,6 @@ use serde::Serialize;
 use serde_json::json;
 use serde_with::SerializeDisplay;
 use strum_macros::{EnumDiscriminants, EnumIter};
-use warp_core::telemetry::{EnablementState, TelemetryEvent, TelemetryEventDesc};
 
 use crate::code_review::diff_state::DiffMode;
 use crate::features::FeatureFlag;
