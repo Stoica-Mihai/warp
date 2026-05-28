@@ -11518,11 +11518,6 @@ impl TerminalView {
                         );
                     }
 
-                    #[cfg(not(target_family = "wasm"))]
-                    crate::system::SystemInfo::handle(ctx).update(ctx, |system_info, _ctx| {
-                        system_info.handle_block_created();
-                    });
-
                     // Emit the event to the parent view. This will save the block to sqlite if
                     // session restoration is enabled.
                     ctx.emit(Event::BlockCompleted {
