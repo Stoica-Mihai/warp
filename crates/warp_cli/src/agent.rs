@@ -11,7 +11,6 @@ use crate::json_filter::JsonOutput;
 use crate::mcp::MCPSpec;
 use crate::model::ModelArgs;
 use crate::scope::ObjectScope;
-use crate::share::ShareArgs;
 use crate::skill::SkillSpec;
 
 /// Output format for agent results.
@@ -298,8 +297,6 @@ pub struct RunAgentArgs {
     /// Display agent progress in the Warp interface.
     #[arg(long = "gui", hide = true)]
     pub gui: bool,
-    #[command(flatten)]
-    pub share: ShareArgs,
     /// MCP servers to start before executing the agent.
     ///
     /// Can be specified as:

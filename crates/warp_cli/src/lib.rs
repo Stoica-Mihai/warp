@@ -34,7 +34,6 @@ pub mod model;
 pub mod provider;
 pub mod schedule;
 pub mod secret;
-pub mod share;
 pub mod task;
 pub const OZ_RUN_ID_ENV: &str = "OZ_RUN_ID";
 pub const OZ_PARENT_RUN_ID_ENV: &str = "OZ_PARENT_RUN_ID";

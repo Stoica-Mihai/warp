@@ -18,7 +18,6 @@ use warp_cli::agent::{
 use warp_cli::environment::{EnvironmentCommand, ImageCommand};
 use warp_cli::mcp::MCPCommand;
 use warp_cli::model::ModelCommand;
-use warp_cli::share::ShareRequest;
 use warp_cli::task::TaskCommand;
 use warp_cli::{CliCommand, GlobalOptions};
 use warp_core::features::FeatureFlag;
@@ -634,7 +633,6 @@ impl AgentDriverRunner {
         // Set up and run the driver, reporting any errors back to the server.
         let result: Result<(), AgentDriverError> = async {
             // Pull relevant variables out of args before moving it into the closure.
-            let share_requests = args.share.share.clone();
             let bedrock_inference_role = args.bedrock_inference_role.clone();
             let bedrock_role_region = args.bedrock_role_region.clone();
             let has_task_id = args.task_id.is_some();
@@ -750,13 +748,7 @@ impl AgentDriverRunner {
             // Run the driver
             foreground
                 .spawn(move |_, ctx| {
-                    Self::create_and_run_driver(
-                        ctx,
-                        driver_options,
-                        output_format,
-                        share_requests,
-                        task,
-                    );
+                    Self::create_and_run_driver(ctx, driver_options, output_format, task);
                 })
                 .await?;
 
@@ -875,8 +867,6 @@ impl AgentDriverRunner {
                     build_merged_config_and_task(&args, &resolved_skill, &prompt_clone, ctx)?;
 
                 let task_id = args.task_id.as_ref().and_then(|s| s.parse().ok());
-                let should_share = (args.share.is_shared() || args.task_id.is_some())
-                    && FeatureFlag::AgentSharedSessions.is_enabled();
 
                 let third_party_harness_model_config = merged_config
                     .harness
@@ -886,7 +876,6 @@ impl AgentDriverRunner {
                     working_dir: working_dir.clone(),
                     task_id,
                     parent_run_id: None,
-                    should_share,
                     idle_on_complete: args.idle_on_complete.map(|d| d.into()),
                     secrets: Default::default(),
                     resume: None,
@@ -1376,7 +1365,6 @@ impl AgentDriverRunner {
         ctx: &mut AppContext,
         driver_options: driver::AgentDriverOptions,
         output_format: OutputFormat,
-        share_requests: Option<Vec<ShareRequest>>,
         task: driver::Task,
     ) {
         maybe_warn_team_api_key(ctx);
@@ -1389,9 +1377,6 @@ impl AgentDriverRunner {
 
         driver.update(ctx, |driver, ctx| {
             driver.set_output_format(output_format);
-            if let Some(share_requests) = share_requests {
-                driver.add_share_requests(share_requests, ctx);
-            }
             let agent_future = driver.run(task, ctx);
 
             ctx.spawn(agent_future, |_, result, ctx| match result {
@@ -1519,14 +1504,6 @@ fn launch_command(
     });
 
     Ok(())
-}
-
-/// Check if we're running within Warp (for example, if this is an invocation of the Warp CLI
-/// within a Warp terminal session).
-pub fn is_running_in_warp() -> bool {
-    std::env::var("TERM_PROGRAM")
-        .map(|v| v == "WarpTerminal")
-        .unwrap_or(false)
 }
 
 /// Report a fatal error and terminate the app.
