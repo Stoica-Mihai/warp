@@ -181,7 +181,9 @@ All 3 must be 0 errors before each commit.
 
 **Done + verified**: welcome panes (`59562bd7`), onboarding flow (`3e87396f`), **telemetry strip COMPLETE** (`c7319c0a`). Login KEPT. Brand assets done in `brand/` (untracked).
 
-### Warp Drive server-sync amputation — 🚧 IN PROGRESS (keep sqlite store, cut server leg)
+### Warp Drive server-sync amputation — ✅ COMPLETE (`96207e43`, keep sqlite store, cut server leg)
+
+**Landed (`96207e43`, 22 files, −13,140 net LoC, binary 899.4 → 896.9 MB, 3-gate 0/0):** Phase 0 behavioral amputation + deleted the inbound sync-merge cluster (`on_changed_objects_fetched` + handlers) + poll engine + `cloud_preferences_syncer` (settings cloud-sync) + server-sync test suites + dead test infra + MCP-gallery server-push path. Settings + Drive content stay local (sqlite + TOML). GUI smoke-tested (startup clean). **DEFERRED to the drive-UI/sharing pass (still KEPT, UI-reachable, NOT dead):** the per-object server-action methods (`trash`/`untrash`/`delete`/`move`/`leave`/guests/permissions/edit-access), `ObjectClient` trait + `impl for ServerApi` + `server_api/object.rs` CRUD, `SyncQueue` (`enqueue` still called by mutation methods; `dequeue` gated-off). These deliver the *next* Drive binary shrink once `drive/sharing/` + `drive/import/` UI is removed. Working notes below.
 
 **Decision (2026-05-29, user-chosen)**: keep `cloud_object`'s sqlite store (= session-restore backend), amputate only the server-sync half. Drive content (workflows / env-vars / notebooks / MCP / AI facts / folders) stays **local-only** — no upload, no cross-device, no share links. App settings (themes/keybindings) were never Drive-backed.
 
