@@ -181,7 +181,11 @@ All 3 must be 0 errors before each commit.
 
 **Done + verified**: welcome panes (`59562bd7`), onboarding flow (`3e87396f`), **telemetry strip COMPLETE** (`c7319c0a`). Login KEPT. Brand assets done in `brand/` (untracked).
 
-### shared_session strip — IN PROGRESS (session-sharing cloud feature)
+### shared_session strip — ✅ COMPLETE (`bfcb3ffe`, 94 files, −27,714 LoC, binary −11.9 MB, 3-gate green/0-warn)
+
+Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call diagnostic injection blows the budget over hundreds of edits). Collapsed `SharedSessionStatus`/`IsSharedSessionCreator` to vestigial stubs in a ~95-line `terminal/shared_session.rs`; deleted both machinery dirs + the sharer-network hub in terminal_manager + all share-UI (view/pane_group/pane_impl/workspace/drive/tab/alt_screen/block_list) + AI auto-share + `warp_cli --share` + 4 FeatureFlags + the session-sharing test suites. Cloud-mode ambient panes → local MockTerminalManager. ~111 status read-sites kept as dead branches (full removal deferred). `session_sharing_protocol` crate + `ai/blocklist/controller/shared_session.rs` kept (deferred AI-panel pass). Original IN-PROGRESS plan below for reference.
+
+### shared_session strip — original plan (reference)
 
 **Goal**: remove Warp's terminal session-sharing (share live session over Warp cloud; join/view via link). NOT a generic AI capability — vendor CLIs never touch it.
 
