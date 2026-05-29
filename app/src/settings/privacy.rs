@@ -10,7 +10,6 @@ use warp_core::features::FeatureFlag;
 use warp_core::report_if_error;
 use warpui::{AppContext, Entity, ModelContext, SingletonEntity, UpdateModel};
 
-use super::cloud_preferences_syncer::CloudPreferencesSyncer;
 use crate::ai::blocklist::telemetry_banner::should_collect_ai_ugc_telemetry;
 use crate::auth::auth_state::AuthState;
 use crate::auth::AuthStateProvider;
@@ -783,16 +782,6 @@ impl PrivacySettings {
                     report_if_error!(settings
                         .is_cloud_conversation_storage_enabled
                         .set_value(self.is_cloud_conversation_storage_enabled, ctx));
-                });
-                CloudPreferencesSyncer::handle(ctx).update(ctx, |syncer, ctx| {
-                    syncer.maybe_sync_local_prefs_to_cloud(
-                        vec![
-                            IsTelemetryEnabled::storage_key().to_string(),
-                            IsCrashReportingEnabled::storage_key().to_string(),
-                            IsCloudConversationStorageEnabled::storage_key().to_string(),
-                        ],
-                        ctx,
-                    );
                 });
             }
         }

@@ -270,11 +270,8 @@ impl Listener {
         }
     }
 
-    fn start_listener(&mut self, ctx: &mut ModelContext<Self>) {
-        if !self.should_subscribe_to_updates {
-            self.should_subscribe_to_updates = true;
-            self.get_warp_drive_updates(ctx);
-        }
+    fn start_listener(&mut self, _ctx: &mut ModelContext<Self>) {
+        // Drive server-sync amputated (local-only build): no RTC websocket opened.
     }
 
     /// Cancels any pending delayed refresh that was scheduled after a reconnection.

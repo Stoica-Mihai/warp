@@ -459,10 +459,6 @@ impl ObjectActions {
         ctx.notify()
     }
 
-    #[cfg(test)]
-    pub fn count_actions_for_object(&mut self, uid: &ObjectUid) -> usize {
-        self.object_actions_by_id.get(uid).map_or(0, |v| v.len())
-    }
 }
 
 impl Entity for ObjectActions {

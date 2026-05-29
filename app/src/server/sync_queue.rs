@@ -387,6 +387,7 @@ impl SyncQueue {
         self.should_dequeue = false
     }
 
+    #[cfg(test)]
     pub fn start_dequeueing(&mut self, ctx: &mut ModelContext<Self>) {
         self.should_dequeue = true;
         self.dequeue(ctx)
@@ -1865,15 +1866,6 @@ impl SyncQueue {
         &self.queue
     }
 
-    #[cfg(test)]
-    pub fn queue_dependencies(&self) -> &HashMap<QueueItemId, HashSet<QueueItemId>> {
-        &self.queue_dependencies
-    }
-
-    #[cfg(test)]
-    pub fn spawned_futures(&self) -> &Vec<FutureId> {
-        &self.spawned_futures
-    }
 }
 
 impl Entity for SyncQueue {
@@ -1882,6 +1874,3 @@ impl Entity for SyncQueue {
 
 impl SingletonEntity for SyncQueue {}
 
-#[cfg(test)]
-#[path = "sync_queue_tests.rs"]
-mod tests;

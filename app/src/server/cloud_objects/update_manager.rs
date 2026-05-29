@@ -6,7 +6,6 @@ use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 use futures::channel::oneshot::{self, Receiver};
-use futures::stream::AbortHandle;
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -16,9 +15,9 @@ use warp_graphql::mcp_gallery_template::MCPGalleryTemplate;
 use warp_graphql::object_permissions::AccessLevel;
 use warp_graphql::scalars::time::ServerTimestamp;
 use warp_util::sync::Condition;
-use warpui::r#async::{FutureId, Timer};
+use warpui::r#async::FutureId;
 use warpui::{
-    duration_with_jitter, AppContext, Entity, ModelContext, RequestState, RetryOption,
+    AppContext, Entity, ModelContext, RequestState, RetryOption,
     SingletonEntity,
 };
 
@@ -41,20 +40,17 @@ use crate::cloud_object::model::actions::{
     ObjectAction, ObjectActionHistory, ObjectActionType, ObjectActions,
 };
 use crate::cloud_object::model::generic_string_model::{
-    GenericStringModel, GenericStringObjectId, Serializer, StringModel,
+    GenericStringObjectId,
 };
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent, UpdateSource};
 use crate::cloud_object::model::view::{CloudViewModel, Editor, EditorState};
 use crate::cloud_object::{
     CloudLinkSharing, CloudModelType, CloudObject, CloudObjectEventEntrypoint, CloudObjectLocation,
     CloudObjectSyncStatus, CreateCloudObjectResult, CreateObjectRequest, GenericCloudObject,
-    GenericServerObject, GenericStringObjectFormat, JsonObjectType, NumInFlightRequests,
-    ObjectDeleteResult, ObjectIdType, ObjectMetadataUpdateResult, ObjectPermissionsUpdateData,
-    ObjectType, Owner, Revision, RevisionAndLastEditor, ServerAIExecutionProfile, ServerAIFact,
-    ServerAmbientAgentEnvironment, ServerCloudAgentConfig, ServerCloudObject,
-    ServerEnvVarCollection, ServerFolder, ServerMCPServer, ServerMetadata, ServerNotebook,
-    ServerObject, ServerPermissions, ServerPreference, ServerScheduledAmbientAgent,
-    ServerTemplatableMCPServer, ServerWorkflow, ServerWorkflowEnum, Space, UpdateCloudObjectResult,
+    GenericStringObjectFormat, JsonObjectType, NumInFlightRequests, ObjectDeleteResult,
+    ObjectIdType, ObjectMetadataUpdateResult, ObjectPermissionsUpdateData, ObjectType, Owner,
+    Revision, RevisionAndLastEditor, ServerCloudObject, ServerFolder, ServerMetadata,
+    ServerNotebook, ServerObject, ServerPermissions, ServerWorkflow, Space, UpdateCloudObjectResult,
 };
 use crate::drive::folders::{CloudFolderModel, FolderId};
 use crate::drive::sharing::SharingAccessLevel;
@@ -67,14 +63,10 @@ use crate::server::ids::{
     parse_sqlite_id_to_uid, ClientId, HashableId, HashedSqliteId, ObjectUid, ServerId, SyncId,
     ToServerId,
 };
-use crate::server::retry_strategies::{
-    OUT_OF_BAND_REQUEST_RETRY_STRATEGY, PERIODIC_POLL, PERIODIC_POLL_RETRY_STRATEGY,
-};
 use crate::server::server_api::object::{GuestIdentifier, ObjectClient};
 use crate::server::sync_queue::{
-    CreationFailureReason, GenericStringObjectToCreate, QueueItem, SyncQueue, SyncQueueEvent,
+    CreationFailureReason, QueueItem, SyncQueue, SyncQueueEvent,
 };
-use crate::settings::cloud_preferences::Preference;
 use crate::workflows::workflow::Workflow;
 use crate::workflows::workflow_enum::{CloudWorkflowEnum, CloudWorkflowEnumModel, WorkflowEnum};
 use crate::workflows::{CloudWorkflowModel, WorkflowId};
@@ -132,12 +124,6 @@ pub enum UpdateManagerEvent {
     ObjectOperationComplete {
         result: ObjectOperationResult,
     },
-    CloudPreferencesUpdated {
-        updated: Vec<Preference>,
-    },
-    MCPGalleryUpdated {
-        templates: Vec<MCPGalleryTemplate>,
-    },
     AmbientTaskUpdated {
         task_id: AmbientAgentTaskId,
         timestamp: DateTime<Utc>,
@@ -184,20 +170,6 @@ pub struct GetCloudObjectResponse {
     pub action_histories: Vec<ObjectActionHistory>,
 }
 
-#[derive(Debug)]
-pub struct GenericStringObjectInput<T, S>
-where
-    T: StringModel<
-            CloudObjectType = GenericCloudObject<GenericStringObjectId, GenericStringModel<T, S>>,
-        > + 'static,
-    S: Serializer<T> + 'static,
-{
-    pub id: ClientId,
-    pub model: GenericStringModel<T, S>,
-    pub initial_folder_id: Option<SyncId>,
-    pub entrypoint: CloudObjectEventEntrypoint,
-}
-
 /// The UpdateManager is responsible for delegating work
 /// when there is an update to an object (e.g. via a user interaction or
 /// a message from the server). Specifically, it will
@@ -207,9 +179,6 @@ where
 pub struct UpdateManager {
     model_event_sender: Option<SyncSender<ModelEvent>>,
     object_client: Arc<dyn ObjectClient>,
-    next_poll_abort_handle: Option<AbortHandle>,
-    in_flight_request_abort_handle: Option<AbortHandle>,
-    should_poll_for_updated_objects: bool,
     spawned_futures: Vec<FutureId>,
     has_initial_load: Condition,
 }
@@ -233,15 +202,16 @@ impl UpdateManager {
             me.handle_model_event(event, ctx);
         });
 
-        Self {
+        let manager = Self {
             model_event_sender,
             object_client,
-            next_poll_abort_handle: None,
-            in_flight_request_abort_handle: None,
-            should_poll_for_updated_objects: false,
             spawned_futures: Default::default(),
             has_initial_load: Condition::new(),
-        }
+        };
+        // Drive server-sync amputated (local-only build): no server bulk-load fires,
+        // so signal initial-load complete against the sqlite-populated CloudModel.
+        manager.has_initial_load.set();
+        manager
     }
 
     #[cfg(test)]
@@ -256,15 +226,6 @@ impl UpdateManager {
     }
 
     /// Simulate the initial load of changed objects completing.
-    #[cfg(test)]
-    pub fn mock_initial_load(
-        &mut self,
-        response: InitialLoadResponse,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        self.on_changed_objects_fetched(response, false /* force_refresh */, ctx);
-    }
-
     #[cfg(any(test, feature = "integration_tests"))]
     pub fn spawned_futures(&self) -> &[FutureId] {
         &self.spawned_futures
@@ -635,120 +596,17 @@ impl UpdateManager {
         });
     }
 
-    pub fn start_polling_for_updated_objects(&mut self, ctx: &mut ModelContext<Self>) {
-        let is_online = NetworkStatus::as_ref(ctx).is_online();
-
-        if !self.should_poll_for_updated_objects && is_online {
-            self.should_poll_for_updated_objects = true;
-            self.poll_for_updated_objects(ctx);
-        }
+    pub fn start_polling_for_updated_objects(&mut self, _ctx: &mut ModelContext<Self>) {
+        // Drive server-sync amputated (local-only build): no inbound polling.
     }
 
     /// Out-of-band (from the regular poll) refresh of updated objects.
-    pub fn refresh_updated_objects(&mut self, ctx: &mut ModelContext<Self>) {
-        let object_client = self.object_client.clone();
-        let cloud_model = CloudModel::as_ref(ctx);
-        let versions_for_all_objects = cloud_model.get_versions_for_all_objects(ctx);
-        let spawned_handle = ctx.spawn_with_retry_on_error(
-            move || {
-                let object_client = object_client.clone();
-                let cloned_objects_to_update = versions_for_all_objects.clone();
-                async move {
-                    object_client
-                        .fetch_changed_objects(
-                            cloned_objects_to_update,
-                            false, /* force_refresh */
-                        )
-                        .await
-                }
-            },
-            OUT_OF_BAND_REQUEST_RETRY_STRATEGY,
-            |update_manager, res, ctx| {
-                update_manager.handle_fetch_changed_objects_with_request_state(
-                    res, false, /* force_refresh */
-                    ctx,
-                );
-            },
-        );
-        self.spawned_futures.push(spawned_handle.future_id());
+    pub fn refresh_updated_objects(&mut self, _ctx: &mut ModelContext<Self>) {
+        // Drive server-sync amputated (local-only build): no inbound refresh.
     }
 
     pub fn stop_polling_for_updated_objects(&mut self) {
-        self.should_poll_for_updated_objects = false;
-        self.abort_existing_poll();
-    }
-
-    fn abort_existing_poll(&mut self) {
-        if let Some(abort_handle) = self.in_flight_request_abort_handle.take() {
-            abort_handle.abort();
-        }
-
-        if let Some(abort_handle) = self.next_poll_abort_handle.take() {
-            abort_handle.abort();
-        }
-    }
-
-    fn poll_for_updated_objects(&mut self, ctx: &mut ModelContext<Self>) {
-        self.abort_existing_poll();
-
-        if !self.should_poll_for_updated_objects {
-            return;
-        }
-
-        // Don't poll when the user is logged out to avoid spamming auth errors in the logs.
-        // Polling will be restarted when the user logs in via `initiate_data_pollers`.
-        if !AuthStateProvider::as_ref(ctx).get().is_logged_in() {
-            self.should_poll_for_updated_objects = false;
-            return;
-        }
-
-        let object_client = self.object_client.clone();
-        let cloud_model = CloudModel::as_ref(ctx);
-        let versions_for_all_objects = cloud_model.get_versions_for_all_objects(ctx);
-
-        // If there's a force refresh for cloud objects pending, we'll execute the refresh now
-        let force_refresh = cloud_model.cloud_objects_force_refresh_pending();
-        // We retry a few times here in case there are any transient network errors.
-        let spawned_handle = ctx.spawn_with_retry_on_error(
-            move || {
-                let object_client = object_client.clone();
-                let cloned_objects_to_update = versions_for_all_objects.clone();
-                async move {
-                    object_client
-                        .fetch_changed_objects(cloned_objects_to_update, force_refresh)
-                        .await
-                }
-            },
-            PERIODIC_POLL_RETRY_STRATEGY,
-            move |update_manager, res, ctx| {
-                // Only poll if `spawn_with_retry_on_error` is not going to retry again so we don't end up with multiple
-                // polls running simultaneously.
-                let should_poll_again = !res.has_pending_retries();
-                update_manager.handle_fetch_changed_objects_with_request_state(
-                    res,
-                    force_refresh,
-                    ctx,
-                );
-
-                if should_poll_again {
-                    let next_poll_handle = ctx.spawn(
-                        async move {
-                            Timer::after(duration_with_jitter(
-                                PERIODIC_POLL,
-                                0.2, /* max_jitter_multiplier */
-                            ))
-                            .await
-                        },
-                        |update_manager, _, ctx| {
-                            update_manager.poll_for_updated_objects(ctx);
-                        },
-                    );
-                    update_manager.next_poll_abort_handle = Some(next_poll_handle.abort_handle());
-                }
-            },
-        );
-
-        self.in_flight_request_abort_handle = Some(spawned_handle.abort_handle());
+        // Drive server-sync amputated (local-only build): no polling to stop.
     }
 
     fn handle_network_status_changed(
@@ -766,348 +624,6 @@ impl UpdateManager {
                     SyncQueue::handle(ctx).update(ctx, |queue, _ctx| queue.stop_dequeueing())
                 }
             },
-        }
-    }
-
-    fn handle_fetch_changed_objects_with_request_state(
-        &mut self,
-        request_state: RequestState<InitialLoadResponse>,
-        force_refresh: bool,
-        ctx: &mut ModelContext<UpdateManager>,
-    ) {
-        match request_state {
-            RequestState::RequestSucceeded(response) => {
-                self.on_changed_objects_fetched(response, force_refresh, ctx);
-            }
-            RequestState::RequestFailedRetryPending(err) => {
-                log::warn!(
-                    "fetch_changed_objects: request failed with error {err:#}. Trying again."
-                );
-            }
-            RequestState::RequestFailed(err) => {
-                log::warn!(
-                    "fetch_changed_objects: request failed with error {err:#}. Retries exhausted."
-                );
-            }
-        }
-    }
-
-    fn on_changed_objects_fetched(
-        &mut self,
-        response: InitialLoadResponse,
-        force_refresh: bool,
-        ctx: &mut ModelContext<UpdateManager>,
-    ) {
-        let is_first_load = !self.has_initial_load.is_set();
-        let cloud_model = CloudModel::as_ref(ctx);
-        // any folder from the server will have its `is_open` model parameter set to false,
-        // since the server doesn't know about open/closed states. so in order to not clobber
-        // the user's local state, we'll modify any updated folders to match the open state
-        // of whatever's in the cloud model (if it exists).
-        let folders = response
-            .updated_folders
-            .into_iter()
-            .map(|mut folder| {
-                if let Some(cloud_model_folder) = cloud_model.get_folder(&folder.id) {
-                    folder.model.is_open = cloud_model_folder.model().is_open;
-                }
-                folder
-            })
-            .collect::<Vec<_>>();
-
-        let deleted_notebook_ids = Self::handle_object_deletions(response.deleted_notebooks, ctx);
-        let deleted_workflow_ids = Self::handle_object_deletions(response.deleted_workflows, ctx);
-        let deleted_folder_ids = Self::handle_object_deletions(response.deleted_folders, ctx);
-        let deleted_generic_string_ids =
-            Self::handle_object_deletions(response.deleted_generic_string_objects, ctx);
-
-        let deleted_object_ids_and_types: Vec<(SyncId, ObjectIdType)> = deleted_notebook_ids
-            .into_iter()
-            .map(|id| (id, ObjectIdType::Notebook))
-            .chain(
-                deleted_workflow_ids
-                    .into_iter()
-                    .map(|id| (id, ObjectIdType::Workflow)),
-            )
-            .chain(
-                deleted_folder_ids
-                    .into_iter()
-                    .map(|id| (id, ObjectIdType::Folder)),
-            )
-            .chain(
-                deleted_generic_string_ids
-                    .into_iter()
-                    .map(|id| (id, ObjectIdType::GenericStringObject)),
-            )
-            .collect();
-
-        let deleted_hashed_sqlite_object_ids = deleted_object_ids_and_types
-            .clone()
-            .into_iter()
-            .map(|(id, object_id_type)| id.sqlite_uid_hash(object_id_type))
-            .collect::<Vec<HashedSqliteId>>();
-
-        let mut sqlite_events = vec![
-            Self::handle_object_updates(
-                response.updated_notebooks,
-                force_refresh,
-                !is_first_load,
-                ctx,
-            ),
-            Self::handle_object_updates(
-                response.updated_workflows,
-                force_refresh,
-                !is_first_load,
-                ctx,
-            ),
-            Self::handle_object_updates(folders, force_refresh, !is_first_load, ctx),
-            ModelEvent::DeleteObjects {
-                ids: deleted_object_ids_and_types,
-            },
-        ];
-
-        let mut updated_preferences: Vec<Preference> = Vec::new();
-        // Handle generic string object updates.
-        for (format, objects) in response.updated_generic_string_objects {
-            match format {
-                GenericStringObjectFormat::Json(JsonObjectType::Preference) => {
-                    let typed_objects = objects
-                        .iter()
-                        .filter_map(|obj| {
-                            let server_obj: Option<&ServerPreference> = obj.into();
-                            if let Some(server_obj) = server_obj {
-                                updated_preferences.push(server_obj.model.string_model.clone());
-                            }
-                            server_obj.cloned()
-                        })
-                        .collect::<Vec<_>>();
-
-                    let event = Self::handle_object_updates(
-                        typed_objects,
-                        force_refresh,
-                        !is_first_load,
-                        ctx,
-                    );
-                    sqlite_events.push(event);
-                }
-                GenericStringObjectFormat::Json(JsonObjectType::EnvVarCollection) => {
-                    let typed_objects = objects
-                        .iter()
-                        .filter_map(|obj| {
-                            let server_obj: Option<&ServerEnvVarCollection> = obj.into();
-                            server_obj.cloned()
-                        })
-                        .collect::<Vec<_>>();
-                    sqlite_events.push(Self::handle_object_updates(
-                        typed_objects,
-                        force_refresh,
-                        !is_first_load,
-                        ctx,
-                    ));
-                }
-                GenericStringObjectFormat::Json(JsonObjectType::WorkflowEnum) => {
-                    let typed_objects = objects
-                        .iter()
-                        .filter_map(|obj| {
-                            let server_obj: Option<&ServerWorkflowEnum> = obj.into();
-                            server_obj.cloned()
-                        })
-                        .collect::<Vec<_>>();
-                    sqlite_events.push(Self::handle_object_updates(
-                        typed_objects,
-                        force_refresh,
-                        !is_first_load,
-                        ctx,
-                    ));
-                }
-                GenericStringObjectFormat::Json(JsonObjectType::AIFact) => {
-                    let typed_objects = objects
-                        .iter()
-                        .filter_map(|obj| {
-                            let server_obj: Option<&ServerAIFact> = obj.into();
-                            server_obj.cloned()
-                        })
-                        .collect::<Vec<_>>();
-                    sqlite_events.push(Self::handle_object_updates(
-                        typed_objects,
-                        force_refresh,
-                        !is_first_load,
-                        ctx,
-                    ));
-                }
-                GenericStringObjectFormat::Json(JsonObjectType::MCPServer) => {
-                    let typed_objects = objects
-                        .iter()
-                        .filter_map(|obj| {
-                            let server_obj: Option<&ServerMCPServer> = obj.into();
-                            server_obj.cloned()
-                        })
-                        .collect::<Vec<_>>();
-                    sqlite_events.push(Self::handle_object_updates(
-                        typed_objects,
-                        force_refresh,
-                        !is_first_load,
-                        ctx,
-                    ));
-                }
-                GenericStringObjectFormat::Json(JsonObjectType::AIExecutionProfile) => {
-                    let typed_objects = objects
-                        .iter()
-                        .filter_map(|obj| {
-                            let server_obj: Option<&ServerAIExecutionProfile> = obj.into();
-                            server_obj.cloned()
-                        })
-                        .collect::<Vec<_>>();
-                    sqlite_events.push(Self::handle_object_updates(
-                        typed_objects,
-                        force_refresh,
-                        !is_first_load,
-                        ctx,
-                    ));
-                }
-                GenericStringObjectFormat::Json(JsonObjectType::TemplatableMCPServer) => {
-                    let typed_objects = objects
-                        .iter()
-                        .filter_map(|obj| {
-                            let server_obj: Option<&ServerTemplatableMCPServer> = obj.into();
-                            server_obj.cloned()
-                        })
-                        .collect::<Vec<_>>();
-                    sqlite_events.push(Self::handle_object_updates(
-                        typed_objects,
-                        force_refresh,
-                        !is_first_load,
-                        ctx,
-                    ));
-                }
-                GenericStringObjectFormat::Json(JsonObjectType::CloudEnvironment) => {
-                    let typed_objects = objects
-                        .iter()
-                        .filter_map(|obj| {
-                            let server_obj: Option<&ServerAmbientAgentEnvironment> = obj.into();
-                            server_obj.cloned()
-                        })
-                        .collect::<Vec<_>>();
-                    sqlite_events.push(Self::handle_object_updates(
-                        typed_objects,
-                        force_refresh,
-                        !is_first_load,
-                        ctx,
-                    ));
-                }
-                GenericStringObjectFormat::Json(JsonObjectType::ScheduledAmbientAgent) => {
-                    let typed_objects = objects
-                        .iter()
-                        .filter_map(|obj| {
-                            let server_obj: Option<&ServerScheduledAmbientAgent> = obj.into();
-                            server_obj.cloned()
-                        })
-                        .collect::<Vec<_>>();
-                    sqlite_events.push(Self::handle_object_updates(
-                        typed_objects,
-                        force_refresh,
-                        !is_first_load,
-                        ctx,
-                    ));
-                }
-                GenericStringObjectFormat::Json(JsonObjectType::CloudAgentConfig) => {
-                    let typed_objects = objects
-                        .iter()
-                        .filter_map(|obj| {
-                            let server_obj: Option<&ServerCloudAgentConfig> = obj.into();
-                            server_obj.cloned()
-                        })
-                        .collect::<Vec<_>>();
-                    sqlite_events.push(Self::handle_object_updates(
-                        typed_objects,
-                        force_refresh,
-                        !is_first_load,
-                        ctx,
-                    ));
-                }
-            }
-        }
-
-        // If this is a force refresh, clear out all cached user profiles in memory / in SQLite.
-        // This prevents a stale user (e.g. someone who went through user data deletion) from still
-        // appearing in the object history of other users on the team.
-        if force_refresh {
-            UserProfiles::handle(ctx).update(ctx, move |user_profiles_model, _| {
-                user_profiles_model.clear_profiles()
-            });
-            sqlite_events.push(ModelEvent::ClearUserProfiles);
-        }
-
-        let user_profiles = UserProfiles::handle(ctx).update(ctx, move |user_profiles_model, _| {
-            user_profiles_model.insert_profiles(&response.user_profiles);
-            response.user_profiles
-        });
-
-        sqlite_events.push(ModelEvent::UpsertUserProfiles {
-            profiles: user_profiles,
-        });
-
-        // Update the action histories with the new versions sent by the server. Note we collect these as `HashedSqliteId` but them
-        // convert them to UIDs because that's what object actions are indexed in in memory.
-        let mut ids_with_new_action_histories: Vec<HashedSqliteId> = Vec::new();
-        for history in &response.action_histories {
-            self.maybe_overwrite_object_action_history(history, ctx);
-            ids_with_new_action_histories.push(history.uid.clone());
-        }
-        ids_with_new_action_histories.extend(deleted_hashed_sqlite_object_ids);
-        // Before we pass the ids to the sync actions API, parse them into uids since
-        // we store the object actions in memory in cloud model
-        self.sync_actions_for_objects_to_sqlite(
-            ids_with_new_action_histories
-                .into_iter()
-                .filter_map(|hashed_id| parse_sqlite_id_to_uid(hashed_id).ok().clone())
-                .collect::<Vec<_>>()
-                .iter()
-                .collect(),
-            ctx,
-        );
-
-        // If the objects sync was a force refresh, we should set a new time for the next periodic refresh.
-        if force_refresh {
-            let time_of_next_refresh = CloudModel::handle(ctx).update(ctx, move |model, _| {
-                model.mark_cloud_objects_refresh_as_completed()
-            });
-            sqlite_events.push(ModelEvent::RecordTimeOfNextRefresh {
-                timestamp: time_of_next_refresh,
-            });
-        }
-
-        self.save_to_db(sqlite_events);
-
-        // Sequentially start dequeueing the sync queue after we pull updates from the server.
-        SyncQueue::handle(ctx).update(ctx, |queue, ctx| queue.start_dequeueing(ctx));
-
-        self.has_initial_load.set();
-
-        // Only emit InitialLoadCompleted on the very first load after login.
-        // Subsequent periodic polls should emit normal per-object events instead
-        // of suppressing them and triggering a full rebuild.
-        if is_first_load {
-            CloudModel::handle(ctx).update(ctx, |_, ctx| {
-                ctx.emit(CloudModelEvent::InitialLoadCompleted);
-            });
-        }
-
-        // Fetch environment "last used" timestamps separately and merge them into the environments.
-        // This is done as a separate call because the timestamps come from GetCloudEnvironments query
-        // rather than the generic object sync.
-        self.fetch_and_merge_environment_timestamps(ctx);
-
-        if !response.mcp_gallery.is_empty() {
-            ctx.emit(UpdateManagerEvent::MCPGalleryUpdated {
-                templates: response.mcp_gallery,
-            });
-        }
-
-        if !updated_preferences.is_empty() {
-            ctx.emit(UpdateManagerEvent::CloudPreferencesUpdated {
-                updated: updated_preferences,
-            });
         }
     }
 
@@ -1139,106 +655,6 @@ impl UpdateManager {
 
     /// Fetches environment "last used" timestamps from the server and merges them
     /// into the in-memory environment objects.
-    fn fetch_and_merge_environment_timestamps(&mut self, ctx: &mut ModelContext<UpdateManager>) {
-        let object_client = self.object_client.clone();
-        let future = ctx.spawn(
-            async move {
-                object_client
-                    .fetch_environment_last_task_run_timestamps()
-                    .await
-            },
-            |_update_manager, result, ctx| {
-                if let Ok(timestamps) = result {
-                    CloudModel::handle(ctx).update(ctx, |cloud_model, ctx| {
-                        cloud_model.update_environment_last_task_run_timestamps(timestamps, ctx);
-                    });
-                } else if let Err(e) = result {
-                    log::warn!("Failed to fetch environment last task run timestamps: {e:#}");
-                }
-            },
-        );
-        self.spawned_futures.push(future.future_id());
-    }
-
-    /// Generic handler updating all objects of a given model type from the server (e.g. all updated/deleted notebooks or workflows).
-    /// Updates the CloudModel directly and returns a model event for updating SQLite.
-    fn handle_object_updates<K, M>(
-        updated_objects: Vec<GenericServerObject<K, M>>,
-        force_refresh: bool,
-        emit_events: bool,
-        ctx: &mut ModelContext<UpdateManager>,
-    ) -> ModelEvent
-    where
-        K: HashableId
-            + ToServerId
-            + std::fmt::Debug
-            + Into<String>
-            + Clone
-            + Copy
-            + Send
-            + Sync
-            + 'static,
-        M: CloudModelType<IdType = K, CloudObjectType = GenericCloudObject<K, M>> + 'static,
-    {
-        let objects_without_pending_changes =
-            CloudModel::handle(ctx).update(ctx, move |model, ctx| {
-                model.update_objects_from_initial_load(
-                    updated_objects,
-                    force_refresh,
-                    emit_events,
-                    ctx,
-                )
-            });
-
-        M::bulk_upsert_event(
-            objects_without_pending_changes
-                .iter()
-                .map(|object| object.upsert_params(object.object_type()))
-                .collect(),
-        )
-    }
-
-    /// Generic handler deleting all objects of a given model type from the server (e.g. all updated/deleted notebooks or workflows).
-    /// Updates the CloudModel directly and returns a model event for updating SQLite.
-    fn handle_object_deletions<K>(
-        deleted_objects: Vec<K>,
-        ctx: &mut ModelContext<UpdateManager>,
-    ) -> Vec<SyncId>
-    where
-        K: HashableId
-            + ToServerId
-            + std::fmt::Debug
-            + Into<String>
-            + Clone
-            + Copy
-            + Send
-            + Sync
-            + 'static,
-    {
-        let deleted_object_ids = deleted_objects
-            .iter()
-            .map(|id| SyncId::ServerId((*id).to_server_id()))
-            .collect();
-
-        CloudModel::handle(ctx).update(ctx, |cloud_model, ctx| {
-            for id in deleted_objects.clone() {
-                cloud_model.delete_object(SyncId::ServerId(id.to_server_id()), ctx);
-            }
-        });
-
-        // Delete actions for this object too.
-        let mut ids = vec![];
-        ObjectActions::handle(ctx).update(ctx, |object_actions, ctx| {
-            for id in deleted_objects {
-                let id = SyncId::ServerId(id.to_server_id()).uid();
-                object_actions.delete_actions_for_object(&id, ctx);
-                ids.push(id.clone());
-            }
-        });
-
-        deleted_object_ids
-    }
-
     /// Wait for an initial load to complete.
     pub fn initial_load_complete(&self) -> impl Future<Output = ()> {
         // We're not using `async fn` here so that the returned Future doesn't borrow self.
@@ -1359,12 +775,6 @@ impl UpdateManager {
         let cloud_model = CloudModel::as_ref(ctx);
         self.save_in_memory_object_to_sqlite(cloud_model, &uid);
 
-        if let ServerCloudObject::Preference(preference) = &cloud_object {
-            let preference = preference.model.string_model.clone();
-            ctx.emit(UpdateManagerEvent::CloudPreferencesUpdated {
-                updated: vec![preference],
-            });
-        }
     }
 
     /// Compare incoming metadata_ts and in_memory metadata_ts to determine whether to accept a new incoming metadata
@@ -3550,81 +2960,6 @@ impl UpdateManager {
     /// create_object for each object.
     ///
     /// Note that if the bulk creation request fails, the client will end up retrying
-    /// object creation one write and request at a time.
-    pub fn bulk_create_generic_string_objects<S, T>(
-        &mut self,
-        owner: Owner,
-        inputs: Vec<GenericStringObjectInput<T, S>>,
-        ctx: &mut ModelContext<Self>,
-    ) where
-        T: StringModel<
-                CloudObjectType = GenericCloudObject<
-                    GenericStringObjectId,
-                    GenericStringModel<T, S>,
-                >,
-            > + 'static,
-        S: Serializer<T> + 'static,
-    {
-        let mut objects = Vec::new();
-        let mut sync_queue_objects = Vec::new();
-        for input in inputs {
-            let object_id = SyncId::ClientId(input.id);
-            let serialized_model = input.model.serialized().into();
-            let uniqueness_key = input.model.string_model.uniqueness_key();
-
-            // Update in-memory model.
-            CloudModel::handle(ctx).update(ctx, |cloud_model, ctx| {
-                let object =
-                GenericCloudObject::<GenericStringObjectId, GenericStringModel<T, S>>::new_local(
-                    input.model,
-                    owner,
-                    input.initial_folder_id,
-                    input.id,
-                );
-                cloud_model.create_object(object_id, object, ctx);
-            });
-
-            let cloud_model = CloudModel::as_ref(ctx);
-            if let Some(object) = cloud_model
-                .get_object_of_type::<GenericStringObjectId, GenericStringModel<T, S>>(&object_id)
-            {
-                objects.push(object.clone());
-            }
-
-            sync_queue_objects.push(GenericStringObjectToCreate {
-                id: input.id,
-                format: T::model_format(),
-                serialized_model,
-                initial_folder_id: input.initial_folder_id,
-                entrypoint: input.entrypoint,
-                uniqueness_key,
-
-                // When adding the initiated_by parameter to this function call, InitiatedBy::User was set as a default value.
-                // initiated_by values currently do not propagate through the sync queue for bulk create operations, but can be added in the future
-                initiated_by: InitiatedBy::User,
-            });
-        }
-
-        // Update sqlite with a single bulk request
-        self.save_to_db(vec![GenericStringModel::<T, S>::bulk_upsert_event(
-            objects
-                .iter()
-                .map(|object| object.upsert_params(object.object_type()))
-                .collect(),
-        )]);
-
-        // Populate sync queue with a single bulk request
-        SyncQueue::handle(ctx).update(ctx, |sync_queue, ctx| {
-            sync_queue.enqueue(
-                QueueItem::BulkCreateGenericStringObjects {
-                    owner,
-                    objects: sync_queue_objects,
-                },
-                ctx,
-            )
-        });
-    }
-
     /// Generic function for creating a new cloud object with a given model.
     #[allow(clippy::too_many_arguments)]
     pub fn create_object<K, M>(
@@ -4842,6 +4177,3 @@ impl Entity for UpdateManager {
 
 impl SingletonEntity for UpdateManager {}
 
-#[cfg(test)]
-#[path = "update_manager_tests.rs"]
-mod tests;

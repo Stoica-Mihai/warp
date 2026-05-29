@@ -34,7 +34,6 @@ use crate::server::server_api::auth::{
 };
 use crate::server::server_api::{ServerApi, ServerApiProvider};
 use crate::server::telemetry::AnonymousUserSignupEntrypoint;
-use crate::settings::cloud_preferences_syncer::CloudPreferencesSyncer;
 use crate::settings::initializer::SettingsInitializer;
 use crate::settings::PrivacySettings;
 use crate::terminal::general_settings::GeneralSettings;
@@ -355,10 +354,6 @@ impl AuthManager {
                 // separate out-of-band refresh here.
                 TeamTesterStatus::handle(ctx).update(ctx, |model, ctx| {
                     model.initiate_data_pollers(false, ctx);
-                });
-
-                CloudPreferencesSyncer::handle(ctx).update(ctx, |model, ctx| {
-                    model.handle_user_fetched(self.auth_state.clone(), ctx)
                 });
 
                 AIRequestUsageModel::handle(ctx).update(ctx, |usage_model, ctx| {

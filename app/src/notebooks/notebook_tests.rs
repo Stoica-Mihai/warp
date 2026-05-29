@@ -33,7 +33,7 @@ use crate::notebooks::notebook::FocusedComponent;
 use crate::notebooks::{CloudNotebook, CloudNotebookModel, NotebookLocation};
 use crate::pane_group::PaneEvent;
 use crate::search::files::model::FileSearchModel;
-use crate::server::cloud_objects::update_manager::{InitialLoadResponse, UpdateManager};
+use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::ids::ClientId;
 use crate::server::ids::SyncId::ServerId;
 use crate::server::server_api::ServerApiProvider;
@@ -180,22 +180,13 @@ fn mock_server_notebook(title: impl Into<String>, data: impl Into<String>) -> Se
 
 /// Send changed objects to [`UpdateManager`] so that tests requiring "up-to-date" metadata can run.
 async fn initial_load(app: &mut App, updated_notebooks: impl Into<Vec<ServerNotebook>>) {
-    let response = InitialLoadResponse {
-        updated_notebooks: updated_notebooks.into(),
-        deleted_notebooks: Default::default(),
-        updated_workflows: Default::default(),
-        deleted_workflows: Default::default(),
-        updated_folders: Default::default(),
-        deleted_folders: Default::default(),
-        user_profiles: Default::default(),
-        updated_generic_string_objects: Default::default(),
-        deleted_generic_string_objects: Default::default(),
-        action_histories: Default::default(),
-        mcp_gallery: Default::default(),
-    };
-
+    let notebooks = updated_notebooks.into();
     let load_complete = UpdateManager::handle(app).update(app, |update_manager, ctx| {
-        update_manager.mock_initial_load(response, ctx);
+        CloudModel::handle(ctx).update(ctx, |model, ctx| {
+            for notebook in notebooks {
+                model.upsert_from_server_notebook(notebook, ctx);
+            }
+        });
         update_manager.initial_load_complete()
     });
     load_complete.await
