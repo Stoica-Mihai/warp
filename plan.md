@@ -181,6 +181,33 @@ All 3 must be 0 errors before each commit.
 
 **Done + verified**: welcome panes (`59562bd7`), onboarding flow (`3e87396f`), **telemetry strip COMPLETE** (`c7319c0a`). Login KEPT. Brand assets done in `brand/` (untracked).
 
+### shared_session strip — IN PROGRESS (session-sharing cloud feature)
+
+**Goal**: remove Warp's terminal session-sharing (share live session over Warp cloud; join/view via link). NOT a generic AI capability — vendor CLIs never touch it.
+
+**Two homes + core type**:
+- `terminal/shared_session/` (dir, ~14.8k LoC) — engine: manager, network, sharer, viewer, presence_manager, permissions_manager, participant_avatar_view, render_util, replay_agent_conversations, role_change_modal, share_modal, shared_handlers, selections, settings, ai_agent.
+- `terminal/view/shared_session/` (dir, ~6.7k LoC) — view layer: adapter, view_impl, conversation_ended_tombstone_view, cloud_conversation_continuation, sharer/viewer view. Depends on dir #1.
+- **`SharedSessionStatus`** (in `terminal/shared_session/mod.rs:99`) — the sharer/viewer/reader/executor permission state ON `terminal_model`. ~11 predicates (`is_viewer`/`is_sharer`/`is_reader`/`is_executor`/`is_active_sharer`/…). Read at **111 sites**, heaviest in `terminal/input.rs` + `terminal/view.rs`.
+
+**Done**: ✅ commit 1 `144639a4` — AI agent_sdk + `warp_cli::share` decouple (ShareSessionError, should_share, wait_for_session_shared, add_share_requests, EstablishedSharedSession event, write_session_joined, --share flag). 3-gate green, 0 warnings. terminal/shared_session still mounted.
+
+**Strategy (advisor-confirmed): COLLAPSE, not full removal — ONE atomic commit** (0-warning gate chains: removing a consumer orphans a machinery method → warning → cascade; can't yield green sub-points). Like autoupdate (one big commit).
+1. Collapse `SharedSessionStatus` → single `NotShared` variant; every predicate returns `false`; drop `Role` field (sheds `session_sharing_protocol` dep on the enum); `as_keymap_context()` → always `"SharedSessionStatus_NotShared"`. Definitionally correct for a no-sharing build. 111 read-sites keep compiling (dead branches) — **full read-site removal DEFERRED, flag honestly**.
+2. **Flatten** dir → `terminal/shared_session.rs` (~40-line stub: just the collapsed enum + predicates). Import paths stay `crate::terminal::shared_session::SharedSessionStatus` → **zero import-rewrite churn** (~35 files). Dir 21.5k→40 LoC IS the strip.
+3. **Fully remove** `IsSharedSessionCreator`/`SharedSessionSource` (only `::No` survives post-commit-1) + `NewTerminalOptions.is_shared_session_creator` field + threading (~10 all-No sites).
+4. Delete both dirs' machinery + `terminal/view/shared_session/` + `Event::{EstablishedSharedSession,FailedToShareSession}` in `terminal/view.rs`.
+5. Remove the share-action surface: `SharedSessionActionSource` enum + methods `open_share_session_modal`/`stop_sharing_session`/`copy_shared_session_link`/`copy_session_link` + their callers in view.rs, view/pane_impl.rs, view/action.rs, view/init.rs, view/use_agent_footer/mod.rs, workspace/view.rs, local_tty/terminal_manager.rs. Also `SharedSessionScrollbackType` (machinery-only after this).
+6. Decouple: auth/mod.rs + auth_manager.rs (Manager stop_all/rejoin_all + `num_shared_sessions` warning), session_management.rs (`shared_session_status` field + `num_shared_sessions` fn), pane_group (viewer::TerminalManager downcast, share_modal, role_change_modal, `number_of_shared_sessions`, ParticipantAvatarParams, presence), tab.rs (indicator color), alt_screen, block_list_element, terminal/input.rs (PresenceManager), settings/init.rs (SharedSessionSettings), drive/sharing, quit_warning (counting).
+7. lib.rs: drop `Manager` + `SessionPermissionsManager` mounts (KEEP `LocalSharedSessionLinkModel` — couples to `session_sharing_protocol`, deferred AI-panel pass).
+8. Drop `FeatureFlag::{CreatingSharedSessions,ViewingSharedSessions,SharedSessionWriteToLongRunningCommands,AgentSharedSessions}`.
+
+**RISK SPOT**: `local_tty/terminal_manager.rs` setters (`set_shared_session_status(ActiveSharer/NotShared)`) — confirm no local-session-lifecycle side-effect lived only inside a sharing branch before cutting. Can't headless-test GUI.
+
+**Keep alive**: `session_sharing_protocol` crate (deferred AI-panel submod `ai/blocklist/controller/shared_session.rs` + `local_shared_session_link_model.rs` still use it); `ai/blocklist/controller/shared_session.rs` (871 LoC, separate AI-panel viewing, no terminal-dir coupling).
+
+**Honest commit/plan framing**: "machinery removed, status enum collapsed to vestigial NotShared stub, 111 read-sites neutered to always-local; full read-site removal deferred." NOT "shared_session removed."
+
 ### Cleanup TODO (from onboarding pass — non-blocking, build+tests green)
 - ✅ Onboarding action stubs + dead variants/enums + helper methods removed (`d444c2b6`). `ImportSettings` was NOT a stub to delete — it was a mis-stubbed local feature, restored (`e9a3dc2e`).
 - **Remaining 79 warnings — DEFERRED to subsystem passes (not blindly swept).** They are orphaned unused imports + dead fns left by the onboarding `AgentOnboardingEvent` handler removal, but they belong to other subsystems and are cleanest removed *with* those subsystems (advisor guidance — avoids feature-gate false-positives + keeps per-pass attribution):
