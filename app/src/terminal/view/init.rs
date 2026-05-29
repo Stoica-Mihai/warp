@@ -8,7 +8,7 @@ use warpui::AppContext;
 
 use super::{AskAISource, ContextMenuAction, TerminalAction};
 use crate::ai::predict::prompt_suggestions::ACCEPT_PROMPT_SUGGESTION_KEYBINDING;
-use crate::channel::{Channel, ChannelState};
+use crate::channel::ChannelState;
 use crate::features::FeatureFlag;
 use crate::server::telemetry::{InteractionSource, ToggleBlockFilterSource};
 use crate::settings_view::flags;
@@ -211,61 +211,6 @@ pub fn init(app: &mut AppContext) {
                 id!("Terminal") & !id!("IMEOpen"),
             )]);
         }
-    }
-
-    if ChannelState::channel() == Channel::Integration {
-        app.register_fixed_bindings([
-            // Hack: Add explicit bindings for the tests, since the tests' injected
-            // keypresses won't trigger Mac menu items. Unfortunately we can't use
-            // cfg[test] because we are a separate process!
-            FixedBinding::new(
-                cmd_or_ctrl_shift("l"),
-                TerminalAction::FocusInputAndClearSelection,
-                id!("Terminal"),
-            ),
-            FixedBinding::new(
-                cmd_or_ctrl_shift("f"),
-                TerminalAction::ShowFindBar,
-                id!("Terminal"),
-            ),
-            FixedBinding::new(
-                cmd_or_ctrl_shift("k"),
-                TerminalAction::ClearBuffer,
-                id!("Terminal") & !id!("IMEOpen"),
-            ),
-            FixedBinding::new(
-                cmd_or_ctrl_shift("d"),
-                TerminalAction::SplitRight(None),
-                id!("Terminal") & !id!("IMEOpen"),
-            ),
-            FixedBinding::new_per_platform(
-                PerPlatformKeystroke {
-                    mac: "cmd-shift-D",
-                    linux_and_windows: "ctrl-shift-E",
-                },
-                TerminalAction::SplitDown(None),
-                id!("Terminal") & !id!("IMEOpen"),
-            ),
-            FixedBinding::new(
-                cmd_or_ctrl_shift("v"),
-                TerminalAction::Paste,
-                id!("Terminal") & !id!("IMEOpen"),
-            ),
-            FixedBinding::new(
-                cmd_or_ctrl_shift("c"),
-                TerminalAction::Copy,
-                id!("Terminal") & !id!("IMEOpen"),
-            ),
-            FixedBinding::new(
-                cmd_or_ctrl_shift("i"),
-                TerminalAction::SetInputModeAgent,
-                id!("Terminal")
-                    & !id!("IMEOpen")
-                    & (!id!(flags::AGENT_VIEW_ENABLED)
-                        | id!(flags::ACTIVE_AGENT_VIEW)
-                        | id!(flags::ACTIVE_INLINE_AGENT_VIEW)),
-            ),
-        ]);
     }
 
     // By default, Windows Terminal recognizes both `ctrl-v` and `ctrl-shift-v` to paste into the

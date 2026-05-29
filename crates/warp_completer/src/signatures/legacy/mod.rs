@@ -57,15 +57,11 @@ impl CommandRegistry {
         // * The user might be SSHed into a host with a different version of the CLI
         // * The user might be using Preview, which will have different features than Stable.
         // However, it'll be close enough, and this approach ensures that we keep the CLI completions up to date.
-        let channels = [Channel::Stable, Channel::Preview, Channel::Dev];
-
-        for channel in channels {
-            let bin_name = channel.cli_command_name();
-            let mut clap_cmd = warp_cli::Args::clap_command();
-            let signature =
-                crate::signatures::clap::signature_from_clap_command(&mut clap_cmd, bin_name);
-            registry.register_signature(signature);
-        }
+        let bin_name = Channel::Oss.cli_command_name();
+        let mut clap_cmd = warp_cli::Args::clap_command();
+        let signature =
+            crate::signatures::clap::signature_from_clap_command(&mut clap_cmd, bin_name);
+        registry.register_signature(signature);
     }
 
     /// Returns an empty [`CommandRegistry`] that contains no signatures nor

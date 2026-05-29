@@ -10,7 +10,6 @@ use derivative::Derivative;
 use lazy_static::lazy_static;
 use regex::Regex;
 use url::Url;
-use warp_core::channel::Channel;
 use warp_core::features::FeatureFlag;
 use warp_graphql::queries::get_updated_cloud_objects::UpdatedObjectInput;
 use warp_graphql::scalars::time::ServerTimestamp;
@@ -726,18 +725,13 @@ where
                     object_type.to_string()
                 };
 
-                let mut link = format!(
+                let link = format!(
                     "{}/drive/{}/{}-{}",
                     ChannelState::server_root_url(),
                     object_type_for_link,
                     link_safe_name,
                     id.uid()
                 );
-
-                // If this is a preview build, ensure the link routes to a preview build.
-                if matches!(ChannelState::channel(), Channel::Preview) {
-                    link.push_str("?preview=true");
-                }
 
                 Some(link)
             }

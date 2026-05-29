@@ -16,7 +16,6 @@ use rand::distributions::Alphanumeric;
 use rand::Rng;
 use string_offset::CharOffset;
 use vec1::Vec1;
-use warp_core::channel::{Channel, ChannelState};
 use warp_core::features::FeatureFlag;
 use warp_core::ui::theme::color::internal_colors;
 use warp_core::{safe_error, safe_info};
@@ -7176,7 +7175,7 @@ impl BackingView for CodeReviewView {
     fn close(&mut self, ctx: &mut ViewContext<Self>) {
         let unsaved_file_paths = self.get_unsaved_file_paths(ctx);
 
-        if !unsaved_file_paths.is_empty() && ChannelState::channel() != Channel::Integration {
+        if !unsaved_file_paths.is_empty() {
             let file_names = unsaved_file_paths
                 .iter()
                 .filter_map(|path| {

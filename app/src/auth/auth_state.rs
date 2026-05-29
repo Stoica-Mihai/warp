@@ -5,7 +5,6 @@ use anyhow::anyhow;
 use chrono::{DateTime, Duration, Utc};
 use parking_lot::RwLock;
 use uuid::Uuid;
-use warp_core::channel::{Channel, ChannelState};
 use warp_graphql::object_permissions::OwnerType;
 use warpui::{AppContext, Entity, SingletonEntity};
 
@@ -154,7 +153,7 @@ impl AuthState {
     }
 
     fn should_use_test_user() -> bool {
-        cfg!(any(test, feature = "skip_login")) || ChannelState::channel() == Channel::Integration
+        cfg!(any(test, feature = "skip_login"))
     }
 
     /// Determines the appropriate persistence action based on the current auth state.

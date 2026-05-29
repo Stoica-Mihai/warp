@@ -5,7 +5,6 @@ use std::{io, process};
 use itertools::Itertools as _;
 use serde::{Deserialize, Serialize};
 use typed_path::UnixPathBuf;
-use warp_core::channel::{Channel, ChannelState};
 use warp_util::path::{canonicalize_git_bash_path, is_msys2_path, warp_shell_path};
 
 use crate::terminal::available_shells::AvailableShell;
@@ -704,11 +703,7 @@ fn msys2_arguments_for_session_spawning_command(shell_type: ShellType) -> Vec<Os
 }
 
 pub fn ssh_socket_dir() -> String {
-    let mut socket_dir = if ChannelState::channel() == Channel::Integration {
-        std::env::var("ORIGINAL_HOME").unwrap_or("~".into())
-    } else {
-        "~".into()
-    };
+    let mut socket_dir = String::from("~");
     socket_dir.push_str("/.ssh");
     socket_dir
 }

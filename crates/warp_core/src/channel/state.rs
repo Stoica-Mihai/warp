@@ -78,7 +78,7 @@ impl ChannelState {
     }
 
     pub fn enable_debug_features() -> bool {
-        cfg!(debug_assertions) || matches!(Self::channel(), Channel::Local | Channel::Dev)
+        cfg!(debug_assertions)
     }
 
     pub fn override_server_root_url(url: impl Into<Cow<'static, str>>) -> Result<(), ParseError> {
@@ -377,15 +377,7 @@ impl ChannelState {
     }
 
     pub fn url_scheme() -> &'static str {
-        match Self::channel() {
-            Channel::Stable => "warp",
-            Channel::Preview => "warppreview",
-            Channel::Dev => "warpdev",
-            // Dummy value--integration tests shouldn't support URL schemes.
-            Channel::Integration => "warpintegration",
-            Channel::Local => "warplocal",
-            Channel::Oss => "sublight",
-        }
+        "sublight"
     }
 }
 

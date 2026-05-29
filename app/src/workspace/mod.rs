@@ -45,7 +45,7 @@ use warpui::{AppContext, SingletonEntity};
 use crate::ai::blocklist::NEW_AGENT_PANE_LABEL;
 use crate::ai::skills::SkillManager;
 use crate::ai::AIRequestUsageModel;
-use crate::channel::{Channel, ChannelState};
+use crate::channel::ChannelState;
 use crate::features::FeatureFlag;
 use crate::palette::PaletteMode;
 use crate::pane_group::TabBarHoverIndex;
@@ -345,32 +345,6 @@ pub fn init(app: &mut AppContext) {
             "Save new launch configuration",
             id!("Workspace"),
         )]);
-    }
-
-    if ChannelState::channel() == Channel::Integration {
-        // Hack: Add explicit bindings for the tests, since the tests' injected
-        // keypresses won't trigger Mac menu items. Unfortunately we can't use
-        // cfg[test] because we are a separate process!
-        app.register_fixed_bindings([
-            FixedBinding::new(
-                cmd_or_ctrl_shift("t"),
-                WorkspaceAction::AddDefaultTab,
-                id!("Workspace"),
-            ),
-            FixedBinding::new(
-                cmd_or_ctrl_shift("p"),
-                WorkspaceAction::TogglePalette {
-                    mode: PaletteMode::Command,
-                    source: PaletteSource::IntegrationTest,
-                },
-                id!("Workspace"),
-            ),
-            FixedBinding::new(
-                "cmdorctrl-,",
-                WorkspaceAction::ShowSettings,
-                id!("Workspace"),
-            ),
-        ]);
     }
 
     if FeatureFlag::UIZoom.is_enabled() {

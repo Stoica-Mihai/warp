@@ -194,7 +194,7 @@ use crate::ai::skills::SkillManager;
 use crate::ai::AIRequestUsageModel;
 use crate::ai_assistant::execution_context::WarpAiExecutionContext;
 use crate::appearance::{Appearance, AppearanceEvent};
-use crate::channel::{Channel, ChannelState};
+use crate::channel::ChannelState;
 use crate::cloud_object::model::actions::ObjectActionType;
 use crate::cloud_object::model::generic_string_model::StringModel;
 use crate::cloud_object::model::persistence::CloudModel;
@@ -1841,19 +1841,6 @@ pub fn init(app: &mut AppContext) {
         )
         .with_context_predicate(id!("Input"))
         .with_custom_action(custom_action)]);
-    }
-
-    if ChannelState::channel() == Channel::Integration {
-        app.register_fixed_bindings([
-            // Hack: Add explicit bindings for the tests, since the tests' injected
-            // keypresses won't trigger Mac menu items. Unfortunately we can't use
-            // cfg[test] because we are a separate process!
-            FixedBinding::new(
-                "ctrl-shift-R",
-                InputAction::SelectAndRefreshVoltron(VoltronItem::Workflows),
-                id!("Input"),
-            ),
-        ]);
     }
 
     app.register_editable_bindings([

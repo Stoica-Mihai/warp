@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use ::settings::Setting as _;
 use cfg_if::cfg_if;
 use warp_cli::RecoveryMechanism;
-use warp_core::channel::{Channel, ChannelState};
 use warpui::{Entity, ModelContext, SingletonEntity, WindowId};
 use warpui_extras::user_preferences::UserPreferences;
 
@@ -274,10 +273,6 @@ impl SingletonEntity for CrashRecovery {}
 fn choose_crash_recovery_mechanism(
     user_preferences: &dyn UserPreferences,
 ) -> Option<RecoveryMechanism> {
-    if ChannelState::channel() == Channel::Integration {
-        return None;
-    }
-
     #[cfg(target_os = "linux")]
     {
         let force_x11 = settings::ForceX11::read_from_preferences(user_preferences);

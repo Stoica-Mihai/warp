@@ -76,7 +76,6 @@ use crate::auth::auth_manager::AuthManager;
 use crate::auth::auth_view_modal::AuthViewVariant;
 use crate::auth::AuthStateProvider;
 use crate::banner::{Banner, BannerEvent, BannerState, BannerTextContent, DismissalType};
-use crate::channel::{Channel, ChannelState};
 use crate::cloud_object::Space;
 use crate::code::active_file::ActiveFileModel;
 use crate::code::buffer_location::LocalOrRemotePath;
@@ -158,7 +157,7 @@ use crate::workflows::{WorkflowSelectionSource, WorkflowSource, WorkflowType};
 use crate::workspace::{
     self, CommandSearchOptions, PaneViewLocator, TabBarLocation, WorkspaceAction,
 };
-use crate::{cmd_or_ctrl_shift, report_if_error};
+use crate::report_if_error;
 
 mod child_agent;
 pub mod focus_state;
@@ -470,16 +469,6 @@ pub fn init(app: &mut AppContext) {
         .with_custom_action(CustomAction::ToggleMaximizePane),
     ]);
 
-    if ChannelState::channel() == Channel::Integration {
-        // Hack: Add explicit bindings for the tests, since the tests' injected
-        // keypresses won't trigger Mac menu items. Unfortunately we can't use
-        // cfg[test] because we are a separate process!
-        app.register_fixed_bindings([FixedBinding::new(
-            cmd_or_ctrl_shift("w"),
-            PaneGroupAction::RemoveActive,
-            id!("PaneGroup"),
-        )]);
-    }
 }
 
 pub enum Event {
@@ -4910,7 +4899,7 @@ impl PaneGroup {
         }
 
         let summary = UnsavedStateSummary::for_pane(self, pane_id, ctx);
-        if summary.should_display_warning(ctx) && ChannelState::channel() != Channel::Integration {
+        if summary.should_display_warning(ctx) {
             log::info!("Displaying unsaved changes warning for pane");
             let confirm_self = ctx.handle();
             let show_process_self = ctx.handle();

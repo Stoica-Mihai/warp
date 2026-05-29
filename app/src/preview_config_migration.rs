@@ -11,7 +11,6 @@
 
 use std::path::Path;
 
-use warp_core::channel::{Channel, ChannelState};
 use warp_core::paths::{data_dir, WARP_CONFIG_DIR};
 
 /// Files that should not be symlinked during the Preview config directory
@@ -29,20 +28,8 @@ const MIGRATION_EXCLUDED_FILES: &[&str] = &["settings.toml"];
 /// - `~/.warp-preview` already exists.
 /// - `~/.warp` does not exist.
 pub(crate) fn migrate_preview_config_dir_if_needed() {
-    if ChannelState::channel() != Channel::Preview {
-        return;
-    }
-
-    let Some(home) = dirs::home_dir() else {
-        return;
-    };
-
-    let old_dir = home.join(WARP_CONFIG_DIR);
-    // `data_dir()` is already channel-aware; for Preview it resolves to
-    // `~/.warp-preview`.
-    let new_dir = data_dir();
-
-    migrate_config_dir_via_symlinks(&old_dir, &new_dir);
+    // No-op: only the Oss channel exists in this fork.
+    let _ = (data_dir, WARP_CONFIG_DIR);
 }
 
 /// Core migration logic: creates `new_dir` and populates it with symlinks

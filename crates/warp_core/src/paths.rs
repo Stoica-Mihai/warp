@@ -19,7 +19,7 @@ use std::path::{Path, PathBuf};
 use cfg_if::cfg_if;
 use directories::BaseDirs;
 
-use crate::channel::{Channel, ChannelState};
+use crate::channel::ChannelState;
 use crate::AppId;
 
 /// The name of the directory in which to put non-global Warp-specific files.
@@ -33,15 +33,7 @@ pub const WARP_CONFIG_DIR: &str = ".warp";
 pub const WARP_LOGS_DIR: &str = "logs";
 
 fn base_warp_config_dir_name() -> String {
-    match ChannelState::channel() {
-        // Preview shares the same directory as Stable for backward
-        // compatibility — existing users already have config in `.warp`.
-        Channel::Stable | Channel::Preview => WARP_CONFIG_DIR.to_owned(),
-        Channel::Oss => format!("{WARP_CONFIG_DIR}-oss"),
-        Channel::Dev => format!("{WARP_CONFIG_DIR}-dev"),
-        Channel::Integration => format!("{WARP_CONFIG_DIR}-integration"),
-        Channel::Local => format!("{WARP_CONFIG_DIR}-local"),
-    }
+    format!("{WARP_CONFIG_DIR}-oss")
 }
 /// Returns the home-relative Warp config directory name for the current channel and data profile.
 ///
@@ -157,11 +149,6 @@ pub fn state_dir() -> PathBuf {
 ///
 /// On macOS, this will use the App Group container directory if available.
 pub fn secure_state_dir() -> Option<PathBuf> {
-    // Do not use the secure state directory in integration tests, which have a temporary home directory instead.
-    if ChannelState::channel() == Channel::Integration {
-        return None;
-    }
-
     #[cfg(target_os = "macos")]
     if let Some(app_group_root) = app_group_container_path() {
         // The macOS project_path is the bundle ID (i.e. `dev.warp.Warp-Stable`).

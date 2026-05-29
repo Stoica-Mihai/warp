@@ -43,7 +43,6 @@ use super::{
     SettingsSection, ToggleSettingActionPair,
 };
 use crate::appearance::{Appearance, AppearanceEvent};
-use crate::channel::{Channel, ChannelState};
 use crate::context_chips::prompt::{Prompt, PromptEvent};
 use crate::context_chips::renderer::{ChipDragState, Renderer as ContextChipRenderer};
 use crate::context_chips::ChipAvailability;
@@ -954,18 +953,13 @@ impl AppearanceSettingsPageView {
             ctx,
         );
 
-        // Don't load all available system fonts in integration tests; we don't
-        // have any integration tests which interact with the font dropdown, and
-        // loading them in the background slows down test execution.
-        if ChannelState::channel() != Channel::Integration {
-            // There's no such thing as a "system font" on the web, so the
-            // `all_system_fonts` API doesn't exist.
-            #[cfg(not(target_family = "wasm"))]
-            {
-                let all_system_fonts = warpui::fonts::Cache::handle(ctx)
-                    .update(ctx, |font_cache, ctx| font_cache.all_system_fonts(ctx));
-                ctx.spawn(all_system_fonts, Self::set_system_fonts);
-            }
+        // There's no such thing as a "system font" on the web, so the
+        // `all_system_fonts` API doesn't exist.
+        #[cfg(not(target_family = "wasm"))]
+        {
+            let all_system_fonts = warpui::fonts::Cache::handle(ctx)
+                .update(ctx, |font_cache, ctx| font_cache.all_system_fonts(ctx));
+            ctx.spawn(all_system_fonts, Self::set_system_fonts);
         }
         let font_family_dropdown = ctx.add_typed_action_view(|ctx| {
             let mut dropdown = FilterableDropdown::new(ctx);

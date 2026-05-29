@@ -96,7 +96,6 @@ use crate::ai::agent::ImageContext;
 use crate::ai::blocklist::{BlocklistAIContextModel, InputType, PendingAttachment, PendingFile};
 use crate::ai::predict::next_command_model::{NextCommandModel, NextCommandSuggestionState};
 use crate::appearance::Appearance;
-use crate::channel::{Channel, ChannelState};
 use crate::editor::accept_autosuggestion_keybinding_view::AcceptAutosuggestionKeybinding;
 use crate::editor::autosuggestion_ignore_view::{AutosuggestionIgnore, AutosuggestionIgnoreEvent};
 use crate::editor::RangeExt;
@@ -119,7 +118,7 @@ use crate::themes::theme::Fill;
 use crate::ui_components::avatar::{Avatar, AvatarContent};
 use crate::ui_components::buttons::icon_button;
 use crate::ui_components::icons;
-use crate::util::bindings::{cmd_or_ctrl_shift, keybinding_name_to_keystroke, CustomAction};
+use crate::util::bindings::{keybinding_name_to_keystroke, CustomAction};
 use crate::util::clipboard::clipboard_content_with_escaped_paths;
 use crate::util::color::{ContrastingColor, MinimumAllowedContrast};
 use crate::util::image::{resize_image, MAX_IMAGE_COUNT_FOR_QUERY, MAX_IMAGE_SIZE_BYTES};
@@ -479,39 +478,6 @@ pub fn init(ctx: &mut AppContext) {
             EditorAction::EmacsBinding,
             id!("EditorView") & !id!("IMEOpen"),
         )]);
-    }
-
-    if ChannelState::channel() == Channel::Integration {
-        ctx.register_fixed_bindings([
-            // Hack: Add explicit bindings for the tests, since the tests' injected
-            // keypresses won't trigger Mac menu items. Unfortunately we can't use
-            // cfg[test] because we are a separate process!
-            FixedBinding::new(
-                "cmdorctrl-z",
-                EditorAction::Undo,
-                id!("EditorView") & !id!("IMEOpen"),
-            ),
-            FixedBinding::new(
-                "shift-cmdorctrl-Z",
-                EditorAction::Redo,
-                id!("EditorView") & !id!("IMEOpen"),
-            ),
-            FixedBinding::new(
-                "ctrl-shift-up",
-                EditorAction::AddCursorAbove,
-                id!("EditorView") & !id!("IMEOpen"),
-            ),
-            FixedBinding::new(
-                cmd_or_ctrl_shift("a"),
-                EditorAction::SelectAll,
-                id!("EditorView") & !id!("IMEOpen"),
-            ),
-            FixedBinding::new(
-                "ctrl-g",
-                EditorAction::AddNextOccurrence,
-                id!("EditorView") & !id!("IMEOpen"),
-            ),
-        ]);
     }
 
     ctx.register_editable_bindings([

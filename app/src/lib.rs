@@ -1417,11 +1417,9 @@ pub(crate) fn initialize_app(
     {
         let imported_config_model = ctx.add_singleton_model(ImportedConfigModel::new);
 
-        if ChannelState::channel() != warp_core::channel::Channel::Integration {
-            imported_config_model.update(ctx, |model, ctx| {
-                model.search_for_settings_to_import(ctx);
-            });
-        }
+        imported_config_model.update(ctx, |model, ctx| {
+            model.search_for_settings_to_import(ctx);
+        });
 
         let emit_incremental_updates = matches!(launch_mode, LaunchMode::RemoteServerDaemon { .. });
         ctx.add_singleton_model(|ctx| {

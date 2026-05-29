@@ -16,7 +16,7 @@ use reqwest::IntoUrl;
 use reqwest_eventsource::RequestBuilderExt;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use warp_core::channel::{Channel, ChannelState};
+use warp_core::channel::ChannelState;
 use warp_core::operating_system_info::OperatingSystemInfo;
 use warp_core::{execution_mode, report_error};
 
@@ -41,11 +41,6 @@ pub mod headers {
     /// because it can't be set from WASM.
     pub(crate) const WARP_CLIENT_ID: &str = "X-Warp-Client-ID";
 }
-
-/// The environment variable containing extra HTTP headers to attach to requests.
-/// Only read when the channel is `Channel::Integration`. The value is a newline-separated
-/// list of `Name:Value` pairs, where each pair is split on the first colon.
-const EXTRA_HTTP_HEADERS_ENV_VAR: &str = "WARP_EXTRA_HTTP_HEADERS";
 
 /// A wrapper around a `reqwest::Client` to execute requests. Returns a custom `RequestBuilder` type
 /// that ensures any call to the underlying `reqwest::Client` are properly adapted so that they can
@@ -255,35 +250,6 @@ impl Client {
         // If there's an app version, include it as an HTTP request header.
         if let Some(app_version) = ChannelState::app_version() {
             builder = builder.header(headers::CLIENT_RELEASE_VERSION_HEADER_KEY, app_version);
-        }
-
-        // On integration builds, attach any extra headers from the environment.
-        if ChannelState::channel() == Channel::Integration
-            && let Ok(raw) = std::env::var(EXTRA_HTTP_HEADERS_ENV_VAR)
-        {
-            for line in raw.lines() {
-                let Some((name, value)) = line.split_once(':') else {
-                    continue;
-                };
-                let name = name.trim();
-                let value = value.trim();
-                if name.is_empty() {
-                    continue;
-                }
-                match (
-                    HeaderName::from_bytes(name.as_bytes()),
-                    HeaderValue::from_str(value),
-                ) {
-                    (Ok(name), Ok(value)) => {
-                        builder = builder.header(name, value);
-                    }
-                    _ => {
-                        log::warn!(
-                            "Ignoring invalid entry in {EXTRA_HTTP_HEADERS_ENV_VAR}: {line}"
-                        );
-                    }
-                }
-            }
         }
 
         // Headers indicating the details of the client's operating system, if available here at runtime.

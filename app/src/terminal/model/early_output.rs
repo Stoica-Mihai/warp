@@ -148,15 +148,6 @@ impl EarlyOutput {
                 full: ("Matched {ch:?} as typeahead")
             );
 
-            if warp_core::channel::ChannelState::channel()
-                == warp_core::channel::Channel::Integration
-            {
-                log::info!(
-                    "Sending input-matched typeahead event for {:?}",
-                    self.typeahead
-                );
-            }
-
             self.event_proxy
                 .send_terminal_event(TerminalEvent::Typeahead);
         }
@@ -168,12 +159,6 @@ impl EarlyOutput {
     /// internal count is then updated to match the new typeahead length.
     pub fn advance_typeahead(&mut self) -> Option<(&str, CharOffset)> {
         if self.typeahead.is_empty() {
-            if warp_core::channel::ChannelState::channel()
-                == warp_core::channel::Channel::Integration
-            {
-                log::warn!("Tried to advance typeahead, but it was empty");
-            }
-
             None
         } else {
             let prev_inserted = self.typeahead_chars_inserted;
@@ -316,11 +301,6 @@ impl ansi::Handler for EarlyOutputHandler<'_> {
     /// information, such as when the shell reports its input buffer.
     fn input_buffer(&mut self, data: ansi::InputBufferValue) {
         if data.buffer.is_empty() {
-            if warp_core::channel::ChannelState::channel()
-                == warp_core::channel::Channel::Integration
-            {
-                log::info!("Ignoring empty input buffer");
-            }
             // avoids a race condition when the user enters multiple lines of
             // typeahead. Suppose the user enters the following typeahead:
             // > cd foo <ENTER>
@@ -338,14 +318,6 @@ impl ansi::Handler for EarlyOutputHandler<'_> {
         let me = self.inner();
         if me.mode == TypeaheadMode::ShellReported {
             me.typeahead = data.buffer;
-            if warp_core::channel::ChannelState::channel()
-                == warp_core::channel::Channel::Integration
-            {
-                log::info!(
-                    "Sending shell-reported typeahead event for {:?}",
-                    me.typeahead
-                );
-            }
             me.event_proxy.send_terminal_event(TerminalEvent::Typeahead);
             safe_debug!(
                 safe: ("Received shell input buffer for typeahead"),

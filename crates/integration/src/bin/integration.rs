@@ -25,7 +25,7 @@ pub struct Args {
 
 pub fn main() -> Result<()> {
     ChannelState::set(ChannelState::new(
-        Channel::Integration,
+        Channel::Oss,
         ChannelConfig {
             app_id: AppId::new(
                 "dev",

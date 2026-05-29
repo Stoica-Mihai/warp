@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use anyhow::anyhow;
 pub use glibc::{GlibcVersion, RemoteLibc};
-use warp_core::channel::{Channel, ChannelState};
+use warp_core::channel::ChannelState;
 pub const REMOTE_SERVER_ARTIFACT_VERSION_UNPINNED: &str = "unversioned";
 
 /// State machine for the remote server install → launch → initialize flow.
@@ -341,18 +341,7 @@ pub fn parse_uname_output(
 /// - integration: `~/.warp-dev/remote-server`
 /// - warp-oss:    `~/.warp-oss/remote-server`
 pub fn remote_server_dir() -> String {
-    let warp_dir = match ChannelState::channel() {
-        Channel::Stable => ".warp",
-        Channel::Preview => ".warp-preview",
-        Channel::Dev | Channel::Integration => ".warp-dev",
-        Channel::Local => ".warp-local",
-        Channel::Oss => {
-            // TODO(alokedesai): need to figure out how remote server works with warp-oss
-            // For now, return what Dev returns.
-            ".warp-dev"
-        }
-    };
-    format!("~/{warp_dir}/remote-server")
+    "~/.warp-dev/remote-server".to_owned()
 }
 
 /// Returns a short, deterministic directory name for a remote-server
@@ -487,12 +476,7 @@ pub fn binary_name() -> &'static str {
 pub fn remote_server_binary() -> String {
     let dir = remote_server_dir();
     let name = binary_name();
-    match ChannelState::channel() {
-        Channel::Local | Channel::Oss => format!("{dir}/{name}"),
-        Channel::Stable | Channel::Preview | Channel::Dev | Channel::Integration => {
-            format!("{dir}/{name}-{}", pinned_version())
-        }
-    }
+    format!("{dir}/{name}")
 }
 
 /// Returns the shell command to verify the remote server binary is
@@ -511,26 +495,13 @@ pub fn binary_check_command() -> String {
 /// [`Channel::Local`] and [`Channel::Oss`]). Prefers the baked-in
 /// `GIT_RELEASE_TAG` from [`ChannelState::app_version`]; falls back to
 /// `CARGO_PKG_VERSION` so the path / install URL is deterministic even on
-/// dev `cargo run` builds without a release tag. The `CARGO_PKG_VERSION`
-/// fallback is not expected to map to a real `/download/cli` artifact —
-/// it exists to produce a clean install-time failure rather than silently
-/// fall through to the unversioned (Local/Oss-only) path.
-fn pinned_version() -> &'static str {
-    ChannelState::app_version().unwrap_or(env!("CARGO_PKG_VERSION"))
-}
-
 /// Returns the version key used to identify remote-server download artifacts.
 ///
 /// This must match the versioning used by [`download_tarball_url`] and
 /// [`install_script`], so versioned download URLs do not reuse stale tarballs
 /// from a previous client version.
 pub fn remote_server_artifact_version() -> &'static str {
-    match ChannelState::channel() {
-        Channel::Local | Channel::Oss => REMOTE_SERVER_ARTIFACT_VERSION_UNPINNED,
-        Channel::Stable | Channel::Preview | Channel::Dev | Channel::Integration => {
-            pinned_version()
-        }
-    }
+    REMOTE_SERVER_ARTIFACT_VERSION_UNPINNED
 }
 
 /// The install script template, loaded from a standalone `.sh` file for
@@ -551,13 +522,7 @@ const INSTALL_SCRIPT_TEMPLATE: &str = include_str!("install_remote_server.sh");
 /// `&version={v}` / `-{v}` on every other channel, where `v` falls back
 /// to `CARGO_PKG_VERSION` when no release tag is baked in.
 pub fn install_script(staging_tarball_path: Option<&str>) -> String {
-    let (vq, version_suffix) = match ChannelState::channel() {
-        Channel::Local | Channel::Oss => (String::new(), String::new()),
-        Channel::Stable | Channel::Preview | Channel::Dev | Channel::Integration => {
-            let v = pinned_version();
-            (format!("&version={v}"), format!("-{v}"))
-        }
-    };
+    let (vq, version_suffix) = (String::new(), String::new());
     INSTALL_SCRIPT_TEMPLATE
         .replace("{download_base_url}", &download_url())
         .replace("{channel}", download_channel())
@@ -587,27 +552,13 @@ fn download_url() -> String {
 /// The server recognises `"stable"`, `"preview"`, and `"dev"`.  Local and
 /// Integration builds map to `"dev"` so they fetch dogfood artifacts.
 fn download_channel() -> &'static str {
-    match ChannelState::channel() {
-        Channel::Stable => "stable",
-        Channel::Preview => "preview",
-        Channel::Dev | Channel::Local | Channel::Integration => "dev",
-        Channel::Oss => {
-            // TODO(alokedesai): need to figure out how remote server works with warp-oss
-            // For now, return what Dev returns.
-            "dev"
-        }
-    }
+    "dev"
 }
 
 /// Returns the version query string for the download URL (e.g.
 /// `"&version=v0.2026.01.01"` on release channels, empty on Local/Oss).
 fn version_query() -> String {
-    match ChannelState::channel() {
-        Channel::Local | Channel::Oss => String::new(),
-        Channel::Stable | Channel::Preview | Channel::Dev | Channel::Integration => {
-            format!("&version={}", pinned_version())
-        }
-    }
+    String::new()
 }
 
 /// Returns the full download URL for the remote server tarball,

@@ -6,7 +6,6 @@ use cocoa::base::{id, nil};
 use core_foundation::base::TCFType;
 use core_foundation::string::{CFString, CFStringRef};
 use objc::{class, msg_send, sel, sel_impl};
-use warp_core::channel::{Channel, ChannelState};
 
 // Launch Services constants
 type LSRolesMask = u32;
@@ -34,7 +33,7 @@ pub fn can_become_default_terminal() -> bool {
         let bundle_class = class!(NSBundle);
         let main_bundle: id = msg_send![bundle_class, mainBundle];
         let bundle_id: id = msg_send![main_bundle, bundleIdentifier];
-        bundle_id != nil && ChannelState::channel() != Channel::Local
+        bundle_id != nil
     }
 }
 

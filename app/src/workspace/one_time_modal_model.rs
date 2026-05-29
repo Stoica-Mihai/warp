@@ -5,7 +5,6 @@ use warpui::{Entity, ModelContext, SingletonEntity, WindowId};
 use crate::ai::blocklist::agent_view::toolbar_item::AgentToolbarItemKind;
 use crate::auth::auth_manager::AuthManagerEvent;
 use crate::auth::AuthManager;
-use crate::channel::{Channel, ChannelState};
 use crate::settings::cloud_preferences_syncer::{
     CloudPreferencesSyncer, CloudPreferencesSyncerEvent,
 };
@@ -258,9 +257,8 @@ impl OneTimeModalModel {
             }
         });
 
-        let should_show_oz_modal = !matches!(ChannelState::channel(), Channel::Integration);
-        self.set_oz_launch_modal_open(should_show_oz_modal, ctx);
-        should_show_oz_modal
+        self.set_oz_launch_modal_open(true, ctx);
+        true
     }
 
     fn check_and_trigger_openwarp_launch_modal(&mut self, ctx: &mut ModelContext<Self>) -> bool {
@@ -287,9 +285,8 @@ impl OneTimeModalModel {
             }
         });
 
-        let should_show_openwarp_modal = !matches!(ChannelState::channel(), Channel::Integration);
-        self.set_openwarp_launch_modal_open(should_show_openwarp_modal, ctx);
-        should_show_openwarp_modal
+        self.set_openwarp_launch_modal_open(true, ctx);
+        true
     }
 
     fn check_and_trigger_orchestration_launch_modal(
@@ -314,9 +311,8 @@ impl OneTimeModalModel {
             }
         });
 
-        let should_show = !matches!(ChannelState::channel(), Channel::Integration);
-        self.set_orchestration_launch_modal_open(should_show, ctx);
-        should_show
+        self.set_orchestration_launch_modal_open(true, ctx);
+        true
     }
 
     pub fn is_build_plan_migration_modal_open(&self) -> bool {

@@ -27,7 +27,7 @@ use super::settings_page::{
 use super::SettingsSection;
 use crate::appearance::Appearance;
 use crate::auth::AuthStateProvider;
-use crate::channel::{Channel, ChannelState};
+use crate::channel::ChannelState;
 use crate::menu::{Event as MenuEvent, Event, Menu, MenuItem, MenuItemFields};
 use crate::server::block::Block;
 use crate::server::server_api::block::BlockClient;
@@ -84,7 +84,7 @@ impl UserOwnedBlock {
     fn block_url(&self) -> String {
         // New block IDs are 22 characters long and are accessible at /block/{id}, whereas as old
         // (hashId) block IDs are 6 characters long and are accessible at /{id}.
-        let mut url = if self.id.len() == 22 {
+        let url = if self.id.len() == 22 {
             format!(
                 "{}/block/{}",
                 ChannelState::server_root_url(),
@@ -94,10 +94,6 @@ impl UserOwnedBlock {
             format!("{}/{}", ChannelState::server_root_url(), self.id.as_str())
         };
 
-        // If this is a preview build, ensure the link routes to a preview build.
-        if matches!(ChannelState::channel(), Channel::Preview) {
-            url.push_str("?preview=true");
-        }
         url
     }
 

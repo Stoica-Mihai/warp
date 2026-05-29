@@ -6,7 +6,7 @@ use chrono::Utc;
 use cynic::{MutationBuilder, QueryBuilder};
 #[cfg(test)]
 use mockall::automock;
-use warp_core::channel::{Channel, ChannelState};
+use warp_core::channel::ChannelState;
 use warp_graphql::mutations::share_block::{
     BlockInput, ShareBlock, ShareBlockResult, ShareBlockVariables,
 };
@@ -100,13 +100,8 @@ impl BlockClient for ServerApi {
         let response = self.send_graphql_request(operation, None).await?;
         match response.share_block {
             ShareBlockResult::ShareBlockOutput(output) => {
-                let mut created_url =
+                let created_url =
                     format!("{}{}", ChannelState::server_root_url(), output.url_ending);
-
-                // If this is a preview build, ensure the link routes to a preview build.
-                if matches!(ChannelState::channel(), Channel::Preview) {
-                    created_url.push_str("?preview=true");
-                }
 
                 Ok(created_url)
             }

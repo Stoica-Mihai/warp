@@ -5,7 +5,6 @@ use lsp::LspManagerModel;
 use pathfinder_color::ColorU;
 use pathfinder_geometry::rect::RectF;
 use pathfinder_geometry::vector::vec2f;
-use warp_core::channel::{Channel, ChannelState};
 use warp_core::features::FeatureFlag;
 use warp_core::ui::appearance::Appearance;
 use warp_core::ui::icons::ICON_DIMENSIONS;
@@ -1141,9 +1140,7 @@ impl CodeView {
             );
 
             // If the tab being removed has unsaved changes, we attempt to show a modal before closing it.
-            if summary.should_display_warning(ctx)
-                && ChannelState::channel() != Channel::Integration
-            {
+            if summary.should_display_warning(ctx) {
                 let handle_save_intent = |intent: PendingSaveIntent| {
                     let handle = ctx.handle().clone();
                     move |ctx: &mut AppContext| {
