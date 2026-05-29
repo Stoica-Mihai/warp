@@ -183,7 +183,15 @@ All 3 must be 0 errors before each commit.
 
 ### shared_session strip — ✅ COMPLETE (`bfcb3ffe`, 94 files, −27,714 LoC, binary −11.9 MB, 3-gate green/0-warn)
 
-Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call diagnostic injection blows the budget over hundreds of edits). Collapsed `SharedSessionStatus`/`IsSharedSessionCreator` to vestigial stubs in a ~95-line `terminal/shared_session.rs`; deleted both machinery dirs + the sharer-network hub in terminal_manager + all share-UI (view/pane_group/pane_impl/workspace/drive/tab/alt_screen/block_list) + AI auto-share + `warp_cli --share` + 4 FeatureFlags + the session-sharing test suites. Cloud-mode ambient panes → local MockTerminalManager. ~111 status read-sites kept as dead branches (full removal deferred). `session_sharing_protocol` crate + `ai/blocklist/controller/shared_session.rs` kept (deferred AI-panel pass). Original IN-PROGRESS plan below for reference.
+Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call diagnostic injection blows the budget over hundreds of edits). Collapsed `SharedSessionStatus`/`IsSharedSessionCreator` to vestigial stubs in a ~95-line `terminal/shared_session.rs`; deleted both machinery dirs + the sharer-network hub in terminal_manager + all share-UI (view/pane_group/pane_impl/workspace/drive/tab/alt_screen/block_list) + AI auto-share + `warp_cli --share` + the session-sharing test suites. Cloud-mode ambient panes → local MockTerminalManager. `session_sharing_protocol` crate + `ai/blocklist/controller/shared_session.rs` kept (deferred AI-panel pass). Original IN-PROGRESS plan below for reference.
+
+**⚠️ CORRECTION — `bfcb3ffe` commit msg OVERCLAIMS. Verified by grep 2026-05-29. Step 9 (drop 4 FeatureFlags) was NOT done.** Vestigial surface left, all dead/no-op at runtime (gates green, 0 warnings) but real deferred cleanup:
+- **4 FeatureFlags STILL live**: `CreatingSharedSessions` (warp_features:42), `ViewingSharedSessions` (:45), `SharedSessionWriteToLongRunningCommands` (:123), `AgentSharedSessions` (:414) — defined + in RELEASE_FLAGS (:848) + match arm (:970), referenced ~42× across ~10 app files (root_view, features, app_menus, tab, ai/blocklist agent_input_footer + controller, server/experiments, search slash_command, terminal_model).
+- **Tab share menu + agent-footer share chips still render** (tab.rs: 8 refs incl. `sharing_color`, `Indicator::Shared`) — dispatch no-op `WorkspaceAction` share variants (`OpenShareSessionModal`/`StopSharing*`/`CopySharedSessionLinkFromTab`/`OpenSharedSessionQrCode`, ~12 refs, handler arms neutered to `=> {}`).
+- **`SharedSessionActionSource` stub now unused** (0 non-stub consumers) — removable; `SharedSessionScrollbackType` (1) / `SharedSessionSource` (2) / `IsSharedSessionCreator` (5) still consumed.
+- **~111 `SharedSessionStatus` read-sites** = dead branches against the `NotShared` stub.
+
+Full read-site removal + flag drop + share-UI removal = deferred cleanup (do it WITH the AI-panel pass — footer chips + `ai/blocklist/controller` are entangled).
 
 ### shared_session strip — original plan (reference)
 
