@@ -5,7 +5,6 @@ pub mod drive_helpers;
 pub mod empty_trash_confirmation_dialog;
 pub mod export;
 pub mod folders;
-pub mod import;
 pub(crate) mod index;
 pub mod items;
 pub mod panel;

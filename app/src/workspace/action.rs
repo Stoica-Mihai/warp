@@ -229,8 +229,6 @@ pub enum WorkspaceAction {
     ToggleKeybindingsPage,
     ShowCommandSearch(CommandSearchOptions),
     CreatePersonalNotebook,
-    ImportToPersonalDrive,
-    ImportToTeamDrive,
     CreateTeamNotebook,
     CreatePersonalWorkflow,
     CreateTeamWorkflow,
@@ -703,7 +701,6 @@ impl From<&WorkspaceAction> for LoginGatedFeature {
     fn from(val: &WorkspaceAction) -> LoginGatedFeature {
         use WorkspaceAction::*;
         match val {
-            ImportToTeamDrive => "Importing to a team drive",
             CreateTeamNotebook => "Creating a team notebook",
             CreateTeamWorkflow => "Creating a team workflow",
             CreateTeamFolder => "Creating a team folder",
@@ -720,8 +717,7 @@ impl WorkspaceAction {
         use WorkspaceAction::*;
         matches!(
             self,
-            ImportToTeamDrive
-                | CreateTeamNotebook
+            CreateTeamNotebook
                 | CreateTeamWorkflow
                 | CreateTeamFolder
                 | CreateTeamEnvVarCollection
@@ -838,8 +834,6 @@ impl WorkspaceAction {
             | ToggleMouseReporting
             | ToggleScrollReporting
             | ToggleFocusReporting
-            | ImportToPersonalDrive
-            | ImportToTeamDrive
             | CreatePersonalNotebook
             | CreateTeamNotebook
             | CreatePersonalWorkflow

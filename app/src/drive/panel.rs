@@ -74,10 +74,6 @@ pub enum DrivePanelEvent {
     OpenTeamSettingsPage,
     OpenAIFactCollection,
     OpenMCPServerCollection,
-    OpenImportModal {
-        owner: Owner,
-        initial_folder_id: Option<SyncId>,
-    },
     OpenWorkflowModalWithNew {
         space: Space,
         initial_folder_id: Option<SyncId>,
@@ -151,18 +147,6 @@ impl DrivePanel {
                 }
                 None => {
                     log::error!("Cannot identify a notebook owner from {space:?}");
-                }
-            },
-            DriveIndexEvent::OpenImportModal {
-                space,
-                initial_folder_id,
-            } => match Self::new_object_owner(*space, initial_folder_id.as_ref(), ctx) {
-                Some(owner) => ctx.emit(DrivePanelEvent::OpenImportModal {
-                    owner,
-                    initial_folder_id: *initial_folder_id,
-                }),
-                None => {
-                    log::error!("Cannot identify an import target from {space:?}");
                 }
             },
             DriveIndexEvent::CreateFolder {
