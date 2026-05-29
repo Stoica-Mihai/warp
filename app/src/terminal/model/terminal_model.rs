@@ -79,9 +79,8 @@ use crate::terminal::model::index::VisibleRow;
 use crate::terminal::model::iterm_image::{ITermImage, ITermImageMetadata};
 use crate::terminal::model::secrets::ObfuscateSecrets;
 use crate::terminal::model::session::SessionInfo;
-use crate::terminal::shared_session::ai_agent::encode_agent_response_event;
 use crate::terminal::shared_session::{SharedSessionSource, SharedSessionStatus};
-use crate::terminal::shell::{ShellName, ShellType};
+use crate::terminal::shell::ShellType;
 use crate::terminal::ssh::util::{InteractiveSshCommand, SshLoginState};
 use crate::terminal::{
     color, ssh, BlockPadding, ShellHost, ShellLaunchData, ShellLaunchState, SizeUpdate,
@@ -1059,7 +1058,7 @@ impl TerminalModel {
             session_startup_path,
             ShellLaunchState::ShellSpawned {
                 available_shell: None,
-                display_name: ShellName::blank(),
+                display_name: crate::terminal::shell::ShellName::blank(),
                 shell_type: ShellType::Zsh,
             },
         );
@@ -1208,102 +1207,8 @@ impl TerminalModel {
         )
     }
 
-    /// Creates a terminal model for a cloud mode pane before it has connected to a shared session.
-    #[allow(clippy::too_many_arguments)]
-    pub fn new_for_cloud_mode_shared_session_viewer(
-        sizes: BlockSize,
-        colors: color::List,
-        event_proxy: ChannelEventListener,
-        background_executor: Arc<Background>,
-        show_memory_stats: bool,
-        honor_ps1: bool,
-        is_inverted: bool,
-        obfuscate_secrets: ObfuscateSecrets,
-    ) -> Self {
-        Self::new_internal(
-            None,
-            sizes,
-            colors,
-            event_proxy,
-            background_executor,
-            false,
-            false,
-            show_memory_stats,
-            honor_ps1,
-            is_inverted,
-            obfuscate_secrets,
-            false,
-            None,
-            // TODO: use the same shell type as the sharer
-            ShellLaunchState::ShellSpawned {
-                available_shell: None,
-                display_name: ShellName::blank(),
-                shell_type: ShellType::Zsh,
-            },
-            SharedSessionStatus::ViewPending,
-            true,
-        )
-    }
 
-    #[allow(clippy::too_many_arguments)]
-    fn new_for_shared_session_viewer_internal(
-        sizes: BlockSize,
-        colors: color::List,
-        event_proxy: ChannelEventListener,
-        background_executor: Arc<Background>,
-        show_memory_stats: bool,
-        honor_ps1: bool,
-        is_inverted: bool,
-        obfuscate_secrets: ObfuscateSecrets,
-    ) -> Self {
-        Self::new_internal(
-            None,
-            sizes,
-            colors,
-            event_proxy,
-            background_executor,
-            false,
-            false,
-            show_memory_stats,
-            honor_ps1,
-            is_inverted,
-            obfuscate_secrets,
-            false,
-            None,
-            // TODO: use the same shell type as the sharer
-            ShellLaunchState::ShellSpawned {
-                available_shell: None,
-                display_name: ShellName::blank(),
-                shell_type: ShellType::Zsh,
-            },
-            SharedSessionStatus::ViewPending,
-            false,
-        )
-    }
 
-    /// Creates a terminal model for a terminal session that is being viewed.
-    #[allow(clippy::too_many_arguments)]
-    pub fn new_for_shared_session_viewer(
-        sizes: BlockSize,
-        colors: color::List,
-        event_proxy: ChannelEventListener,
-        background_executor: Arc<Background>,
-        show_memory_stats: bool,
-        honor_ps1: bool,
-        is_inverted: bool,
-        obfuscate_secrets: ObfuscateSecrets,
-    ) -> Self {
-        Self::new_for_shared_session_viewer_internal(
-            sizes,
-            colors,
-            event_proxy,
-            background_executor,
-            show_memory_stats,
-            honor_ps1,
-            is_inverted,
-            obfuscate_secrets,
-        )
-    }
 
     pub fn set_ordered_terminal_events_for_shared_session_tx(
         &mut self,
@@ -1355,9 +1260,9 @@ impl TerminalModel {
     /// link the new server-assigned token to an existing conversation from historical replay.
     pub fn send_agent_response_for_shared_session(
         &mut self,
-        response: &warp_multi_agent_api::ResponseEvent,
+        _response: &warp_multi_agent_api::ResponseEvent,
         response_initiator: Option<ParticipantId>,
-        forked_from_conversation_token: Option<String>,
+        _forked_from_conversation_token: Option<String>,
     ) {
         // We should always have a response initiator for shared sessions,
         // but if we don't we should still send the response event to the viewers
@@ -1368,20 +1273,7 @@ impl TerminalModel {
             ));
         }
 
-        if self.shared_session_status().is_sharer() {
-            if let Some(tx) = &self.ordered_terminal_events_for_shared_session_tx {
-                let encoded = encode_agent_response_event(response);
-                if let Err(e) = tx.try_send(OrderedTerminalEventType::AgentResponseEvent {
-                    response_initiator,
-                    response_event: encoded,
-                    forked_from_conversation_token,
-                }) {
-                    log::warn!("Failed to send OrderedTerminalEventType::AgentResponseEvent: {e}");
-                }
-            }
-        } else {
-            log::debug!("Not sharing this session; ignoring agent response event");
-        }
+        log::debug!("Not sharing this session; ignoring agent response event");
     }
 
     pub fn send_agent_conversation_replay_started_for_shared_session(&mut self) {

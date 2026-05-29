@@ -13,9 +13,7 @@ use crate::ai::blocklist::agent_view::agent_input_footer::{
 };
 use crate::terminal::cli_agent_sessions::listener::agent_supports_rich_status;
 use crate::terminal::cli_agent_sessions::{CLIAgentInputEntrypoint, CLIAgentSessionsModel};
-use crate::terminal::shared_session::{
-    SharedSessionActionSource, SharedSessionScrollbackType, SharedSessionSource,
-};
+use crate::terminal::shared_session::SharedSessionScrollbackType;
 use crate::util::image::{infer_mime_type, MAX_IMAGE_SIZE_BYTES_FOR_CLI_AGENT, MIME_SNIFF_BYTES};
 mod warpify_footer;
 
@@ -239,24 +237,8 @@ impl TerminalView {
             UseAgentToolbarEvent::ToggleFileExplorer(cli_agent) => {
                 self.toggle_file_tree(Some((*cli_agent).into()), ctx);
             }
-            UseAgentToolbarEvent::StartRemoteControl { scrollback_type } => {
-                self.auto_stop_sharing_on_cli_end =
-                    *scrollback_type == SharedSessionScrollbackType::None;
-                let source = SharedSessionSource::user(
-                    self.active_conversation_task_id(ctx).map(|t| t.to_string()),
-                );
-                self.attempt_to_share_session(
-                    *scrollback_type,
-                    Some(SharedSessionActionSource::FooterChip),
-                    source,
-                    true,
-                    ctx,
-                );
-            }
-            UseAgentToolbarEvent::StopRemoteControl => {
-                self.auto_stop_sharing_on_cli_end = false;
-                self.stop_sharing_session(SharedSessionActionSource::FooterChip, ctx);
-            }
+            UseAgentToolbarEvent::StartRemoteControl { .. } => {}
+            UseAgentToolbarEvent::StopRemoteControl => {}
             UseAgentToolbarEvent::OpenRichInput => {
                 if self.has_active_cli_agent_input_session(ctx) {
                     self.close_cli_agent_rich_input_and_disable_auto_toggle(ctx);

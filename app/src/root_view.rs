@@ -1924,12 +1924,11 @@ impl RootView {
 
     pub fn join_shared_session_in_existing_window(
         &mut self,
-        session_id: &SessionId,
+        _session_id: &SessionId,
         ctx: &mut ViewContext<Self>,
     ) -> bool {
         if let AuthOnboardingState::Terminal(handle) = &self.auth_onboarding_state {
-            handle.update(ctx, |workspace, ctx| {
-                workspace.add_tab_for_joining_shared_session(*session_id, ctx);
+            handle.update(ctx, |_workspace, _ctx| {
             });
             let window_id = ctx.window_id();
             ctx.windows().show_window_and_focus_app(window_id);

@@ -859,7 +859,6 @@ impl Input {
                     show_error_toast("Session is already being shared".to_owned(), ctx);
                     return true;
                 }
-                ctx.emit(Event::StartRemoteControl);
             }
             _cost if command.name == commands::COST.name => {
                 let history = BlocklistAIHistoryModel::handle(ctx);

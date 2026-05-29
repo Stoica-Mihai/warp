@@ -80,7 +80,6 @@ use crate::terminal::model::ObfuscateSecrets;
 use crate::terminal::safe_mode_settings::get_secret_obfuscation_mode;
 use crate::terminal::view::ambient_agent::is_cloud_agent_pre_first_exchange;
 use crate::terminal::view::TerminalAction;
-use crate::terminal::TerminalView;
 use crate::ui_components::blended_colors;
 use crate::ui_components::icons::Icon;
 use crate::util::link_detection::DetectedLinkType;
@@ -951,36 +950,11 @@ impl View for AIBlock {
             // Derive the display info for the participant who initiated this exchange.
             // For non-shared sessions, this is just the current user.
             // For shared sessions, this is the user who initiated the request.
-            let (avatar_display_name, profile_image_path, avatar_color) = self
-                .model
-                .response_initiator(app)
-                .and_then(|participant_id| {
-                    app.view_with_id::<TerminalView>(self.window_id, self.terminal_view_id)
-                        .and_then(|terminal_view| {
-                            terminal_view.read(app, |view, app| {
-                                view.shared_session_presence_manager().and_then(move |pm| {
-                                    pm.as_ref(app).get_participant(&participant_id).map(
-                                        |participant| {
-                                            // Get the display info from the participant
-                                            // who sent this query.
-                                            (
-                                                participant.info.profile_data.display_name.clone(),
-                                                participant.info.profile_data.photo_url.clone(),
-                                                Some(participant.color),
-                                            )
-                                        },
-                                    )
-                                })
-                            })
-                        })
-                })
-                // Fallback to the current user's info if this is not a shared session
-                // or the participant is not found.
-                .unwrap_or((
-                    self.user_display_name.clone(),
-                    self.profile_image_path.clone(),
-                    None,
-                ));
+            let (avatar_display_name, profile_image_path, avatar_color) = (
+                self.user_display_name.clone(),
+                self.profile_image_path.clone(),
+                None,
+            );
             if let Some(rendered_query) = query::maybe_render(
                 query::Props {
                     user_display_name: &avatar_display_name,

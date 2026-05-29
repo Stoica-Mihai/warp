@@ -208,7 +208,6 @@ impl TerminalView {
                         self.suppress_initial_conversation_details_panel_auto_open();
                     }
                     self.pending_cloud_followup_task_id = None;
-                    self.remove_conversation_ended_tombstone(ctx);
                 }
                 if FeatureFlag::HandoffCloudCloud.is_enabled() {
                     self.refresh_conversation_details_panel_if_open(ctx);
@@ -243,9 +242,6 @@ impl TerminalView {
                     ctx,
                 );
 
-                if FeatureFlag::CloudModeSetupV2.is_enabled() {
-                    self.insert_conversation_ended_tombstone_with_resolved_cta(ctx);
-                }
 
                 // Refresh the details panel to show failed status
                 if self.is_conversation_details_panel_open {
@@ -392,7 +388,6 @@ impl TerminalView {
                 // Force a fresh viewer size report to the sharer so the harness CLI (e.g.
                 // the claude TUI) starts at our terminal's actual dimensions instead of
                 // whatever the sandbox PTY was sized to during setup.
-                self.force_report_viewer_terminal_size(ctx);
                 ctx.emit(TerminalViewEvent::TerminalViewStateChanged);
                 ctx.notify();
             }
