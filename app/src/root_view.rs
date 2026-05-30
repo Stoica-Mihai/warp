@@ -10,7 +10,6 @@ use parking_lot::Mutex;
 use pathfinder_geometry::rect::RectF;
 use pathfinder_geometry::vector::{vec2f, Vector2F};
 use serde::{Deserialize, Serialize};
-use session_sharing_protocol::common::SessionId;
 use settings::Setting as _;
 use url::Url;
 use warp_core::context_flag::ContextFlag;
@@ -1398,9 +1397,6 @@ pub enum NewWorkspaceSource {
     },
     Session {
         options: Box<NewTerminalOptions>,
-    },
-    SharedSessionAsViewer {
-        session_id: SessionId,
     },
     FromCloudConversationId {
         conversation_id: ServerConversationToken,

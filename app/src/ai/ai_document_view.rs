@@ -1225,7 +1225,6 @@ impl TypedActionView for AIDocumentView {
                             controller.send_user_query_in_conversation(
                                 "I've updated the plan.".to_string(),
                                 conversation_id,
-                                None,
                                 ctx,
                             );
                         });

@@ -6,13 +6,11 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use async_channel::Sender;
 use base64::Engine;
 use hex::FromHexError;
 use instant::Instant;
 use itertools::{Either, Itertools};
 use serde::Serialize;
-use session_sharing_protocol::common::OrderedTerminalEventType;
 use session_sharing_protocol::sharer::SessionSourceType;
 use warp_core::features::FeatureFlag;
 use warp_core::semantic_selection::SemanticSelection;
@@ -571,12 +569,6 @@ pub struct TerminalModel {
 
     /// A sender for terminal-state updates that must be ordered against each other.
     /// This goes through the [`TerminalModel`] because the [`TerminalModel`] is exposed as
-    /// a synchronized data structure (i.e. [`FairMutex<TerminalModel>`]) and thus multiple
-    /// `send`s via the [`TerminalModel`] will be synchronized.
-    ///
-    /// This field is only [`Some`] if this session is shared.
-    ordered_terminal_events_for_shared_session_tx: Option<Sender<OrderedTerminalEventType>>,
-
     /// A sender for write to pty events for a shared session viewer.
     ///
 
@@ -1144,7 +1136,6 @@ impl TerminalModel {
             shared_session_source: None,
             is_dummy_cloud_mode_session,
             conversation_transcript_viewer_status: None,
-            ordered_terminal_events_for_shared_session_tx: None,
             is_receiving_agent_conversation_replay: false,
             tmux_background_outputs: HashMap::new(),
             tmux_control_mode_context: None,
@@ -1196,17 +1187,6 @@ impl TerminalModel {
 
 
 
-
-    pub fn set_ordered_terminal_events_for_shared_session_tx(
-        &mut self,
-        tx: Sender<OrderedTerminalEventType>,
-    ) {
-        self.ordered_terminal_events_for_shared_session_tx = Some(tx);
-    }
-
-    pub fn clear_ordered_terminal_events_for_shared_session_tx(&mut self) {
-        self.ordered_terminal_events_for_shared_session_tx = None;
-    }
 
     /// Whether the session sharing server is currently replaying
     /// conversation events (for conversation reconstruction).
@@ -1738,17 +1718,6 @@ impl TerminalModel {
         if size_update.rows_or_columns_changed() {
             let num_rows = size_update.new_size.rows();
             let num_cols = size_update.new_size.columns();
-            if let Some(tx) = &self.ordered_terminal_events_for_shared_session_tx {
-                if let Err(e) = tx.try_send(OrderedTerminalEventType::Resize {
-                    window_size: session_sharing_protocol::common::WindowSize {
-                        num_rows,
-                        num_cols,
-                    },
-                }) {
-                    log::warn!("Failed to send OrderedTerminalEventType::Resize: {e}");
-                }
-            }
-
             if self.tmux_control_mode_context.is_some() {
                 self.emit_handler_event(HandlerEvent::RunTmuxCommand(
                     TmuxCommand::UpdateClientSize { num_rows, num_cols },
@@ -2535,14 +2504,6 @@ impl ansi::Handler for TerminalModel {
         let is_for_in_band_command = self.block_list().active_block().is_in_band_command_block();
         let finished_block_bootstrap_stage = self.block_list().active_block().bootstrap_stage();
         delegate!(self.command_finished(data));
-
-        if let Some(tx) = &self.ordered_terminal_events_for_shared_session_tx {
-            if let Err(e) = tx.try_send(OrderedTerminalEventType::CommandExecutionFinished {
-                next_block_id: block_id.into(),
-            }) {
-                log::warn!("Failed to send OrderedTerminalEventType::CommandFinished: {e}");
-            }
-        }
 
         self.emit_handler_event(HandlerEvent::CommandFinished {
             command_type: if is_for_in_band_command {

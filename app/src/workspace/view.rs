@@ -3279,7 +3279,6 @@ impl Workspace {
                     ctx,
                 );
             }
-            NewWorkspaceSource::SharedSessionAsViewer { .. } => {}
             NewWorkspaceSource::FromCloudConversationId { conversation_id } => {
                 self.open_cloud_conversation_from_server_token(conversation_id, ctx);
             }
@@ -3409,13 +3408,11 @@ impl Workspace {
             | NewWorkspaceSource::AgentSession { .. }
             | NewWorkspaceSource::NotebookFromFilePath { .. } => should_default_open,
             #[cfg(not(target_family = "wasm"))]
-            NewWorkspaceSource::SharedSessionAsViewer { .. }
-            | NewWorkspaceSource::FromCloudConversationId { .. }
+            NewWorkspaceSource::FromCloudConversationId { .. }
             | NewWorkspaceSource::NotebookById { .. }
             | NewWorkspaceSource::WorkflowById { .. } => should_default_open,
             #[cfg(target_family = "wasm")]
-            NewWorkspaceSource::SharedSessionAsViewer { .. }
-            | NewWorkspaceSource::FromCloudConversationId { .. }
+            NewWorkspaceSource::FromCloudConversationId { .. }
             | NewWorkspaceSource::NotebookById { .. }
             | NewWorkspaceSource::WorkflowById { .. } => {
                 // Web opens these as single-purpose views without exposed multi-tab UI, so keep
@@ -11063,7 +11060,6 @@ impl Workspace {
                         controller.send_user_query_in_conversation_no_lrc_subagent(
                             prompt,
                             forked_conversation_id,
-                            None,
                             ctx,
                         );
                     });
@@ -19902,7 +19898,6 @@ impl TypedActionView for Workspace {
                                         controller.send_user_query_in_conversation(
                                             query,
                                             conversation_id,
-                                            None,
                                             ctx,
                                         );
                                     },
@@ -20691,7 +20686,6 @@ impl TypedActionView for Workspace {
                                         query.to_owned(),
                                         None,
                                         EntrypointType::UserInitiated,
-                                        None,
                                         ctx,
                                     );
                                 },

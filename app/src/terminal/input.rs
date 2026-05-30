@@ -5437,7 +5437,6 @@ impl Input {
                         query,
                         None,
                         EntrypointType::UserInitiated,
-                        None,
                         ctx,
                     );
                 });
@@ -12508,7 +12507,6 @@ impl Input {
                 controller.send_queued_user_query_in_conversation(
                     prompt,
                     conversation_id,
-                    None,
                     ctx,
                 );
             });
@@ -12518,7 +12516,6 @@ impl Input {
                     prompt,
                     None,
                     EntrypointType::UserInitiated,
-                    None,
                     ctx,
                 );
             });
@@ -12706,7 +12703,7 @@ impl Input {
             .selected_conversation_id(ctx)
         {
             self.ai_controller.update(ctx, move |controller, ctx| {
-                controller.send_user_query_in_conversation(ai_query, conversation_id, None, ctx)
+                controller.send_user_query_in_conversation(ai_query, conversation_id, ctx)
             });
         } else {
             self.ai_controller.update(ctx, move |controller, ctx| {
@@ -12714,7 +12711,6 @@ impl Input {
                     ai_query,
                     None,
                     EntrypointType::UserInitiated,
-                    None,
                     ctx,
                 );
             });

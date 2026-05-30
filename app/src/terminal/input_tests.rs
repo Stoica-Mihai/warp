@@ -2668,7 +2668,6 @@ fn test_new_conversation_keybinding_requires_double_press_in_non_empty_agent_vie
                 controller.send_user_query_in_conversation(
                     "hello".to_owned(),
                     conversation_id,
-                    None,
                     ctx,
                 );
             });
@@ -2799,7 +2798,6 @@ fn test_new_conversation_input_trigger_remains_single_step_in_non_empty_agent_vi
                 controller.send_user_query_in_conversation(
                     "hello".to_owned(),
                     conversation_id,
-                    None,
                     ctx,
                 );
             });
