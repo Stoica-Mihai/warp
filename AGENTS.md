@@ -85,6 +85,20 @@ Telemetry-strip techniques that worked (detail in `plan.md`): no-op the send-mac
   Run each via a separate backgrounded `Bash` call (`run_in_background: true`) in the same response, then collect results when notified. Wall-clock ≈ slowest single gate (~2m) instead of the sum (~5m). The per-gate dirs are first-build-cold but warm on reruns; they cost extra disk but are reusable across sessions (don't `cargo clean` them between checks). The GUI binary still builds into the main `target/` via `cargo run/build --bin sublight --features gui`.
 - LSP works on this worktree, but injected diagnostics lag edits (stale line numbers). Trust `cargo check`, not the diagnostic stream.
 
+## 4a. After every strip commit — mandatory size log step
+
+**Do not skip this. Every strip commit must get a row in `build-size-log.md`.**
+
+After the 3-gate matrix passes and you commit the refactor:
+
+1. Run `cargo build --bin sublight --features gui` (background, `run_in_background: true`). Note: if the binary is already up-to-date cargo exits in <2s; if not, it takes ~2m. Either way, wait for the notification.
+2. Read the binary size: `stat -c%s target/debug/sublight`
+3. Compute delta vs the last row in `build-size-log.md` (bytes, MB SI, MiB).
+4. Add a row to `build-size-log.md`. Include: date, commit hash, profile=debug, step description, bytes, MiB, MB, build time (from `time` output or "cached"), and a notes field explaining whether the delta is real or linker-invisible and why.
+5. Commit: `docs: add build-size row for <hash> (<delta> <step>)`.
+
+**Do NOT assume the delta is zero** — UI view deletions can be non-trivial (auth view strip was −2.27 MB because `TypedActionView` impls + `ctx.add_typed_action_view` registrations + `init()` calls were live-linked). Measure every time.
+
 ## 5. Conventions
 
 Conventional commits (`refactor:`/`feat:`/`fix:`/`docs:`/`chore:`). No `Co-Authored-By` trailers. No `--no-verify`. Commit only at green checkpoints. Don't claim done on a stub — flag seams honestly.
