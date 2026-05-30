@@ -3711,10 +3711,6 @@ impl Workspace {
 
 
 
-    pub fn is_shared_session_viewer_focused(&self, _app: &AppContext) -> bool {
-        false
-    }
-
     pub fn is_conversation_transcript_viewer_focused(&self, app: &AppContext) -> bool {
         self.active_tab_pane_group()
             .as_ref(app)
@@ -11366,7 +11362,7 @@ impl Workspace {
             // Reset mixer with correct file data source before setting filter
             let mixer = view.search_bar.as_ref(ctx).mixer().clone();
             view.data_source_store.update(ctx, |store, ctx| {
-                store.reset_search_mixer(mixer, self.is_shared_session_viewer_focused(ctx), ctx);
+                store.reset_search_mixer(mixer, ctx);
             });
             view.set_active_query_filter(QueryFilter::Files, ctx);
         });
@@ -11609,18 +11605,6 @@ impl Workspace {
         ctx: &mut ViewContext<Self>,
     ) {
         self.close_all_overlays(ctx);
-
-        // Set the shared session viewer state before opening the palette
-        // so it can determine which data sources to include (e.g., exclude Files in shared sessions)
-        let is_shared_session_viewer = self.is_shared_session_viewer_focused(ctx);
-        let active_palette = if matches!(source, PaletteSource::CtrlTab { .. }) {
-            &self.ctrl_tab_palette
-        } else {
-            &self.palette
-        };
-        active_palette.update(ctx, |palette, ctx| {
-            palette.set_is_shared_session_viewer(is_shared_session_viewer, ctx);
-        });
 
         if matches!(source, PaletteSource::TitleBarSearchBar) {
             self.tab_bar_pinned_by_popup = true;
@@ -21653,10 +21637,6 @@ impl View for Workspace {
         // access lives in the command palette and slash-command menu instead.
         if self.update_toast_stack.as_ref(app).has_toasts() {
             context.set.insert("UpdateToastVisible");
-        }
-
-        if self.is_shared_session_viewer_focused(app) {
-            context.set.insert("Workspace_ViewOnlySharedSession");
         }
 
         if let Some(terminal_view) = self

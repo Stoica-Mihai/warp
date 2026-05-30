@@ -1972,7 +1972,6 @@ impl Input {
             completer_data.completion_session_context(ctx)
         };
 
-        let is_shared_session_viewer = false;
         let handoff_compose_state = ctx.add_model(|_ctx| HandoffComposeState::default());
         ctx.subscribe_to_model(&handoff_compose_state, |me, _, _, ctx| {
             me.set_zero_state_hint_text(ctx);
@@ -1987,7 +1986,6 @@ impl Input {
             session_context: initial_session_context.clone(),
             current_repo_path: current_repo_path.clone(),
             model_events: model_events.clone(),
-            is_shared_session_viewer,
             agent_view_controller: agent_view_controller.clone(),
             ambient_agent_view_model: ambient_agent_view_model.clone(),
         };
@@ -2003,7 +2001,6 @@ impl Input {
                 current_repo_path.clone(),
                 model_events.clone(),
                 agent_view_controller.clone(),
-                is_shared_session_viewer,
                 ctx,
             )
         });

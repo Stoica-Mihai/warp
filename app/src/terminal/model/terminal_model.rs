@@ -1713,9 +1713,6 @@ impl TerminalModel {
         }
     }
 
-    /// Returns whether this terminal is viewing a shared session.
-    pub fn is_shared_session_viewer(&self) -> bool { false }
-
     /// Resize terminal to new dimensions.
     /// The block sort direction is needed to update the state of the find dialog.
     pub fn resize(&mut self, size_update: SizeUpdate) {

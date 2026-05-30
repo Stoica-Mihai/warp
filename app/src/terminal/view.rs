@@ -6621,13 +6621,12 @@ impl TerminalView {
         })
     }
 
-    /// Returns whether a specific session is local, treating shared-session
-    /// viewers and conversation transcript viewers as non-local even when
-    /// their session hasn't been joined yet.
+    /// Returns whether a specific session is local, treating conversation
+    /// transcript viewers as non-local even when their session hasn't been joined yet.
     pub fn session_is_local<C: ModelAsRef>(&self, session_id: SessionId, ctx: &C) -> bool {
         let forced_non_local = {
             let model = self.model.lock();
-            model.is_shared_session_viewer() || model.is_conversation_transcript_viewer()
+            model.is_conversation_transcript_viewer()
         };
         !forced_non_local
             && self
@@ -6869,10 +6868,6 @@ impl TerminalView {
 
     pub fn is_shared_ambient_agent_session(&self) -> bool {
         self.model.lock().is_shared_ambient_agent_session()
-    }
-
-    pub fn is_shared_session_viewer(&self) -> bool {
-        self.model.lock().is_shared_session_viewer()
     }
 
 
