@@ -23,9 +23,6 @@ use warp_graphql::mutations::generate_api_key::{
     GenerateApiKey, GenerateApiKeyInput, GenerateApiKeyResult, GenerateApiKeyVariables,
 };
 use warp_graphql::mutations::mint_custom_token::{MintCustomTokenResult, MintCustomTokenVariables};
-use warp_graphql::mutations::set_user_is_onboarded::{
-    SetUserIsOnboarded, SetUserIsOnboardedResult, SetUserIsOnboardedVariables,
-};
 use warp_graphql::mutations::update_user_settings::{
     UpdateUserSettings, UpdateUserSettingsInput, UpdateUserSettingsResult,
     UpdateUserSettingsVariables,
@@ -184,8 +181,6 @@ pub trait AuthClient: 'static + Send + Sync {
     /// Sends a request to update the user's settings on the server with values contained in the
     /// given `settings_snapshot`.
     async fn update_user_settings(&self, settings_snapshot: PrivacySettingsSnapshot) -> Result<()>;
-
-    async fn set_user_is_onboarded(&self) -> Result<bool>;
 
     /// Requests a device authorization code from the server. This is only used for headless CLI/SDK authentication.
     async fn request_device_code(
@@ -546,26 +541,6 @@ impl AuthClient for ServerApi {
         }
     }
 
-    async fn set_user_is_onboarded(&self) -> Result<bool> {
-        let variables = SetUserIsOnboardedVariables {
-            request_context: get_request_context(),
-        };
-
-        let operation = SetUserIsOnboarded::build(variables);
-        let result = self
-            .send_graphql_request(operation, None)
-            .await?
-            .set_user_is_onboarded;
-
-        match result {
-            SetUserIsOnboardedResult::SetUserIsOnboardedOutput(_) => Ok(true),
-            SetUserIsOnboardedResult::UserFacingError(user_facing_error) => {
-                Err(anyhow!(get_user_facing_error_message(user_facing_error)))
-            }
-            SetUserIsOnboardedResult::Unknown => Err(anyhow!("failed to set user is onboarded")),
-        }
-    }
-
     async fn request_device_code(
         &self,
     ) -> StdResult<oauth2::StandardDeviceAuthorizationResponse, UserAuthenticationError> {
@@ -919,23 +894,6 @@ impl From<FirebaseError> for UserAuthenticationError {
             )
         }
     }
-}
-
-#[derive(Error, Debug)]
-/// Error type when creating anonymous users
-pub enum AnonymousUserCreationError {
-    #[error("The network request to create the anonymous user failed")]
-    CreationFailed,
-
-    #[error("Received a user facing error: {0}")]
-    UserFacingError(String),
-
-    /// Failure that occurs after the user is created, but the ID token could not be fetched.
-    #[error("The user was created, but the ID token could not be fetched")]
-    UserAuthenticationFailed(#[from] UserAuthenticationError),
-
-    #[error("Failed to create anonymous user with unknown error")]
-    Unknown,
 }
 
 #[derive(Error, Debug)]

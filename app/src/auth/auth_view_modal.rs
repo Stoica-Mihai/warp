@@ -5,7 +5,6 @@ use pathfinder_color::ColorU;
 use pathfinder_geometry::vector::vec2f;
 use url::Url;
 use warp_core::errors::ErrorExt;
-use warp_core::features::FeatureFlag;
 use warpui::actions::StandardAction;
 use warpui::elements::{
     ChildAnchor, ChildView, Container, Fill, HighlightedHyperlink, MouseStateHandle,
@@ -23,7 +22,6 @@ use super::auth_view_body::{AuthStep, AuthViewBodyEvent};
 use super::credentials::RefreshToken;
 use super::login_failure_notification::{self, LoginFailureReason};
 use super::UserUid;
-use crate::appearance::Appearance;
 use crate::auth::auth_view_body::AuthViewBody;
 use crate::modal::Modal;
 use crate::root_view::unthemed_window_border;
@@ -137,7 +135,6 @@ const MODAL_WIDTH: f32 = 352.;
 
 #[derive(Clone, Copy, Debug)]
 pub enum AuthViewVariant {
-    Initial,
     RequireLoginCloseable,
     HitDriveObjectLimitCloseable,
     ShareRequirementCloseable,
@@ -155,9 +152,6 @@ impl AuthView {
                 me.last_login_failure_reason = None;
                 me.handle_pasted_auth_url(token.clone(), ctx);
                 ctx.notify();
-            }
-            AuthViewBodyEvent::LoginLaterClicked => {
-                me.handle_login_later(ctx);
             }
         });
 
@@ -263,21 +257,9 @@ impl AuthView {
             .update(ctx, |modal, ctx| modal.body().update(ctx, cb))
     }
 
-    pub fn handle_login_later(&mut self, ctx: &mut ViewContext<Self>) {
-        if FeatureFlag::SkipFirebaseAnonymousUser.is_enabled() {
-            AuthManager::handle(ctx).update(ctx, |_, ctx| {
-                ctx.emit(AuthManagerEvent::SkippedLogin);
-            });
-        } else {
-            AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                auth_manager.create_anonymous_user(None, ctx)
-            });
-        }
-    }
-
     fn handle_auth_manager_event(&mut self, event: &AuthManagerEvent, ctx: &mut ViewContext<Self>) {
         match event {
-            AuthManagerEvent::AuthComplete | AuthManagerEvent::SkippedLogin => {
+            AuthManagerEvent::AuthComplete => {
                 self.close(ctx);
             }
             AuthManagerEvent::AuthFailed(err) => {
@@ -296,10 +278,6 @@ impl AuthView {
                         Some(LoginFailureReason::FailedUserAuthentication);
                 }
 
-                self.set_auth_token_input_editable(true, ctx);
-            }
-            AuthManagerEvent::CreateAnonymousUserFailed => {
-                self.last_login_failure_reason = Some(LoginFailureReason::FailedUserAuthentication);
                 self.set_auth_token_input_editable(true, ctx);
             }
             AuthManagerEvent::MintCustomTokenFailed(_err) => {
@@ -332,7 +310,6 @@ impl View for AuthView {
     }
 
     fn render(&self, ctx: &AppContext) -> Box<dyn Element> {
-        let appearance = Appearance::as_ref(ctx);
         let mut stack = Stack::new();
         stack.add_child(ChildView::new(&self.auth_screen_modal).finish());
 
@@ -356,7 +333,6 @@ impl View for AuthView {
         }
 
         let background_color = match self.auth_view_variant {
-            AuthViewVariant::Initial => appearance.theme().background().into(),
             AuthViewVariant::RequireLoginCloseable
             | AuthViewVariant::HitDriveObjectLimitCloseable
             | AuthViewVariant::ShareRequirementCloseable => ColorU::transparent_black(),

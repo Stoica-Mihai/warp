@@ -7,20 +7,15 @@ mod auth_view_body;
 pub mod auth_view_modal;
 mod auth_view_shared_helpers;
 pub mod credentials;
-mod login_error_modal;
 mod login_failure_notification;
-pub mod needs_sso_link_view;
 pub mod user;
 pub mod user_uid;
-#[cfg(target_family = "wasm")]
-pub mod web_handoff;
 
 use ::settings::{Setting, SettingsManager, ToggleableSetting};
 use ai::index::full_source_code_embedding::manager::CodebaseIndexManager;
 pub use auth_manager::AuthManager;
 pub use auth_state::AuthStateProvider;
 use itertools::Itertools;
-pub use login_failure_notification::LoginFailureReason;
 pub use user_uid::UserUid;
 use warp_core::user_preferences::GetUserPreferences as _;
 use warpui::modals::{AlertDialogWithCallbacks, ModalButton};

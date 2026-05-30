@@ -1,5 +1,4 @@
 use pathfinder_color::ColorU;
-use warp_core::ui::appearance::Appearance;
 use warpui::elements::{ChildView, Container, Fill};
 use warpui::ui_components::components::{Coords, UiComponentStyles};
 use warpui::{
@@ -21,7 +20,6 @@ pub struct AuthOverrideWarningModal {
 }
 
 pub enum AuthOverrideWarningModalVariant {
-    OnboardingView,
     WorkspaceModal,
 }
 
@@ -120,9 +118,6 @@ impl View for AuthOverrideWarningModal {
 
     fn render(&self, ctx: &AppContext) -> Box<dyn Element> {
         let background_color = match self.variant {
-            AuthOverrideWarningModalVariant::OnboardingView => {
-                Appearance::as_ref(ctx).theme().background().into()
-            }
             AuthOverrideWarningModalVariant::WorkspaceModal => ColorU::transparent_black(),
         };
 
