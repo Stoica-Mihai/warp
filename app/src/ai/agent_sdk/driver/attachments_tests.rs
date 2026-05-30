@@ -63,7 +63,6 @@ fn make_attachment(server_base_url: &str, file_id: &str, filename: &str) -> Task
         file_id: file_id.to_string(),
         filename: filename.to_string(),
         download_url: format!("{server_base_url}/download/{file_id}"),
-        mime_type: "application/octet-stream".to_string(),
     }
 }
 

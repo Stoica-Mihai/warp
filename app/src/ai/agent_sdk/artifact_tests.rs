@@ -17,7 +17,6 @@ fn sample_artifact_record() -> FileArtifactRecord {
         filepath: "outputs/report.txt".to_string(),
         description: Some("daily summary".to_string()),
         mime_type: "text/plain".to_string(),
-        size_bytes: Some(42),
     }
 }
 

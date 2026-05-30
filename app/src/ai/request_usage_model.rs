@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use ai::api_keys::ApiKeyManager;
-use chrono::{DateTime, Local, Utc};
+use chrono::{DateTime, Utc};
 use instant::Instant;
 use serde::{Deserialize, Serialize};
 use warp_core::user_preferences::GetUserPreferences as _;
@@ -470,10 +470,6 @@ impl AIRequestUsageModel {
         self.request_limit_info.next_refresh_time.utc()
     }
 
-    pub fn next_refresh_time_local(&self) -> DateTime<Local> {
-        self.next_refresh_time().with_timezone(&Local)
-    }
-
     pub fn is_unlimited(&self) -> bool {
         self.request_limit_info.is_unlimited
     }
@@ -518,13 +514,6 @@ impl AIRequestUsageModel {
             .filter(|grant| grant.expiration.is_none_or(|exp| now < exp))
             .map(|grant| grant.request_credits_remaining)
             .sum()
-    }
-
-    pub fn total_current_workspace_bonus_credits_remaining(&self, ctx: &AppContext) -> i32 {
-        UserWorkspaces::as_ref(ctx)
-            .current_workspace()
-            .map(|workspace| self.total_workspace_bonus_credits_remaining(workspace.uid))
-            .unwrap_or(0)
     }
 
     pub fn total_user_interactive_bonus_credits_remaining(&self) -> i32 {

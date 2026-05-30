@@ -18,7 +18,6 @@ use warp_core::channel::ChannelState;
 use warp_core::features::FeatureFlag;
 use warp_core::report_error;
 use warp_graphql::ai::{AgentTaskState, PlatformErrorCode};
-use warp_graphql::client::Operation;
 use warp_graphql::mutations::confirm_file_artifact_upload::{
     ConfirmFileArtifactUpload, ConfirmFileArtifactUploadInput, ConfirmFileArtifactUploadResult,
     ConfirmFileArtifactUploadVariables,
@@ -61,10 +60,6 @@ use warp_graphql::mutations::update_merkle_tree::{
 use warp_graphql::queries::codebase_context_config::{
     CodebaseContextConfigQuery, CodebaseContextConfigResult, CodebaseContextConfigVariables,
 };
-use warp_graphql::queries::free_available_models::{
-    FreeAvailableModels, FreeAvailableModelsInput, FreeAvailableModelsResult,
-    FreeAvailableModelsVariables,
-};
 use warp_graphql::queries::get_available_harnesses::{
     GetAvailableHarnesses, GetAvailableHarnessesVariables,
 };
@@ -101,10 +96,7 @@ use super::auth::AuthClient;
 use super::harness_support::{UploadField, UploadFieldValue, UploadTarget};
 use super::ServerApi;
 use crate::ai::agent::api::ServerConversationToken;
-use crate::ai::agent::conversation::{
-    AIAgentConversationFormat, AIAgentHarness, AIAgentSerializedBlockFormat,
-    ServerAIConversationMetadata,
-};
+use crate::ai::agent::conversation::{AIAgentHarness, ServerAIConversationMetadata};
 pub use crate::ai::agent::UserQueryMode;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 // Re-export ambient agent types for backwards compatibility
@@ -128,9 +120,7 @@ use crate::ai::BonusGrant;
 use crate::ai::RequestUsageInfo;
 use crate::drive::workflows::ai_assist::{GeneratedCommandMetadata, GeneratedCommandMetadataError};
 use crate::persistence::model::ConversationUsageMetadata;
-use crate::server::graphql::{
-    default_request_options, get_request_context, get_user_facing_error_message,
-};
+use crate::server::graphql::{get_request_context, get_user_facing_error_message};
 use crate::terminal::model::block::SerializedBlock;
 #[cfg(not(feature = "agent_mode_evals"))]
 use crate::{
@@ -335,19 +325,6 @@ pub struct AgentRunEvent {
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
-pub struct ReportAgentEventRequest {
-    pub event_type: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub execution_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub ref_id: Option<String>,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct ReportAgentEventResponse {
-    pub sequence: i64,
-}
-#[derive(Debug, Clone, serde::Serialize)]
 pub struct AgentRunClientEventRequest {
     pub event_uuid: String,
     pub event_name: String,
@@ -542,55 +519,16 @@ pub struct FileArtifactResponseData {
     pub size_bytes: Option<i64>,
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct AttachmentFileInfo {
-    pub filename: String,
-    pub mime_type: String,
-}
-
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct PrepareAttachmentUploadsRequest {
-    pub files: Vec<AttachmentFileInfo>,
-}
-
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct DownloadAttachmentsRequest {
-    pub attachment_ids: Vec<String>,
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-pub struct AttachmentDownloadInfo {
-    pub attachment_id: String,
-    pub download_url: String,
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-pub struct DownloadAttachmentsResponse {
-    pub attachments: Vec<AttachmentDownloadInfo>,
-}
-
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct HandoffSnapshotAttachmentInfo {
     pub attachment_id: String,
     pub filename: String,
     pub download_url: String,
-    pub mime_type: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct ListHandoffSnapshotAttachmentsResponse {
     pub attachments: Vec<HandoffSnapshotAttachmentInfo>,
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-pub struct AttachmentUploadInfo {
-    pub attachment_id: String,
-    pub upload_url: String,
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-pub struct PrepareAttachmentUploadsResponse {
-    pub attachments: Vec<AttachmentUploadInfo>,
 }
 
 #[derive(Debug, Clone)]
@@ -609,7 +547,6 @@ pub struct FileArtifactRecord {
     pub filepath: String,
     pub description: Option<String>,
     pub mime_type: String,
-    pub size_bytes: Option<i32>,
 }
 
 #[derive(Debug, Clone)]
@@ -987,14 +924,6 @@ pub trait AIClient: 'static + Send + Sync {
         &self,
     ) -> Result<ListConnectedSelfHostedWorkersResponse, anyhow::Error>;
 
-    /// Fetches the free-tier available models without requiring authentication.
-    /// Used during pre-login onboarding so logged-out users see an accurate model list
-    /// instead of the hard-coded `ModelsByFeature::default()` fallback.
-    async fn get_free_available_models(
-        &self,
-        referrer: Option<String>,
-    ) -> Result<ModelsByFeature, anyhow::Error>;
-
     async fn update_merkle_tree(
         &self,
         embedding_config: EmbeddingConfig,
@@ -1096,11 +1025,6 @@ pub trait AIClient: 'static + Send + Sync {
         conversation_ids: Option<Vec<String>>,
     ) -> anyhow::Result<Vec<ServerAIConversationMetadata>>;
 
-    async fn get_ai_conversation_format(
-        &self,
-        server_conversation_token: ServerConversationToken,
-    ) -> anyhow::Result<AIAgentConversationFormat, anyhow::Error>;
-
     async fn get_block_snapshot(
         &self,
         server_conversation_token: ServerConversationToken,
@@ -1180,18 +1104,6 @@ pub trait AIClient: 'static + Send + Sync {
         artifact_uid: &str,
     ) -> anyhow::Result<ArtifactDownloadResponse, anyhow::Error>;
 
-    async fn prepare_attachments_for_upload(
-        &self,
-        task_id: &AmbientAgentTaskId,
-        files: &[AttachmentFileInfo],
-    ) -> anyhow::Result<PrepareAttachmentUploadsResponse, anyhow::Error>;
-
-    async fn download_task_attachments(
-        &self,
-        task_id: &AmbientAgentTaskId,
-        attachment_ids: &[String],
-    ) -> anyhow::Result<DownloadAttachmentsResponse, anyhow::Error>;
-
     async fn get_handoff_snapshot_attachments(
         &self,
         task_id: &AmbientAgentTaskId,
@@ -1220,11 +1132,6 @@ pub trait AIClient: 'static + Send + Sync {
         sequence: i64,
     ) -> anyhow::Result<(), anyhow::Error>;
 
-    async fn report_agent_event(
-        &self,
-        run_id: &str,
-        request: ReportAgentEventRequest,
-    ) -> anyhow::Result<ReportAgentEventResponse, anyhow::Error>;
     async fn post_agent_run_client_event(
         &self,
         run_id: &AmbientAgentTaskId,
@@ -1267,7 +1174,6 @@ fn into_file_artifact_record(
         filepath: artifact.filepath,
         description: artifact.description,
         mime_type: artifact.mime_type,
-        size_bytes: artifact.size_bytes,
     }
 }
 
@@ -1521,48 +1427,6 @@ impl AIClient for ServerApi {
             }
             warp_graphql::queries::get_available_harnesses::UserResult::Unknown => {
                 Err(anyhow!("Failed to get available harnesses"))
-            }
-        }
-    }
-
-    async fn get_free_available_models(
-        &self,
-        referrer: Option<String>,
-    ) -> Result<ModelsByFeature, anyhow::Error> {
-        // This resolver is public; it does not require an auth token. We must NOT go through
-        // `send_graphql_request`, which awaits `get_or_refresh_access_token()`
-        let variables = FreeAvailableModelsVariables {
-            input: FreeAvailableModelsInput { referrer },
-            request_context: get_request_context(),
-        };
-        let operation = FreeAvailableModels::build(variables);
-
-        // Best-effort: if the user has a valid token (e.g. anonymous Firebase), include it;
-        // otherwise send unauthenticated. Either is acceptable for this resolver.
-        let auth_token = self
-            .get_or_refresh_access_token()
-            .await
-            .ok()
-            .and_then(|token| token.bearer_token());
-
-        let response = operation
-            .send_request(
-                self.client.clone(),
-                warp_graphql::client::RequestOptions {
-                    auth_token,
-                    ..default_request_options()
-                },
-            )
-            .await?
-            .data
-            .ok_or_else(|| anyhow!("Missing data in freeAvailableModels response"))?;
-
-        match response.free_available_models {
-            FreeAvailableModelsResult::FreeAvailableModelsOutput(output) => {
-                output.feature_model_choice.try_into()
-            }
-            FreeAvailableModelsResult::Unknown => {
-                Err(anyhow!("Unexpected freeAvailableModels response variant"))
             }
         }
     }
@@ -1942,43 +1806,6 @@ impl AIClient for ServerApi {
         }
     }
 
-    async fn get_ai_conversation_format(
-        &self,
-        server_conversation_token: ServerConversationToken,
-    ) -> anyhow::Result<AIAgentConversationFormat, anyhow::Error> {
-        use warp_graphql::queries::get_ai_conversation_format::{
-            GetAIConversationFormat, GetAIConversationFormatResult,
-            GetAIConversationFormatVariables,
-        };
-        use warp_graphql::queries::list_ai_conversations::ListAIConversationsInput;
-
-        let conversation_id = server_conversation_token.as_str().to_string();
-        let operation = GetAIConversationFormat::build(GetAIConversationFormatVariables {
-            input: ListAIConversationsInput {
-                conversation_ids: Some(vec![cynic::Id::new(conversation_id)]),
-            },
-            request_context: get_request_context(),
-        });
-        let response = self.send_graphql_request(operation, None).await?;
-
-        match response.list_ai_conversations {
-            GetAIConversationFormatResult::ListAIConversationsOutput(output) => {
-                let conversation = output
-                    .conversations
-                    .into_iter()
-                    .next()
-                    .ok_or_else(|| anyhow!("Conversation not found"))?;
-                Ok(convert_conversation_format(conversation.format))
-            }
-            GetAIConversationFormatResult::UserFacingError(e) => {
-                Err(anyhow!(get_user_facing_error_message(e)))
-            }
-            GetAIConversationFormatResult::Unknown => {
-                Err(anyhow!("Failed to get AI conversation format"))
-            }
-        }
-    }
-
     async fn get_block_snapshot(
         &self,
         server_conversation_token: ServerConversationToken,
@@ -2155,7 +1982,6 @@ impl AIClient for ServerApi {
                         file_id: att.file_id.into_inner(),
                         filename: att.filename,
                         download_url: att.download_url,
-                        mime_type: att.mime_type,
                     })
                     .collect();
                 Ok(attachments)
@@ -2259,40 +2085,6 @@ impl AIClient for ServerApi {
         Ok(response)
     }
 
-    async fn prepare_attachments_for_upload(
-        &self,
-        task_id: &AmbientAgentTaskId,
-        files: &[AttachmentFileInfo],
-    ) -> anyhow::Result<PrepareAttachmentUploadsResponse, anyhow::Error> {
-        let request = PrepareAttachmentUploadsRequest {
-            files: files.to_vec(),
-        };
-        let response: PrepareAttachmentUploadsResponse = self
-            .post_public_api(
-                &format!("agent/runs/{task_id}/attachments/prepare"),
-                &request,
-            )
-            .await?;
-        Ok(response)
-    }
-
-    async fn download_task_attachments(
-        &self,
-        task_id: &AmbientAgentTaskId,
-        attachment_ids: &[String],
-    ) -> anyhow::Result<DownloadAttachmentsResponse, anyhow::Error> {
-        let request = DownloadAttachmentsRequest {
-            attachment_ids: attachment_ids.to_vec(),
-        };
-        let response: DownloadAttachmentsResponse = self
-            .post_public_api(
-                &format!("agent/runs/{task_id}/attachments/download"),
-                &request,
-            )
-            .await?;
-        Ok(response)
-    }
-
     async fn get_handoff_snapshot_attachments(
         &self,
         task_id: &AmbientAgentTaskId,
@@ -2308,9 +2100,6 @@ impl AIClient for ServerApi {
                 file_id: attachment.attachment_id,
                 filename: attachment.filename,
                 download_url: attachment.download_url,
-                mime_type: attachment
-                    .mime_type
-                    .unwrap_or_else(|| "application/octet-stream".to_string()),
             })
             .collect())
     }
@@ -2361,16 +2150,6 @@ impl AIClient for ServerApi {
         .await
     }
 
-    async fn report_agent_event(
-        &self,
-        run_id: &str,
-        request: ReportAgentEventRequest,
-    ) -> anyhow::Result<ReportAgentEventResponse, anyhow::Error> {
-        let response: ReportAgentEventResponse = self
-            .post_public_api(&format!("agent/events/{run_id}"), &request)
-            .await?;
-        Ok(response)
-    }
     async fn post_agent_run_client_event(
         &self,
         run_id: &AmbientAgentTaskId,
@@ -2755,24 +2534,6 @@ fn convert_harness(harness: warp_graphql::ai::AgentHarness) -> AIAgentHarness {
     }
 }
 
-fn convert_block_snapshot_format(
-    format: warp_graphql::ai::SerializedBlockFormat,
-) -> AIAgentSerializedBlockFormat {
-    match format {
-        warp_graphql::ai::SerializedBlockFormat::JsonV1 => AIAgentSerializedBlockFormat::JsonV1,
-    }
-}
-
-fn convert_conversation_format(
-    format: warp_graphql::ai::AIConversationFormat,
-) -> AIAgentConversationFormat {
-    AIAgentConversationFormat {
-        has_task_list: format.has_task_list,
-        block_snapshot: format.block_snapshot.map(convert_block_snapshot_format),
-    }
-}
-
-// Helper function
 fn convert_usage_metadata(
     summarized: bool,
     context_window_usage: f64,

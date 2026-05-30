@@ -7,14 +7,11 @@ use session_sharing_protocol::common::SessionId;
 use url::Url;
 use warp_cli::agent::Harness;
 use warp_core::report_error;
-use warp_core::ui::theme::WarpTheme;
-use warpui::color::ColorU;
 use warpui::{SingletonEntity, View, ViewContext};
 
 use super::AmbientAgentTaskId;
 use crate::ai::artifacts::{deserialize_artifacts, Artifact};
 use crate::server::server_api::ServerApiProvider;
-use crate::ui_components::icons::Icon;
 use crate::view_components::DismissibleToast;
 use crate::workspace::ToastStack;
 
@@ -356,7 +353,6 @@ pub struct TaskAttachment {
     pub file_id: String,
     pub filename: String,
     pub download_url: String,
-    pub mime_type: String,
 }
 
 /// Returns the trimmed orchestrator agent name, or `None` when empty / whitespace-only.
@@ -429,24 +425,8 @@ impl AmbientAgentTask {
         }
     }
 
-    pub fn active_execution_conversation_id(&self) -> Option<&str> {
-        if self.has_active_execution() {
-            self.conversation_id()
-        } else {
-            None
-        }
-    }
-
     pub fn has_active_execution(&self) -> bool {
         self.state == AmbientAgentTaskState::InProgress && self.active_run_execution().is_active()
-    }
-
-    pub fn is_terminal_run_state(&self) -> bool {
-        self.state.is_terminal()
-    }
-
-    pub fn can_submit_cloud_followup(&self) -> bool {
-        self.is_terminal_run_state() && !self.has_active_execution()
     }
 
     /// Total credits used (inference + compute + platform).
@@ -475,10 +455,6 @@ impl AmbientAgentTask {
         self.executor.as_ref().and_then(|e| e.display_name.clone())
     }
 
-    /// Returns true if the underlying session for the ambient agent is no longer running.
-    pub fn is_no_longer_running(&self) -> bool {
-        !self.active_run_execution().is_sandbox_running && !self.state.is_working()
-    }
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
@@ -532,10 +508,6 @@ impl AmbientAgentTaskState {
         }
     }
 
-    pub fn is_cancellable(&self) -> bool {
-        self.is_working()
-    }
-
     pub fn is_failure_like(&self) -> bool {
         match self {
             AmbientAgentTaskState::Failed
@@ -566,23 +538,6 @@ impl AmbientAgentTaskState {
         }
     }
 
-    pub fn status_icon_and_color(&self, theme: &WarpTheme) -> (Icon, ColorU) {
-        match self {
-            AmbientAgentTaskState::Queued
-            | AmbientAgentTaskState::Pending
-            | AmbientAgentTaskState::Claimed
-            | AmbientAgentTaskState::InProgress => (Icon::ClockLoader, theme.ansi_fg_magenta()),
-            AmbientAgentTaskState::Succeeded => (Icon::Check, theme.ansi_fg_green()),
-            AmbientAgentTaskState::Failed
-            | AmbientAgentTaskState::Error
-            | AmbientAgentTaskState::Unknown => (Icon::Triangle, theme.ansi_fg_red()),
-            AmbientAgentTaskState::Blocked => (Icon::StopFilled, theme.ansi_fg_yellow()),
-            AmbientAgentTaskState::Cancelled => (
-                Icon::Cancelled,
-                theme.disabled_text_color(theme.background()).into_solid(),
-            ),
-        }
-    }
 }
 
 impl std::fmt::Display for AmbientAgentTaskState {
