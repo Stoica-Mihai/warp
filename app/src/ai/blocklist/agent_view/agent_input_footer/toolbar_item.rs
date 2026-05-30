@@ -62,7 +62,6 @@ pub enum AgentToolbarItemKind {
     // Renamed from ImageAttach; alias preserves existing user toolbar configs.
     #[serde(alias = "ImageAttach")]
     FileAttach,
-    ShareSession,
 
     // CLI agent only – opens settings to the Coding Agents section.
     Settings,
@@ -77,7 +76,7 @@ pub enum AgentToolbarItemKind {
 impl AgentToolbarItemKind {
     pub fn available_in(&self) -> ToolbarAvailability {
         match self {
-            Self::ContextChip(_) | Self::VoiceInput | Self::FileAttach | Self::ShareSession => {
+            Self::ContextChip(_) | Self::VoiceInput | Self::FileAttach => {
                 ToolbarAvailability::Both
             }
             Self::ModelSelector
@@ -100,7 +99,7 @@ impl AgentToolbarItemKind {
         is_cloud_mode: bool,
     ) -> bool {
         match self {
-            Self::Settings | Self::ShareSession | Self::FileExplorer => !status.is_viewer(),
+            Self::Settings | Self::FileExplorer => !status.is_viewer(),
             Self::FileAttach => !status.is_viewer() || is_cloud_mode,
             Self::FastForwardToggle => !status.is_viewer() || status.is_executor(),
             // Handoff is host-initiated; viewers cannot hand off another user's conversation.
@@ -124,7 +123,6 @@ impl AgentToolbarItemKind {
             Self::ContextWindowUsage => "Context Usage",
             Self::FileExplorer => "File Explorer",
             Self::RichInput => "Rich Input",
-            Self::ShareSession => "/remote-control",
             Self::Settings => "Settings",
             Self::FastForwardToggle => "Fast Forward",
             Self::HandoffToCloud => "Hand off to cloud",
@@ -141,7 +139,6 @@ impl AgentToolbarItemKind {
             Self::ContextWindowUsage => Some(Icon::ConversationContext0),
             Self::FileExplorer => Some(Icon::FileCopy),
             Self::RichInput => Some(Icon::TextInput),
-            Self::ShareSession => Some(Icon::Phone01),
             Self::Settings => Some(Icon::Settings),
             Self::FastForwardToggle => Some(Icon::FastForward),
             // The bundled `upload-cloud-01.svg` (cloud-with-upward-arrow) is the
@@ -161,7 +158,6 @@ impl AgentToolbarItemKind {
             | Self::ContextWindowUsage
             | Self::FastForwardToggle
             | Self::HandoffToCloud
-            | Self::ShareSession
             | Self::FileExplorer
             | Self::RichInput
             | Self::Settings => false,
@@ -211,9 +207,6 @@ impl AgentToolbarItemKind {
             Self::ContextWindowUsage,
             Self::ModelSelector,
         ];
-        if FeatureFlag::HOARemoteControl.is_enabled() {
-            items.push(Self::ShareSession);
-        }
         if FeatureFlag::OzHandoff.is_enabled()
             && FeatureFlag::HandoffLocalCloud.is_enabled()
             && cfg!(all(feature = "local_fs", not(target_family = "wasm")))
@@ -241,9 +234,6 @@ impl AgentToolbarItemKind {
         if FeatureFlag::FastForwardAutoexecuteButton.is_enabled() {
             items.push(Self::FastForwardToggle);
         }
-        if FeatureFlag::HOARemoteControl.is_enabled() {
-            items.push(Self::ShareSession);
-        }
         if FeatureFlag::OzHandoff.is_enabled()
             && FeatureFlag::HandoffLocalCloud.is_enabled()
             && cfg!(all(feature = "local_fs", not(target_family = "wasm")))
@@ -260,9 +250,6 @@ impl AgentToolbarItemKind {
             Self::VoiceInput,
             Self::ContextChip(ContextChipKind::GitDiffStats),
         ];
-        if FeatureFlag::HOARemoteControl.is_enabled() {
-            items.push(Self::ShareSession);
-        }
         items.push(Self::FileExplorer);
         if FeatureFlag::CLIAgentRichInput.is_enabled() {
             items.push(Self::RichInput);
@@ -292,9 +279,6 @@ impl AgentToolbarItemKind {
             Self::VoiceInput,
             Self::Settings,
         ]);
-        if FeatureFlag::HOARemoteControl.is_enabled() {
-            items.push(Self::ShareSession);
-        }
         items
     }
 
