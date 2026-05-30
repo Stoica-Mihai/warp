@@ -103,9 +103,9 @@ All telemetry surfaces removed across ~10 commits. Total: ~8918 LoC across step 
 |---|---|---|---|---|
 | ~~`ai_assistant` panel~~ | ~~`app/src/ai_assistant/`~~ | ~~10 files, 3.6k LoC~~ | **EASY** | ✅ **DONE** `782368f5` — panel + `warp_ai.rs` command search + all callers deleted. `WarpAiExecutionContext` → `ai/execution_context.rs`; `AskAIType` → `terminal/view.rs`. −4568 LoC, 35 files. 3-gate 0/0/0. |
 | `ai` engine crate | `crates/ai/` | 75 files, 25k LoC | **MEDIUM** | Fairly self-contained, but 628 app callers — delete only after callers refactored. |
-| Execution profiles + model selector | `app/src/ai/execution_profiles/`, `terminal/profile_model_selector.rs` (2.4k) | 9 files | **MEDIUM** | LLM model picker; 56-file fan-in. |
-| AI context menu / context chips | `app/src/context_chips/` | 23 files, 11.7k LoC | **MEDIUM** | Mixed into terminal input UI. |
-| AI settings pages | `settings_view/{ai_page,execution_profile_view}.rs` | ~9.4k LoC | **MEDIUM** | Profile/LLM settings. |
+| ~~Execution profiles + model selector~~ | ~~`app/src/ai/execution_profiles/`, `terminal/profile_model_selector.rs`~~ | ~~9 files~~ | **MEDIUM** | ✅ **DONE** `e3e2c025` + `85902edb` — profiles.rs (1,416 LoC) + model_menu_items.rs + tests + inline selector UI + profile_model_selector.rs (2,342→82 stub) deleted. `AIExecutionProfilesModel` stub re-registered as singleton. Permission types (`ActionPermission` etc.) kept in stub for `workspaces/`. −5,534 net LoC. Binary 846.9→844.2 MB. 3-gate 0/0/0. App launches cleanly. |
+| `context_chips` (terminal prompt chips) | `app/src/context_chips/` | 23 files, 11.7k LoC | **KEEP** | Core terminal prompt rendering: git branch, directory, virtualenv, SSH, k8s chips. NOT a cloud/AI surface. Do NOT remove. |
+| ~~AI settings pages~~ | ~~`settings_view/{ai_page,execution_profile_view}.rs`~~ | ~~~9.4k LoC~~ | **MEDIUM** | ✅ **DONE** `111a175e` — ai_page.rs (7824) + editor/ (1992) + modals + warp_drive_page deleted. −13,934 LoC. Binary −25.1 MB. |
 | `app/src/ai/agent` (LLM exec core) | `app/src/ai/agent/` | 32 files, 22.5k LoC | **HARD** | Warp agent driver/harness/todos/SDK. |
 | `app/src/ai/blocklist` (AI block render) | `app/src/ai/blocklist/` | 179 files, 102k LoC | **HARD** | AI block rendering + interaction; 296-file fan-in. |
 | Conversation/history models | `app/src/ai/blocklist/history_model.rs`, `agent_conversations_model.rs` | ~15k LoC | **HARD** | AI chat state, conversation IDs; on-disk. |
