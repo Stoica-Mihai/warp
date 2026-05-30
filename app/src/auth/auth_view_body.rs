@@ -526,9 +526,7 @@ impl TypedActionView for AuthViewBody {
                     .is_user_anonymous()
                     .unwrap_or_default()
                 {
-                    AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                        auth_manager.copy_anonymous_user_linking_url_to_clipboard(ctx);
-                    });
+                    {}
                 } else {
                     AuthManager::handle(ctx).update(ctx, |auth_manager, inner_ctx| {
                         let sign_in_url = auth_manager.sign_in_url();

@@ -30,8 +30,6 @@ use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::blocklist::SerializedBlockListItem;
 use crate::app_state::{AppState, PaneUuid, WindowSnapshot};
 use crate::appearance::Appearance;
-use crate::auth::auth_manager::AuthManager;
-use crate::auth::auth_view_modal::AuthRedirectPayload;
 use crate::changelog_model::ChangelogRequestType;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::{GenericStringObjectFormat, JsonObjectType, ObjectType};
@@ -1564,17 +1562,7 @@ impl RootView {
     }
 
     #[allow(clippy::ptr_arg)]
-    fn handle_incoming_auth_url(&mut self, url: &Url, ctx: &mut ViewContext<Self>) -> bool {
-        match AuthRedirectPayload::from_url(url.clone()) {
-            Ok(redirect_payload) => {
-                AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                    auth_manager.initialize_user_from_auth_payload(redirect_payload, true, ctx);
-                });
-            }
-            Err(error) => {
-                log::error!("Unable to parse AuthResult from url: {error}");
-            }
-        }
+    fn handle_incoming_auth_url(&mut self, _url: &Url, _ctx: &mut ViewContext<Self>) -> bool {
         true
     }
 

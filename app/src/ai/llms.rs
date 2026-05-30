@@ -11,7 +11,7 @@ use warp_core::user_preferences::GetUserPreferences;
 use warpui::{AppContext, Entity, EntityId, ModelContext, SingletonEntity};
 
 use super::execution_profiles::profiles::AIExecutionProfilesModel;
-use crate::auth::auth_manager::{AuthManager, AuthManagerEvent};
+use crate::auth::auth_manager::AuthManager;
 use crate::auth::AuthStateProvider;
 use crate::network::{NetworkStatus, NetworkStatusEvent, NetworkStatusKind};
 use crate::report_error;
@@ -581,11 +581,7 @@ impl LLMPreferences {
         // available LLMs query to the general workspace metadata query which is polled
         // and hooked up to workspace changes. For that to work, each user would need to
         // have a personal workspace. This is a stop-gap.
-        ctx.subscribe_to_model(&AuthManager::handle(ctx), |me, event, ctx| {
-            if let AuthManagerEvent::AuthComplete = event {
-                me.refresh_authed_models(ctx);
-            }
-        });
+        ctx.subscribe_to_model(&AuthManager::handle(ctx), |_me, _event, _ctx| {});
 
         ctx.subscribe_to_model(&UserWorkspaces::handle(ctx), |me, event, ctx| {
             if let UserWorkspacesEvent::TeamsChanged = event {

@@ -29,16 +29,10 @@ impl ConnectedSelfHostedWorkersModel {
         });
 
         ctx.subscribe_to_model(&AuthManager::handle(ctx), |me, event, ctx| match event {
-            AuthManagerEvent::AuthComplete => {
-                me.refresh(ctx);
-            }
-            AuthManagerEvent::AuthFailed(_) | AuthManagerEvent::NeedsReauth => {
+            AuthManagerEvent::NeedsReauth => {
                 me.clear_workers(ctx);
             }
-            AuthManagerEvent::AttemptedLoginGatedFeature { .. }
-            | AuthManagerEvent::LoginOverrideDetected(_)
-            | AuthManagerEvent::MintCustomTokenFailed(_)
-            | AuthManagerEvent::ReceivedDeviceAuthorizationCode { .. } => {}
+            _ => {}
         });
 
         ctx.subscribe_to_model(&UserWorkspaces::handle(ctx), |me, event, ctx| {

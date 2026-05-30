@@ -196,7 +196,7 @@ use crate::auth::auth_override_warning_modal::{
     AuthOverrideWarningModal, AuthOverrideWarningModalEvent, AuthOverrideWarningModalVariant,
 };
 use crate::auth::auth_state::AuthState;
-use crate::auth::auth_view_modal::{AuthRedirectPayload, AuthView, AuthViewEvent, AuthViewVariant};
+use crate::auth::auth_view_modal::{AuthView, AuthViewEvent, AuthViewVariant};
 use crate::auth::AuthStateProvider;
 use crate::banner::BannerState;
 use crate::billing::shared_objects_creation_denied_modal::{
@@ -6180,21 +6180,6 @@ impl Workspace {
         }
     }
 
-    fn check_and_trigger_telemetry_banner_for_existing_users(
-        &mut self,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if FeatureFlag::GlobalAIAnalyticsBanner.is_enabled()
-            && PrivacySettings::as_ref(ctx).is_telemetry_enabled
-        {
-            if let Some(terminal_view_handle) = self.active_session_view(ctx) {
-                terminal_view_handle.update(ctx, |terminal_view, ctx| {
-                    terminal_view.insert_telemetry_banner(true, ctx);
-                });
-            }
-        }
-    }
-
     fn open_suggested_agent_mode_workflow_modal(
         &mut self,
         workflow_and_id: &SuggestedAgentModeWorkflowAndId,
@@ -8951,18 +8936,6 @@ impl Workspace {
             AuthManagerEvent::AttemptedLoginGatedFeature { auth_view_variant } => {
                 self.open_require_login_modal(*auth_view_variant, ctx)
             }
-            AuthManagerEvent::LoginOverrideDetected(interrupted_auth_payload) => {
-                self.open_auth_override_warning_modal(interrupted_auth_payload.clone(), ctx);
-            }
-            AuthManagerEvent::AuthComplete => {
-                // Only show the telemetry banner if the user is an existing user. The new user flow
-                // for this is handled in the onboarding flow.
-                if self.auth_state.is_onboarded().unwrap_or_default() {
-                    // Need to check this AFTER we fetch any billing metadata associated with the team,
-                    // to make sure we don't show the banner if the user is an enterprise user.
-                    self.check_and_trigger_telemetry_banner_for_existing_users(ctx);
-                }
-            }
             _ => {
                 ctx.notify();
             }
@@ -11577,20 +11550,6 @@ impl Workspace {
         self.close_all_overlays(ctx);
         self.current_workspace_state.is_require_login_modal_open = true;
         ctx.focus(&self.require_login_modal);
-        ctx.notify();
-    }
-
-    fn open_auth_override_warning_modal(
-        &mut self,
-        auth_payload: AuthRedirectPayload,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.close_all_overlays(ctx);
-        self.auth_override_warning_modal.update(ctx, |modal, _| {
-            modal.set_interrupted_auth_payload(auth_payload);
-        });
-        self.current_workspace_state.is_auth_override_modal_open = true;
-        ctx.focus(&self.auth_override_warning_modal);
         ctx.notify();
     }
 

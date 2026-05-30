@@ -1,10 +1,5 @@
-use std::collections::HashMap;
-
-use anyhow::{anyhow, Result};
 use pathfinder_color::ColorU;
 use pathfinder_geometry::vector::vec2f;
-use url::Url;
-use warp_core::errors::ErrorExt;
 use warpui::actions::StandardAction;
 use warpui::elements::{
     ChildAnchor, ChildView, Container, Fill, HighlightedHyperlink, MouseStateHandle,
@@ -19,13 +14,10 @@ use warpui::{
 
 use super::auth_manager::{AuthManager, AuthManagerEvent};
 use super::auth_view_body::{AuthStep, AuthViewBodyEvent};
-use super::credentials::RefreshToken;
 use super::login_failure_notification::{self, LoginFailureReason};
-use super::UserUid;
 use crate::auth::auth_view_body::AuthViewBody;
 use crate::modal::Modal;
 use crate::root_view::unthemed_window_border;
-use crate::server::server_api::auth::UserAuthenticationError;
 use crate::util::bindings::CustomAction;
 
 pub fn init(app: &mut AppContext) {
@@ -76,59 +68,6 @@ pub struct AuthView {
     close_login_notification_mouse_state: MouseStateHandle,
     highlighted_hyperlink_state: HighlightedHyperlink,
     auth_view_variant: AuthViewVariant,
-}
-
-const AUTH_URL_HOST: &str = "auth";
-const AUTH_URL_REFRESH_TOKEN_QUERY_PARAM: &str = "refresh_token";
-const AUTH_URL_NEW_USER_UID_QUERY_PARAM: &str = "user_uid";
-const AUTH_URL_DELETED_ANON_USER_QUERY_PARAM: &str = "deleted_anonymous_user";
-const AUTH_URL_STATE_QUERY_PARAM: &str = "state";
-
-// `AuthRedirectPayload` is returned from the incoming redirect url.
-#[derive(Debug, Clone)]
-pub struct AuthRedirectPayload {
-    pub refresh_token: RefreshToken,
-    pub user_uid: Option<UserUid>,
-    pub deleted_anonymous_user: Option<bool>,
-    pub state: Option<String>,
-}
-
-impl AuthRedirectPayload {
-    /// Attempts to parse the `AuthRedirectPayload` from URL sent to Warp. To parse successfully, the URL
-    /// must be of format {scheme}://auth/desktop_redirect?refresh_token={token}.
-    pub fn from_url(url: Url) -> Result<Self> {
-        if url.host_str() != Some(AUTH_URL_HOST) {
-            return Err(anyhow!("Received URL with unexpected host: {} ", url));
-        }
-        let query_params: HashMap<_, _> = url.query_pairs().into_owned().collect();
-        if let Some(token) = query_params.get(AUTH_URL_REFRESH_TOKEN_QUERY_PARAM) {
-            let user_uid = query_params
-                .get(AUTH_URL_NEW_USER_UID_QUERY_PARAM)
-                .map(|uid| UserUid::new(uid));
-
-            Ok(Self {
-                refresh_token: RefreshToken::new(token),
-                user_uid,
-                deleted_anonymous_user: query_params
-                    .get(AUTH_URL_DELETED_ANON_USER_QUERY_PARAM)
-                    .map(|value| value == "true"),
-                state: query_params.get(AUTH_URL_STATE_QUERY_PARAM).cloned(),
-            })
-        } else {
-            Err(anyhow!(
-                "Received URL without refresh token query param: {}",
-                url
-            ))
-        }
-    }
-
-    /// Like [`from_url()`], except first parses the given [`raw_url`] into a [`Url`] struct.
-    pub fn from_raw_url(raw_url: String) -> Result<Self> {
-        match Url::parse(&raw_url) {
-            Ok(parsed_url) => AuthRedirectPayload::from_url(parsed_url),
-            Err(error) => Err(anyhow!(error)),
-        }
-    }
 }
 
 const MODAL_WIDTH: f32 = 352.;
@@ -226,28 +165,7 @@ impl AuthView {
         ctx.emit(AuthViewEvent::Close);
     }
 
-    /// Parses the given 'clipboard_content' string into a URL which is assumed to represent the
-    /// OAuth redirect URL containing the user's refresh token after the user authenticated Warp.
-    fn handle_pasted_auth_url(&mut self, pasted_url: String, ctx: &mut ViewContext<Self>) {
-        self.set_auth_token_input_editable(false, ctx);
-        match AuthRedirectPayload::from_raw_url(pasted_url) {
-            Ok(redirect_payload) => {
-                AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                    auth_manager.initialize_user_from_auth_payload(redirect_payload, true, ctx);
-                });
-            }
-            Err(error) => {
-                log::error!("Failed to parse AuthRedirectPayload from redirect URL: {error:#}");
-                self.last_login_failure_reason =
-                    Some(LoginFailureReason::InvalidRedirectUrl { was_pasted: true });
-                self.set_auth_token_input_editable(true, ctx);
-            }
-        }
-    }
-
-    fn set_auth_token_input_editable(&mut self, is_editable: bool, ctx: &mut ViewContext<Self>) {
-        self.update_auth_body(ctx, |body, ctx| body.set_input_editable(is_editable, ctx))
-    }
+    fn handle_pasted_auth_url(&mut self, _pasted_url: String, _ctx: &mut ViewContext<Self>) {}
 
     fn update_auth_body<S, F>(&mut self, ctx: &mut ViewContext<Self>, cb: F) -> S
     where
@@ -258,33 +176,7 @@ impl AuthView {
     }
 
     fn handle_auth_manager_event(&mut self, event: &AuthManagerEvent, ctx: &mut ViewContext<Self>) {
-        match event {
-            AuthManagerEvent::AuthComplete => {
-                self.close(ctx);
-            }
-            AuthManagerEvent::AuthFailed(err) => {
-                if err.is_actionable() {
-                    log::error!("Failed to log in user: {err:#}");
-                }
-
-                if let UserAuthenticationError::InvalidStateParameter = err {
-                    self.last_login_failure_reason =
-                        Some(LoginFailureReason::InvalidStateParameter);
-                } else if let UserAuthenticationError::MissingStateParameter = err {
-                    self.last_login_failure_reason =
-                        Some(LoginFailureReason::MissingStateParameter);
-                } else {
-                    self.last_login_failure_reason =
-                        Some(LoginFailureReason::FailedUserAuthentication);
-                }
-
-                self.set_auth_token_input_editable(true, ctx);
-            }
-            AuthManagerEvent::MintCustomTokenFailed(_err) => {
-                self.last_login_failure_reason = Some(LoginFailureReason::FailedMintCustomToken);
-            }
-            _ => {}
-        }
+        let _ = event;
         ctx.notify();
     }
 }

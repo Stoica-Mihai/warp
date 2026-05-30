@@ -445,12 +445,6 @@ pub(super) fn remove(sender: SyncSender<ModelEvent>) {
         .context("Error requesting database deletion"));
 }
 
-pub(super) fn reconstruct(sender: SyncSender<ModelEvent>) {
-    report_if_error!(sender
-        .send(ModelEvent::ReconstructAndResume)
-        .context("Error resuming SQLite thread"));
-}
-
 fn reconstruct_database(path: &Path) -> Result<SqliteConnection> {
     // If the DB still exists, logout might have failed. However, it's more likely that something
     // else wrote to it before the user logged back in.

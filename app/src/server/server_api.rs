@@ -412,8 +412,6 @@ pub struct ServerApi {
     auth_state: Arc<AuthState>,
     event_sender: async_channel::Sender<ServerApiEvent>,
     last_server_time: Arc<Mutex<Option<ServerTime>>>,
-    // We technically use OAuth2 for headless device authentication.
-    oauth_client: self::auth::OAuth2Client,
     /// Cached ambient workload token for requests from ambient agents.
     ambient_workload_token: Arc<Mutex<Option<warp_isolation_platform::WorkloadToken>>>,
     /// The ambient agent task ID for requests from cloud agents.
@@ -448,14 +446,11 @@ impl ServerApi {
             Some(EVAL_USER_IDS[rand::thread_rng().gen_range(0..EVAL_USER_IDS.len())])
         };
 
-        let oauth_client = Self::create_oauth_client();
-
         Self {
             client,
             auth_state,
             event_sender,
             last_server_time: Arc::new(Mutex::new(None)),
-            oauth_client,
             ambient_workload_token: Arc::new(Mutex::new(None)),
             ambient_agent_task_id: Arc::new(RwLock::new(None)),
             agent_source,
@@ -540,23 +535,6 @@ impl ServerApi {
         headers.retain(|(name, _)| *name != CLOUD_AGENT_ID_HEADER);
         headers.push((CLOUD_AGENT_ID_HEADER, task_id.to_string()));
         Ok(headers)
-    }
-
-    fn create_oauth_client() -> self::auth::OAuth2Client {
-        let server_root =
-            Url::parse(&ChannelState::server_root_url()).expect("Server root URL must be valid");
-
-        let token_url = server_root
-            .join("/api/v1/oauth/token")
-            .expect("Invalid token URL");
-
-        let device_url = server_root
-            .join("/api/v1/oauth/device/auth")
-            .expect("Invalid device URL");
-
-        oauth2::basic::BasicClient::new(oauth2::ClientId::new("warp-cli".to_string()))
-            .set_token_uri(oauth2::TokenUrl::from_url(token_url))
-            .set_device_authorization_url(oauth2::DeviceAuthorizationUrl::from_url(device_url))
     }
 
     pub fn send_graphql_request<'a, QF, O: warp_graphql::client::Operation<QF> + Send + 'a>(

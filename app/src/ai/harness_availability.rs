@@ -11,7 +11,7 @@ use warp_managed_secrets::{ManagedSecretManager, ManagedSecretValue};
 use warpui::{Entity, ModelContext, RequestState, SingletonEntity};
 
 use crate::ai::harness_display;
-use crate::auth::auth_manager::{AuthManager, AuthManagerEvent};
+use crate::auth::auth_manager::AuthManager;
 use crate::auth::AuthStateProvider;
 use crate::network::{NetworkStatus, NetworkStatusEvent, NetworkStatusKind};
 use crate::report_error;
@@ -102,15 +102,7 @@ impl HarnessAvailabilityModel {
             }
         });
 
-        ctx.subscribe_to_model(&AuthManager::handle(ctx), |me, event, ctx| {
-            if let AuthManagerEvent::AuthComplete = event {
-                let cached_harnesses: Vec<Harness> = me.auth_secrets.keys().copied().collect();
-                for harness in cached_harnesses {
-                    me.invalidate_auth_secrets(harness);
-                }
-                me.refresh(ctx);
-            }
-        });
+        ctx.subscribe_to_model(&AuthManager::handle(ctx), |_me, _event, _ctx| {});
 
         ctx.subscribe_to_model(&UserWorkspaces::handle(ctx), |me, event, ctx| {
             if let UserWorkspacesEvent::TeamsChanged = event {

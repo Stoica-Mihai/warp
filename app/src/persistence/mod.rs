@@ -100,20 +100,6 @@ pub fn remove(sender: &Option<SyncSender<ModelEvent>>) {
     }
 }
 
-// Reconstruct sqlite database as part of Logout v0.
-#[cfg_attr(not(feature = "local_fs"), allow(unused_variables))]
-pub fn reconstruct(sender: &Option<SyncSender<ModelEvent>>) {
-    cfg_if::cfg_if! {
-        if #[cfg(feature = "local_fs")] {
-            if let Some(sender) = sender.clone() {
-                sqlite::reconstruct(sender);
-            }
-        } else {
-            log::info!("Local filesystem persistence is not enabled.");
-        }
-    }
-}
-
 /// Holds interfaces to the writer thread.
 pub struct WriterHandles {
     pub handle: JoinHandle<()>,

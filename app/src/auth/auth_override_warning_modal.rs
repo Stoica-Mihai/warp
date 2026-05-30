@@ -9,13 +9,11 @@ use warpui::{
 use super::auth_manager::{AuthManager, AuthManagerEvent};
 use super::auth_override_warning_body::AuthOverrideWarningBodyEvent;
 use crate::auth::auth_override_warning_body::AuthOverrideWarningBody;
-use crate::auth::auth_view_modal::AuthRedirectPayload;
 use crate::modal::Modal;
 use crate::root_view::unthemed_window_border;
 
 pub struct AuthOverrideWarningModal {
     auth_override_warning_modal: ViewHandle<Modal<AuthOverrideWarningBody>>,
-    interrupted_auth_payload: Option<AuthRedirectPayload>,
     variant: AuthOverrideWarningModalVariant,
 }
 
@@ -31,11 +29,6 @@ impl AuthOverrideWarningModal {
         ctx.subscribe_to_view(&auth_screen_view, |me, _, event, ctx| match event {
             AuthOverrideWarningBodyEvent::Close => me.close(ctx),
             AuthOverrideWarningBodyEvent::AllowLogin => {
-                if let Some(auth_payload) = me.interrupted_auth_payload.clone() {
-                    AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                        auth_manager.resume_interrupted_auth_payload(auth_payload, ctx);
-                    });
-                }
                 ctx.emit(AuthOverrideWarningModalEvent::Close);
             }
             AuthOverrideWarningBodyEvent::BulkExport => {
@@ -63,7 +56,6 @@ impl AuthOverrideWarningModal {
 
         Self {
             auth_override_warning_modal,
-            interrupted_auth_payload: None,
             variant,
         }
     }
@@ -82,15 +74,7 @@ impl AuthOverrideWarningModal {
         })
     }
 
-    pub fn set_interrupted_auth_payload(&mut self, auth_payload: AuthRedirectPayload) {
-        self.interrupted_auth_payload = Some(auth_payload);
-    }
-
-    fn handle_auth_manager_event(&mut self, event: &AuthManagerEvent, ctx: &mut ViewContext<Self>) {
-        if let AuthManagerEvent::AuthComplete = event {
-            self.interrupted_auth_payload = None;
-            self.close(ctx);
-        }
+    fn handle_auth_manager_event(&mut self, _event: &AuthManagerEvent, ctx: &mut ViewContext<Self>) {
         ctx.notify();
     }
 }
