@@ -20804,11 +20804,6 @@ impl TypedActionView for Workspace {
                 // perform nested updates on the workspace.
                 ctx.dispatch_global_action("app:undo_close", ());
             }
-            OpenShareSessionModal(_) => {}
-            StopSharingSessionFromTabMenu { .. } => {}
-            StopSharingAllSessionsInTab { .. } => {}
-            CopySharedSessionLinkFromTab { .. } => {}
-            OpenSharedSessionQrCode { .. } => {}
             AddWindow => {
                 ctx.dispatch_global_action("root_view:open_new", ());
             }

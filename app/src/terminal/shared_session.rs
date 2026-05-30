@@ -83,23 +83,6 @@ pub fn join_link(session_id: &SessionId) -> String {
 
 use crate::terminal::model::terminal_model::BlockIndex;
 
-/// Where a (now-removed) session-sharing action originated. Retained as a
-/// plain data enum so the menu/footer construction sites keep compiling.
-#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize, Eq, PartialEq)]
-pub enum SharedSessionActionSource {
-    BlocklistContextMenu { block_index: Option<BlockIndex> },
-    Tab,
-    PaneHeader,
-    CommandPalette,
-    OnboardingBlock,
-    Closed { is_confirm_close_session: bool },
-    InactivityModal,
-    NonUser,
-    SharingDialog,
-    RightClickMenu,
-    FooterChip,
-}
-
 /// Scrollback selection for a (now-removed) shared session. Retained as a
 /// plain data enum for the surviving construction sites.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
