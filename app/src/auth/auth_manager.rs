@@ -16,7 +16,6 @@ use user_persistence::PersistedUser;
 
 #[derive(Debug)]
 pub enum AuthManagerEvent {
-    NeedsReauth,
     AttemptedLoginGatedFeature {
         auth_view_variant: AuthViewVariant,
     },
@@ -87,13 +86,6 @@ impl AuthManager {
     pub(super) fn log_out(&mut self, ctx: &mut ModelContext<Self>) {
         self.pending_auth_state = None;
         self.set_and_persist(None, None, ctx);
-    }
-
-    pub fn set_needs_reauth(&self, needs_reauth: bool, ctx: &mut ModelContext<Self>) {
-        let became_true = self.auth_state.set_needs_reauth(needs_reauth);
-        if became_true {
-            ctx.emit(AuthManagerEvent::NeedsReauth);
-        }
     }
 
     pub fn attempt_login_gated_feature(

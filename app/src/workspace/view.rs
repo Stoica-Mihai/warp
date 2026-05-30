@@ -8936,9 +8936,6 @@ impl Workspace {
             AuthManagerEvent::AttemptedLoginGatedFeature { auth_view_variant } => {
                 self.open_require_login_modal(*auth_view_variant, ctx)
             }
-            _ => {
-                ctx.notify();
-            }
         }
     }
 

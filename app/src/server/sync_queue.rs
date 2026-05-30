@@ -16,7 +16,6 @@ use warpui::{Entity, ModelContext, RequestState, RetryOption, SingletonEntity};
 
 use super::graphql::GraphQLError;
 use super::ids::{ClientId, HashableId, ObjectUid, ServerId, SyncId, ToServerId};
-use super::server_api::auth::UserAuthenticationError;
 use super::server_api::object::ObjectClient;
 use crate::ai::ambient_agents::scheduled::CloudScheduledAmbientAgentModel;
 use crate::ai::cloud_agent_config::CloudAgentConfigModel;
@@ -1650,10 +1649,6 @@ impl SyncQueue {
                 if err.is_connect() {
                     return true;
                 }
-            }
-
-            if cause.is::<UserAuthenticationError>() {
-                return true;
             }
 
             if let Some(err) = cause.downcast_ref::<GraphQLError>() {

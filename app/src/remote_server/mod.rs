@@ -8,8 +8,6 @@ use warpui::SingletonEntity;
 
 #[cfg(not(target_family = "wasm"))]
 use crate::ai::{AIRequestUsageModel, AIRequestUsageModelEvent};
-#[cfg(not(target_family = "wasm"))]
-use crate::server::server_api::{ServerApiEvent, ServerApiProvider};
 
 #[cfg(not(target_family = "wasm"))]
 pub mod auth_context;
@@ -73,16 +71,6 @@ pub fn wire_auth_token_rotation(ctx: &mut warpui::AppContext) {
     RemoteServerManager::handle(ctx).update(ctx, |manager, _| {
         manager.update_codebase_index_limits(Some(codebase_index_limits));
     });
-    let server_api = ServerApiProvider::handle(ctx);
-    let manager = RemoteServerManager::handle(ctx);
-    ctx.subscribe_to_model(&server_api, move |_, event, ctx| {
-        if let ServerApiEvent::AccessTokenRefreshed { token } = event {
-            manager.update(ctx, |manager, _| {
-                manager.rotate_auth_token(token.clone());
-            });
-        }
-    });
-
     // Forward crash reporting preference changes to all connected daemons.
     use crate::settings::{PrivacySettings, PrivacySettingsChangedEvent};
     let privacy_settings = PrivacySettings::handle(ctx);

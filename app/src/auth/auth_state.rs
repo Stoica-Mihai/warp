@@ -1,7 +1,6 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-use anyhow::anyhow;
 use chrono::{DateTime, Duration, Utc};
 use parking_lot::RwLock;
 use uuid::Uuid;
@@ -14,11 +13,10 @@ use super::credentials::Credentials;
 #[cfg(any(not(target_family = "wasm"), test))]
 use super::user::UserMetadata;
 use super::user::{
-    AnonymousUserType, FirebaseAuthTokens, PersonalObjectLimits, PrincipalType, User,
+    AnonymousUserType, PersonalObjectLimits, PrincipalType, User,
 };
 use super::{UserUid, API_KEY_PREFIX};
 use crate::cloud_object::{GenericStringObjectFormat, JsonObjectType, ObjectType};
-use crate::report_error;
 
 const ANONYMOUS_USER_NOTIFICATION_BLOCK_TIMER: Duration = Duration::days(7);
 
@@ -293,19 +291,6 @@ impl AuthState {
         }
     }
 
-    /// Updates the Firebase auth tokens within the current credentials.
-    /// Reports an error if the current credentials are not Firebase.
-    pub(crate) fn update_firebase_tokens(&self, new_auth_tokens: FirebaseAuthTokens) {
-        let mut write_lock = self.credentials.write();
-        if let Some(Credentials::Firebase(tokens)) = write_lock.as_mut() {
-            *tokens = new_auth_tokens;
-        } else {
-            report_error!(anyhow!(
-                "Tried to update Firebase tokens without Firebase credentials"
-            ));
-        }
-    }
-
     /// Determines whether the user should be considered as logged in.
     pub fn is_logged_in(&self) -> bool {
         self.credentials.read().is_some()
@@ -485,13 +470,6 @@ impl AuthState {
     /// of their refresh token.
     pub fn needs_reauth(&self) -> bool {
         self.needs_reauth.load(Ordering::Relaxed)
-    }
-
-    /// Sets whether a reauth is required for the current user.
-    /// Returns whether or not the reauth state was changed from false to true.
-    pub(super) fn set_needs_reauth(&self, new_needs_reauth: bool) -> bool {
-        let prev_needs_reauth = self.needs_reauth.swap(new_needs_reauth, Ordering::Relaxed);
-        !prev_needs_reauth && new_needs_reauth
     }
 
     /// Returns whether or not the renotification block to encourage anonymous users to sign up

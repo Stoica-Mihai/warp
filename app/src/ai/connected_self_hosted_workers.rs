@@ -1,6 +1,5 @@
 use warpui::{Entity, ModelContext, SingletonEntity};
 
-use crate::auth::auth_manager::{AuthManager, AuthManagerEvent};
 use crate::auth::AuthStateProvider;
 use crate::network::{NetworkStatus, NetworkStatusEvent, NetworkStatusKind};
 use crate::report_error;
@@ -26,13 +25,6 @@ impl ConnectedSelfHostedWorkersModel {
             {
                 me.refresh(ctx);
             }
-        });
-
-        ctx.subscribe_to_model(&AuthManager::handle(ctx), |me, event, ctx| match event {
-            AuthManagerEvent::NeedsReauth => {
-                me.clear_workers(ctx);
-            }
-            _ => {}
         });
 
         ctx.subscribe_to_model(&UserWorkspaces::handle(ctx), |me, event, ctx| {
