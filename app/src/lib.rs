@@ -1698,6 +1698,8 @@ pub(crate) fn initialize_app(
         FeatureFlag::SSHTmuxWrapper.set_user_preference(is_ssh_tmux_wrapper_enabled);
     }
 
+    ctx.add_singleton_model(|ctx| ai::execution_profiles::profiles::AIExecutionProfilesModel::new(launch_mode, ctx));
+
     ctx.add_singleton_model(DefaultTerminal::new);
 
     ctx.add_singleton_model(|ctx| {
