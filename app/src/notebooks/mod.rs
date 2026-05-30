@@ -8,7 +8,6 @@ pub mod notebook;
 mod styles;
 pub mod telemetry;
 
-use std::sync::Arc;
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -19,27 +18,14 @@ use warpui::AppContext;
 use crate::ai::document::ai_document_model::AIDocumentId;
 use crate::appearance::Appearance;
 use crate::cloud_object::{
-    CloudModelType, CloudObjectEventEntrypoint, CreateCloudObjectResult, CreateObjectRequest,
-    GenericCloudObject, GenericServerObject, ObjectType, Owner, Revision, UpdateCloudObjectResult,
+    CloudModelType,
+    GenericCloudObject, ObjectType, Owner,
 };
 use crate::drive::items::notebook::WarpDriveNotebook;
 use crate::drive::items::WarpDriveItem;
 use crate::drive::CloudObjectTypeAndId;
 use crate::persistence::ModelEvent;
-use crate::server::cloud_objects::update_manager::InitiatedBy;
 use crate::server::ids::{ServerId, SyncId};
-use crate::server::server_api::object::ObjectClient;
-use crate::server::sync_queue::{QueueItem, SerializedModel};
-
-/// Serialized representation of a notebook for sync queue
-/// The AIDocumentID and ConversationID are stored here to avoid polluting the
-/// generic CreateObjectRequest type.
-#[derive(Serialize, Deserialize)]
-pub(crate) struct SerializedNotebook {
-    pub(crate) data: String,
-    pub(crate) ai_document_id: Option<String>,
-    pub(crate) conversation_id: Option<String>,
-}
 
 /// `CloudNotebook` is a notebook retrieved from the server.
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -91,84 +77,6 @@ impl CloudModelType for CloudNotebookModel {
 
     fn bulk_upsert_event(objects: Vec<CloudObjectUpsertParams<Self>>) -> ModelEvent {
         ModelEvent::UpsertNotebooks(objects.into_iter().map(CloudNotebook::from).collect())
-    }
-
-    fn create_object_queue_item(
-        &self,
-        notebook: &CloudNotebook,
-        entrypoint: CloudObjectEventEntrypoint,
-        initiated_by: InitiatedBy,
-    ) -> Option<QueueItem> {
-        if let SyncId::ClientId(client_id) = notebook.id {
-            let title = Some(notebook.model().display_name())
-                .filter(|name| !name.is_empty())
-                .map(Arc::new);
-
-            let serialized_model = Some(Arc::new(notebook.model().serialized()));
-
-            return Some(QueueItem::CreateObject {
-                object_type: self.object_type(),
-                owner: notebook.permissions.owner,
-                id: client_id,
-                title,
-                serialized_model,
-                initial_folder_id: notebook.metadata.folder_id,
-                entrypoint,
-                initiated_by,
-            });
-        }
-        None
-    }
-
-    fn update_object_queue_item(
-        &self,
-        revision_ts: Option<Revision>,
-        notebook: &CloudNotebook,
-    ) -> QueueItem {
-        QueueItem::UpdateNotebook {
-            // Note that this is intentionally a deep clone of the model because we are grabbing
-            // a snapshot to update at a moment in time.
-            model: notebook.model().clone().into(),
-            id: notebook.id,
-            revision: revision_ts.or_else(|| notebook.metadata.revision.clone()),
-        }
-    }
-
-    fn should_update_after_server_conflict(&self) -> bool {
-        true
-    }
-
-    fn serialized(&self) -> SerializedModel {
-        let serialized = SerializedNotebook {
-            data: self.data.clone(),
-            ai_document_id: self.ai_document_id.as_ref().map(|id| id.to_string()),
-            conversation_id: self.conversation_id.clone(),
-        };
-        let json = serde_json::to_string(&serialized).expect("Failed to serialize notebook");
-        SerializedModel::new(json)
-    }
-
-    async fn send_create_request(
-        object_client: Arc<dyn ObjectClient>,
-        request: CreateObjectRequest,
-    ) -> Result<CreateCloudObjectResult> {
-        object_client.create_notebook(request).await
-    }
-
-    async fn send_update_request(
-        &self,
-        object_client: Arc<dyn ObjectClient>,
-        server_id: ServerId,
-        revision: Option<Revision>,
-    ) -> Result<UpdateCloudObjectResult<GenericServerObject<NotebookId, Self>>> {
-        object_client
-            .update_notebook(
-                server_id.into(),
-                Some(self.title.clone()),
-                Some(self.data.clone().into()),
-                revision,
-            )
-            .await
     }
 
     fn renders_in_warp_drive(&self) -> bool {

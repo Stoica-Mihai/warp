@@ -14,13 +14,11 @@ use crate::cloud_object::model::generic_string_model::{
 use crate::cloud_object::model::json_model::{JsonModel, JsonSerializer};
 use crate::cloud_object::{
     GenericCloudObject, GenericStringObjectFormat, GenericStringObjectUniqueKey, JsonObjectType,
-    Revision,
 };
 use crate::drive::items::env_var_collection::WarpDriveEnvVarCollection;
 use crate::drive::items::WarpDriveItem;
 use crate::external_secrets::ExternalSecret;
 use crate::server::ids::SyncId;
-use crate::server::sync_queue::QueueItem;
 use crate::terminal::shell::ShellType;
 use crate::{Appearance, CloudObjectTypeAndId};
 
@@ -169,18 +167,6 @@ impl StringModel for EnvVarCollection {
             None
         } else {
             Some(name.to_owned())
-        }
-    }
-
-    fn update_object_queue_item(
-        &self,
-        revision_ts: Option<Revision>,
-        object: &CloudEnvVarCollection,
-    ) -> QueueItem {
-        QueueItem::UpdateEnvVarCollection {
-            model: object.model().clone().into(),
-            id: object.id,
-            revision: revision_ts.or_else(|| object.metadata.revision.clone()),
         }
     }
 

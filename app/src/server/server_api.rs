@@ -4,7 +4,6 @@ pub mod block;
 pub mod harness_support;
 pub mod integrations;
 pub mod managed_secrets;
-pub mod object;
 pub(crate) mod presigned_upload;
 pub mod referral;
 pub mod team;
@@ -26,7 +25,6 @@ use channel_versions::ChannelVersions;
 use chrono::{DateTime, FixedOffset};
 use futures::StreamExt;
 use instant::Instant;
-use object::ObjectClient;
 use parking_lot::{Mutex, RwLock};
 use prost::Message;
 use referral::ReferralsClient;
@@ -1478,10 +1476,6 @@ impl ServerApiProvider {
     }
 
     pub fn get_ai_client(&self) -> Arc<dyn AIClient> {
-        self.server_api.clone()
-    }
-
-    pub fn get_cloud_objects_client(&self) -> Arc<dyn ObjectClient> {
         self.server_api.clone()
     }
 

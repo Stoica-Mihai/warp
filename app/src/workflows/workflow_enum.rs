@@ -6,9 +6,7 @@ use crate::cloud_object::model::generic_string_model::{
 use crate::cloud_object::model::json_model::{JsonModel, JsonSerializer};
 use crate::cloud_object::{
     GenericCloudObject, GenericStringObjectFormat, GenericStringObjectUniqueKey, JsonObjectType,
-    Revision,
 };
-use crate::server::sync_queue::QueueItem;
 
 /// Data model for a workflow enum, one type of argument that can be inserted into a workflow
 /// A workflow enum can either be static or dynamic, as determined by the type of `EnumVariants` it uses
@@ -59,18 +57,6 @@ impl StringModel for WorkflowEnum {
 
     fn display_name(&self) -> String {
         self.model_type_name().to_owned()
-    }
-
-    fn update_object_queue_item(
-        &self,
-        revision_ts: Option<Revision>,
-        object: &Self::CloudObjectType,
-    ) -> QueueItem {
-        QueueItem::UpdateWorkflowEnum {
-            model: object.model().clone().into(),
-            id: object.id,
-            revision: revision_ts.or_else(|| object.metadata.revision.clone()),
-        }
     }
 
     fn uniqueness_key(&self) -> Option<GenericStringObjectUniqueKey> {

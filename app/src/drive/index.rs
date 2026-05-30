@@ -58,8 +58,8 @@ use crate::auth::AuthStateProvider;
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
 use crate::cloud_object::model::view::{CloudViewModel, CloudViewModelEvent, UpdateTimestamp};
 use crate::cloud_object::{
-    CloudObject, CloudObjectEventEntrypoint, CloudObjectLocation, CloudObjectSyncStatus,
-    GenericCloudObject, GenericStringObjectFormat, JsonObjectType, NumInFlightRequests, ObjectType,
+    CloudObject, CloudObjectLocation,
+    GenericCloudObject, GenericStringObjectFormat, JsonObjectType, ObjectType,
     Space,
 };
 use crate::drive::panel::DrivePanelAction;
@@ -70,10 +70,9 @@ use crate::menu::{Event, Menu, MenuItem, MenuItemFields};
 use crate::network::NetworkStatus;
 use crate::notebooks::CloudNotebookModel;
 use crate::server::cloud_objects::update_manager::{
-    FetchSingleObjectOption, InitiatedBy, UpdateManager,
+    FetchSingleObjectOption, UpdateManager,
 };
 use crate::server::ids::{ClientId, ObjectUid, ServerId, SyncId};
-use crate::server::sync_queue::SyncQueue;
 use crate::server::telemetry::AnonymousUserSignupEntrypoint;
 use crate::settings::app_installation_detection::{
     UserAppInstallDetectionSettings, UserAppInstallStatus,
@@ -2631,7 +2630,7 @@ impl DriveIndex {
             menu_open,
             is_selected,
             is_focused,
-            SyncQueue::as_ref(app).is_dequeueing(),
+            false, /* sync_queue_is_dequeueing */
             tools_panel_menu_direction(app),
             appearance,
         )?;
@@ -3775,29 +3774,7 @@ impl DriveIndex {
         });
     }
 
-    fn retry_all_failed(&mut self, ctx: &mut ViewContext<Self>) {
-        CloudModel::handle(ctx).update(ctx, |cloud_model, ctx| {
-            for object in cloud_model.cloud_objects_mut() {
-                if object.metadata().is_errored() {
-                    let queue_item = object
-                        .create_object_queue_item(
-                            CloudObjectEventEntrypoint::default(),
-                            // When adding the initiated_by parameter to this function call, InitiatedBy::User was set as a default value.
-                            // It can be changed to InitiatedBy::System if this action was automatically kicked off and does not require toasts to notify the user of completion.
-                            InitiatedBy::User,
-                        )
-                        .unwrap_or(object.update_object_queue_item(None));
-                    object.set_pending_content_changes_status(CloudObjectSyncStatus::InFlight(
-                        NumInFlightRequests(1),
-                    ));
-                    SyncQueue::handle(ctx).update(ctx, |sync_queue, ctx| {
-                        sync_queue.enqueue(queue_item, ctx);
-                    });
-                    self.num_errored_objects -= 1;
-                }
-            }
-        });
-    }
+    fn retry_all_failed(&mut self, _ctx: &mut ViewContext<Self>) {}
 
     fn revert_failed_object(&mut self, server_id: &ServerId, ctx: &mut ViewContext<Self>) {
         UpdateManager::handle(ctx).update(ctx, |update_manager, ctx| {

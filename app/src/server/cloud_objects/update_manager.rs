@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::future::Future;
 use std::sync::mpsc::SyncSender;
 use std::sync::Arc;
@@ -6,9 +6,6 @@ use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use futures::channel::oneshot::{self, Receiver};
 use regex::Regex;
-use warp_core::features::FeatureFlag;
-use warp_core::report_error;
-use warp_graphql::mcp_gallery_template::MCPGalleryTemplate;
 use warp_graphql::scalars::time::ServerTimestamp;
 use warp_util::sync::Condition;
 use warpui::{
@@ -16,7 +13,6 @@ use warpui::{
     SingletonEntity,
 };
 
-use crate::server::server_api::object::ObjectUpdateMessage;
 use crate::ai::ambient_agents::scheduled::{
     CloudScheduledAmbientAgentModel, ScheduledAmbientAgent,
 };
@@ -28,7 +24,7 @@ use crate::ai::facts::{AIFact, CloudAIFactModel};
 use crate::ai::mcp::templatable::{CloudTemplatableMCPServerModel, TemplatableMCPServer};
 use crate::auth::AuthStateProvider;
 use crate::cloud_object::model::actions::{
-    ObjectAction, ObjectActionHistory, ObjectActionType, ObjectActions,
+    ObjectActionType, ObjectActions,
 };
 use crate::cloud_object::model::generic_string_model::{
     GenericStringObjectId,
@@ -39,8 +35,7 @@ use crate::cloud_object::{
     CloudModelType, CloudObject, CloudObjectEventEntrypoint, CloudObjectLocation,
     GenericCloudObject,
     GenericStringObjectFormat, JsonObjectType, ObjectIdType, ObjectType, Owner,
-    Revision, ServerCloudObject, ServerFolder, ServerMetadata,
-    ServerNotebook, ServerObject, ServerPermissions, ServerWorkflow, Space,
+    Revision, Space,
 };
 use crate::drive::folders::{CloudFolderModel, FolderId};
 use crate::drive::CloudObjectTypeAndId;
@@ -52,13 +47,10 @@ use crate::server::ids::{
     ClientId, HashableId, ObjectUid, ServerId, SyncId,
     ToServerId,
 };
-use crate::server::sync_queue::{QueueItem, SyncQueue};
 use crate::workflows::workflow::Workflow;
 use crate::workflows::workflow_enum::{CloudWorkflowEnum, CloudWorkflowEnumModel, WorkflowEnum};
 use crate::workflows::{CloudWorkflowModel, WorkflowId};
 use crate::workspaces::team_tester::{TeamTesterStatus, TeamTesterStatusEvent};
-use crate::workspaces::update_manager::TeamUpdateManager;
-use crate::workspaces::user_profiles::{UserProfileWithUID, UserProfiles};
 use crate::workspaces::user_workspaces::UserWorkspaces;
 
 lazy_static::lazy_static! {
@@ -123,34 +115,11 @@ pub enum InitiatedBy {
     User,
     System,
 }
-#[derive(Default)]
-pub struct InitialLoadResponse {
-    pub updated_notebooks: Vec<ServerNotebook>,
-    pub deleted_notebooks: Vec<NotebookId>,
-    pub updated_workflows: Vec<ServerWorkflow>,
-    pub deleted_workflows: Vec<WorkflowId>,
-    pub updated_folders: Vec<ServerFolder>,
-    pub deleted_folders: Vec<FolderId>,
-    pub updated_generic_string_objects:
-        HashMap<GenericStringObjectFormat, Vec<Box<dyn ServerObject>>>,
-    pub deleted_generic_string_objects: Vec<GenericStringObjectId>,
-    pub user_profiles: Vec<UserProfileWithUID>,
-    pub action_histories: Vec<ObjectActionHistory>,
-    pub mcp_gallery: Vec<MCPGalleryTemplate>,
-}
-
-pub struct GetCloudObjectResponse {
-    pub object: ServerCloudObject,
-    pub descendants: Vec<ServerCloudObject>,
-    pub action_histories: Vec<ObjectActionHistory>,
-}
-
 /// The UpdateManager is responsible for delegating work
 /// when there is an update to an object (e.g. via a user interaction or
 /// a message from the server). Specifically, it will
 /// - write to SQLite
 /// - interact with the CloudModel to update the in-memory state used by the object views
-/// - interact with the SyncQueue by enqueueing an event
 pub struct UpdateManager {
     model_event_sender: Option<SyncSender<ModelEvent>>,
     has_initial_load: Condition,
@@ -246,193 +215,12 @@ impl UpdateManager {
         }
     }
 
-    fn handle_team_memberships_changed(&mut self, ctx: &mut ModelContext<UpdateManager>) {
-        // Immediately check for updates in workspace metadata
-        TeamUpdateManager::handle(ctx).update(ctx, |manager, ctx| {
-            std::mem::drop(manager.refresh_workspace_metadata(ctx));
-        });
-        self.refresh_updated_objects(ctx);
-    }
-
-    fn handle_ambient_task_changed(
-        &mut self,
-        task_id: String,
-        timestamp: DateTime<Utc>,
-        ctx: &mut ModelContext<UpdateManager>,
-    ) {
-        let task_id = match task_id.parse::<AmbientAgentTaskId>() {
-            Ok(task_id) => task_id,
-            Err(err) => {
-                report_error!(anyhow::Error::from(err).context(format!(
-                    "AmbientTaskUpdated has unparseable task_id: {task_id}"
-                )));
-                return;
-            }
-        };
-        ctx.emit(UpdateManagerEvent::AmbientTaskUpdated { task_id, timestamp });
-    }
-
     /// Fetches environment "last used" timestamps from the server and merges them
     /// into the in-memory environment objects.
     /// Wait for an initial load to complete.
     pub fn initial_load_complete(&self) -> impl Future<Output = ()> {
         // We're not using `async fn` here so that the returned Future doesn't borrow self.
         self.has_initial_load.wait()
-    }
-
-    pub fn received_message_from_server(
-        &mut self,
-        message: ObjectUpdateMessage,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        match message {
-            ObjectUpdateMessage::ObjectContentChanged {
-                server_object,
-                last_editor,
-            } => self.handle_cloud_object_changed_event(*server_object, last_editor, ctx),
-            ObjectUpdateMessage::ObjectMetadataChanged { metadata } => {
-                self.handle_cloud_object_metadata_changed_event(metadata, ctx);
-            }
-            ObjectUpdateMessage::ObjectPermissionsChanged => {
-                // TODO(CLD-2425): Do nothing, this is handled by ObjectPermissionsChangedV2.
-            }
-            ObjectUpdateMessage::ObjectPermissionsChangedV2 {
-                object_uid,
-                permissions,
-                user_profiles,
-            } => {
-                self.handle_cloud_object_permissions_changed_v2_event(
-                    object_uid,
-                    permissions,
-                    user_profiles,
-                    ctx,
-                );
-            }
-            ObjectUpdateMessage::ObjectDeleted { object_uid } => {
-                self.handle_cloud_object_deleted_event(object_uid, ctx);
-            }
-            ObjectUpdateMessage::ObjectActionOccurred { history } => {
-                self.handle_object_action_event(&history, ctx);
-            }
-            ObjectUpdateMessage::TeamMembershipsChanged => {
-                self.handle_team_memberships_changed(ctx);
-            }
-            ObjectUpdateMessage::AmbientTaskUpdated { task_id, timestamp } => {
-                if FeatureFlag::AmbientAgentsRTC.is_enabled() {
-                    self.handle_ambient_task_changed(task_id, timestamp, ctx);
-                }
-            }
-        }
-    }
-
-    /// Handles an update to a cloud object by updating the in-memory model and sqlite. The update
-    /// is split into two parts. (1) If the incoming revision is > in-memory revision (or there is no in-memory revision),
-    /// we update the data and fields in metadata that are tied to the revision. (2) If the incoming metadata_ts is >
-    /// in-memory metadata_ts, we update the metadata fields that are tied to the metadata ts (current_editor, trashed_ts, etc.)
-    fn handle_cloud_object_changed_event(
-        &mut self,
-        cloud_object: ServerCloudObject,
-        last_editor: Option<UserProfileWithUID>,
-        ctx: &mut ModelContext<UpdateManager>,
-    ) {
-        let uid = cloud_object.uid();
-
-        // Update in-memory model
-        let mut updated = false;
-        CloudModel::handle(ctx).update(ctx, |cloud_model, ctx| {
-            if let Some(current_object) = cloud_model.get_by_uid(&uid) {
-
-                // The revision and metadata_ts determine which parts of this update to accept
-                let current_object_revision = current_object.metadata().revision.clone();
-
-                // First, check if the incoming revision is greater than the in-memory revision.
-                if let Some(in_memory_revision) = current_object_revision {
-                    if cloud_object.metadata().revision > in_memory_revision {
-                        // Because the object has a greater revision, we should upsert it, essentially meaning overwrite its data.
-                        cloud_model.upsert_from_server_cloud_object(cloud_object.clone(), ctx);
-                        updated = true;
-                    } else {
-                        log::info!("in memory revision is greater or equal to metadata from update, ignoring");
-                    }
-                }
-                // Overwrite its relevant metadata fields { trashed_ts, current_editor, etc. } if the ts is greater
-                if cloud_model.maybe_update_object_metadata(&uid, cloud_object.metadata().clone(), false, ctx) {
-                    updated = true;
-                }
-            } else {
-                // Because the object is new, we should upsert.
-                cloud_model.upsert_from_server_cloud_object(cloud_object.clone(), ctx);
-                updated = true;
-            }
-
-        });
-
-        // Upsert the last editor into the UserProfiles singleton
-        if let Some(last_editor_profile) = last_editor {
-            let profiles = vec![last_editor_profile];
-            UserProfiles::handle(ctx).update(ctx, |user_profiles, _| {
-                user_profiles.insert_profiles(&profiles)
-            });
-            self.save_to_db([ModelEvent::UpsertUserProfiles { profiles }]);
-        }
-
-        if !updated {
-            return;
-        }
-
-        // Update sqlite.
-        let cloud_model = CloudModel::as_ref(ctx);
-        self.save_in_memory_object_to_sqlite(cloud_model, &uid);
-
-    }
-
-    /// Compare incoming metadata_ts and in_memory metadata_ts to determine whether to accept a new incoming metadata
-    /// for a given object. This is a message that pertains just to the fields protected by the metadata ts
-    fn handle_cloud_object_metadata_changed_event(
-        &mut self,
-        new_metadata: ServerMetadata,
-        ctx: &mut ModelContext<UpdateManager>,
-    ) {
-        let uid = new_metadata.uid.uid();
-
-        // Update in-memory model.
-        CloudModel::handle(ctx).update(ctx, |cloud_model, ctx| {
-            // Overwrite metadata fields. Additionally, check if any important changes have occurred that should
-            // trigger a custom UI treatment. For example, changing editors might trigger conflict resolution.
-            if cloud_model.maybe_update_object_metadata(&uid.clone(), new_metadata, false, ctx) {
-                // Update sqlite.
-                if let Some(cloud_object) = cloud_model.get_by_uid(&uid) {
-                    let metadata = cloud_object.metadata().clone();
-                    let id = cloud_object.cloud_object_type_and_id();
-                    let Some(server_id) = id.server_id() else {
-                        return;
-                    };
-                    let hashed_sqlite_id = server_id.sqlite_type_and_uid_hash(id.object_id_type());
-                    self.save_to_db([ModelEvent::UpdateObjectMetadata {
-                        id: hashed_sqlite_id,
-                        metadata,
-                    }]);
-                }
-            }
-        });
-    }
-
-    fn handle_cloud_object_deleted_event(
-        &mut self,
-        object_uid: ServerId,
-        ctx: &mut ModelContext<UpdateManager>,
-    ) {
-        self.on_object_delete_success(vec![object_uid.into()], ctx);
-        ctx.notify();
-    }
-
-    fn handle_object_action_event(
-        &mut self,
-        history: &ObjectActionHistory,
-        ctx: &mut ModelContext<UpdateManager>,
-    ) {
-        self.maybe_overwrite_object_action_history(history, ctx);
-        self.sync_actions_for_objects_to_sqlite(vec![&history.uid], ctx);
     }
 
     fn save_in_memory_object_to_sqlite(&mut self, cloud_model: &CloudModel, uid: &ObjectUid) {
@@ -467,77 +255,6 @@ impl UpdateManager {
         let (tx, rx) = oneshot::channel::<()>();
         let _ = tx.send(());
         rx
-    }
-
-    // Only process the permissions message if the timestamp is newer than the one we have in-memory or we don't
-    // have this object in memory. We won't have this object in memory in the case where this
-    // object is newly granted.
-    //
-    // Permissions messages actually can't be out-of-order because the rtc server ignores
-    // stale messages, but we could get a message that's staler than info compared to the initial load.
-    fn should_ignore_permissions_message(
-        &self,
-        object_uid: &ObjectUid,
-        last_updated_at: ServerTimestamp,
-        ctx: &mut ModelContext<UpdateManager>,
-    ) -> bool {
-        let cloud_model = CloudModel::as_ref(ctx);
-        if let Some(object) = cloud_model.get_by_uid(object_uid) {
-            if let Some(current_timestamp) = object.permissions().permissions_last_updated_ts {
-                if current_timestamp >= last_updated_at {
-                    return true;
-                }
-            }
-        }
-        false
-    }
-
-    fn handle_cloud_object_permissions_changed_v2_event(
-        &mut self,
-        object_uid: ServerId,
-        permissions: ServerPermissions,
-        profiles: Vec<UserProfileWithUID>,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let uid = object_uid.uid();
-        if self.should_ignore_permissions_message(
-            &uid,
-            permissions.permissions_last_updated_ts,
-            ctx,
-        ) {
-            return;
-        }
-
-        // The server only sends these messages if the user has access to the object.
-        // If the object is already in memory, we update its permissions. If not,
-        // assume we were granted access and fetch it.
-        let granted_access = CloudModel::handle(ctx).update(ctx, |cloud_model, ctx| {
-            let has_object = cloud_model.get_by_uid(&uid).is_some();
-            if has_object {
-                cloud_model.update_object_permissions(&uid, permissions, UpdateSource::Server, ctx);
-                self.save_in_memory_object_to_sqlite(cloud_model, &uid);
-            }
-
-            !has_object
-        });
-
-        if granted_access {
-            // If, between sending this request and receiving a response, we receive another
-            // message with the object content, ignore it. This might happen if someone shares and
-            // then immediately updates an object.
-            std::mem::drop(self.fetch_single_cloud_object(
-                &object_uid,
-                FetchSingleObjectOption::None,
-                ctx,
-            ));
-        }
-
-        if !profiles.is_empty() {
-            UserProfiles::handle(ctx).update(ctx, |user_profiles, _| {
-                user_profiles.insert_profiles(&profiles);
-            });
-            self.save_to_db([ModelEvent::UpsertUserProfiles { profiles }]);
-        }
     }
 
     /// Replace an object's data with the conflicting version from the server. If the object does
@@ -1408,10 +1125,10 @@ impl UpdateManager {
         model: M,
         owner: Owner,
         client_id: ClientId,
-        entrypoint: CloudObjectEventEntrypoint,
+        _entrypoint: CloudObjectEventEntrypoint,
         force_expand: bool,
         initial_folder_id: Option<SyncId>,
-        initiated_by: InitiatedBy,
+        _initiated_by: InitiatedBy,
         ctx: &mut ModelContext<Self>,
     ) where
         K: HashableId
@@ -1451,16 +1168,6 @@ impl UpdateManager {
             self.save_to_db([object.upsert_event()]);
         }
 
-        // Populate sync queue.
-        SyncQueue::handle(ctx).update(ctx, |sync_queue, ctx| {
-            let cloud_model = CloudModel::as_ref(ctx);
-            if let Some(object) = cloud_model.get_object_of_type::<K, M>(&object_id) {
-                if let Some(queue_item) = object.create_object_queue_item(entrypoint, initiated_by)
-                {
-                    sync_queue.enqueue(queue_item, ctx);
-                }
-            };
-        });
     }
 
     /// Create a new cloud object as an online-only operation.
@@ -1524,7 +1231,7 @@ impl UpdateManager {
         &mut self,
         model: M,
         object_id: SyncId,
-        revision_ts: Option<Revision>,
+        _revision_ts: Option<Revision>,
         ctx: &mut ModelContext<Self>,
     ) where
         K: HashableId
@@ -1553,13 +1260,6 @@ impl UpdateManager {
             self.save_to_db([object.upsert_event()]);
         };
 
-        // Populate sync queue.
-        SyncQueue::handle(ctx).update(ctx, |sync_queue, ctx| {
-            let cloud_model = CloudModel::as_ref(ctx);
-            if let Some(object) = cloud_model.get_object_of_type::<K, M>(&object_id) {
-                sync_queue.enqueue(object.update_object_queue_item(revision_ts), ctx);
-            };
-        });
     }
 
     // Takes a generic SyncId and records the action.
@@ -1588,58 +1288,6 @@ impl UpdateManager {
         // Update sqlite.
         self.save_to_db([ModelEvent::InsertObjectAction { object_action }]);
 
-        // Populate sync queue.
-        SyncQueue::handle(ctx).update(ctx, |sync_queue, ctx| {
-            sync_queue.enqueue(
-                QueueItem::RecordObjectAction {
-                    id_and_type,
-                    action_type,
-                    data,
-                    action_timestamp,
-                },
-                ctx,
-            );
-        });
-    }
-
-    fn maybe_overwrite_object_action_history(
-        &mut self,
-        history: &ObjectActionHistory,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        ObjectActions::handle(ctx).update(ctx, |object_actions_model, ctx| {
-            // Accept this action history if we don't have any actions for this object OR the server's latest action
-            // for this object is at least as recent as our latest synced action for this object
-            let latest_processed_at_ts =
-                object_actions_model.get_latest_processed_at_ts(&history.uid);
-            if latest_processed_at_ts
-                .is_none_or(|client_ts| client_ts <= history.latest_processed_at_timestamp)
-            {
-                // Overwrite the history for this object.
-                object_actions_model.overwrite_action_history_for_object(
-                    &history.uid,
-                    history.actions.clone(),
-                    ctx,
-                );
-            }
-        });
-    }
-
-    /// Overwrites the actions in SQLite for a specified set of objects with the actions that
-    /// are currently in the ObjectActions singleton model.
-    fn sync_actions_for_objects_to_sqlite(
-        &mut self,
-        object_uids: Vec<&ObjectUid>,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        // Retrieve the objects from the ObjectActions model
-        let actions = ObjectActions::handle(ctx).read(ctx, |object_actions_model, _ctx| {
-            object_actions_model.get_actions_for_objects(object_uids)
-        });
-
-        // Overwrite the actions for those objects in sqlite
-        let actions_to_sync: Vec<ObjectAction> = actions.values().flatten().cloned().collect();
-        self.save_to_db([ModelEvent::SyncObjectActions { actions_to_sync }]);
     }
 
     /// Sets the notebooks current editor in memory. SQLite is not updated until we receive

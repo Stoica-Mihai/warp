@@ -1,5 +1,4 @@
 use std::fmt::Debug;
-use std::sync::Arc;
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -9,17 +8,13 @@ pub use warp_server_client::ids::GenericStringObjectId;
 
 use crate::appearance::Appearance;
 use crate::cloud_object::{
-    CloudModelType, CloudObject, CloudObjectEventEntrypoint, CreateCloudObjectResult,
-    CreateObjectRequest, GenericCloudObject, GenericServerObject, GenericStringObjectFormat,
-    GenericStringObjectUniqueKey, ObjectType, Revision, UpdateCloudObjectResult,
+    CloudModelType, CloudObject, GenericCloudObject, GenericStringObjectFormat,
+    GenericStringObjectUniqueKey, ObjectType, SerializedModel,
 };
 use crate::drive::items::WarpDriveItem;
 use crate::drive::CloudObjectTypeAndId;
 use crate::persistence::ModelEvent;
-use crate::server::cloud_objects::update_manager::InitiatedBy;
-use crate::server::ids::{ServerId, SyncId};
-use crate::server::server_api::object::ObjectClient;
-use crate::server::sync_queue::{QueueItem, SerializedModel};
+use crate::server::ids::SyncId;
 
 /// A trait that generic string-based objects should implement.
 pub trait CloudStringObject: CloudObject + Send + Sync {
@@ -29,7 +24,7 @@ pub trait CloudStringObject: CloudObject + Send + Sync {
     /// Returns the id for this specific object.
     fn id(&self) -> SyncId;
 
-    /// Returns a serialized model from this string object.
+    /// Returns the serialized string representation of this object.
     fn serialized(&self) -> SerializedModel;
 
     /// Returns a cloned boxed version of this cloud object.
@@ -99,15 +94,6 @@ pub trait StringModel: Clone + Debug + PartialEq + Send + Sync + 'static {
         None
     }
 
-    /// Returns a sync queue item of this object that would allow it to be updated
-    /// properly on the server.  Takes an optional revision_ts to set as the revision
-    /// in the sync queue item.
-    fn update_object_queue_item(
-        &self,
-        revision_ts: Option<Revision>,
-        object: &Self::CloudObjectType,
-    ) -> QueueItem;
-
     /// Returns whether this model type should clear on a unique key conflict.
     fn should_clear_on_unique_key_conflict(&self) -> bool {
         false
@@ -138,6 +124,18 @@ where
     S: Serializer<M>,
 {
     pub string_model: M,
+}
+
+impl<M, S> GenericStringModel<M, S>
+where
+    M: StringModel<
+        CloudObjectType = GenericCloudObject<GenericStringObjectId, GenericStringModel<M, S>>,
+    >,
+    S: Serializer<M>,
+{
+    pub fn serialized(&self) -> SerializedModel {
+        S::serialize(&self.string_model)
+    }
 }
 
 impl<M, S> CloudStringObject for GenericCloudObject<GenericStringObjectId, GenericStringModel<M, S>>
@@ -241,96 +239,8 @@ where
         )
     }
 
-    fn create_object_queue_item(
-        &self,
-        object: &GenericCloudObject<GenericStringObjectId, Self>,
-        entrypoint: CloudObjectEventEntrypoint,
-        initiated_by: InitiatedBy,
-    ) -> Option<QueueItem> {
-        if let SyncId::ClientId(client_id) = object.id {
-            return Some(QueueItem::CreateObject {
-                object_type: self.object_type(),
-                owner: object.permissions.owner,
-                id: client_id,
-                title: None,
-                serialized_model: Some(object.model().serialized().into()),
-                initial_folder_id: object.metadata.folder_id,
-                entrypoint,
-                initiated_by,
-            });
-        }
-        None
-    }
-
-    fn update_object_queue_item(
-        &self,
-        revision_ts: Option<Revision>,
-        object: &GenericCloudObject<GenericStringObjectId, Self>,
-    ) -> QueueItem {
-        self.string_model
-            .update_object_queue_item(revision_ts, object)
-    }
-
     fn should_clear_on_unique_key_conflict(&self) -> bool {
         self.string_model.should_clear_on_unique_key_conflict()
-    }
-
-    fn should_update_after_server_conflict(&self) -> bool {
-        true
-    }
-
-    fn serialized(&self) -> SerializedModel {
-        S::serialize(&self.string_model)
-    }
-
-    async fn send_create_request(
-        object_client: Arc<dyn ObjectClient>,
-        request: CreateObjectRequest,
-    ) -> Result<CreateCloudObjectResult> {
-        let model_as_str = request
-            .serialized_model
-            .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("Missing serialized model"))?
-            .model_as_str();
-        let model = S::deserialize_owned(model_as_str)?;
-        object_client
-            .create_generic_string_object(M::model_format(), model.uniqueness_key(), request)
-            .await
-    }
-
-    async fn send_update_request(
-        &self,
-        object_client: Arc<dyn ObjectClient>,
-        server_id: ServerId,
-        revision: Option<Revision>,
-    ) -> Result<UpdateCloudObjectResult<GenericServerObject<GenericStringObjectId, Self>>> {
-        let revision =
-            if M::should_enforce_revisions() {
-                Some(revision.ok_or_else(|| {
-                    anyhow::anyhow!("Missing revision on update of generic object")
-                })?)
-            } else {
-                None
-            };
-        let res = object_client
-            .update_generic_string_object(server_id.into(), self.serialized(), revision)
-            .await;
-        res.and_then(|update_result| match update_result {
-            UpdateCloudObjectResult::Success {
-                revision_and_editor,
-            } => Ok(UpdateCloudObjectResult::Success {
-                revision_and_editor,
-            }),
-            UpdateCloudObjectResult::Rejected { object } => {
-                // Downcast to the concrete type to handle an update rejection (should be rare)
-                let concrete_object: Option<&GenericServerObject<GenericStringObjectId, Self>> =
-                    (&object).into();
-                let object = concrete_object
-                    .cloned()
-                    .ok_or_else(|| anyhow::anyhow!("Failed to convert object to concrete type"))?;
-                Ok(UpdateCloudObjectResult::Rejected { object })
-            }
-        })
     }
 
     fn renders_in_warp_drive(&self) -> bool {

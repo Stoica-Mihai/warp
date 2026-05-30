@@ -1,5 +1,4 @@
 use warp_core::ui::appearance::Appearance;
-use warp_server_client::cloud_object::ServerPermissions;
 use warpui::platform::WindowStyle;
 use warpui::{AddSingletonModel, App, SingletonEntity, TypedActionView, ViewHandle};
 
@@ -10,18 +9,15 @@ use crate::auth::AuthStateProvider;
 use crate::cloud_object::model::actions::ObjectActions;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::model::view::CloudViewModel;
-use crate::cloud_object::{
-    CloudObjectSyncStatus, ObjectIdType, ObjectType, Owner, ServerCreationInfo, Space,
-};
+use crate::cloud_object::{CloudObjectSyncStatus, ObjectType, Owner, Space};
 use crate::drive::items::WarpDriveItemId;
 use crate::drive::CloudObjectTypeAndId;
 use crate::menu::MenuItem;
 use crate::network::NetworkStatus;
 use crate::notebooks::{CloudNotebook, CloudNotebookModel};
 use crate::server::cloud_objects::update_manager::UpdateManager;
-use crate::server::ids::{ClientId, ServerIdAndType, SyncId};
+use crate::server::ids::{ClientId, SyncId};
 use crate::server::server_api::ServerApiProvider;
-use crate::server::sync_queue::{QueueItem, SyncQueue};
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
 use crate::test_util::settings::initialize_settings_for_tests;
 use crate::workflows::workflow::Workflow;
@@ -38,7 +34,6 @@ fn initialize_app(app: &mut App) {
     app.add_singleton_model(UserWorkspaces::default_mock);
     app.add_singleton_model(|_| NetworkStatus::new());
     app.add_singleton_model(|_| Appearance::mock());
-    app.add_singleton_model(SyncQueue::mock);
     app.add_singleton_model(|_| ServerApiProvider::new_for_test());
     app.add_singleton_model(|_| AuthStateProvider::new_for_test());
     app.add_singleton_model(AuthManager::new_for_test);
@@ -160,82 +155,6 @@ fn test_retry_menu_item_visibility() {
             assert_eq!(label_for_menu_item(&menu_items[2]), "Share");
             assert_eq!(label_for_menu_item(&menu_items[3]), "Duplicate");
             assert_eq!(label_for_menu_item(&menu_items[4]), "Export");
-        });
-    })
-}
-
-#[test]
-fn test_retry_menu_item_logic() {
-    App::test(ASSETS, |mut app| async move {
-        initialize_app(&mut app);
-        let index = create_index(&mut app);
-        let sync_id = create_workflow(&mut app);
-        let cloud_object_type_and_id: CloudObjectTypeAndId =
-            CloudObjectTypeAndId::from_id_and_type(sync_id, ObjectType::Workflow);
-
-        SyncQueue::handle(&app).update(&mut app, |sync_queue, _ctx| {
-            sync_queue.stop_dequeueing();
-            assert_eq!(sync_queue.queue().len(), 0);
-        });
-
-        index.update(&mut app, |index, ctx| {
-            index.retry_failed_object(&cloud_object_type_and_id, ctx);
-        });
-
-        // the item is now in flight
-        CloudModel::handle(&app).update(&mut app, |cloud_model, _ctx| {
-            if let Some(object) = cloud_model.get_mut_by_uid(&cloud_object_type_and_id.uid()) {
-                assert!(object.metadata().has_pending_content_changes());
-            }
-        });
-
-        // with an object not known to the server, we enqueue a CreateWorkflow item
-        SyncQueue::handle(&app).read(&app, |sync_queue, _ctx| {
-            assert_eq!(sync_queue.queue().len(), 1);
-            assert!(matches!(
-                sync_queue.queue()[0].1,
-                QueueItem::CreateWorkflow { .. }
-            ))
-        });
-
-        let new_sync_id: SyncId = SyncId::ServerId(1.into());
-
-        // make the object known to the server (by giving it a server id instead)
-        CloudModel::handle(&app).update(&mut app, |cloud_model, ctx| {
-            if let CloudObjectTypeAndId::Workflow(SyncId::ClientId(client_id)) =
-                cloud_object_type_and_id
-            {
-                if let SyncId::ServerId(server_id) = new_sync_id {
-                    let server_creation_info = ServerCreationInfo {
-                        server_id_and_type: ServerIdAndType {
-                            id: server_id,
-                            id_type: ObjectIdType::Workflow,
-                        },
-                        creator_uid: None,
-                        permissions: ServerPermissions::mock_personal(),
-                    };
-                    cloud_model.update_object_after_server_creation(
-                        client_id,
-                        server_creation_info,
-                        ctx,
-                    );
-                }
-            }
-        });
-
-        index.update(&mut app, |index, ctx| {
-            let new_cloud_object_type_and_id: CloudObjectTypeAndId =
-                CloudObjectTypeAndId::from_id_and_type(new_sync_id, ObjectType::Workflow);
-            index.retry_failed_object(&new_cloud_object_type_and_id, ctx);
-        });
-
-        // with an object known to the server, we enqueue an UpdateWorkflow item
-        SyncQueue::handle(&app).read(&app, |sync_queue, _ctx| {
-            assert_eq!(sync_queue.queue().len(), 2);
-            assert!(matches!(
-                sync_queue.queue()[1].1,
-                QueueItem::UpdateWorkflow { .. }
-            ))
         });
     })
 }

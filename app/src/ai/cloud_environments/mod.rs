@@ -11,9 +11,7 @@ use crate::cloud_object::model::generic_string_model::{
 use crate::cloud_object::model::json_model::{JsonModel, JsonSerializer};
 use crate::cloud_object::{
     GenericCloudObject, GenericStringObjectFormat, GenericStringObjectUniqueKey, JsonObjectType,
-    Revision,
 };
-use crate::server::sync_queue::QueueItem;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -146,17 +144,6 @@ impl StringModel for AmbientAgentEnvironment {
         self.name.clone()
     }
 
-    fn update_object_queue_item(
-        &self,
-        revision_ts: Option<Revision>,
-        object: &CloudAmbientAgentEnvironment,
-    ) -> QueueItem {
-        QueueItem::UpdateCloudEnvironment {
-            model: object.model().clone().into(),
-            id: object.id,
-            revision: revision_ts.or_else(|| object.metadata.revision.clone()),
-        }
-    }
 
     fn uniqueness_key(&self) -> Option<GenericStringObjectUniqueKey> {
         None

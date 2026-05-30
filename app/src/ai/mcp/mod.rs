@@ -17,7 +17,7 @@ use crate::cloud_object::model::generic_string_model::{
 use crate::cloud_object::model::json_model::{JsonModel, JsonSerializer};
 use crate::cloud_object::{
     CloudObjectUuid, GenericCloudObject, GenericStringObjectFormat, GenericStringObjectUniqueKey,
-    JsonObjectType, Revision,
+    JsonObjectType,
 };
 use crate::drive::items::mcp_server::WarpDriveMCPServer;
 use crate::drive::items::WarpDriveItem;
@@ -27,7 +27,6 @@ use crate::persistence::model::MCPEnvironmentVariables;
 #[cfg(not(target_family = "wasm"))]
 use crate::server::datetime_ext::DateTimeExt;
 use crate::server::ids::SyncId;
-use crate::server::sync_queue::QueueItem;
 
 pub mod manager;
 pub mod templatable_manager;
@@ -193,17 +192,6 @@ impl StringModel for MCPServer {
         self.name.clone()
     }
 
-    fn update_object_queue_item(
-        &self,
-        revision_ts: Option<Revision>,
-        object: &Self::CloudObjectType,
-    ) -> QueueItem {
-        QueueItem::UpdateMCPServer {
-            model: object.model().clone().into(),
-            id: object.id,
-            revision: revision_ts.or_else(|| object.metadata.revision.clone()),
-        }
-    }
 
     fn uniqueness_key(&self) -> Option<GenericStringObjectUniqueKey> {
         None

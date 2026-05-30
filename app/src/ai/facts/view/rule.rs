@@ -35,7 +35,6 @@ use crate::network::NetworkStatus;
 use crate::search_bar::SearchBar;
 use crate::server::cloud_objects::update_manager::{UpdateManager, UpdateManagerEvent};
 use crate::server::ids::{ClientId, SyncId};
-use crate::server::sync_queue::SyncQueue;
 use crate::settings::{AISettings, AISettingsChangedEvent};
 use crate::ui_components::icons::Icon;
 use crate::view_components::action_button::{ActionButton, NakedTheme};
@@ -677,7 +676,7 @@ impl RuleView {
 
         let item = ai_row.fact.to_warp_drive_item(appearance)?;
         let icon = item.sync_status_icon(
-            SyncQueue::as_ref(app).is_dequeueing(),
+            false,
             ai_row.mouse_states.sync_status_icon.clone(),
             appearance,
         )?;

@@ -1,7 +1,6 @@
 use std::any::Any;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
-use std::sync::Arc;
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -38,10 +37,7 @@ use crate::drive::{CloudObjectTypeAndId, OpenWarpDriveObjectArgs, OpenWarpDriveO
 use crate::env_vars::CloudEnvVarCollectionModel;
 use crate::notebooks::{CloudNotebookModel, NotebookId};
 use crate::persistence::ModelEvent;
-use crate::server::cloud_objects::update_manager::InitiatedBy;
 use crate::server::ids::{HashableId, HashedSqliteId, ObjectUid, ServerId, SyncId, ToServerId};
-use crate::server::server_api::object::ObjectClient;
-use crate::server::sync_queue::{QueueItem, SerializedModel};
 use crate::settings::cloud_preferences::CloudPreferenceModel;
 use crate::util::time_format::format_approx_duration_from_now_utc;
 use crate::workflows::workflow_enum::CloudWorkflowEnumModel;
@@ -148,20 +144,6 @@ pub trait CloudObject: Debug {
     /// Returns an optional UpdatedObjectInput to use during initial load, where
     /// the object's timestamps are sent to the server for comparison
     fn versions(&self, app: &AppContext) -> Option<UpdatedObjectInput>;
-
-    /// Returns an optional sync queue item of this object that would allow it to
-    /// created properly on the server. Returns None if it's already been created
-    /// server-side.
-    fn create_object_queue_item(
-        &self,
-        entrypoint: CloudObjectEventEntrypoint,
-        initiated_by: InitiatedBy,
-    ) -> Option<QueueItem>;
-
-    /// Returns a sync queue item of this object that would allow it to be updated
-    /// properly on the server.  Takes an optional revision_ts to set as the revision
-    /// in the sync queue item.
-    fn update_object_queue_item(&self, revision_ts: Option<Revision>) -> QueueItem;
 
     /// Returns whether this model type should render as a warp drive item.
     fn renders_in_warp_drive(&self) -> bool;
@@ -485,39 +467,6 @@ pub trait CloudModelType: Debug + Clone + Send + Sync {
     where
         Self: Sized;
 
-    /// Returns the sync queue item for creating this model on the server.
-    fn create_object_queue_item(
-        &self,
-        object: &Self::CloudObjectType,
-        entrypoint: CloudObjectEventEntrypoint,
-        initiated_by: InitiatedBy,
-    ) -> Option<QueueItem>;
-
-    /// Returns the sync queue item for updating this model on the server.
-    /// Takes an optional revision timestamp to set in the queue item.
-    fn update_object_queue_item(
-        &self,
-        revision_ts: Option<Revision>,
-        object: &Self::CloudObjectType,
-    ) -> QueueItem;
-
-    /// Returns a serialized model.
-    fn serialized(&self) -> SerializedModel;
-
-    /// Sends a request to the server to create this model.
-    async fn send_create_request(
-        object_client: Arc<dyn ObjectClient>,
-        request: CreateObjectRequest,
-    ) -> Result<CreateCloudObjectResult>;
-
-    /// Sends a request to the server to update this model.
-    async fn send_update_request(
-        &self,
-        object_client: Arc<dyn ObjectClient>,
-        server_id: ServerId,
-        revision: Option<Revision>,
-    ) -> Result<UpdateCloudObjectResult<GenericServerObject<Self::IdType, Self>>>;
-
     /// Returns whether this model type supports being moved to the given space.
     fn can_move_to_space(&self, _current_space: Space, _new_space: Space) -> bool {
         true
@@ -536,8 +485,6 @@ pub trait CloudModelType: Debug + Clone + Send + Sync {
     /// Note that for now the only model type that this is relevant for is Notebooks,
     /// where we show a banner in case of conflicts and ask users to manually take action.
     /// For other types we typically just want to replace the local object with the server
-    /// revision, which doesn't go through this code path.
-    fn should_update_after_server_conflict(&self) -> bool;
 
     /// Whether this model type can be exported.
     fn can_export(&self) -> bool {
@@ -682,17 +629,12 @@ where
         self.set_pending_content_changes_status(CloudObjectSyncStatus::NoLocalChanges);
 
         if let ConflictStatus::ConflictingChanges { object } = new_conflict {
-            if self.model().should_update_after_server_conflict() {
-                // Update metadata revision from the server object.
-                self.metadata.update_revision_from_server(&object.metadata);
-                // Update the model from the server.
-                self.set_model(object.model.clone());
-                // Update conflict status - this may create a new conflict if there are pending changes.
-                if self.metadata.has_pending_content_changes() {
-                    self.conflict_status = ConflictStatus::ConflictingChanges { object };
-                } else {
-                    self.conflict_status = ConflictStatus::NoConflicts;
-                }
+            self.metadata.update_revision_from_server(&object.metadata);
+            self.set_model(object.model.clone());
+            if self.metadata.has_pending_content_changes() {
+                self.conflict_status = ConflictStatus::ConflictingChanges { object };
+            } else {
+                self.conflict_status = ConflictStatus::NoConflicts;
             }
         }
     }
@@ -762,19 +704,6 @@ where
             }
             _ => None,
         }
-    }
-
-    fn create_object_queue_item(
-        &self,
-        entrypoint: CloudObjectEventEntrypoint,
-        initiated_by: InitiatedBy,
-    ) -> Option<QueueItem> {
-        self.model()
-            .create_object_queue_item(self, entrypoint, initiated_by)
-    }
-
-    fn update_object_queue_item(&self, revision_ts: Option<Revision>) -> QueueItem {
-        self.model().update_object_queue_item(revision_ts, self)
     }
 
     fn renders_in_warp_drive(&self) -> bool {
@@ -1010,17 +939,6 @@ fn get_top_folder_trashed_ts(
         }
     }
     None
-}
-
-#[derive(Clone, Debug)]
-pub enum ObjectMetadataUpdateResult {
-    Success { metadata: Box<ServerMetadata> },
-    Failure,
-}
-
-pub enum ObjectDeleteResult {
-    Success { deleted_ids: Vec<SyncId> },
-    Failure,
 }
 
 /// A cloud object from the server.

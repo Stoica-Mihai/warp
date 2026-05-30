@@ -8,10 +8,8 @@ use crate::cloud_object::model::generic_string_model::{
 use crate::cloud_object::model::json_model::{JsonModel, JsonSerializer};
 use crate::cloud_object::{
     GenericCloudObject, GenericStringObjectFormat, GenericStringObjectUniqueKey, JsonObjectType,
-    Revision,
 };
 use crate::server::server_api::ai::AgentConfigSnapshot;
-use crate::server::sync_queue::QueueItem;
 
 /// A CloudAgentConfig represents a saved agent configuration that can be referenced
 /// when running agents via `--agent-id`.
@@ -74,17 +72,6 @@ impl StringModel for AgentConfig {
         self.name.clone()
     }
 
-    fn update_object_queue_item(
-        &self,
-        revision_ts: Option<Revision>,
-        object: &CloudAgentConfig,
-    ) -> QueueItem {
-        QueueItem::UpdateCloudAgentConfig {
-            model: object.model().clone().into(),
-            id: object.id,
-            revision: revision_ts.or_else(|| object.metadata.revision.clone()),
-        }
-    }
 
     fn uniqueness_key(&self) -> Option<GenericStringObjectUniqueKey> {
         None

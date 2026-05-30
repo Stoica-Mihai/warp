@@ -16,7 +16,7 @@ use crate::cloud_object::model::json_model::{JsonModel, JsonSerializer};
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::{
     CloudObjectLookup as _, GenericCloudObject, GenericStringObjectFormat,
-    GenericStringObjectUniqueKey, JsonObjectType, Owner, Revision,
+    GenericStringObjectUniqueKey, JsonObjectType, Owner,
 };
 use crate::drive::CloudObjectTypeAndId;
 use crate::server::cloud_objects::update_manager::{
@@ -24,7 +24,6 @@ use crate::server::cloud_objects::update_manager::{
 };
 use crate::server::ids::{ClientId, SyncId};
 use crate::server::server_api::ServerApiProvider;
-use crate::server::sync_queue::QueueItem;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 /// A ScheduledAmbientAgent represents configuration for ambient agents that run on a cron schedule.
@@ -86,17 +85,6 @@ impl StringModel for ScheduledAmbientAgent {
         self.name.clone()
     }
 
-    fn update_object_queue_item(
-        &self,
-        revision_ts: Option<Revision>,
-        object: &CloudScheduledAmbientAgent,
-    ) -> QueueItem {
-        QueueItem::UpdateScheduledAmbientAgent {
-            model: object.model().clone().into(),
-            id: object.id,
-            revision: revision_ts.or_else(|| object.metadata.revision.clone()),
-        }
-    }
 
     fn uniqueness_key(&self) -> Option<GenericStringObjectUniqueKey> {
         None
