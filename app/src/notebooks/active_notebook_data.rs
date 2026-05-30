@@ -6,7 +6,8 @@ use crate::cloud_object::breadcrumbs::ContainingObject;
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
 use crate::cloud_object::model::view::{CloudViewModel, Editor, EditorState};
 use crate::cloud_object::{CloudObject, Owner, Space};
-use crate::drive::sharing::{ContentEditability, SharingAccessLevel};
+use crate::cloud_object::model::view::ContentEditability;
+use warp_server_client::drive::sharing::SharingAccessLevel;
 use crate::notebooks::CloudNotebook;
 use crate::server::cloud_objects::update_manager::{
     ObjectOperation, OperationSuccessType, UpdateManager, UpdateManagerEvent,

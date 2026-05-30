@@ -9,15 +9,32 @@ use super::persistence::{CloudModel, CloudModelEvent};
 use crate::auth::{AuthStateProvider, UserUid};
 use crate::cloud_object::{CloudObject, CloudObjectLocation, Space};
 use crate::drive::folders::CloudFolder;
-use crate::drive::sharing::{ContentEditability, SharingAccessLevel};
 use crate::safe_info;
 use crate::server::cloud_objects::update_manager::{
     ObjectOperation, OperationSuccessType, UpdateManager, UpdateManagerEvent,
 };
 use crate::server::ids::{ObjectUid, SyncId};
 use crate::workspaces::user_profiles::UserProfiles;
+use warp_server_client::drive::sharing::SharingAccessLevel;
 
 pub const EDITOR_TIMEOUT_DURATION_MINUTES: i64 = 15;
+
+/// Whether or not a shared object's contents are editable by the current user.
+///
+/// Not purely a function of access level: anonymous users are not allowed to edit (lack of
+/// attribution).
+#[derive(Debug, Clone, Copy)]
+pub enum ContentEditability {
+    ReadOnly,
+    RequiresLogin,
+    Editable,
+}
+
+impl ContentEditability {
+    pub fn can_edit(self) -> bool {
+        matches!(self, ContentEditability::Editable)
+    }
+}
 
 #[derive(Default, Clone, Debug, PartialEq)]
 pub enum EditorState {

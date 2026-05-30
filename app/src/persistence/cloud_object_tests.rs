@@ -3,7 +3,7 @@ use session_sharing_protocol::common::{InputReplicaId, ProfileData};
 
 use crate::auth::UserUid;
 use crate::cloud_object::{CloudObjectGuest, ServerObjectContainer};
-use crate::drive::sharing::{
+use warp_server_client::drive::sharing::{
     LinkSharingSubjectType, SharingAccessLevel, Subject, TeamKind, UserKind,
 };
 use crate::server::ids::ServerId;

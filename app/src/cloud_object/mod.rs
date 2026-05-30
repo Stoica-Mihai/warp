@@ -46,7 +46,7 @@ use crate::settings::cloud_preferences::CloudPreferenceModel;
 use crate::util::time_format::format_approx_duration_from_now_utc;
 use crate::workflows::workflow_enum::CloudWorkflowEnumModel;
 use crate::workflows::{CloudWorkflow, CloudWorkflowModel, WorkflowId, WorkflowSource};
-use crate::workspaces::user_profiles::{UserProfileWithUID, UserProfiles};
+use crate::workspaces::user_profiles::UserProfiles;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 
 pub mod breadcrumbs;
@@ -1010,21 +1010,6 @@ fn get_top_folder_trashed_ts(
         }
     }
     None
-}
-
-#[derive(Clone, Debug)]
-pub enum ObjectPermissionUpdateResult {
-    Success, // TODO: we should return the full permissions here
-    Failure,
-}
-
-#[derive(Clone, Debug)]
-pub struct ObjectPermissionsUpdateData {
-    /// Updated permissions for the modified object.
-    pub permissions: ServerPermissions,
-    /// Relevant user profiles for the permissions change. This is not *all* profiles that the user
-    /// should have access to.
-    pub profiles: Vec<UserProfileWithUID>,
 }
 
 #[derive(Clone, Debug)]
