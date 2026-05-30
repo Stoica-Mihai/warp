@@ -1096,14 +1096,6 @@ impl BlocklistAIController {
         is_queued_prompt: bool,
         ctx: &mut ModelContext<Self>,
     ) {
-        let is_viewer = self
-            .terminal_model
-            .lock()
-            .shared_session_status()
-            .is_viewer();
-        if is_viewer {
-            log::error!("Viewers should never attempt to send queries directly");
-        }
 
         // Ensure we capture all pending context blocks before promoting and attaching them to the conversation.
         let context_block_ids = self

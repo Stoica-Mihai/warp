@@ -1,38 +1,12 @@
 //! Vestigial session-sharing leftovers.
 //!
-//! Warp's terminal session-sharing feature (sharing a live session over the
-//! cloud for another user to join/view) has been stripped — the engine,
-//! network, viewer/sharer, presence and UI machinery are gone. A few small
-//! leaf types survive so the read-sites that gate terminal behaviour on
-//! session role keep compiling: `SharedSessionStatus` collapses to a single
-//! `NotShared` state (every predicate reports the no-sharing answer), and
-//! `IsSharedSessionCreator` collapses to `No`. Removing those read-sites is
-//! deferred.
+//! Warp's terminal session-sharing (cloud feature) has been stripped. A few
+//! plain data types survive for sites that haven't been fully cleaned up yet.
 
 use session_sharing_protocol::common::SessionId;
 use session_sharing_protocol::sharer::SessionSourceType;
 
 use crate::channel::ChannelState;
-
-#[derive(Debug, Clone, Default)]
-pub enum SharedSessionStatus {
-    #[default]
-    NotShared,
-}
-
-impl SharedSessionStatus {
-    pub fn is_view_pending(&self) -> bool { false }
-    pub fn is_active_viewer(&self) -> bool { false }
-    pub fn is_finished_viewer(&self) -> bool { false }
-    pub fn is_viewer(&self) -> bool { false }
-    pub fn is_executor(&self) -> bool { false }
-    pub fn is_reader(&self) -> bool { false }
-    pub fn is_share_pending(&self) -> bool { false }
-    pub fn is_active_sharer(&self) -> bool { false }
-    pub fn is_sharer(&self) -> bool { false }
-    pub fn is_sharer_or_viewer(&self) -> bool { false }
-    pub fn as_keymap_context(&self) -> &'static str { "SharedSessionStatus_NotShared" }
-}
 
 #[derive(Debug, Clone, Default)]
 pub enum IsSharedSessionCreator {

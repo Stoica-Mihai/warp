@@ -1015,7 +1015,6 @@ impl View for AIBlock {
 
         let has_accepted_edits = self.has_accepted_file_edits_since_last_query(app);
         let terminal_model = self.terminal_model.lock();
-        let shared_session_status = terminal_model.shared_session_status().clone();
         let is_conversation_transcript_viewer = terminal_model.is_conversation_transcript_viewer();
 
         let is_cloud_agent_pre_first_exchange = is_cloud_agent_pre_first_exchange(
@@ -1075,7 +1074,6 @@ impl View for AIBlock {
                 current_todo_list: self.current_todo_list(app),
                 finish_reason: self.finish_reason.as_ref(),
                 is_usage_footer_expanded: self.is_usage_footer_expanded,
-                shared_session_status: &shared_session_status,
                 terminal_view_id: self.terminal_view_id,
                 is_conversation_transcript_viewer,
                 aws_bedrock_credentials_error_view: self

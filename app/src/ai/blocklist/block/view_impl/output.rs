@@ -109,7 +109,6 @@ use crate::appearance::Appearance;
 use crate::code::diff_viewer::DisplayMode;
 use crate::code::editor_management::CodeSource;
 use crate::settings_view::SettingsSection;
-use crate::terminal::shared_session::SharedSessionStatus;
 use crate::terminal::ShellLaunchData;
 use crate::ui_components::blended_colors;
 use crate::ui_components::buttons::icon_button;
@@ -167,7 +166,6 @@ pub(crate) struct Props<'a> {
     pub(super) has_accepted_edits: bool,
     pub(super) finish_reason: Option<&'a FinishReason>,
     pub(super) is_usage_footer_expanded: bool,
-    pub(super) shared_session_status: &'a SharedSessionStatus,
     pub(super) terminal_view_id: EntityId,
     pub(super) is_conversation_transcript_viewer: bool,
     pub(super) aws_bedrock_credentials_error_view:
@@ -2274,20 +2272,6 @@ fn render_suggest_new_conversation(
         );
     }
 
-    if props.shared_session_status.is_viewer() {
-        let header_element = HeaderConfig::new("Start a new conversation", app)
-            .with_icon(gray_stop_icon(appearance))
-            .render(app);
-
-        return Some(
-            header_element
-                .with_agent_output_item_spacing(app)
-                .with_corner_radius(CornerRadius::with_all(Radius::Pixels(8.)))
-                .with_background_color(blended_colors::neutral_2(theme))
-                .finish(),
-        );
-    }
-
     let mut content = Flex::column().with_cross_axis_alignment(CrossAxisAlignment::Stretch);
 
     let new_conversation_header_text =
@@ -3157,7 +3141,7 @@ fn render_response_footer(props: Props, app: &AppContext) -> Option<Box<dyn Elem
         );
     }
 
-    if !props.shared_session_status.is_finished_viewer() && !FeatureFlag::AgentView.is_enabled() {
+    if !FeatureFlag::AgentView.is_enabled() {
         let ui_builder = appearance.ui_builder().clone();
         let continue_button = icon_button(
             appearance,
@@ -3210,7 +3194,7 @@ fn render_response_footer(props: Props, app: &AppContext) -> Option<Box<dyn Elem
     flex.add_child(render_usage_button(props, app));
 
     // Review changes button.
-    if props.has_accepted_edits && !props.shared_session_status.is_viewer() {
+    if props.has_accepted_edits {
         // Only show Review Changes button if we're in a git repository
         let is_in_git_repo = props
             .current_working_directory
@@ -3228,7 +3212,7 @@ fn render_response_footer(props: Props, app: &AppContext) -> Option<Box<dyn Elem
     }
 
     // "Open all review comments" bulk-import button.
-    if props.conversation_has_imported_comments && !props.shared_session_status.is_viewer() {
+    if props.conversation_has_imported_comments {
         flex.add_child(
             Container::new(ChildView::new(props.open_all_comments_button).finish())
                 .with_margin_left(4.)

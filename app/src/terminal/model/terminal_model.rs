@@ -76,7 +76,7 @@ use crate::terminal::model::index::VisibleRow;
 use crate::terminal::model::iterm_image::{ITermImage, ITermImageMetadata};
 use crate::terminal::model::secrets::ObfuscateSecrets;
 use crate::terminal::model::session::SessionInfo;
-use crate::terminal::shared_session::{SharedSessionSource, SharedSessionStatus};
+use crate::terminal::shared_session::SharedSessionSource;
 use crate::terminal::shell::ShellType;
 use crate::terminal::ssh::util::{InteractiveSshCommand, SshLoginState};
 use crate::terminal::{
@@ -557,8 +557,6 @@ pub struct TerminalModel {
     /// Whether or not to respect secrets that are obfuscated, respecting the Safe Mode/Secret Redaction setting.
     obfuscate_secrets: ObfuscateSecrets,
 
-    shared_session_status: SharedSessionStatus,
-
     /// `SessionSourceType` paired with `source_task_id`, or `None` when
     /// this is not a shared session.
     shared_session_source: Option<SharedSessionSource>,
@@ -577,8 +575,6 @@ pub struct TerminalModel {
     /// `send`s via the [`TerminalModel`] will be synchronized.
     ///
     /// This field is only [`Some`] if this session is shared.
-    /// TODO: consider combining this with `shared_session_status` because
-    /// the state can technically diverge.
     ordered_terminal_events_for_shared_session_tx: Option<Sender<OrderedTerminalEventType>>,
 
     /// A sender for write to pty events for a shared session viewer.
@@ -1094,7 +1090,6 @@ impl TerminalModel {
         is_ai_ugc_telemetry_enabled: bool,
         session_startup_path: Option<PathBuf>,
         shell_state: ShellLaunchState,
-        shared_session_status: SharedSessionStatus,
         is_dummy_cloud_mode_session: bool,
     ) -> Self {
         let alt_screen = AltScreen::new(
@@ -1146,7 +1141,6 @@ impl TerminalModel {
             env_var_collection_name: None,
             shell_launch_state: shell_state,
             obfuscate_secrets,
-            shared_session_status,
             shared_session_source: None,
             is_dummy_cloud_mode_session,
             conversation_transcript_viewer_status: None,
@@ -1196,7 +1190,6 @@ impl TerminalModel {
             is_ai_ugc_telemetry_enabled,
             session_startup_path,
             shell_state,
-            SharedSessionStatus::NotShared,
             false,
         )
     }
@@ -1278,8 +1271,6 @@ impl TerminalModel {
     // terminal model for the viewers so that we're guaranteed that
     // loading scrollback is the first thing that we do.
     pub fn load_shared_session_scrollback(&mut self, scrollback: &[SerializedBlock]) {
-        debug_assert!(self.shared_session_status().is_viewer());
-
         self.block_list_mut()
             .load_shared_session_scrollback(scrollback);
 
@@ -1288,8 +1279,6 @@ impl TerminalModel {
     }
 
     pub fn append_followup_shared_session_scrollback(&mut self, scrollback: &[SerializedBlock]) {
-        debug_assert!(self.shared_session_status().is_viewer());
-
         self.block_list_mut()
             .append_followup_shared_session_scrollback(scrollback);
 
@@ -1335,9 +1324,7 @@ impl TerminalModel {
     }
 
     pub fn is_read_only(&self) -> bool {
-        self.handled_exit
-            || self.is_conversation_transcript_viewer()
-            || self.shared_session_status().is_finished_viewer()
+        self.handled_exit || self.is_conversation_transcript_viewer()
     }
 
     pub fn is_conversation_transcript_viewer(&self) -> bool {
@@ -1726,18 +1713,8 @@ impl TerminalModel {
         }
     }
 
-    pub fn shared_session_status(&self) -> &SharedSessionStatus {
-        &self.shared_session_status
-    }
-
-    pub fn set_shared_session_status(&mut self, shared_session_status: SharedSessionStatus) {
-        self.shared_session_status = shared_session_status;
-    }
-
     /// Returns whether this terminal is viewing a shared session.
-    pub fn is_shared_session_viewer(&self) -> bool {
-        self.shared_session_status.is_viewer()
-    }
+    pub fn is_shared_session_viewer(&self) -> bool { false }
 
     /// Resize terminal to new dimensions.
     /// The block sort direction is needed to update the state of the find dialog.
@@ -1752,17 +1729,9 @@ impl TerminalModel {
         {
             self.alt_screen.resize(&size_update);
 
-            // Don't reflow old blocks for shared session size updates:
-            // - Viewers skip reflow when the sharer's size changed
-            //   (viewers can still reflow via their own pane/font resizes).
-            // - Sharers skip reflow when honoring a viewer's reported size
-            //   (the viewer's smaller size is transient and shouldn't reshape history).
+            // Sharers skip reflow when honoring a viewer's reported size
+            // (the viewer's smaller size is transient and shouldn't reshape history).
             let update_old_blocks = match size_update.update_reason {
-                SizeUpdateReason::SharerSizeChanged { .. }
-                    if self.shared_session_status().is_viewer() =>
-                {
-                    false
-                }
                 SizeUpdateReason::ViewerSizeReported { .. } => false,
                 _ => true,
             };
@@ -1883,12 +1852,6 @@ impl TerminalModel {
 
     /// Sets whether any content within a grid that is "secret-like" should be obfuscated.
     pub fn set_obfuscate_secrets(&mut self, obfuscate_secrets: ObfuscateSecrets) {
-        // Secret obfuscation is forced off in shared sessions so changing
-        // the setting during a shared session should be a no-op (for this session).
-        if self.shared_session_status.is_sharer_or_viewer() {
-            return;
-        }
-
         self.obfuscate_secrets = obfuscate_secrets;
         self.alt_screen.set_obfuscate_secrets(obfuscate_secrets);
         self.block_list.set_obfuscate_secrets(obfuscate_secrets);
@@ -1902,13 +1865,6 @@ impl TerminalModel {
         &mut self,
         first_scrollback_block_index: BlockIndex,
     ) {
-        if !self.shared_session_status.is_sharer() {
-            log::warn!(
-                "Tried to disable secret obfuscation without being a shared session creator."
-            );
-            return;
-        }
-
         let setting = ObfuscateSecrets::No;
         self.obfuscate_secrets = setting;
 
@@ -2930,21 +2886,6 @@ impl ansi::Handler for TerminalModel {
 
         // Send a copy of the bytes to subscribers.
         self.event_proxy.send_pty_read_event(bytes);
-
-        // Send a copy of the bytes for the active shared session, if applicable.
-        // When processing a synchronized output frame, `on_finish_byte_processing` is called
-        // both when the frame is flushed and when we initially process the raw bytes (the ordering of the two
-        // depends on whether we receive the start and end markers in the same batch of bytes). We only want to send
-        // the raw bytes to viewers, not the flushed frame - they'll handle the synchronized output framing themselves.
-        if !input.is_synchronized_output_frame() && self.shared_session_status().is_sharer() {
-            if let Some(tx) = &self.ordered_terminal_events_for_shared_session_tx {
-                if let Err(e) = tx.try_send(OrderedTerminalEventType::PtyBytesRead {
-                    bytes: bytes.to_owned(),
-                }) {
-                    log::warn!("Failed to send OrderedTerminalEventType::PtyBytesRead: {e}");
-                }
-            }
-        }
 
         delegate!(self.on_finish_byte_processing(input))
     }

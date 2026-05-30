@@ -82,9 +82,7 @@ use crate::terminal::keys::TerminalKeybindings;
 use crate::terminal::local_tty::spawner::PtySpawner;
 use crate::terminal::model::terminal_model::ConversationTranscriptViewerStatus;
 use crate::terminal::resizable_data::ResizableData;
-use crate::terminal::shared_session::{
-    IsSharedSessionCreator, SharedSessionStatus,
-};
+use crate::terminal::shared_session::IsSharedSessionCreator;
 use crate::test_util::settings::initialize_settings_for_tests;
 use crate::undo_close::UndoCloseStack;
 use crate::warp_managed_paths_watcher::WarpManagedPathsWatcher;
@@ -1004,10 +1002,6 @@ fn test_ambient_transcript_restore_creates_cloud_mode_pane_when_handoff_enabled(
             let model = view.model.lock();
             assert!(!model.is_conversation_transcript_viewer());
             assert!(!model.is_read_only());
-            assert!(matches!(
-                model.shared_session_status(),
-                SharedSessionStatus::NotShared
-            ));
         });
     });
 }

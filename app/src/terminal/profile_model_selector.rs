@@ -1630,20 +1630,8 @@ impl ProfileModelSelector {
         let theme = appearance.theme();
         let llm_preferences = LLMPreferences::as_ref(app);
 
-        // Allow editing if composing an ambient agent query, or if the user has edit access
-        // in a shared session (i.e., not a viewer, or is an executor).
-        let is_composing_ambient_agent =
-            self.ambient_agent_view_model
-                .as_ref()
-                .is_some_and(|ambient_agent_model| {
-                    ambient_agent_model
-                        .as_ref(app)
-                        .is_configuring_ambient_agent()
-                });
         let terminal_model = self.terminal_model.lock();
-        let has_edit_access = is_composing_ambient_agent
-            || !terminal_model.shared_session_status().is_viewer()
-            || terminal_model.shared_session_status().is_executor();
+        let has_edit_access = true;
         let is_lrc = FeatureFlag::InlineMenuHeaders.is_enabled()
             && terminal_model
                 .block_list()
@@ -2186,19 +2174,10 @@ impl View for ProfileModelSelector {
         let profiles_model = AIExecutionProfilesModel::as_ref(app);
         let has_multiple_profiles = profiles_model.has_multiple_profiles();
 
-        // Check if user is a viewer in a shared session
-        let is_viewer = self
-            .terminal_model
-            .lock()
-            .shared_session_status()
-            .is_viewer();
-
         let mut compact_row = Flex::row().with_cross_axis_alignment(CrossAxisAlignment::Center);
 
-        // Only add profile button to compact layout if there are multiple profiles
-        // and the user is not a viewer (we currently don't support profiles in shared sessions).
         let is_ambient_agent = self.ambient_agent_view_model.is_some();
-        let should_show_profile_section = has_multiple_profiles && !is_viewer && !is_ambient_agent;
+        let should_show_profile_section = has_multiple_profiles && !is_ambient_agent;
         if should_show_profile_section {
             let profile_button_with_save_position = SavePosition::new(
                 ChildView::new(&self.profile_compact_button).finish(),

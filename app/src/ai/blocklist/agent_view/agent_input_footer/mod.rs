@@ -88,7 +88,6 @@ use crate::terminal::profile_model_selector::{ProfileModelSelector, ProfileModel
 use crate::terminal::session_settings::{
     SessionSettings, SessionSettingsChangedEvent, ToolbarChipSelection,
 };
-use crate::terminal::shared_session::SharedSessionStatus;
 use crate::terminal::view::ambient_agent::{
     AmbientAgentViewModel, ModelSelector, ModelSelectorEvent,
 };
@@ -1340,12 +1339,9 @@ impl AgentInputFooter {
     fn render_cli_toolbar_item(
         &self,
         item: &AgentToolbarItemKind,
-        shared_status: &SharedSessionStatus,
         app: &AppContext,
     ) -> Option<Box<dyn Element>> {
-        if !item.available_in().is_available_for_cli()
-            || !item.available_to_session_viewer(shared_status, false)
-        {
+        if !item.available_in().is_available_for_cli() {
             return None;
         }
 
@@ -1387,18 +1383,16 @@ impl AgentInputFooter {
         // the lock before calling into helpers like `should_use_manual_mode`
         // and `render_cli_toolbar_item`, which may re-lock the same model and
         // would deadlock since the lock is non-reentrant.
-        let (background_color, shared_status) = {
+        let background_color = {
             let terminal_model = self.terminal_model.lock();
-            let background_color = if terminal_model.is_alt_screen_active() {
+            if terminal_model.is_alt_screen_active() {
                 terminal_model
                     .alt_screen()
                     .inferred_bg_color()
                     .unwrap_or_else(|| appearance.theme().surface_1().into_solid())
             } else {
                 appearance.theme().surface_1().into_solid()
-            };
-            let shared_status = terminal_model.shared_session_status().clone();
-            (background_color, shared_status)
+            }
         };
 
         let session_settings = SessionSettings::as_ref(app);
@@ -1461,7 +1455,7 @@ impl AgentInputFooter {
         }
 
         for item in &left_items {
-            if let Some(element) = self.render_cli_toolbar_item(item, &shared_status, app) {
+            if let Some(element) = self.render_cli_toolbar_item(item, app) {
                 left_buttons.add_child(element);
             }
         }
@@ -1472,7 +1466,7 @@ impl AgentInputFooter {
             .with_spacing(4.);
 
         for item in &right_items {
-            if let Some(element) = self.render_cli_toolbar_item(item, &shared_status, app) {
+            if let Some(element) = self.render_cli_toolbar_item(item, app) {
                 right_buttons.add_child(element);
             }
         }
@@ -1866,20 +1860,10 @@ impl AgentInputFooter {
     fn render_toolbar_item(
         &self,
         item: &AgentToolbarItemKind,
-        shared_status: &SharedSessionStatus,
         is_cloud_context: bool,
         app: &AppContext,
     ) -> Option<Box<dyn Element>> {
-        let is_cloud_mode = FeatureFlag::CloudModeImageContext.is_enabled()
-            && self
-                .ambient_agent_view_model
-                .as_ref()
-                .is_some_and(|ambient_agent_model| {
-                    ambient_agent_model.as_ref(app).is_ambient_agent()
-                });
-        if !item.available_in().is_available_for_agent_view()
-            || !item.available_to_session_viewer(shared_status, is_cloud_mode)
-        {
+        if !item.available_in().is_available_for_agent_view() {
             return None;
         }
 
@@ -2025,16 +2009,13 @@ impl View for AgentInputFooter {
         }
 
         let terminal_model = self.terminal_model.lock();
-        let shared_status = terminal_model.shared_session_status();
         let is_cloud_context = super::is_in_cloud_context(
             terminal_model.block_list().agent_view_state(),
             &terminal_model,
         );
 
         for item in &left_items {
-            if let Some(element) =
-                self.render_toolbar_item(item, shared_status, is_cloud_context, app)
-            {
+            if let Some(element) = self.render_toolbar_item(item, is_cloud_context, app) {
                 left_buttons.add_child(element);
             }
         }
@@ -2055,9 +2036,7 @@ impl View for AgentInputFooter {
             );
         } else {
             for item in &right_items {
-                if let Some(element) =
-                    self.render_toolbar_item(item, shared_status, is_cloud_context, app)
-                {
+                if let Some(element) = self.render_toolbar_item(item, is_cloud_context, app) {
                     right_buttons.add_child(element);
                 }
             }

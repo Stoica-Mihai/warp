@@ -660,20 +660,14 @@ impl UniversalDeveloperInputButtonBar {
     }
 
     pub fn update_segmented_control_disabled_state(&mut self, ctx: &mut ViewContext<Self>) {
-        let (is_reader, is_agent_in_control) = {
-            let terminal_model = self.terminal_model.lock();
-            (
-                terminal_model.shared_session_status().is_reader(),
-                terminal_model
-                    .block_list()
-                    .active_block()
-                    .is_active_and_long_running(),
-            )
-        };
+        let is_agent_in_control = self
+            .terminal_model
+            .lock()
+            .block_list()
+            .active_block()
+            .is_active_and_long_running();
 
-        let tooltip = if is_reader {
-            Some("Request edit access to change input mode".to_string())
-        } else if is_agent_in_control {
+        let tooltip = if is_agent_in_control {
             Some("Input mode locked while agent is monitoring a command".to_string())
         } else {
             None
@@ -829,15 +823,7 @@ impl View for UniversalDeveloperInputButtonBar {
 
             buttons = buttons.with_child(ChildView::new(&self.at_button).finish());
 
-            // Viewers cannot attach files in shared sessions at this point.
-            if !self
-                .terminal_model
-                .lock()
-                .shared_session_status()
-                .is_viewer()
-            {
-                buttons = buttons.with_child(ChildView::new(&self.file_button).finish());
-            }
+            buttons = buttons.with_child(ChildView::new(&self.file_button).finish());
 
             let show_model_selector = FeatureFlag::ProfilesDesignRevamp.is_enabled()
                 || *SessionSettings::as_ref(app).show_model_selectors_in_prompt;

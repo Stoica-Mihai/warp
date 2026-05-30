@@ -737,7 +737,6 @@ fn should_fork_from_last_known_good_state(
     terminal_model: &TerminalModel,
 ) -> bool {
     if terminal_model.is_conversation_transcript_viewer()
-        || terminal_model.shared_session_status().is_viewer()
         || active_conversation.is_viewing_shared_session()
     {
         return false;

@@ -110,9 +110,7 @@ use crate::terminal::local_tty;
 use crate::terminal::model::session::Session;
 use crate::terminal::model::terminal_model::ConversationTranscriptViewerStatus;
 use crate::terminal::session_settings::{NewSessionSource, SessionSettings};
-use crate::terminal::shared_session::{
-    self, IsSharedSessionCreator,
-};
+use crate::terminal::shared_session::IsSharedSessionCreator;
 use crate::terminal::view::inline_banner::{
     ZeroStatePromptSuggestionTriggeredFrom, ZeroStatePromptSuggestionType,
 };
@@ -5101,9 +5099,6 @@ impl PaneGroup {
                     model.enter_viewing_existing_session(task_id, ctx);
                 });
             }
-            view.model
-                .lock()
-                .set_shared_session_status(shared_session::SharedSessionStatus::NotShared);
         });
 
         ActiveAgentViewsModel::handle(ctx).update(ctx, |active_views, ctx| {
