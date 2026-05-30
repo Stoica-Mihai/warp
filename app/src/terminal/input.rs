@@ -189,7 +189,7 @@ use crate::ai::predict::prompt_suggestions::{
 };
 use crate::ai::skills::SkillManager;
 use crate::ai::AIRequestUsageModel;
-use crate::ai_assistant::execution_context::WarpAiExecutionContext;
+use crate::ai::execution_context::WarpAiExecutionContext;
 use crate::appearance::{Appearance, AppearanceEvent};
 use crate::channel::ChannelState;
 use crate::cloud_object::model::actions::ObjectActionType;
