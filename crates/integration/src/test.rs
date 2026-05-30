@@ -31,7 +31,6 @@ mod subshell;
 mod sync_inputs;
 mod typeahead;
 mod video_recording;
-mod websockets;
 mod workflows;
 mod workspace;
 
@@ -185,7 +184,6 @@ use warpui::windowing::WindowManager;
 use warpui::{
     async_assert, async_assert_eq, AssetProvider, Event, SingletonEntity, UpdateView, ViewHandle,
 };
-pub use websockets::*;
 pub use workflows::*;
 pub use workspace::*;
 

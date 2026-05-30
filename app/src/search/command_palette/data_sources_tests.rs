@@ -19,7 +19,6 @@ use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::ids::ServerId;
 use crate::server::ids::SyncId::{self};
 #[cfg(test)]
-use crate::server::server_api::object::MockObjectClient;
 #[cfg(test)]
 use crate::server::server_api::team::MockTeamClient;
 #[cfg(test)]
@@ -97,7 +96,7 @@ fn initialize_app(app: &mut App) {
     app.add_singleton_model(TeamTesterStatus::new);
     app.add_singleton_model(SyncQueue::mock);
     app.add_singleton_model(CloudModel::mock);
-    app.add_singleton_model(|ctx| UpdateManager::new(None, Arc::new(MockObjectClient::new()), ctx));
+    app.add_singleton_model(UpdateManager::mock);
     app.add_singleton_model(|_| UserProfiles::new(Vec::new()));
     app.add_singleton_model(CloudViewModel::new);
     app.add_singleton_model(NotebookManager::mock);

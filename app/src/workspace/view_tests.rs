@@ -50,7 +50,6 @@ use crate::pricing::PricingInfoModel;
 #[cfg(not(target_family = "wasm"))]
 use crate::remote_server::codebase_index_model::RemoteCodebaseIndexModel;
 use crate::resource_center::Tip;
-use crate::server::cloud_objects::listener::Listener;
 use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::server_api::ServerApiProvider;
 use crate::server::sync_queue::SyncQueue;
@@ -100,7 +99,6 @@ fn initialize_app(app: &mut App) {
     app.add_singleton_model(UpdateManager::mock);
     app.add_singleton_model(MCPGalleryManager::new);
     app.add_singleton_model(CloudViewModel::mock);
-    app.add_singleton_model(Listener::mock);
     app.add_singleton_model(|_| Appearance::mock());
     app.add_singleton_model(AppearanceManager::new);
     app.add_singleton_model(|_| DisplayCount::mock());

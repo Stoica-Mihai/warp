@@ -66,7 +66,6 @@ use crate::notebooks::notebook::NotebookView;
 use crate::pricing::PricingInfoModel;
 use crate::resource_center::TipsCompleted;
 use crate::search::files::model::FileSearchModel;
-use crate::server::cloud_objects::listener::Listener;
 use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::ids::ServerId;
 use crate::server::server_api::ServerApiProvider;
@@ -112,7 +111,6 @@ fn initialize_app(app: &mut App) {
     app.add_singleton_model(UserWorkspaces::default_mock);
     app.add_singleton_model(TeamTesterStatus::mock);
     app.add_singleton_model(TeamUpdateManager::mock);
-    app.add_singleton_model(Listener::mock);
     app.add_singleton_model(UpdateManager::mock);
 
     // Initialize file-based MCP dependencies.

@@ -114,12 +114,11 @@ use crate::cloud_object::{
     GenericStringObjectFormat, GenericStringObjectUniqueKey, JsonObjectType, ObjectDeleteResult,
     ObjectIdType, ObjectMetadataUpdateResult, ObjectType, ObjectsToUpdate, Owner, Revision,
     RevisionAndLastEditor, ServerCloudObject, ServerFolder, ServerMetadata, ServerNotebook,
-    ServerObject, ServerWorkflow, TryFromGql as _, UpdateCloudObjectResult,
+    ServerObject, ServerPermissions, ServerWorkflow, TryFromGql as _, UpdateCloudObjectResult,
 };
 use crate::drive::folders::FolderId;
 use crate::env_vars::EnvVarCollection;
 use crate::notebooks::{NotebookId, SerializedNotebook};
-use crate::server::cloud_objects::listener::ObjectUpdateMessage;
 use crate::server::cloud_objects::update_manager::{GetCloudObjectResponse, InitialLoadResponse};
 use crate::server::graphql::schema::{
     object_update_success_to_update_result, update_generic_string_object_result_to_update_result,
@@ -133,6 +132,35 @@ use crate::settings::Preference;
 use crate::workflows::workflow_enum::WorkflowEnum;
 use crate::workflows::WorkflowId;
 use crate::workspaces::user_profiles::UserProfileWithUID;
+
+#[derive(Debug, Clone)]
+#[allow(clippy::enum_variant_names)]
+pub enum ObjectUpdateMessage {
+    ObjectMetadataChanged {
+        metadata: ServerMetadata,
+    },
+    ObjectPermissionsChanged,
+    ObjectPermissionsChangedV2 {
+        object_uid: ServerId,
+        permissions: ServerPermissions,
+        user_profiles: Vec<UserProfileWithUID>,
+    },
+    ObjectContentChanged {
+        server_object: Box<ServerCloudObject>,
+        last_editor: Option<UserProfileWithUID>,
+    },
+    ObjectDeleted {
+        object_uid: ServerId,
+    },
+    ObjectActionOccurred {
+        history: ObjectActionHistory,
+    },
+    TeamMembershipsChanged,
+    AmbientTaskUpdated {
+        task_id: String,
+        timestamp: DateTime<Utc>,
+    },
+}
 
 #[cfg_attr(test, automock)]
 #[cfg_attr(not(target_family = "wasm"), async_trait)]

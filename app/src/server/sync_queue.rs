@@ -305,8 +305,6 @@ pub enum SyncQueueEvent {
     },
     ObjectUpdateRejected {
         id: String,
-        #[derivative(PartialEq = "ignore")]
-        object: Arc<ServerCloudObject>,
     },
     #[allow(dead_code)]
     ObjectUpdateFeatureNotAvailable { id: String },
@@ -1487,7 +1485,6 @@ impl SyncQueue {
                 let uid = object.uid();
                 ctx.emit(SyncQueueEvent::ObjectUpdateRejected {
                     id: uid.clone(),
-                    object: Arc::new(*object),
                 });
                 if let Some(dependencies) = self.waiting_response.get_mut(&uid.clone()) {
                     dependencies.remove(&queue_item_id);

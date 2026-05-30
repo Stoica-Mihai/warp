@@ -263,7 +263,6 @@ use crate::projects::ProjectManagementModel;
 use crate::root_view::{
     quake_mode_window_id, quake_mode_window_is_open, OpenFromRestoredArg, OpenPath,
 };
-use crate::server::cloud_objects::listener::Listener;
 use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::sync_queue::{QueueItem, SyncQueue};
 use crate::server::telemetry::PaletteSource;
@@ -1612,13 +1611,7 @@ pub(crate) fn initialize_app(
         )
     });
 
-    ctx.add_singleton_model(|ctx| {
-        UpdateManager::new(
-            persistence_writer.sender(),
-            server_api_provider.as_ref(ctx).get_cloud_objects_client(),
-            ctx,
-        )
-    });
+    ctx.add_singleton_model(|ctx| UpdateManager::new(persistence_writer.sender(), ctx));
 
     // LogManager must be registered before any subsystem (e.g. MCP, LSP) that creates file-based loggers.
     ctx.add_singleton_model(|_| simple_logger::manager::LogManager::new());
@@ -1670,12 +1663,6 @@ pub(crate) fn initialize_app(
     ctx.add_singleton_model(NotebookKeybindings::new);
     ctx.add_singleton_model(TerminalKeybindings::new);
     ctx.add_singleton_model(|_| ActiveSession::default());
-    ctx.add_singleton_model(|ctx| {
-        Listener::new(
-            server_api_provider.as_ref(ctx).get_cloud_objects_client(),
-            ctx,
-        )
-    });
 
     #[cfg(all(not(target_family = "wasm"), feature = "local_tty"))]
     {

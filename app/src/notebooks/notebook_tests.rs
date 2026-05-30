@@ -20,7 +20,7 @@ use crate::cloud_object::model::actions::ObjectActions;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::model::view::{CloudViewModel, Editor, EditorState};
 use crate::cloud_object::{
-    Owner, Revision, ServerCloudObject, ServerMetadata, ServerNotebook, ServerPermissions,
+    Owner, Revision, ServerMetadata, ServerNotebook, ServerPermissions,
 };
 use crate::drive::OpenWarpDriveObjectSettings;
 use crate::editor::{DisplayPoint, EditorAction, InteractionState, SelectAction};
@@ -791,7 +791,6 @@ fn test_conflicting_notebook_read_only() {
         SyncQueue::handle(&app).update(&mut app, |_, ctx| {
             ctx.emit(SyncQueueEvent::ObjectUpdateRejected {
                 id: server_id.uid(),
-                object: ServerCloudObject::Notebook(server_notebook).into(),
             });
         });
 

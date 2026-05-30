@@ -25,12 +25,11 @@ use crate::drive::folders::{CloudFolderModel, FolderId};
 use crate::drive::DriveIndexVariant;
 use crate::features::FeatureFlag;
 use crate::notebooks::{CloudNotebookModel, NotebookId};
-use crate::server::cloud_objects::listener::ObjectUpdateMessage;
+use crate::server::server_api::object::ObjectUpdateMessage;
 use crate::server::cloud_objects::update_manager::InitialLoadResponse;
 use crate::server::ids::{ServerId, ServerIdAndType};
 #[cfg(test)]
 use crate::server::server_api::object::MockObjectClient;
-use crate::server::server_api::object::ObjectClient;
 #[cfg(test)]
 use crate::server::server_api::team::MockTeamClient;
 #[cfg(test)]
@@ -77,7 +76,6 @@ lazy_static! {
 fn initialize_app(
     app: &mut App,
     cached_objects: Vec<Box<dyn CloudObject>>,
-    cloud_object_server_api_mock: Arc<impl ObjectClient>,
 ) {
     let team_client_mock = Arc::new(MockTeamClient::new());
     let workspace_client_mock = Arc::new(MockWorkspaceClient::new());
@@ -99,7 +97,7 @@ fn initialize_app(
     app.add_singleton_model(TeamTesterStatus::new);
     app.add_singleton_model(SyncQueue::mock);
     app.add_singleton_model(|_ctx| CloudModel::new(None, cached_objects, None));
-    app.add_singleton_model(|ctx| UpdateManager::new(None, cloud_object_server_api_mock, ctx));
+    app.add_singleton_model(UpdateManager::mock);
     app.add_singleton_model(|_| UserProfiles::new(Vec::new()));
     app.add_singleton_model(CloudViewModel::new);
     app.add_singleton_model(|_| ObjectActions::new(Vec::new()));
@@ -737,7 +735,7 @@ fn test_load_cloud_objects_on_initial_load_with_empty_cache() {
             });
 
         // No workflows or notebooks (or other objects) loaded from sqlite passed to CloudModel
-        initialize_app(&mut app, Vec::new(), Arc::new(cloud_object_server_api_mock));
+        initialize_app(&mut app, Vec::new());
 
         // Spend time waiting for the initial load to finish etc.
         warpui::r#async::Timer::after(Duration::from_secs(1)).await;
@@ -843,7 +841,7 @@ fn test_loading_all_cloud_objects_after_switching_from_offline() {
             });
 
         // No workflows or notebooks (or other objects) loaded from sqlite passed to CloudModel
-        initialize_app(&mut app, Vec::new(), Arc::new(cloud_object_server_api_mock));
+        initialize_app(&mut app, Vec::new());
         check_cloud_workflows(&mut app, 0);
         check_cloud_notebooks(&mut app, 0);
         check_cloud_folders(&mut app, 0);
@@ -914,7 +912,7 @@ fn test_force_refresh_only_happens_once() {
             });
 
         // Initialize app with pending refresh = true!
-        initialize_app(&mut app, Vec::new(), Arc::new(cloud_object_server_api_mock));
+        initialize_app(&mut app, Vec::new());
 
         // Spend time waiting for the initial load to finish etc.
         warpui::r#async::Timer::after(Duration::from_secs(1)).await;
@@ -963,7 +961,7 @@ fn test_force_refresh_correctly_resets_timestamp() {
             });
 
         // Initialize app with pending refresh = true!
-        initialize_app(&mut app, Vec::new(), Arc::new(cloud_object_server_api_mock));
+        initialize_app(&mut app, Vec::new());
 
         // Spend time waiting for the initial load to finish etc.
         warpui::r#async::Timer::after(Duration::from_secs(1)).await;
@@ -1176,7 +1174,7 @@ fn test_object_editor_timeout() {
     App::test((), |mut app| async move {
         // Setup the app and APIs
         let cloud_object_server_api_mock = base_mock_cloud_object_server_api();
-        initialize_app(&mut app, Vec::new(), Arc::new(cloud_object_server_api_mock));
+        initialize_app(&mut app, Vec::new());
         let notebook_id: SyncId = SyncId::ServerId(1.into());
         let cloud_notebook = mock_cloud_notebook(notebook_id, "test1".into(), None);
 
@@ -1240,11 +1238,7 @@ fn test_breadcrumbs() {
 
     App::test((), |mut app| async move {
         let cloud_object_server_api_mock = base_mock_cloud_object_server_api();
-        initialize_app(
-            &mut app,
-            folders.clone(),
-            Arc::new(cloud_object_server_api_mock),
-        );
+        initialize_app(&mut app, folders.clone());
 
         CloudModel::handle(&app).read(&app, |_, ctx| {
             assert_eq!("Personal".to_string(), folders[0].breadcrumbs(ctx));
@@ -1278,11 +1272,7 @@ fn assert_sorting_timestamp(id: ServerId, expected_ts: impl Into<ServerTimestamp
 #[test]
 fn test_update_folder_timestamp_from_child_update() {
     App::test((), |mut app| async move {
-        initialize_app(
-            &mut app,
-            Vec::new(),
-            Arc::new(base_mock_cloud_object_server_api()),
-        );
+        initialize_app(&mut app, Vec::new());
 
         let folder_id: ServerId = 123.into();
         let parent_folder_id: ServerId = 456.into();
@@ -1361,11 +1351,7 @@ fn test_update_folder_timestamp_from_child_update() {
 #[test]
 fn test_update_folder_timestamp_from_object_move() {
     App::test((), |mut app| async move {
-        initialize_app(
-            &mut app,
-            Vec::new(),
-            Arc::new(base_mock_cloud_object_server_api()),
-        );
+        initialize_app(&mut app, Vec::new());
 
         let folder_a_id: ServerId = 123.into();
         let folder_b_id: ServerId = 456.into();
@@ -1418,11 +1404,7 @@ fn test_update_folder_timestamp_from_object_move() {
 #[test]
 fn test_update_folder_timestamp_from_new_child() {
     App::test((), |mut app| async move {
-        initialize_app(
-            &mut app,
-            Vec::new(),
-            Arc::new(base_mock_cloud_object_server_api()),
-        );
+        initialize_app(&mut app, Vec::new());
 
         let folder_id: ServerId = 123.into();
         let parent_folder_id: ServerId = 456.into();
@@ -1491,11 +1473,7 @@ fn test_update_folder_timestamp_from_new_child() {
 #[test]
 fn test_update_folder_timestamp_from_child_trash() {
     App::test((), |mut app| async move {
-        initialize_app(
-            &mut app,
-            Vec::new(),
-            Arc::new(base_mock_cloud_object_server_api()),
-        );
+        initialize_app(&mut app, Vec::new());
 
         let notebook_id: ServerId = 123.into();
         let folder_id: ServerId = 456.into();
@@ -1569,11 +1547,7 @@ fn test_update_folder_timestamp_from_child_trash() {
 fn test_shared_personal_object() {
     let _guard = FeatureFlag::SharedWithMe.override_enabled(true);
     App::test((), |mut app| async move {
-        initialize_app(
-            &mut app,
-            Vec::new(),
-            Arc::new(base_mock_cloud_object_server_api()),
-        );
+        initialize_app(&mut app, Vec::new());
 
         let other_user = UserUid::new("other_user");
         let shared_notebook_id = SyncId::ServerId(123.into());
@@ -1612,11 +1586,7 @@ fn test_shared_personal_object() {
 fn test_unshared_personal_object() {
     let _guard = FeatureFlag::SharedWithMe.override_enabled(true);
     App::test((), |mut app| async move {
-        initialize_app(
-            &mut app,
-            Vec::new(),
-            Arc::new(base_mock_cloud_object_server_api()),
-        );
+        initialize_app(&mut app, Vec::new());
 
         let shared_notebook_id = SyncId::ServerId(123.into());
         let shared_notebook = CloudNotebook::new(
@@ -1654,11 +1624,7 @@ fn test_unshared_personal_object() {
 fn test_shared_team_object() {
     let _guard = FeatureFlag::SharedWithMe.override_enabled(true);
     App::test((), |mut app| async move {
-        initialize_app(
-            &mut app,
-            Vec::new(),
-            Arc::new(base_mock_cloud_object_server_api()),
-        );
+        initialize_app(&mut app, Vec::new());
 
         // The user is not on this team.
         let team_uid = ServerId::from(456);
@@ -1698,11 +1664,7 @@ fn test_unshared_team_object() {
     let _guard = FeatureFlag::SharedWithMe.override_enabled(true);
     App::test((), |mut app| async move {
         app.update(init_and_register_user_preferences);
-        initialize_app(
-            &mut app,
-            Vec::new(),
-            Arc::new(base_mock_cloud_object_server_api()),
-        );
+        initialize_app(&mut app, Vec::new());
 
         // Use the current user's team.
         let team_uid = TEST_TEAM.uid;
@@ -1741,11 +1703,7 @@ fn test_shared_object_in_unshared_folder() {
     let _guard = FeatureFlag::SharedWithMe.override_enabled(true);
     App::test((), |mut app| async move {
         app.update(init_and_register_user_preferences);
-        initialize_app(
-            &mut app,
-            Vec::new(),
-            Arc::new(base_mock_cloud_object_server_api()),
-        );
+        initialize_app(&mut app, Vec::new());
 
         let other_user = UserUid::new("other_user");
         let unshared_folder_id = SyncId::ServerId(567.into());

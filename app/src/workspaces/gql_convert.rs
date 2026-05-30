@@ -70,7 +70,7 @@ use crate::cloud_object::{
     ServerScheduledAmbientAgent, ServerTemplatableMCPServer, ServerWorkflow, ServerWorkflowEnum,
     TryFromGql as _,
 };
-use crate::server::cloud_objects::listener::ObjectUpdateMessage;
+use crate::server::server_api::object::ObjectUpdateMessage;
 use crate::server::ids::ServerId;
 use crate::settings::AgentModeCommandExecutionPredicate;
 use crate::workspaces::workspace::{

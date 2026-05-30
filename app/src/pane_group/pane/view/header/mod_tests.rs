@@ -12,7 +12,6 @@ use crate::cloud_object::model::persistence::CloudModel;
 use crate::menu::MenuItemFields;
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::pane_group::{BackingView, PaneConfiguration, PaneId, PaneView};
-use crate::server::server_api::object::MockObjectClient;
 #[cfg(test)]
 use crate::server::server_api::team::MockTeamClient;
 #[cfg(test)]
@@ -127,7 +126,7 @@ fn initialize_app(app: &mut App) {
     app.add_singleton_model(|_| ServerApiProvider::new_for_test());
     app.add_singleton_model(|_| UserProfiles::new(Vec::new()));
     app.add_singleton_model(CloudModel::mock);
-    app.add_singleton_model(|ctx| UpdateManager::new(None, Arc::new(MockObjectClient::new()), ctx));
+    app.add_singleton_model(UpdateManager::mock);
     app.add_singleton_model(|_| KeybindingChangedNotifier::mock());
     app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
     #[cfg(feature = "voice_input")]

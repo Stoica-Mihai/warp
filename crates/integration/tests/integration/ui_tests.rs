@@ -65,7 +65,6 @@ integration_tests! {
     test_restore_snapshot_with_test_json_object,
     test_restore_snapshot_with_common_shareable_metadata_ids,
     test_restore_snapshot_with_markdown_file,
-    test_restore_snapshot_with_settings_page,
     // TODO(kevin): figure out why the file name doesn't match.
     #[ignore]
     test_restore_snapshot_with_code_file,
@@ -195,11 +194,6 @@ integration_tests! {
     test_history_command_is_linked_to_local_workflow,
     #[ignore = "Affected by agent_view feature flag UI changes"]
     test_up_arrow_history_enters_shift_tab_for_workflow,
-
-    test_websocket_begins_on_startup,
-    test_websocket_does_not_begin_on_startup,
-    test_websocket_begins_after_joining_a_team,
-    test_websocket_begins_after_creating_an_object,
 
     test_secret_is_obfuscated_on_copy,
     test_secret_tooltip_respects_safe_mode_setting,
