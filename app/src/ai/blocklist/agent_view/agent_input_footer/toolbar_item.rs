@@ -211,9 +211,7 @@ impl AgentToolbarItemKind {
             Self::ContextWindowUsage,
             Self::ModelSelector,
         ];
-        if FeatureFlag::CreatingSharedSessions.is_enabled()
-            && FeatureFlag::HOARemoteControl.is_enabled()
-        {
+        if FeatureFlag::HOARemoteControl.is_enabled() {
             items.push(Self::ShareSession);
         }
         if FeatureFlag::OzHandoff.is_enabled()
@@ -243,9 +241,7 @@ impl AgentToolbarItemKind {
         if FeatureFlag::FastForwardAutoexecuteButton.is_enabled() {
             items.push(Self::FastForwardToggle);
         }
-        if FeatureFlag::CreatingSharedSessions.is_enabled()
-            && FeatureFlag::HOARemoteControl.is_enabled()
-        {
+        if FeatureFlag::HOARemoteControl.is_enabled() {
             items.push(Self::ShareSession);
         }
         if FeatureFlag::OzHandoff.is_enabled()
@@ -264,9 +260,7 @@ impl AgentToolbarItemKind {
             Self::VoiceInput,
             Self::ContextChip(ContextChipKind::GitDiffStats),
         ];
-        if FeatureFlag::CreatingSharedSessions.is_enabled()
-            && FeatureFlag::HOARemoteControl.is_enabled()
-        {
+        if FeatureFlag::HOARemoteControl.is_enabled() {
             items.push(Self::ShareSession);
         }
         items.push(Self::FileExplorer);
@@ -298,9 +292,7 @@ impl AgentToolbarItemKind {
             Self::VoiceInput,
             Self::Settings,
         ]);
-        if FeatureFlag::CreatingSharedSessions.is_enabled()
-            && FeatureFlag::HOARemoteControl.is_enabled()
-        {
+        if FeatureFlag::HOARemoteControl.is_enabled() {
             items.push(Self::ShareSession);
         }
         items

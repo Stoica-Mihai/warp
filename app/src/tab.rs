@@ -577,8 +577,6 @@ enum Indicator {
     /// This pane's inputs are being synced.
     Synced,
     Error,
-    /// At least one of the panes in this tab is being shared.
-    Shared,
     /// One of the panes in this tab is maximized.
     Maximized,
     /// We should show a shell indicator for the tab.
@@ -635,7 +633,6 @@ pub struct TabComponent<'a> {
 struct TabStyles {
     background: Option<ThemeFill>,
     error_color: ColorU,
-    sharing_color: ColorU,
     synced_input_indicator_color: ColorU,
 
     /// Default styles of the TabComponent
@@ -660,7 +657,6 @@ impl TabStyles {
         let active_tab_bar_color: Option<ThemeFill> =
             tab_color.map(|color| color.to_ansi_color(&theme.terminal_colors().normal).into());
         let error_color = theme.ui_error_color();
-        let sharing_color = theme.ui_error_color();
         let background = active_tab_bar_color.map(|color| {
             ThemeFill::VerticalGradient(VerticalGradient::new(
                 theme.background().into(),
@@ -670,7 +666,6 @@ impl TabStyles {
         TabStyles {
             background,
             error_color,
-            sharing_color,
             synced_input_indicator_color: ColorU::from_u32(TAB_INDICATOR_SYNCED_COLOR),
             default: UiComponentStyles::default()
                 .set_font_color(theme.nonactive_ui_text_color().into())
@@ -719,10 +714,6 @@ impl<'a> TabComponent<'a> {
             .pane_group
             .as_ref(ctx)
             .has_active_code_pane_with_unsaved_changes(ctx);
-        let is_being_shared = tab
-            .pane_group
-            .as_ref(ctx)
-            .is_terminal_pane_being_shared(ctx);
         let should_show_indicators = *TabSettings::as_ref(ctx).show_indicators.value();
         let are_inputs_synced = SyncedInputState::as_ref(ctx)
             .should_sync_this_pane_group(tab.pane_group.id(), tab.pane_group.window_id(ctx));
@@ -745,8 +736,6 @@ impl<'a> TabComponent<'a> {
             Indicator::AmbientAgent
         } else if active_pane_has_unsaved_code_changes {
             Indicator::UnsavedChanges
-        } else if FeatureFlag::CreatingSharedSessions.is_enabled() && is_being_shared {
-            Indicator::Shared
         } else if !should_show_indicators {
             Indicator::None
         } else if are_inputs_synced {
@@ -1129,11 +1118,6 @@ impl<'a> TabComponent<'a> {
             Indicator::Error => Some(
                 Icon::AlertTriangle
                     .to_warpui_icon(self.styles.error_color.into())
-                    .finish(),
-            ),
-            Indicator::Shared => Some(
-                Icon::Sharing
-                    .to_warpui_icon(self.styles.sharing_color.into())
                     .finish(),
             ),
             Indicator::Maximized => Some(
