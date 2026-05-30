@@ -9,6 +9,7 @@
 MACOSX_DEPLOYMENT_TARGET = "10.14"
 
 [build]
+jobs = 4
 rustflags = ["-C", "symbol-mangling-version=v0", "-C", "link-args=-Wl,-headerpad_max_install_names"]
 
 [net]
