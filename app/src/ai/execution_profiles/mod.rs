@@ -21,7 +21,6 @@ use crate::workspaces::user_workspaces::UserWorkspaces;
 
 pub const PROFILE_NAME_MAX_LENGTH: usize = 50;
 
-pub mod editor;
 pub mod model_menu_items;
 pub mod profiles;
 

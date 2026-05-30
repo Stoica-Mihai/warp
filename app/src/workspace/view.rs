@@ -174,8 +174,7 @@ use crate::ai::cloud_agent_settings::CloudAgentSettings;
 #[cfg(target_family = "wasm")]
 use crate::ai::conversation_details_panel::ConversationDetailsPanel;
 use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentModel};
-use crate::ai::execution_profiles::editor::ExecutionProfileEditorManager;
-use crate::ai::execution_profiles::profiles::{AIExecutionProfilesModel, ClientProfileId};
+use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
 use crate::ai::facts::view::AIFactPage;
 use crate::ai::facts::{AIFactManager, AIFactView, AIFactViewEvent};
 use crate::ai::llms::LLMPreferences;
@@ -242,7 +241,7 @@ use crate::pane_group::FilePane;
 use crate::pane_group::{
     self, AIFactPane, AnyPaneContent, ChildAgentOrigin, CodeDiffPane, CodePane, CodeReviewPanelArg,
     Direction as PaneGroupDirection, Direction, EnvironmentManagementPane,
-    ExecutionProfileEditorPane, NetworkLogPane, NewTerminalOptions, PaneGroup, PaneId, PanesLayout,
+    NetworkLogPane, NewTerminalOptions, PaneGroup, PaneId, PanesLayout,
     TabBarHoverIndex, TerminalPaneId,
 };
 use crate::persistence::ModelEvent;
@@ -6716,28 +6715,6 @@ impl Workspace {
         self.set_selected_object(Some(WarpDriveItemId::AIFactCollection), ctx);
     }
 
-    /// Open the Execution Profile Editor pane
-    pub fn open_execution_profile_editor_pane(
-        &mut self,
-        direction: Option<Direction>,
-        profile_id: ClientProfileId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let manager = ExecutionProfileEditorManager::handle(ctx);
-
-        if let Some(locator) = manager.as_ref(ctx).find_pane(ctx.window_id(), profile_id) {
-            self.focus_pane(locator, ctx);
-            return;
-        }
-
-        let pane = ExecutionProfileEditorPane::new(profile_id, ctx);
-        let direction = direction.unwrap_or(Direction::Right);
-        self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
-            pane_group
-                .add_pane_with_direction(direction, pane, true /* focus_new_pane */, ctx);
-        });
-    }
-
     /// Open the Environment Management pane in a split pane (default direction is right).
     pub fn open_environment_management_pane(
         &mut self,
@@ -11748,9 +11725,6 @@ impl Workspace {
             SettingsViewEvent::OpenMCPServerCollection => {
                 self.show_settings_with_section(Some(SettingsSection::MCPServers), ctx);
             }
-            SettingsViewEvent::OpenExecutionProfileEditor(profile_id) => {
-                self.open_execution_profile_editor_pane(None, *profile_id, ctx);
-            }
             SettingsViewEvent::OpenLspLogs { log_path } => {
                 self.open_lsp_logs(log_path, ctx);
             }
@@ -13682,9 +13656,7 @@ impl Workspace {
             pane_group::Event::FileDeleted { path } => {
                 self.close_tabs_with_file_path(path, ctx);
             }
-            pane_group::Event::OpenAgentProfileEditor { profile_id } => {
-                self.open_execution_profile_editor_pane(None, *profile_id, ctx);
-            }
+            pane_group::Event::OpenAgentProfileEditor { .. } => {}
             pane_group::Event::OpenEnvironmentManagementPane => {
                 self.open_environment_management_pane(
                     None,
@@ -21012,10 +20984,6 @@ impl View for Workspace {
                 }
             }
         };
-
-        if WarpDriveSettings::is_warp_drive_enabled(app) {
-            context.set.insert(flags::ENABLE_WARP_DRIVE);
-        }
 
         if AISettings::as_ref(app).is_any_ai_enabled(app)
             && *AISettings::as_ref(app).show_conversation_history

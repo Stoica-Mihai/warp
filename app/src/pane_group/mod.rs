@@ -157,7 +157,6 @@ pub use pane::code_diff_pane::CodeDiffPane;
 pub use pane::code_pane::CodePane;
 pub use pane::env_var_collection_pane::EnvVarCollectionPane;
 pub use pane::environment_management_pane::EnvironmentManagementPane;
-pub use pane::execution_profile_editor_pane::ExecutionProfileEditorPane;
 pub use pane::file_pane::FilePane;
 pub use pane::network_log_pane::NetworkLogPane;
 pub use pane::notebook_pane::NotebookPane;
@@ -1860,12 +1859,6 @@ impl PaneGroup {
             }
             LeafContents::CodeReview(_) => {
                 Err(anyhow::anyhow!("Code review panes are no longer supported"))
-            }
-            LeafContents::ExecutionProfileEditor => {
-                // We don't yet support restoring execution profile editor panes.
-                Err(anyhow::anyhow!(
-                    "Can't restore execution profile editor panes"
-                ))
             }
             LeafContents::NetworkLog => {
                 // Network log panes are intentionally not restored. Two

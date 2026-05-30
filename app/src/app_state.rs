@@ -126,7 +126,6 @@ pub enum LeafContents {
     Workflow(WorkflowPaneSnapshot),
     Settings(SettingsPaneSnapshot),
     AIFact(AIFactPaneSnapshot),
-    ExecutionProfileEditor,
     CodeReview(CodeReviewPaneSnapshot),
     AmbientAgent(AmbientAgentPaneSnapshot),
     /// The in-app network log pane. Not persisted across restarts because the
@@ -162,7 +161,6 @@ impl LeafContents {
             | LeafContents::Workflow(_)
             | LeafContents::Settings(_)
             | LeafContents::AIFact(_)
-            | LeafContents::ExecutionProfileEditor
             | LeafContents::CodeReview(_)
             | LeafContents::AmbientAgent(_) => true,
         }

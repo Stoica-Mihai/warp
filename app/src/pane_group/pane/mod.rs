@@ -15,7 +15,6 @@ pub(super) mod code_diff_pane_model;
 pub(super) mod code_pane;
 pub(super) mod env_var_collection_pane;
 pub(crate) mod environment_management_pane;
-pub(super) mod execution_profile_editor_pane;
 pub(super) mod file_pane;
 #[cfg(not(target_family = "wasm"))]
 pub(super) mod local_harness_launch;
@@ -43,7 +42,6 @@ pub use self::view::{PaneHeaderAction, PaneHeaderCustomAction, PaneView, PaneVie
 use super::{ActivationReason, LeafContents, PaneGroup, PaneGroupAction};
 use crate::ai::ai_document_view::AIDocumentView;
 use crate::ai::blocklist::inline_action::code_diff_view::CodeDiffView;
-use crate::ai::execution_profiles::editor::ExecutionProfileEditorView;
 use crate::ai::facts::AIFactView;
 #[cfg(feature = "local_fs")]
 use crate::code::buffer_location::LocalOrRemotePath;
@@ -135,7 +133,6 @@ pub(crate) enum IPaneType {
     Settings,
     AIFact,
     AIDocument,
-    ExecutionProfileEditor,
     NetworkLog,
     DeferredPlaceholder,
     /// A pane type only for tests.
@@ -157,7 +154,6 @@ impl Display for IPaneType {
             IPaneType::Settings => write!(f, "Settings"),
             IPaneType::AIFact => write!(f, "AI Fact"),
             IPaneType::AIDocument => write!(f, "AI Document"),
-            IPaneType::ExecutionProfileEditor => write!(f, "Execution Profile Editor"),
             IPaneType::NetworkLog => write!(f, "Network Log"),
             IPaneType::DeferredPlaceholder => write!(f, "Placeholder"),
             #[cfg(test)]
@@ -240,13 +236,6 @@ impl PaneId {
         Self::new_from_ctx(IPaneType::AIDocument, ctx)
     }
 
-    /// Creates a [`PaneId`] from a [`ViewContext<PaneView<ExecutionProfileEditorView>>`]
-    pub fn from_execution_profile_editor_pane_ctx(
-        ctx: &ViewContext<PaneView<ExecutionProfileEditorView>>,
-    ) -> Self {
-        Self::new_from_ctx(IPaneType::ExecutionProfileEditor, ctx)
-    }
-
     /// Creates a [`PaneId`] from a [`ViewContext<PaneView<NetworkLogView>>`].
     pub fn from_network_log_pane_ctx(ctx: &ViewContext<PaneView<NetworkLogView>>) -> Self {
         Self::new_from_ctx(IPaneType::NetworkLog, ctx)
@@ -324,16 +313,6 @@ impl PaneId {
         ai_document_pane_view: &ViewHandle<PaneView<AIDocumentView>>,
     ) -> Self {
         Self::new(IPaneType::AIDocument, ai_document_pane_view)
-    }
-
-    /// Creates a [`PaneId`] from a [`PaneView<ExecutionProfileEditorView>`] entity ID.
-    pub fn from_execution_profile_editor_pane_view(
-        execution_profile_editor_pane_view: &ViewHandle<PaneView<ExecutionProfileEditorView>>,
-    ) -> Self {
-        Self::new(
-            IPaneType::ExecutionProfileEditor,
-            execution_profile_editor_pane_view,
-        )
     }
 
     /// Creates a [`PaneId`] from a [`PaneView<NetworkLogView>`] entity ID.
@@ -447,10 +426,6 @@ impl PaneId {
             }
             IPaneType::AIDocument => {
                 ChildView::<PaneView<AIDocumentView>>::with_id(self.0.pane_view_id).finish()
-            }
-            IPaneType::ExecutionProfileEditor => {
-                ChildView::<PaneView<ExecutionProfileEditorView>>::with_id(self.0.pane_view_id)
-                    .finish()
             }
             IPaneType::NetworkLog => {
                 ChildView::<PaneView<NetworkLogView>>::with_id(self.0.pane_view_id).finish()

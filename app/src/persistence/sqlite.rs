@@ -42,7 +42,7 @@ use super::model::{
     NewWorkspace, NewWorkspaceMetadata, NewWorkspaceTeam, ObjectMetadata, ObjectPermissions,
     Project, Tab, Window, WorkspaceMetadata as WorkspaceMetadataModel, AI_DOCUMENT_PANE_KIND,
     AI_FACT_PANE_KIND, CODE_PANE_KIND, ENV_VAR_COLLECTION_PANE_KIND,
-    EXECUTION_PROFILE_EDITOR_PANE_KIND, MCP_SERVER_PANE_KIND, NOTEBOOK_PANE_KIND,
+    MCP_SERVER_PANE_KIND, NOTEBOOK_PANE_KIND,
     SETTINGS_PANE_KIND, TERMINAL_PANE_KIND, WORKFLOW_PANE_KIND,
 };
 use super::{
@@ -1061,7 +1061,6 @@ fn save_pane_state(
         LeafContents::AIFact(_) => AI_FACT_PANE_KIND,
         LeafContents::CodeReview(_) => CODE_REVIEW_PANE_KIND,
         LeafContents::AmbientAgent(_) => AMBIENT_AGENT_PANE_KIND,
-        LeafContents::ExecutionProfileEditor => EXECUTION_PROFILE_EDITOR_PANE_KIND,
         LeafContents::AIDocument(_) => AI_DOCUMENT_PANE_KIND,
         LeafContents::EnvironmentManagement(_) | LeafContents::NetworkLog => {
             // These pane types are filtered out before this function is
@@ -1253,9 +1252,6 @@ fn save_pane_state(
             diesel::insert_into(schema::code_review_panes::dsl::code_review_panes)
                 .values(code_review)
                 .execute(conn)?;
-        }
-        LeafContents::ExecutionProfileEditor => {
-            // TODO: Implement execution profile editor pane saving.
         }
         LeafContents::AIDocument(ai_document_snapshot) => match ai_document_snapshot {
             crate::app_state::AIDocumentPaneSnapshot::Local {
