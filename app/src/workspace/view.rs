@@ -2590,7 +2590,7 @@ impl Workspace {
                     ctx.notify();
                 }
                 SharedObjectsCreationDeniedModalEvent::TeamSettings => {
-                    me.show_settings_with_section(Some(SettingsSection::Teams), ctx);
+                    me.show_settings_with_section(Some(SettingsSection::Account), ctx);
                     me.current_workspace_state
                         .is_shared_objects_creation_denied_modal_open = false;
                     ctx.notify();
@@ -7609,7 +7609,7 @@ impl Workspace {
             items.push(
                 MenuItemFields::new("Billing and usage")
                     .with_on_select_action(WorkspaceAction::ShowSettingsPage(
-                        SettingsSection::BillingAndUsage,
+                        SettingsSection::Account,
                     ))
                     .into_item(),
             );
@@ -14261,7 +14261,7 @@ impl Workspace {
                 );
             }
             DrivePanelEvent::OpenTeamSettingsPage => {
-                self.show_settings_with_section(Some(SettingsSection::Teams), ctx);
+                self.show_settings_with_section(Some(SettingsSection::Account), ctx);
             }
             DrivePanelEvent::OpenWorkflowModalWithNew {
                 space,
@@ -15228,20 +15228,6 @@ impl Workspace {
     ) {
         self.close_all_overlays(ctx);
         self.open_settings_pane(section, Some(search_query), ctx);
-    }
-
-    /// Opens the team settings page and fills the invite field with the given email. This is used when linking directing to
-    /// settings with the intent of inviting a user.
-    pub fn show_team_settings_page_with_email_invite(
-        &mut self,
-        email_invite: Option<&String>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.show_settings_with_section(Some(SettingsSection::Teams), ctx);
-
-        self.settings_pane.update(ctx, |view, ctx| {
-            view.open_teams_page_email_invite(email_invite, ctx);
-        });
     }
 
     /// Opens the MCP servers settings page, optionally triggering auto-install of a gallery MCP.
@@ -19790,7 +19776,7 @@ impl TypedActionView for Workspace {
                 ctx.open_url(&upgrade_url);
             }
             ShowReferralSettingsPage => {
-                self.show_settings_with_section(Some(SettingsSection::Referrals), ctx);
+                self.show_settings_with_section(Some(SettingsSection::Account), ctx);
             }
             JoinSlack => self.join_slack(ctx),
             ViewUserDocs => self.view_user_docs(ctx),

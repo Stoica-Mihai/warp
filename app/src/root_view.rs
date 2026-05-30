@@ -48,7 +48,7 @@ use crate::server::server_api::{ServerApi, ServerApiProvider};
 use crate::server::telemetry::LaunchConfigUiLocation;
 use crate::settings::QuakeModeSettings;
 use crate::settings_view::mcp_servers_page::MCPServersSettingsPage;
-use crate::settings_view::{flags, OpenTeamsSettingsModalArgs, SettingsSection};
+use crate::settings_view::{flags, SettingsSection};
 use crate::terminal::available_shells::AvailableShell;
 use crate::terminal::general_settings::GeneralSettings;
 use crate::terminal::keys_settings::KeysSettings;
@@ -303,15 +303,6 @@ pub fn init(app: &mut AppContext) {
     app.add_action(
         "root_view:open_drive_object_existing_window",
         RootView::open_warp_drive_object_in_existing_window,
-    );
-
-    app.add_global_action(
-        "root_view:open_team_settings_with_email_invite_in_new_window",
-        open_team_settings_with_email_invite_in_new_window,
-    );
-    app.add_action(
-        "root_view:open_team_settings_with_email_invite_in_existing_window",
-        RootView::open_team_settings_with_email_invite_in_existing_window,
     );
 
     app.add_global_action(
@@ -844,25 +835,6 @@ fn create_environment_and_run(arg: &CreateEnvironmentArg, ctx: &mut AppContext) 
 
     ctx.windows().show_window_and_focus_app(window_id);
 }
-fn open_team_settings_with_email_invite_in_new_window(
-    arg: &OpenTeamsSettingsModalArgs,
-    ctx: &mut AppContext,
-) {
-    let root_handle = open_new_window_get_handles(None, ctx).1;
-    root_handle.update(ctx, |root_view, ctx| {
-        let workspace_view_handle = &root_view.workspace;
-        {
-            let initial_load_complete = UpdateManager::as_ref(ctx).initial_load_complete();
-            let email_invite = arg.invite_email.clone();
-            workspace_view_handle.update(ctx, |_, ctx| {
-                let _ = ctx.spawn(initial_load_complete, move |workspace, _, ctx| {
-                    workspace.show_team_settings_page_with_email_invite(email_invite.as_ref(), ctx)
-                });
-            });
-        }
-    });
-}
-
 fn open_settings_page_in_new_window(section: &SettingsSection, ctx: &mut AppContext) {
     let root_handle = open_new_window_get_handles(None, ctx).1;
     root_handle.update(ctx, |root_view, ctx| {
@@ -1578,18 +1550,6 @@ impl RootView {
         true
     }
 
-    pub fn open_team_settings_with_email_invite_in_existing_window(
-        &mut self,
-        arg: &OpenTeamsSettingsModalArgs,
-        ctx: &mut ViewContext<Self>,
-    ) -> bool {
-        let handle = &self.workspace;
-        handle.update(ctx, |workspace, ctx| {
-            workspace.show_team_settings_page_with_email_invite(arg.invite_email.as_ref(), ctx)
-        });
-        true
-    }
-
     pub fn open_warp_drive_object_in_existing_window(
         &mut self,
         arg: &OpenWarpDriveObjectArgs,
@@ -1846,7 +1806,7 @@ impl RootView {
             ctx.dispatch_typed_action_for_view(
                 window_id,
                 handle.id(),
-                &WorkspaceAction::ShowSettingsPage(SettingsSection::Teams),
+                &WorkspaceAction::ShowSettingsPage(SettingsSection::Account),
             );
             ctx.windows().show_window_and_focus_app(window_id);
         }

@@ -1348,7 +1348,7 @@ fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
             "workspace:show_settings_teams_page",
             BindingDescription::new("Open Settings: Teams")
                 .with_custom_description(bindings::MAC_MENUS_CONTEXT, "Open Team Settings"),
-            WorkspaceAction::ShowSettingsPage(SettingsSection::Teams),
+            WorkspaceAction::ShowSettingsPage(SettingsSection::Account),
         )
         .with_group(bindings::BindingGroup::Settings.as_str())
         .with_custom_action(CustomAction::OpenTeamSettings)
@@ -1379,7 +1379,7 @@ fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
         EditableBinding::new(
             "workspace:show_settings_billing_and_usage_page",
             BindingDescription::new("Open Settings: Billing and usage"),
-            WorkspaceAction::ShowSettingsPage(SettingsSection::BillingAndUsage),
+            WorkspaceAction::ShowSettingsPage(SettingsSection::Account),
         )
         .with_group(bindings::BindingGroup::Settings.as_str())
         .with_context_predicate(id!("Workspace")),
@@ -1393,7 +1393,7 @@ fn add_open_setting_pages_as_editable_binding(app: &mut AppContext) {
         EditableBinding::new(
             "workspace:show_settings_referrals_page",
             BindingDescription::new("Open Settings: Referrals"),
-            WorkspaceAction::ShowSettingsPage(SettingsSection::Referrals),
+            WorkspaceAction::ShowSettingsPage(SettingsSection::Account),
         )
         .with_group(bindings::BindingGroup::Settings.as_str())
         .with_context_predicate(id!("Workspace")),

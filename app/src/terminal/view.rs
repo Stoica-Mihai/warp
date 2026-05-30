@@ -23995,7 +23995,7 @@ impl TypedActionView for TerminalView {
                 });
             }
             OpenTeamSettingsPage => {
-                ctx.emit(Event::OpenSettings(SettingsSection::Teams));
+                ctx.emit(Event::OpenSettings(SettingsSection::Account));
             }
             SetMarkedText {
                 marked_text,
@@ -24287,7 +24287,7 @@ impl TypedActionView for TerminalView {
                 });
             }
             OpenBillingAndUsagePane => {
-                ctx.emit(Event::OpenSettings(SettingsSection::BillingAndUsage));
+                ctx.emit(Event::OpenSettings(SettingsSection::Account));
             }
             OpenAddRulePane => {
                 ctx.emit(Event::OpenAddRulePane);

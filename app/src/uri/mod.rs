@@ -28,7 +28,7 @@ use crate::linear::{LinearAction, LinearIssueWork};
 use crate::root_view::{open_new_window_get_handles, OpenLaunchConfigArg};
 use crate::server::ids::ServerId;
 use crate::server::telemetry::LaunchConfigUiLocation;
-use crate::settings_view::{OpenTeamsSettingsModalArgs, SettingsSection};
+use crate::settings_view::SettingsSection;
 use crate::tab_configs::TabConfig;
 use crate::user_config::{load_launch_configs, load_tab_configs, tab_configs_dir};
 use crate::util::openable_file_type::{
@@ -307,23 +307,12 @@ impl UriHost {
 
                 if let Some(settings_sub_page) = settings_sub_page {
                     match settings_sub_page.as_str() {
-                        "teams" => {
-                            let invite_email = query_string.get("invite").map(|s| s.to_string());
-                            let args = OpenTeamsSettingsModalArgs { invite_email };
-                            dispatch_action_in_new_or_existing_window(
-                                primary_window_id,
-                                "root_view:open_team_settings_with_email_invite_in_existing_window",
-                                "root_view:open_team_settings_with_email_invite_in_new_window",
-                                &args,
-                                ctx,
-                            );
-                        }
                         "billing_and_usage" => {
                             dispatch_action_in_new_or_existing_window(
                                 primary_window_id,
                                 "root_view:open_settings_page_in_existing_window",
                                 "root_view:open_settings_page_in_new_window",
-                                &SettingsSection::BillingAndUsage,
+                                &SettingsSection::Account,
                                 ctx,
                             );
                         }
@@ -366,7 +355,7 @@ impl UriHost {
                                 primary_window_id,
                                 "root_view:open_settings_page_in_existing_window",
                                 "root_view:open_settings_page_in_new_window",
-                                &SettingsSection::OzCloudAPIKeys,
+                                &SettingsSection::Account,
                                 ctx,
                             );
                         }

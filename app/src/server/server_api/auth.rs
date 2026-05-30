@@ -13,28 +13,10 @@ use warp_graphql::mutations::generate_api_key::{
 use warp_graphql::queries::api_keys::{
     ApiKeyProperties, ApiKeyPropertiesResult, ApiKeys, ApiKeysVariables,
 };
-use warp_graphql::queries::get_conversation_usage::{
-    ConversationUsage, GetConversationUsage, GetConversationUsageVariables, UserResult,
-};
-
 use super::ServerApi;
 use crate::auth::credentials::{AuthToken, Credentials};
 use crate::server::graphql::{get_request_context, get_user_facing_error_message};
 use crate::server::ids::ApiKeyUid;
-
-/// A named agent identity from the public API.
-#[derive(Clone, Debug, serde::Deserialize)]
-pub struct AgentIdentity {
-    pub uid: String,
-    pub name: String,
-    pub available: bool,
-}
-
-/// Wrapper for the `GET /api/v1/agent/identities` response.
-#[derive(serde::Deserialize)]
-struct AgentIdentitiesResponse {
-    agents: Vec<AgentIdentity>,
-}
 
 /// Header key for the ambient workload token attached to multi-agent requests.
 pub const AMBIENT_WORKLOAD_TOKEN_HEADER: &str = "X-Warp-Ambient-Workload-Token";
@@ -55,16 +37,6 @@ pub trait AuthClient: 'static + Send + Sync {
     /// test credentials).
     async fn get_or_refresh_access_token(&self) -> Result<AuthToken>;
 
-    /// Returns conversation usage history for the current user over the past n days.
-    /// If last_updated_end_timestamp is provided, only conversations with
-    /// lastUpdated earlier than this timestamp are returned.
-    async fn get_conversation_usage_history(
-        &self,
-        days: Option<i32>,
-        limit: Option<i32>,
-        last_updated_end_timestamp: Option<warp_graphql::scalars::Time>,
-    ) -> Result<Vec<ConversationUsage>>;
-
     // API Keys
     async fn list_api_keys(&self) -> Result<Vec<ApiKeyProperties>>;
 
@@ -77,9 +49,6 @@ pub trait AuthClient: 'static + Send + Sync {
     ) -> Result<GenerateApiKeyResult>;
 
     async fn expire_api_key(&self, key_uid: &ApiKeyUid) -> Result<ExpireApiKeyResult>;
-
-    /// Fetches the list of named agent identities for the user's team.
-    async fn list_agent_identities(&self) -> Result<Vec<AgentIdentity>>;
 
     /// Returns a cached ambient workload token, or issues a new one if not present or expired.
     ///
@@ -114,26 +83,6 @@ impl ServerApi {
 impl AuthClient for ServerApi {
     async fn get_or_refresh_access_token(&self) -> Result<AuthToken> {
         self.access_token().await
-    }
-
-    // Returns a history of the current user's conversation usage over the past n days.
-    async fn get_conversation_usage_history(
-        &self,
-        days: Option<i32>,
-        limit: Option<i32>,
-        last_updated_end_timestamp: Option<warp_graphql::scalars::Time>,
-    ) -> Result<Vec<ConversationUsage>> {
-        let operation = GetConversationUsage::build(GetConversationUsageVariables {
-            request_context: get_request_context(),
-            days,
-            limit,
-            last_updated_end_timestamp,
-        });
-        let response = self.send_graphql_request(operation, None).await?;
-        match response.user {
-            UserResult::UserOutput(out) => Ok(out.user.conversation_usage),
-            UserResult::Unknown => Err(anyhow!("Unable to fetch conversation usage")),
-        }
     }
 
     // API Keys
@@ -171,11 +120,6 @@ impl AuthClient for ServerApi {
         let operation = GenerateApiKey::build(variables);
         let response = self.send_graphql_request(operation, None).await?;
         Ok(response.generate_api_key)
-    }
-
-    async fn list_agent_identities(&self) -> Result<Vec<AgentIdentity>> {
-        let response: AgentIdentitiesResponse = self.get_public_api("agent/identities").await?;
-        Ok(response.agents)
     }
 
     async fn expire_api_key(&self, key_uid: &ApiKeyUid) -> Result<ExpireApiKeyResult> {
