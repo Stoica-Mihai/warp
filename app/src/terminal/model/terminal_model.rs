@@ -586,8 +586,6 @@ pub struct TerminalModel {
 
     /// A sender for write to pty events for a shared session viewer.
     ///
-    /// This field is only [`Some`] if this session is shared.
-    write_to_pty_events_for_shared_session_tx: Option<Sender<Vec<u8>>>,
 
     /// Whether this viewer is currently receiving historical agent conversation replay.
     /// Used to suppress live-conversation-specific actions (e.g. tombstone insertion)
@@ -1156,7 +1154,6 @@ impl TerminalModel {
             is_dummy_cloud_mode_session,
             conversation_transcript_viewer_status: None,
             ordered_terminal_events_for_shared_session_tx: None,
-            write_to_pty_events_for_shared_session_tx: None,
             is_receiving_agent_conversation_replay: false,
             tmux_background_outputs: HashMap::new(),
             tmux_control_mode_context: None,
@@ -1230,28 +1227,6 @@ impl TerminalModel {
             // Any command with a long-running control state is considered agent-monitored.
             is_agent_monitored: metadata.long_running_control_state().is_some(),
         }
-    }
-
-    pub fn set_write_to_pty_events_for_shared_session_tx(&mut self, tx: Sender<Vec<u8>>) {
-        self.write_to_pty_events_for_shared_session_tx = Some(tx);
-    }
-
-    pub fn send_write_to_pty_events_for_shared_session(&mut self, bytes: Vec<u8>) {
-        if !FeatureFlag::SharedSessionWriteToLongRunningCommands.is_enabled()
-            || !self.shared_session_status().is_executor()
-        {
-            return;
-        }
-
-        if let Some(tx) = &self.write_to_pty_events_for_shared_session_tx {
-            if let Err(e) = tx.try_send(bytes) {
-                log::warn!("Failed to send write to pty events: {e}");
-            }
-        }
-    }
-
-    pub fn clear_write_to_pty_events_for_shared_session_tx(&mut self) {
-        self.write_to_pty_events_for_shared_session_tx = None;
     }
 
     /// Sends an Agent ResponseEvent to viewers if this session is shared.
