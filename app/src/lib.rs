@@ -26,7 +26,6 @@ mod crash_recovery;
 mod debounce;
 mod debug_dump;
 mod default_terminal;
-mod download_method;
 mod drive;
 #[cfg(windows)]
 mod dynamic_libraries;
@@ -1339,55 +1338,26 @@ pub(crate) fn initialize_app(
         });
     });
 
-    let user_is_logged_in = auth_state.is_logged_in();
-
-    if user_is_logged_in {
-        // Skip refresh_user for CLI mode — the CLI handles auth refresh in
-        // ensure_auth_state so it can detect invalid credentials before running
-        // a command.
-        if !matches!(launch_mode, LaunchMode::CommandLine { .. }) {
-            AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                auth_manager.refresh_user(ctx);
-            });
-        }
-
-        // Set the first frame callback to record the app's startup time.
-        // This is only sent for logged-in users so that new users don't skew performance metrics.
-        let _is_screen_reader_enabled = ctx.is_screen_reader_enabled();
-        let _from_relaunch = launch_mode.args().finish_update;
-        ctx.on_first_frame_drawn(move |ctx| {
-            let _timing_data = IntervalTimer::handle(ctx).update(ctx, |timer, _| {
-                timer.mark_interval_end("FIRST_FRAME_DRAWN");
-                timer.compute_stats()
-            });
-            GPUState::handle(ctx).update(ctx, |gpu_state, ctx| {
-                gpu_state
-                    .set_has_lower_power_gpu(warpui::rendering::is_low_power_gpu_available(), ctx);
-            });
-
-            for window_id in ctx.window_ids().collect_vec() {
-                SettingsPaneManager::handle(ctx)
-                    .read(ctx, |model, _| model.settings_view(window_id))
-                    .update(ctx, |settings, ctx| {
-                        settings.refresh_preferred_graphics_backend_dropdown(ctx);
-                    })
-            }
+    let _is_screen_reader_enabled = ctx.is_screen_reader_enabled();
+    let _from_relaunch = launch_mode.args().finish_update;
+    ctx.on_first_frame_drawn(move |ctx| {
+        let _timing_data = IntervalTimer::handle(ctx).update(ctx, |timer, _| {
+            timer.mark_interval_end("FIRST_FRAME_DRAWN");
+            timer.compute_stats()
+        });
+        GPUState::handle(ctx).update(ctx, |gpu_state, ctx| {
+            gpu_state
+                .set_has_lower_power_gpu(warpui::rendering::is_low_power_gpu_available(), ctx);
         });
 
-        #[cfg(enable_crash_recovery)]
-        ctx.on_frame_drawn(|ctx, window_id| {
-            crash_recovery::CrashRecovery::handle(ctx).update(ctx, |crash_recovery, ctx| {
-                crash_recovery.on_frame_drawn(window_id, ctx);
-            });
-        })
-    } else {
-        // If the app was opened while logged out, record an event for measuring new users.
-        // This is sent immediately in case they quit the app on the signup screen.
-        download_method::determine_and_report(
-            auth_state.clone(),
-            ctx.background_executor().clone(),
-        );
-    }
+        for window_id in ctx.window_ids().collect_vec() {
+            SettingsPaneManager::handle(ctx)
+                .read(ctx, |model, _| model.settings_view(window_id))
+                .update(ctx, |settings, ctx| {
+                    settings.refresh_preferred_graphics_backend_dropdown(ctx);
+                })
+        }
+    });
 
     #[cfg(not(target_family = "wasm"))]
     {

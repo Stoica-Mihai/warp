@@ -7,12 +7,6 @@ use crate::drive::CloudObjectTypeAndId;
 use crate::server::ids::{ObjectUid, ServerId};
 use crate::workflows::{WorkflowId, WorkflowSelectionSource, WorkflowSource};
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
-pub enum DownloadSource {
-    Website,
-    Homebrew,
-}
-
 // For use when recording what type of cloud object a particular telemetry is for.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TelemetryCloudObjectType {
