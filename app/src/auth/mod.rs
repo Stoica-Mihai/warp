@@ -2,7 +2,6 @@ pub mod anonymous_id;
 pub mod auth_manager;
 pub mod auth_state;
 pub mod credentials;
-mod login_failure_notification;
 pub mod user;
 pub mod user_uid;
 

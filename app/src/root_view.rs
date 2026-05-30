@@ -13,7 +13,7 @@ use settings::Setting as _;
 use url::Url;
 use warp_core::context_flag::ContextFlag;
 use warpui::elements::{
-    Border, ChildAnchor, OffsetPositioning, ParentAnchor, ParentElement, ParentOffsetBounds, Stack,
+    ChildAnchor, OffsetPositioning, ParentAnchor, ParentElement, ParentOffsetBounds, Stack,
 };
 use warpui::keymap::{EditableBinding, FixedBinding};
 use warpui::platform::{WindowBounds, WindowStyle};
@@ -54,7 +54,7 @@ use crate::terminal::general_settings::GeneralSettings;
 use crate::terminal::keys_settings::KeysSettings;
 use crate::terminal::shell::ShellType;
 use crate::terminal::view::{cell_size_and_padding, TerminalAction};
-use crate::themes::theme::{AnsiColorIdentifier, Blend, Fill};
+use crate::themes::theme::AnsiColorIdentifier;
 use crate::uri::OpenMCPSettingsArgs;
 use crate::util::bindings::{self, is_binding_pty_compliant};
 use crate::util::traffic_lights::{TrafficLightData, TrafficLightMouseStates};
@@ -71,16 +71,6 @@ const WINDOW_TITLE: &str = "Sublight";
 lazy_static! {
     static ref FALLBACK_WINDOW_SIZE: Vector2F = vec2f(800.0, 600.0);
     static ref QUAKE_STATE: Arc<Mutex<Option<QuakeModeState>>> = Arc::new(Mutex::new(None));
-}
-
-/// Border drawn around the whole window. Hard-coded for the default Dark theme.
-pub(crate) fn unthemed_window_border() -> Border {
-    if cfg!(all(not(target_os = "macos"), not(target_family = "wasm"))) {
-        // The 15% blend of fg into bg is the "ui surface" color.
-        Border::all(1.).with_border_fill(Fill::black().blend(&Fill::white().with_opacity(15)))
-    } else {
-        Border::all(1.).with_border_fill(Fill::black().with_opacity(0))
-    }
 }
 
 #[derive(Debug, Clone)]

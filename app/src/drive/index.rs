@@ -382,13 +382,6 @@ impl DriveIndexAction {
         }
     }
 
-    pub fn blocked_for_anonymous_user(&self) -> bool {
-        use DriveIndexAction::*;
-        matches!(
-            self,
-            OpenTeamSettingsPage | ViewPlans { .. } | ManageBilling { .. }
-        )
-    }
 }
 
 pub enum DriveIndexEvent {

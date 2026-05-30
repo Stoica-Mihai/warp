@@ -18,7 +18,7 @@ use anyhow::Result;
 use dashmap::DashMap;
 pub use improved_palette_search_layer::{ImprovedPaletteSearch, IMPROVED_PALETTE_SEARCH_LAYER};
 use lazy_static::lazy_static;
-pub use login_layer::{AuthFlowInstructions, LOGIN_LAYER};
+pub use login_layer::LOGIN_LAYER;
 use warp_core::user_preferences::GetUserPreferences as _;
 use warpui::{AppContext, SingletonEntity};
 

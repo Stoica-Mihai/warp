@@ -130,7 +130,6 @@ lazy_static! {
 
 #[derive(Debug, Clone)]
 pub enum TeamsPageAction {
-    LeaveTeam,
     ShowLeaveTeamConfirmationDialog,
     ShowDeleteTeamConfirmationDialog,
     CopyLink(String),
@@ -161,7 +160,6 @@ pub enum TeamsPageAction {
     SendEmailInvites {
         team_uid: ServerId,
     },
-    OpenWarpDrive,
     GenerateUpgradeLink {
         team_uid: ServerId,
     },
@@ -172,7 +170,6 @@ pub enum TeamsPageAction {
         team_uid: ServerId,
     },
     ContactSupport,
-    ContactSales,
     /// This action is for toggling the discoverability checkbox before a team is created.
     ToggleTeamDiscoverabilityBeforeCreation,
     /// This action is for toggling the discoverability toggle after a team has been created.
@@ -202,7 +199,6 @@ pub enum TeamsPageAction {
 #[derive(Clone)]
 pub enum TeamsPageViewEvent {
     TeamsChanged,
-    OpenWarpDrive,
     ShowToast {
         message: String,
         flavor: ToastFlavor,
@@ -409,7 +405,6 @@ impl TypedActionView for TeamsPageView {
     fn handle_action(&mut self, action: &Self::Action, ctx: &mut ViewContext<Self>) {
         match action {
             TeamsPageAction::CopyLink(link) => self.copy_invite_link(link, ctx),
-            TeamsPageAction::LeaveTeam => self.leave_team(ctx),
             TeamsPageAction::CreateTeam => self.create_team(ctx),
             TeamsPageAction::RemoveUserFromTeam { user_uid, team_uid } => {
                 if FeatureFlag::BillingAndUsagePageV2.is_enabled() {
@@ -432,7 +427,6 @@ impl TypedActionView for TeamsPageView {
                 self.send_email_invites(*team_uid, ctx);
                 ctx.notify();
             }
-            TeamsPageAction::OpenWarpDrive => ctx.emit(TeamsPageViewEvent::OpenWarpDrive),
             TeamsPageAction::ShowLeaveTeamConfirmationDialog => {
                 let variant = if self.should_show_reload_credits_confirmation(ctx) {
                     CloudActionConfirmationDialogVariant::LeaveTeamReloadCredits
@@ -489,9 +483,6 @@ impl TypedActionView for TeamsPageView {
             }
             TeamsPageAction::ContactSupport => {
                 AdminActions::contact_support(ctx);
-            }
-            TeamsPageAction::ContactSales => {
-                AdminActions::contact_sales(ctx);
             }
             TeamsPageAction::ToggleTeamDiscoverability {
                 team_uid,

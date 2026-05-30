@@ -1953,14 +1953,10 @@ impl TypedActionView for BillingAndUsagePageV2View {
             BillingAndUsagePageAction::OpenAdminPanel { team_uid } => {
                 super::admin_actions::AdminActions::open_admin_panel(*team_uid, ctx);
             }
-            BillingAndUsagePageAction::ContactSupport => {
-                super::admin_actions::AdminActions::contact_support(ctx);
-            }
             BillingAndUsagePageAction::SignupAnonymousUser => {
                 ctx.emit(BillingAndUsagePageEvent::SignupAnonymousUser);
             }
             BillingAndUsagePageAction::AttemptLoginGatedUpgrade => {}
-            BillingAndUsagePageAction::OpenUrl(url) => ctx.open_url(&url.url),
             // Not applicable in v2
             BillingAndUsagePageAction::UpdateUsageBasedPricingSettings { .. }
             | BillingAndUsagePageAction::ShowOverageLimitModal => {}

@@ -119,8 +119,6 @@ pub enum MainPageAction {
 
 #[derive(Clone, Copy)]
 pub enum MainSettingsPageEvent {
-    #[allow(dead_code)]
-    OpenWarpDrive,
     SignupAnonymousUser,
 }
 

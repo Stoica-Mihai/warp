@@ -11849,15 +11849,6 @@ impl Workspace {
             SettingsViewEvent::LaunchNetworkLogging => {
                 self.open_network_log_pane(ctx);
             }
-            SettingsViewEvent::OpenWarpDrive => {
-                self.close_all_overlays(ctx);
-                self.open_or_toggle_warp_drive(
-                    false, /* toggle */
-                    false, /* explicit_user_action */
-                    ctx,
-                );
-                ctx.notify();
-            }
             SettingsViewEvent::SignupAnonymousUser => {
                 self.initiate_user_signup(AnonymousUserSignupEntrypoint::SignUpButton, ctx);
             }

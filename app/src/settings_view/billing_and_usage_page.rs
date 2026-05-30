@@ -14,7 +14,7 @@ use warp_core::ui::theme::Fill;
 use warp_graphql::billing::AddonCreditsOption;
 use warpui::elements::{
     Align, Border, ChildAnchor, ConstrainedBox, Container, CornerRadius, CrossAxisAlignment, Empty,
-    Flex, FormattedTextElement, HighlightedHyperlink, Hoverable, HyperlinkUrl, MainAxisAlignment,
+    Flex, FormattedTextElement, HighlightedHyperlink, Hoverable, MainAxisAlignment,
     MainAxisSize, MouseStateHandle, OffsetPositioning, ParentAnchor, ParentElement,
     ParentOffsetBounds, Radius, Shrinkable, Text, Wrap,
 };
@@ -768,16 +768,10 @@ impl TypedActionView for BillingAndUsagePageView {
             BillingAndUsagePageAction::OpenAdminPanel { team_uid } => {
                 AdminActions::open_admin_panel(*team_uid, ctx);
             }
-            BillingAndUsagePageAction::ContactSupport => {
-                AdminActions::contact_support(ctx);
-            }
             BillingAndUsagePageAction::SignupAnonymousUser => {
                 ctx.emit(BillingAndUsagePageEvent::SignupAnonymousUser);
             }
             BillingAndUsagePageAction::AttemptLoginGatedUpgrade => {}
-            BillingAndUsagePageAction::OpenUrl(url) => {
-                ctx.open_url(&url.url);
-            }
             BillingAndUsagePageAction::UpdateUsageBasedPricingSettings {
                 team_uid,
                 enabled,
@@ -977,7 +971,6 @@ impl TypedActionView for BillingAndUsagePageView {
 
 #[derive(Debug, Clone)]
 pub enum BillingAndUsagePageAction {
-    OpenUrl(HyperlinkUrl),
     Upgrade {
         team_uid: Option<ServerId>,
         user_id: UserUid,
@@ -988,7 +981,6 @@ pub enum BillingAndUsagePageAction {
     OpenAdminPanel {
         team_uid: ServerId,
     },
-    ContactSupport,
     SignupAnonymousUser,
     AttemptLoginGatedUpgrade,
     UpdateUsageBasedPricingSettings {
