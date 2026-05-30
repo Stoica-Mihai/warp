@@ -111,6 +111,7 @@ pub fn create_discount_badge(discount: u32, appearance: &Appearance) -> Box<dyn 
     .with_uniform_padding(4.)
     .finish()
 }
+
 pub use code_page::CodeSettingsPageView;
 pub use features_page::FeaturesPageAction;
 pub use main_page::handle_experiment_change;
