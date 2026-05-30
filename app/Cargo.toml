@@ -424,7 +424,6 @@ cross_repo_context = []
 codebase_index_persistence = ["full_source_code_embedding"]
 default = [
     "agent_mode",
-    "viewing_shared_sessions",
     "render_continuous_block_selections_with_single_border",
     "shared_with_me",
     "external_agent_mode_context",
@@ -752,7 +751,6 @@ integration_tests = [
     "warp_core/integration_tests",
 ]
 traces = []
-viewing_shared_sessions = []
 workflow_aliases = []
 rect_selection = []
 alacritty_settings_import = []

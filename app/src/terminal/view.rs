@@ -21173,9 +21173,8 @@ impl TerminalView {
             );
         }
 
-        if (FeatureFlag::CreatingSharedSessions.is_enabled()
-            && ContextFlag::CreateSharedSession.is_enabled())
-            || FeatureFlag::ViewingSharedSessions.is_enabled()
+        if FeatureFlag::CreatingSharedSessions.is_enabled()
+            && ContextFlag::CreateSharedSession.is_enabled()
         {
             let is_shared_ambient_agent_session = model.is_shared_ambient_agent_session();
             match &self.inline_banners_state.shared_session_banner_state {
@@ -21356,8 +21355,7 @@ impl TerminalView {
 
         // If this is a shared session viewer and the width required to display the entire
         // terminal is larger than the width of the pane, we should make it horizontally scrollable.
-        let should_be_horizontal_scrollable = FeatureFlag::ViewingSharedSessions.is_enabled()
-            && model.shared_session_status().is_active_viewer()
+        let should_be_horizontal_scrollable = model.shared_session_status().is_active_viewer()
             && required_terminal_width > pane_width;
 
         let theme = appearance.theme();
@@ -21670,8 +21668,7 @@ impl TerminalView {
         // If this is a shared session viewer and the width required to display the entire
         // terminal is larger than the width of the pane, we should make it horizontally scrollable.
         // If there aren't any visible blocks, we should not show a horizontally-scrollable view.
-        let should_be_horizontal_scrollable = FeatureFlag::ViewingSharedSessions.is_enabled()
-            && model.shared_session_status().is_active_viewer()
+        let should_be_horizontal_scrollable = model.shared_session_status().is_active_viewer()
             && model
                 .block_list()
                 .blocks()

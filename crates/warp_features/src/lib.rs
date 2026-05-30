@@ -41,8 +41,6 @@ pub enum FeatureFlag {
     /// killswitch for abuse prevention.
     CreatingSharedSessions,
 
-    /// Enables the joining / viewing of shared sessions (_not_ creation).
-    ViewingSharedSessions,
 
 
     /// Ligature Support in the Editor and Grid
