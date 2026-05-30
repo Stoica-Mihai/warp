@@ -58,7 +58,6 @@ use crate::ai::cloud_environments::{
     CloudAmbientAgentEnvironment, CloudAmbientAgentEnvironmentModel,
 };
 use crate::ai::document::ai_document_model::AIDocumentId;
-use crate::ai::execution_profiles::{CloudAIExecutionProfile, CloudAIExecutionProfileModel};
 use crate::ai::facts::{CloudAIFact, CloudAIFactModel};
 use crate::ai::mcp::templatable::{CloudTemplatableMCPServer, CloudTemplatableMCPServerModel};
 use crate::ai::mcp::templatable_installation::VariableValue;
@@ -3020,20 +3019,7 @@ fn read_sqlite_data(
                                     boxed
                                 })
                             }
-                            JsonObjectType::AIExecutionProfile => {
-                                let model =
-                                    CloudAIExecutionProfileModel::deserialize_owned(&object.data);
-                                model.ok().map(|model| {
-                                    let boxed: Box<dyn CloudObject> =
-                                        Box::new(CloudAIExecutionProfile::new(
-                                            server_id,
-                                            model,
-                                            to_cloud_object_metadata(metadata),
-                                            cloud_object_permissions,
-                                        ));
-                                    boxed
-                                })
-                            }
+                            JsonObjectType::AIExecutionProfile => None,
                             JsonObjectType::CloudEnvironment => {
                                 let model = CloudAmbientAgentEnvironmentModel::deserialize_owned(
                                     &object.data,

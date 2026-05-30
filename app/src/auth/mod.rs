@@ -18,7 +18,6 @@ use warpui::{AppContext, SingletonEntity};
 use crate::ai::agent_conversations_model::AgentConversationsModel;
 use crate::ai::blocklist::agent_view::orchestration_pill_bar_model::OrchestrationPillBarModel;
 use crate::ai::blocklist::BlocklistAIHistoryModel;
-use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::code::editor_management::{CodeEditorStatus, CodeEditorSummary};
 use crate::env_vars::manager::EnvVarCollectionManager;
@@ -179,9 +178,6 @@ pub fn log_out(app: &mut AppContext) {
 
     AuthManager::handle(app).update(app, |auth_manager, ctx| {
         auth_manager.log_out(ctx);
-    });
-    AIExecutionProfilesModel::handle(app).update(app, |ai_execution_profiles_model, _| {
-        ai_execution_profiles_model.reset();
     });
     BlocklistAIHistoryModel::handle(app).update(app, |history_model, _| {
         history_model.reset();

@@ -64,7 +64,7 @@ use crate::ai::execution_profiles::{
 use crate::ai::{BonusGrant, BonusGrantScope};
 use crate::auth::UserUid;
 use crate::cloud_object::{
-    ServerAIExecutionProfile, ServerAIFact, ServerAmbientAgentEnvironment, ServerCloudObject,
+    ServerAIFact, ServerAmbientAgentEnvironment, ServerCloudObject,
     ServerEnvVarCollection, ServerFolder, ServerMCPServer, ServerNotebook, ServerPreference,
     ServerScheduledAmbientAgent, ServerTemplatableMCPServer, ServerWorkflow, ServerWorkflowEnum,
     TryFromGql as _,
@@ -1094,7 +1094,7 @@ impl TryFrom<warp_graphql::object::CloudObject> for ServerCloudObject {
                         Ok(ServerCloudObject::MCPServer(ServerMCPServer::try_from_gql(gso)?))
                     }
                     warp_graphql::generic_string_object::GenericStringObjectFormat::JsonAIExecutionProfile => {
-                        Ok(ServerCloudObject::AIExecutionProfile(ServerAIExecutionProfile::try_from_gql(gso)?))
+                        Err(anyhow::anyhow!("AIExecutionProfile is not supported"))
                     }
                     warp_graphql::generic_string_object::GenericStringObjectFormat::JsonTemplatableMCPServer => {
                         Ok(ServerCloudObject::TemplatableMCPServer(ServerTemplatableMCPServer::try_from_gql(gso)?))
@@ -1148,7 +1148,7 @@ impl TryFrom<CloudObjectWithDescendants> for ServerCloudObject {
                     Ok(ServerCloudObject::MCPServer(ServerMCPServer::try_from_gql(gso)?))
                 }
                 warp_graphql::generic_string_object::GenericStringObjectFormat::JsonAIExecutionProfile => {
-                    Ok(ServerCloudObject::AIExecutionProfile(ServerAIExecutionProfile::try_from_gql(gso)?))
+                    Err(anyhow::anyhow!("AIExecutionProfile is not supported"))
                 }
                 warp_graphql::generic_string_object::GenericStringObjectFormat::JsonTemplatableMCPServer => {
                     Ok(ServerCloudObject::TemplatableMCPServer(ServerTemplatableMCPServer::try_from_gql(gso)?))

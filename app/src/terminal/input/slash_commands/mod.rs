@@ -799,13 +799,6 @@ impl Input {
                     self.open_model_selector(ctx);
                 }
             }
-            _profiles if command.name == commands::PROFILE.name => {
-                if !FeatureFlag::InlineProfileSelector.is_enabled() {
-                    return false;
-                }
-
-                self.open_profile_selector(ctx);
-            }
             _prompts if command.name == commands::PROMPTS.name => {
                 if self.is_cloud_mode_input_v2_composing(ctx) {
                     self.apply_v2_slash_section_filter(CloudModeV2Section::Prompts, ctx);

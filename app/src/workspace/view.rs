@@ -174,7 +174,6 @@ use crate::ai::cloud_agent_settings::CloudAgentSettings;
 #[cfg(target_family = "wasm")]
 use crate::ai::conversation_details_panel::ConversationDetailsPanel;
 use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentModel};
-use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
 use crate::ai::facts::view::AIFactPage;
 use crate::ai::facts::{AIFactManager, AIFactView, AIFactViewEvent};
 use crate::ai::llms::LLMPreferences;
@@ -10833,13 +10832,6 @@ impl Workspace {
             prefs.update_preferred_agent_mode_llm(&source_llm_id, new_terminal_view_id, ctx);
         });
 
-        // Copy the execution profile from source to new terminal view
-        let source_profile_id = *AIExecutionProfilesModel::as_ref(ctx)
-            .active_profile(Some(source_terminal_view_id), ctx)
-            .id();
-        AIExecutionProfilesModel::handle(ctx).update(ctx, |profiles, ctx| {
-            profiles.set_active_profile(new_terminal_view_id, source_profile_id, ctx);
-        });
     }
 
     /// Show a toast notification for a forked conversation.
@@ -15470,8 +15462,6 @@ impl Workspace {
 
     fn handle_codex_modal_event(&mut self, event: &CodexModalEvent, ctx: &mut ViewContext<Self>) {
         use crate::ai::blocklist::agent_view::AgentViewEntryOrigin;
-        use crate::AIExecutionProfilesModel;
-
         match event {
             CodexModalEvent::Close => {
                 self.current_workspace_state.is_codex_modal_open = false;
@@ -15509,12 +15499,6 @@ impl Workspace {
                     return;
                 };
 
-                // Set codex as the model for the default profile and make the default profile active.
-                AIExecutionProfilesModel::handle(ctx).update(ctx, |profiles, ctx| {
-                    let default_profile_id = profiles.default_profile_id();
-                    profiles.set_base_model(default_profile_id, Some(codex_model_id), ctx);
-                    profiles.set_active_profile(terminal_view.id(), default_profile_id, ctx);
-                });
 
                 // Enter agent view and submit the initial prompt
                 let initial_prompt = "Hello, Agent Mode x Codex!".to_string();

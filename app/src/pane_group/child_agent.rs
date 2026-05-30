@@ -14,7 +14,6 @@ use crate::ai::llms::LLMPreferences;
 use crate::pane_group::{PaneGroup, PaneId};
 use crate::terminal::shared_session::IsSharedSessionCreator;
 use crate::terminal::TerminalView;
-use crate::AIExecutionProfilesModel;
 
 pub(crate) struct HiddenChildAgentConversation {
     pub terminal_view: ViewHandle<TerminalView>,
@@ -85,12 +84,6 @@ fn propagate_parent_agent_settings(
     };
 
     let parent_view_id = parent_terminal_view.id();
-    let parent_profile_id = *AIExecutionProfilesModel::as_ref(ctx)
-        .active_profile(Some(parent_view_id), ctx)
-        .id();
-    AIExecutionProfilesModel::handle(ctx).update(ctx, |profiles, ctx| {
-        profiles.set_active_profile(child_terminal_view_id, parent_profile_id, ctx);
-    });
 
     let parent_base_model_id = LLMPreferences::as_ref(ctx)
         .get_active_base_model(ctx, Some(parent_view_id))

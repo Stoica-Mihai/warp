@@ -18,7 +18,6 @@ use crate::ai::ambient_agents::scheduled::{
 };
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::cloud_environments::{AmbientAgentEnvironment, CloudAmbientAgentEnvironmentModel};
-use crate::ai::execution_profiles::{AIExecutionProfile, CloudAIExecutionProfileModel};
 use crate::ai::facts::{AIFact, CloudAIFactModel};
 #[cfg(not(target_family = "wasm"))]
 use crate::ai::mcp::templatable::{CloudTemplatableMCPServerModel, TemplatableMCPServer};
@@ -907,58 +906,6 @@ impl UpdateManager {
             revision_ts,
             ctx,
         )
-    }
-
-    #[allow(dead_code)]
-    pub fn create_ai_execution_profile(
-        &mut self,
-        ai_execution_profile: AIExecutionProfile,
-        client_id: ClientId,
-        owner: Owner,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        self.create_object(
-            CloudAIExecutionProfileModel::new(ai_execution_profile),
-            owner,
-            client_id,
-            Default::default(),
-            false,
-            None,
-            // When adding the initiated_by parameter to this function call, InitiatedBy::User was set as a default value.
-            // This can be changed to InitiatedBy::System if this action was automatically kicked off by the system and we do not want a user facing toast.
-            InitiatedBy::User,
-            ctx,
-        );
-    }
-
-    #[allow(dead_code)]
-    pub fn update_ai_execution_profile(
-        &mut self,
-        ai_execution_profile: AIExecutionProfile,
-        ai_execution_profile_id: SyncId,
-        revision_ts: Option<Revision>,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        self.update_object(
-            CloudAIExecutionProfileModel::new(ai_execution_profile),
-            ai_execution_profile_id,
-            revision_ts,
-            ctx,
-        );
-    }
-
-    pub fn delete_ai_execution_profile(
-        &mut self,
-        ai_execution_profile_id: SyncId,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        self.delete_object_by_user(
-            CloudObjectTypeAndId::GenericStringObject {
-                object_type: GenericStringObjectFormat::Json(JsonObjectType::AIExecutionProfile),
-                id: ai_execution_profile_id,
-            },
-            ctx,
-        );
     }
 
     #[allow(clippy::too_many_arguments)]

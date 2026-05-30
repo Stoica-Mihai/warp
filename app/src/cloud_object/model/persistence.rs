@@ -9,7 +9,6 @@ use warp_graphql::scalars::time::ServerTimestamp;
 use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 
 use super::generic_string_model::GenericStringObjectId;
-use crate::ai::execution_profiles::CloudAIExecutionProfile;
 use crate::auth::AuthStateProvider;
 use crate::cloud_object::{
     CloudModelType, CloudObject, CloudObjectLocation, CloudObjectPermissions, GenericCloudObject,
@@ -517,9 +516,6 @@ impl CloudModel {
             }
             ServerCloudObject::MCPServer(mcp_server) => {
                 self.upsert_from_server_object(mcp_server, ctx);
-            }
-            ServerCloudObject::AIExecutionProfile(ai_execution_profile) => {
-                self.upsert_from_server_object(ai_execution_profile, ctx);
             }
             ServerCloudObject::TemplatableMCPServer(templatable_mcp_server) => {
                 self.upsert_from_server_object(templatable_mcp_server, ctx);
@@ -1185,14 +1181,6 @@ impl CloudModel {
             .and_then(|object| object.into())
     }
 
-    pub fn get_ai_execution_profile(
-        &self,
-        profile_id: &SyncId,
-    ) -> Option<&CloudAIExecutionProfile> {
-        self.objects_by_id
-            .get(&profile_id.uid())
-            .and_then(|object| object.into())
-    }
 
     pub fn get_workflow_enum_mut(&mut self, enum_id: &SyncId) -> Option<&mut CloudWorkflowEnum> {
         self.objects_by_id

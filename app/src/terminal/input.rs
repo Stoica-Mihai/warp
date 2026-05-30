@@ -12,7 +12,6 @@ pub mod inline_menu;
 pub mod message_bar;
 pub mod models;
 pub mod plans;
-pub mod profiles;
 pub mod prompts;
 pub mod repos;
 pub mod rewind;
@@ -174,7 +173,6 @@ use crate::ai::blocklist::{
 use crate::ai::cloud_agent_settings::CloudAgentSettings;
 use crate::ai::cloud_environments::CloudAmbientAgentEnvironment;
 use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentVersion};
-use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
 use crate::ai::harness_availability::HarnessAvailabilityModel;
 use crate::ai::llms::{LLMPreferences, LLMPreferencesEvent};
 use crate::ai::mcp::TemplatableMCPServerManager;
@@ -272,7 +270,6 @@ use crate::terminal::input::models::{
     InlineModelSelectorEvent, InlineModelSelectorTab, InlineModelSelectorView,
 };
 use crate::terminal::input::plans::{InlinePlanMenuEvent, InlinePlanMenuView};
-use crate::terminal::input::profiles::{InlineProfileSelectorEvent, InlineProfileSelectorView};
 use crate::terminal::input::prompts::{InlinePromptsMenuEvent, InlinePromptsMenuView};
 use crate::terminal::input::repos::{InlineReposMenuEvent, InlineReposMenuView};
 use crate::terminal::input::rewind::{RewindMenuEvent, RewindMenuView};
@@ -729,9 +726,7 @@ impl InputSuggestionsMode {
                 | Self::UserQueryMenu { .. }
                 | Self::InlineHistoryMenu { .. }
                 | Self::PlanMenu { .. }
-        ) || (FeatureFlag::InlineProfileSelector.is_enabled()
-            && matches!(self, Self::ProfileSelector))
-            || (FeatureFlag::ListSkills.is_enabled() && matches!(self, Self::SkillMenu))
+        ) || (FeatureFlag::ListSkills.is_enabled() && matches!(self, Self::SkillMenu))
             || (FeatureFlag::InlineRepoMenu.is_enabled() && matches!(self, Self::IndexedReposMenu))
     }
 
@@ -1535,9 +1530,6 @@ pub struct Input {
 
     /// Inline model selector for choosing the Agent base model.
     inline_model_selector_view: ViewHandle<InlineModelSelectorView>,
-    /// Inline profile selector for choosing the active execution profile.
-    inline_profile_selector_view: ViewHandle<InlineProfileSelectorView>,
-
     /// Inline skill selector for /open-skill command.
     inline_skill_selector_view: ViewHandle<InlineSkillSelectorView>,
 
@@ -3182,19 +3174,6 @@ impl Input {
             me.handle_inline_model_selector_event(event, ctx);
         });
 
-        let inline_profile_selector_view = ctx.add_view(|ctx| {
-            InlineProfileSelectorView::new(
-                terminal_view_id,
-                suggestions_mode_model.clone(),
-                agent_view_controller.clone(),
-                &buffer_model,
-                &inline_terminal_menu_positioner,
-                ctx,
-            )
-        });
-        ctx.subscribe_to_view(&inline_profile_selector_view, |me, _, event, ctx| {
-            me.handle_inline_profile_selector_event(event, ctx);
-        });
 
         let inline_prompts_menu_view = ctx.add_view(|ctx| {
             InlinePromptsMenuView::new(
@@ -3444,7 +3423,6 @@ impl Input {
             inline_plan_menu_view,
             inline_repos_menu_view,
             inline_model_selector_view,
-            inline_profile_selector_view,
             inline_prompts_menu_view,
             inline_skill_selector_view,
             skill_selector_should_invoke: false,
@@ -4289,10 +4267,6 @@ impl Input {
                 selected_tab,
                 set_as_default,
             } => {
-                let profile_id = *AIExecutionProfilesModel::as_ref(ctx)
-                    .active_profile(Some(self.terminal_view_id), ctx)
-                    .id();
-
                 match selected_tab {
                     InlineModelSelectorTab::BaseAgent => {
                         LLMPreferences::handle(ctx).update(ctx, |preferences, ctx| {
@@ -4302,17 +4276,8 @@ impl Input {
                                 ctx,
                             );
                         });
-                        if *set_as_default {
-                            AIExecutionProfilesModel::handle(ctx).update(ctx, |profiles, ctx| {
-                                profiles.set_base_model(profile_id, Some(id.clone()), ctx);
-                            });
-                        }
                     }
-                    InlineModelSelectorTab::FullTerminalUse => {
-                        AIExecutionProfilesModel::handle(ctx).update(ctx, |profiles, ctx| {
-                            profiles.set_cli_agent_model(profile_id, Some(id.clone()), ctx);
-                        });
-                    }
+                    InlineModelSelectorTab::FullTerminalUse => {}
                 }
                 // Accept path: close the model selector.
                 if self
@@ -4359,55 +4324,6 @@ impl Input {
                 }
             }
         }
-        self.focus_input_box(ctx);
-    }
-
-    fn handle_inline_profile_selector_event(
-        &mut self,
-        event: &InlineProfileSelectorEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            InlineProfileSelectorEvent::SelectedProfile { profile_id } => {
-                AIExecutionProfilesModel::handle(ctx).update(ctx, |profiles_model, ctx| {
-                    profiles_model.set_active_profile(self.terminal_view_id, *profile_id, ctx);
-                });
-
-                // Remove any LLM override when switching profiles
-                // (mirroring the profile-selecting behavior from the profile chip).
-                LLMPreferences::handle(ctx).update(ctx, |llm_prefs, ctx| {
-                    llm_prefs.remove_llm_override(self.terminal_view_id, ctx);
-                });
-            }
-            InlineProfileSelectorEvent::ManageProfiles => {
-                ctx.emit(Event::OpenSettings(SettingsSection::AgentProfiles));
-            }
-            InlineProfileSelectorEvent::Dismissed => {
-                if self
-                    .suggestions_mode_model
-                    .as_ref(ctx)
-                    .is_profile_selector()
-                {
-                    self.suggestions_mode_model.update(ctx, |model, ctx| {
-                        model.close_and_restore_buffer(ctx);
-                    });
-                    ctx.notify();
-                }
-                return;
-            }
-        }
-
-        if self
-            .suggestions_mode_model
-            .as_ref(ctx)
-            .is_profile_selector()
-        {
-            self.suggestions_mode_model.update(ctx, |model, ctx| {
-                model.set_mode(InputSuggestionsMode::Closed, ctx);
-            });
-            ctx.notify();
-        }
-        self.clear_buffer_and_reset_undo_stack(ctx);
         self.focus_input_box(ctx);
     }
 
@@ -4497,17 +4413,6 @@ impl Input {
         ctx.notify();
     }
 
-    fn open_profile_selector(&mut self, ctx: &mut ViewContext<Self>) {
-        if !FeatureFlag::InlineProfileSelector.is_enabled() {
-            return;
-        }
-
-        self.suggestions_mode_model.update(ctx, |model, ctx| {
-            model.set_mode(InputSuggestionsMode::ProfileSelector, ctx);
-        });
-
-        ctx.notify();
-    }
 
     fn open_prompts_menu(&mut self, ctx: &mut ViewContext<Self>) {
         self.suggestions_mode_model.update(ctx, |model, ctx| {
@@ -7914,12 +7819,6 @@ impl Input {
                 });
                 true
             }
-            InputSuggestionsMode::ProfileSelector => {
-                self.inline_profile_selector_view.update(ctx, |view, ctx| {
-                    view.select_up(ctx);
-                });
-                true
-            }
             InputSuggestionsMode::PromptsMenu => {
                 self.inline_prompts_menu_view.update(ctx, |view, ctx| {
                     view.select_up(ctx);
@@ -7958,6 +7857,7 @@ impl Input {
                 });
                 true
             }
+            InputSuggestionsMode::ProfileSelector => false,
             InputSuggestionsMode::HistoryUp { .. }
             | InputSuggestionsMode::CompletionSuggestions { .. }
             | InputSuggestionsMode::StaticWorkflowEnumSuggestions { .. }
@@ -8253,12 +8153,6 @@ impl Input {
                 });
                 true
             }
-            InputSuggestionsMode::ProfileSelector => {
-                self.inline_profile_selector_view.update(ctx, |view, ctx| {
-                    view.select_down(ctx);
-                });
-                true
-            }
             InputSuggestionsMode::PromptsMenu => {
                 self.inline_prompts_menu_view.update(ctx, |view, ctx| {
                     view.select_down(ctx);
@@ -8283,6 +8177,7 @@ impl Input {
                 });
                 true
             }
+            InputSuggestionsMode::ProfileSelector => false,
             InputSuggestionsMode::HistoryUp { .. }
             | InputSuggestionsMode::CompletionSuggestions { .. }
             | InputSuggestionsMode::StaticWorkflowEnumSuggestions { .. }
@@ -11907,16 +11802,6 @@ impl Input {
             return;
         }
 
-        if self
-            .suggestions_mode_model
-            .as_ref(ctx)
-            .is_profile_selector()
-        {
-            self.inline_profile_selector_view
-                .update(ctx, |view, ctx| view.accept_selected_item(ctx));
-            return;
-        }
-
         if self.suggestions_mode_model.as_ref(ctx).is_prompts_menu() {
             self.inline_prompts_menu_view
                 .update(ctx, |view, ctx| view.accept_selected_item(ctx));
@@ -14126,11 +14011,6 @@ impl View for Input {
             }
         }
 
-        let is_profile_model_selector_open = self.should_show_universal_developer_input(app)
-            && self
-                .universal_developer_input_button_bar
-                .as_ref(app)
-                .is_profile_model_selector_open(app);
         let is_agent_footer_model_selector_open = self
             .agent_input_footer
             .as_ref(app)
@@ -14149,8 +14029,7 @@ impl View for Input {
             .agent_input_footer
             .as_ref(app)
             .is_v2_environment_selector_open(app);
-        if is_profile_model_selector_open
-            || is_agent_footer_model_selector_open
+        if is_agent_footer_model_selector_open
             || is_v2_model_selector_open
             || is_v2_host_selector_open
             || is_v2_harness_selector_open
