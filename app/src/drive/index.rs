@@ -52,9 +52,8 @@ use super::{CloudObjectTypeAndId, DriveObjectType, DriveSortOrder};
 use crate::ai::document::ai_document_model::AIDocumentId;
 use crate::ai::facts::{AIFact, AIMemory};
 use crate::appearance::Appearance;
-use crate::auth::auth_manager::{AuthManager, LoginGatedFeature};
+use crate::auth::auth_manager::AuthManager;
 use crate::auth::auth_state::AuthState;
-use crate::auth::auth_view_modal::AuthViewVariant;
 use crate::auth::AuthStateProvider;
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
 use crate::cloud_object::model::view::{CloudViewModel, CloudViewModelEvent, UpdateTimestamp};
@@ -389,18 +388,6 @@ impl DriveIndexAction {
             self,
             OpenTeamSettingsPage | ViewPlans { .. } | ManageBilling { .. }
         )
-    }
-}
-
-impl From<&DriveIndexAction> for LoginGatedFeature {
-    fn from(val: &DriveIndexAction) -> LoginGatedFeature {
-        use DriveIndexAction::*;
-        match val {
-            OpenTeamSettingsPage => "Open Team Settings",
-            ViewPlans { .. } => "View Plans",
-            ManageBilling { .. } => "Manage Billing",
-            _ => "Unknown reason",
-        }
     }
 }
 
@@ -5066,18 +5053,6 @@ impl TypedActionView for DriveIndex {
     type Action = DriveIndexAction;
 
     fn handle_action(&mut self, action: &DriveIndexAction, ctx: &mut ViewContext<Self>) {
-        // Block anonymous users from performing team actions
-        if self.auth_state.is_anonymous_or_logged_out() && action.blocked_for_anonymous_user() {
-            AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                auth_manager.attempt_login_gated_feature(
-                    action.into(),
-                    AuthViewVariant::RequireLoginCloseable,
-                    ctx,
-                )
-            });
-            return;
-        }
-
         match action {
             DriveIndexAction::CreateObject {
                 object_type,

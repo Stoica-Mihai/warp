@@ -41,7 +41,6 @@ use crate::ai::blocklist::{
 };
 use crate::ai::cloud_environments::CloudAmbientAgentEnvironment;
 use crate::ai::conversation_navigation::ConversationNavigationData;
-use crate::auth::auth_manager::{AuthManager, AuthManagerEvent};
 use crate::auth::AuthStateProvider;
 use crate::cloud_object::CloudObjectLookup as _;
 use crate::network::{NetworkStatus, NetworkStatusEvent, NetworkStatusKind};
@@ -588,10 +587,6 @@ impl AgentConversationsModel {
         let window_manager = WindowManager::handle(ctx);
         ctx.subscribe_to_model(&window_manager, Self::handle_window_state_changed);
 
-        // Subscribe to auth events to retry initial sync when user becomes available
-        let auth_manager = AuthManager::handle(ctx);
-        ctx.subscribe_to_model(&auth_manager, Self::handle_auth_manager_event);
-
         let history_model = BlocklistAIHistoryModel::handle(ctx);
         ctx.subscribe_to_model(&history_model, move |me, event, ctx| {
             me.handle_history_event(event, ctx);
@@ -661,14 +656,6 @@ impl AgentConversationsModel {
                 }
             }
         }
-    }
-
-    fn handle_auth_manager_event(
-        &mut self,
-        event: &AuthManagerEvent,
-        _ctx: &mut ModelContext<Self>,
-    ) {
-        let _ = event;
     }
 
     fn handle_update_manager_event(

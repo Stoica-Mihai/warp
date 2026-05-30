@@ -22,7 +22,6 @@ use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::AIAgentExchangeId;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentVersion};
-use crate::auth::auth_manager::LoginGatedFeature;
 use crate::drive::items::WarpDriveItemId;
 use crate::drive::CloudObjectTypeAndId;
 use crate::palette::PaletteMode;
@@ -678,33 +677,7 @@ pub enum WorkspaceAction {
     OpenNetworkLogPane,
 }
 
-impl From<&WorkspaceAction> for LoginGatedFeature {
-    fn from(val: &WorkspaceAction) -> LoginGatedFeature {
-        use WorkspaceAction::*;
-        match val {
-            CreateTeamNotebook => "Creating a team notebook",
-            CreateTeamWorkflow => "Creating a team workflow",
-            CreateTeamFolder => "Creating a team folder",
-            CreateTeamEnvVarCollection => "Creating a team environment variable collection",
-            CreateTeamAIPrompt => "Creating a team prompt",
-            _ => "Unknown reason",
-        }
-    }
-}
-
 impl WorkspaceAction {
-    pub fn blocked_for_anonymous_user(&self) -> bool {
-        use WorkspaceAction::*;
-        matches!(
-            self,
-            CreateTeamNotebook
-                | CreateTeamWorkflow
-                | CreateTeamFolder
-                | CreateTeamEnvVarCollection
-                | CreateTeamAIPrompt
-        )
-    }
-
     /// Matches what actions require the app state to be saved, and which don't. We match all
     /// actions directly, rather than using _, so we're forced to make a conscious decision for each
     /// of them, rather than following some default.

@@ -39,9 +39,7 @@ use super::settings_page::{
 };
 use super::SettingsSection;
 use crate::ai::AIRequestUsageModel;
-use crate::auth::auth_manager::LoginGatedFeature;
 use crate::auth::auth_state::AuthState;
-use crate::auth::auth_view_modal::AuthViewVariant;
 use crate::auth::{AuthManager, AuthStateProvider, UserUid};
 use crate::menu::{Event as MenuEvent, Menu, MenuItem, MenuItemFields};
 use crate::modal::{Modal, ModalEvent, ModalViewState};
@@ -753,21 +751,6 @@ impl TypedActionView for BillingAndUsagePageView {
     type Action = BillingAndUsagePageAction;
 
     fn handle_action(&mut self, action: &Self::Action, ctx: &mut ViewContext<Self>) {
-        if AuthStateProvider::as_ref(ctx)
-            .get()
-            .is_anonymous_or_logged_out()
-            && action.blocked_for_anonymous_user()
-        {
-            AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                auth_manager.attempt_login_gated_feature(
-                    action.into(),
-                    AuthViewVariant::RequireLoginCloseable,
-                    ctx,
-                )
-            });
-            return;
-        }
-
         match action {
             BillingAndUsagePageAction::Upgrade { team_uid, user_id } => match team_uid {
                 Some(team_uid) => {
@@ -791,15 +774,7 @@ impl TypedActionView for BillingAndUsagePageView {
             BillingAndUsagePageAction::SignupAnonymousUser => {
                 ctx.emit(BillingAndUsagePageEvent::SignupAnonymousUser);
             }
-            BillingAndUsagePageAction::AttemptLoginGatedUpgrade => {
-                AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                    auth_manager.attempt_login_gated_feature(
-                        action.into(),
-                        AuthViewVariant::RequireLoginCloseable,
-                        ctx,
-                    )
-                });
-            }
+            BillingAndUsagePageAction::AttemptLoginGatedUpgrade => {}
             BillingAndUsagePageAction::OpenUrl(url) => {
                 ctx.open_url(&url.url);
             }
@@ -1044,27 +1019,6 @@ pub enum BillingAndUsagePageAction {
     },
     DismissAmbientAgentTrialWidget,
     NavigateToByokSettings,
-}
-
-impl BillingAndUsagePageAction {
-    fn blocked_for_anonymous_user(&self) -> bool {
-        use BillingAndUsagePageAction::*;
-        matches!(
-            self,
-            Upgrade { .. } | GenerateStripeBillingPortalLink { .. },
-        )
-    }
-}
-
-impl From<&BillingAndUsagePageAction> for LoginGatedFeature {
-    fn from(val: &BillingAndUsagePageAction) -> LoginGatedFeature {
-        use BillingAndUsagePageAction::*;
-        match val {
-            Upgrade { .. } => "Upgrade Plan",
-            GenerateStripeBillingPortalLink { .. } => "Generate Stripe Billing Portal Link",
-            _ => "Unknown reason",
-        }
-    }
 }
 
 #[derive(Copy, Clone, Debug)]

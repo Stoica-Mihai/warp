@@ -1,11 +1,6 @@
 pub mod anonymous_id;
 pub mod auth_manager;
-mod auth_override_warning_body;
-pub mod auth_override_warning_modal;
 pub mod auth_state;
-mod auth_view_body;
-pub mod auth_view_modal;
-mod auth_view_shared_helpers;
 pub mod credentials;
 mod login_failure_notification;
 pub mod user;
@@ -52,11 +47,7 @@ use crate::{
 #[cfg_attr(target_family = "wasm", allow(dead_code))]
 pub const API_KEY_PREFIX: &str = "wk-";
 
-pub fn init(app: &mut AppContext) {
-    auth_view_modal::init(app);
-    auth_view_body::init(app);
-    auth_override_warning_body::init(app);
-}
+pub fn init(_app: &mut AppContext) {}
 
 /// If the app has running processes or dirty objects, we'll show a confirmation modal before logging out.
 /// If the user aborts, the user will not be logged out.

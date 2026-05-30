@@ -43,9 +43,7 @@ use super::transfer_ownership_confirmation_modal::{
 use super::SettingsSection;
 use crate::ai::AIRequestUsageModel;
 use crate::appearance::Appearance;
-use crate::auth::auth_manager::{AuthManager, LoginGatedFeature};
 use crate::auth::auth_state::AuthState;
-use crate::auth::auth_view_modal::AuthViewVariant;
 use crate::auth::{AuthStateProvider, UserUid};
 use crate::channel::ChannelState;
 use crate::cloud_object::model::persistence::CloudModel;
@@ -199,58 +197,6 @@ pub enum TeamsPageAction {
         user_uid: UserUid,
         role: MembershipRole,
     },
-}
-
-impl TeamsPageAction {
-    pub fn blocked_for_anonymous_user(&self) -> bool {
-        use TeamsPageAction::*;
-        matches!(
-            self,
-            LeaveTeam
-                | ShowLeaveTeamConfirmationDialog
-                | ShowDeleteTeamConfirmationDialog
-                | CreateTeam
-                | DeletePendingEmailInvitation { .. }
-                | RemoveUserFromTeam { .. }
-                | AddDomainRestrictions { .. }
-                | DeleteDomainRestriction { .. }
-                | SendEmailInvites { .. }
-                | GenerateUpgradeLink { .. }
-                | GenerateStripeBillingPortalLink { .. }
-                | OpenAdminPanel { .. }
-                | ContactSupport
-                | ContactSales
-                | ToggleTeamDiscoverabilityBeforeCreation
-                | ToggleTeamDiscoverability { .. }
-                | JoinTeamWithTeamDiscovery { .. }
-        )
-    }
-}
-
-impl From<&TeamsPageAction> for LoginGatedFeature {
-    fn from(val: &TeamsPageAction) -> LoginGatedFeature {
-        use TeamsPageAction::*;
-        match val {
-            LeaveTeam => "Leave Team",
-            ShowDeleteTeamConfirmationDialog => "Delete Team",
-            CreateTeam => "Create Team",
-            DeletePendingEmailInvitation { .. } => "Delete Pending Email Invitation",
-            RemoveUserFromTeam { .. } => "Remove User From Team",
-            AddDomainRestrictions { .. } => "Add Domain Restrictions",
-            DeleteDomainRestriction { .. } => "Delete Domain Restriction",
-            SendEmailInvites { .. } => "Send Email Invites",
-            GenerateUpgradeLink { .. } => "Generate Upgrade Link",
-            GenerateStripeBillingPortalLink { .. } => "Generate Stripe Billing Portal Link",
-            OpenAdminPanel { .. } => "Open Admin Panel",
-            ContactSupport => "Contact Support",
-            ContactSales => "Contact Sales",
-            ToggleTeamDiscoverability { .. } | ToggleTeamDiscoverabilityBeforeCreation => {
-                "Toggle Team Discoverability"
-            }
-            JoinTeamWithTeamDiscovery { .. } => "Join Team With Team Discovery",
-            _ => "Unknown reason",
-        }
-    }
 }
 
 #[derive(Clone)]
@@ -461,22 +407,6 @@ impl TypedActionView for TeamsPageView {
     type Action = TeamsPageAction;
 
     fn handle_action(&mut self, action: &Self::Action, ctx: &mut ViewContext<Self>) {
-        // Block anonymous users from performing team actions
-        if AuthStateProvider::as_ref(ctx)
-            .get()
-            .is_anonymous_or_logged_out()
-            && action.blocked_for_anonymous_user()
-        {
-            AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                auth_manager.attempt_login_gated_feature(
-                    action.into(),
-                    AuthViewVariant::RequireLoginCloseable,
-                    ctx,
-                )
-            });
-            return;
-        }
-
         match action {
             TeamsPageAction::CopyLink(link) => self.copy_invite_link(link, ctx),
             TeamsPageAction::LeaveTeam => self.leave_team(ctx),

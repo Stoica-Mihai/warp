@@ -7,21 +7,11 @@ use warp_core::channel::ChannelState;
 use warpui::{Entity, ModelContext, SingletonEntity};
 
 use super::auth_state::{AuthState, PersistAction};
-use super::auth_view_modal::AuthViewVariant;
 use super::credentials::Credentials;
 use super::user::User;
 use super::AuthStateProvider;
 use crate::server::telemetry::AnonymousUserSignupEntrypoint;
 use user_persistence::PersistedUser;
-
-#[derive(Debug)]
-pub enum AuthManagerEvent {
-    AttemptedLoginGatedFeature {
-        auth_view_variant: AuthViewVariant,
-    },
-}
-
-pub type LoginGatedFeature = &'static str;
 
 type URLConstructorCallback = Box<dyn FnOnce(Option<&str>) -> String>;
 
@@ -88,25 +78,6 @@ impl AuthManager {
         self.set_and_persist(None, None, ctx);
     }
 
-    pub fn attempt_login_gated_feature(
-        &self,
-        _feature: LoginGatedFeature,
-        auth_view_variant: AuthViewVariant,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        if self.auth_state.is_anonymous_or_logged_out() {
-            ctx.emit(AuthManagerEvent::AttemptedLoginGatedFeature { auth_view_variant });
-        };
-    }
-
-    pub fn anonymous_user_hit_drive_object_limit(&self, ctx: &mut ModelContext<Self>) {
-        if self.auth_state.is_anonymous_or_logged_out() {
-            ctx.emit(AuthManagerEvent::AttemptedLoginGatedFeature {
-                auth_view_variant: AuthViewVariant::HitDriveObjectLimitCloseable,
-            });
-        };
-    }
-
     pub fn initiate_anonymous_user_linking(
         &self,
         _entrypoint: AnonymousUserSignupEntrypoint,
@@ -155,7 +126,7 @@ pub struct PersistedCurrentUserInformation {
 }
 
 impl Entity for AuthManager {
-    type Event = AuthManagerEvent;
+    type Event = ();
 }
 
 impl SingletonEntity for AuthManager {}

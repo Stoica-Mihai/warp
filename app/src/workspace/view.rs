@@ -191,12 +191,8 @@ use crate::app_state::{
     TerminalPaneSnapshot, WindowSnapshot, WorkflowPaneSnapshot,
 };
 use crate::appearance::{Appearance, AppearanceManager};
-use crate::auth::auth_manager::{AuthManager, AuthManagerEvent};
-use crate::auth::auth_override_warning_modal::{
-    AuthOverrideWarningModal, AuthOverrideWarningModalEvent, AuthOverrideWarningModalVariant,
-};
+use crate::auth::auth_manager::AuthManager;
 use crate::auth::auth_state::AuthState;
-use crate::auth::auth_view_modal::{AuthView, AuthViewEvent, AuthViewVariant};
 use crate::auth::AuthStateProvider;
 use crate::banner::BannerState;
 use crate::billing::shared_objects_creation_denied_modal::{
@@ -911,8 +907,6 @@ pub struct Workspace {
     ai_assistant_panel: ViewHandle<AIAssistantPanelView>,
     should_show_ai_assistant_warm_welcome: bool,
     ai_assistant_close_warm_welcome_mouse_state_handle: MouseStateHandle,
-    auth_override_warning_modal: ViewHandle<AuthOverrideWarningModal>,
-    require_login_modal: ViewHandle<AuthView>,
     workflow_modal: ViewHandle<WorkflowModal>,
     prompt_editor_modal: ViewHandle<PromptEditorModal>,
     agent_toolbar_editor_modal: ViewHandle<AgentToolbarEditorModal>,
@@ -1450,47 +1444,6 @@ impl Workspace {
         });
 
         (settings_pane, theme_chooser_view)
-    }
-
-    fn build_require_login_modal(ctx: &mut ViewContext<Self>) -> ViewHandle<AuthView> {
-        let require_login_modal = ctx.add_typed_action_view(|ctx| {
-            AuthView::new(AuthViewVariant::RequireLoginCloseable, ctx)
-        });
-        ctx.subscribe_to_view(&require_login_modal, move |me, _, event, ctx| {
-            me.handle_require_login_modal_event(event, ctx);
-        });
-
-        require_login_modal
-    }
-
-    fn build_auth_override_warning_modal(
-        ctx: &mut ViewContext<Self>,
-    ) -> ViewHandle<AuthOverrideWarningModal> {
-        let auth_override_warning_modal = ctx.add_typed_action_view(|ctx| {
-            AuthOverrideWarningModal::new(ctx, AuthOverrideWarningModalVariant::WorkspaceModal)
-        });
-
-        ctx.subscribe_to_view(&auth_override_warning_modal, |me, _, event, ctx| {
-            me.handle_auth_override_warning_modal_event(event, ctx);
-        });
-
-        auth_override_warning_modal
-    }
-
-    fn handle_auth_override_warning_modal_event(
-        &mut self,
-        event: &AuthOverrideWarningModalEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            AuthOverrideWarningModalEvent::Close => {
-                self.current_workspace_state.is_auth_override_modal_open = false;
-                ctx.notify();
-            }
-            AuthOverrideWarningModalEvent::BulkExport => {
-                self.export_all_warp_drive_objects(ctx);
-            }
-        }
     }
 
     fn build_workflow_modal(
@@ -2284,9 +2237,6 @@ impl Workspace {
             me.handle_palette_event(event, ctx);
         });
 
-        let auth_manager = AuthManager::handle(ctx);
-        ctx.subscribe_to_model(&auth_manager, Self::handle_auth_manager_event);
-
         // Handle theme updates when there is a cloud update to themes while the picker is open.
         ctx.subscribe_to_model(&ThemeSettings::handle(ctx), |me, _, _, ctx| {
             if me.is_theme_chooser_open() {
@@ -2355,10 +2305,6 @@ impl Workspace {
         ctx.subscribe_to_view(&free_tier_limit_hit_modal, |me, _, event, ctx| {
             me.handle_free_tier_limit_modal_event(event, ctx);
         });
-
-        let require_login_modal = Self::build_require_login_modal(ctx);
-
-        let auth_override_warning_modal = Self::build_auth_override_warning_modal(ctx);
 
         let workflow_modal = Self::build_workflow_modal(ai_client.clone(), ctx);
 
@@ -2757,11 +2703,9 @@ impl Workspace {
             ai_assistant_panel,
             should_show_ai_assistant_warm_welcome,
             ai_assistant_close_warm_welcome_mouse_state_handle: Default::default(),
-            auth_override_warning_modal,
             suggested_agent_mode_workflow_modal,
             suggested_rule_modal,
             build_plan_migration_modal,
-            require_login_modal,
             workflow_modal,
             theme_creator_modal,
             theme_deletion_modal,
@@ -8791,19 +8735,6 @@ impl Workspace {
         }
     }
 
-    fn handle_require_login_modal_event(
-        &mut self,
-        event: &AuthViewEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            AuthViewEvent::Close => {
-                self.current_workspace_state.is_require_login_modal_open = false;
-                ctx.notify();
-            }
-        }
-    }
-
     fn handle_theme_creator_modal_event(
         &mut self,
         event: &ThemeCreatorModalEvent,
@@ -8924,19 +8855,6 @@ impl Workspace {
         ctx: &mut ViewContext<Self>,
     ) {
         ctx.notify();
-    }
-
-    fn handle_auth_manager_event(
-        &mut self,
-        _handle: ModelHandle<AuthManager>,
-        event: &AuthManagerEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            AuthManagerEvent::AttemptedLoginGatedFeature { auth_view_variant } => {
-                self.open_require_login_modal(*auth_view_variant, ctx)
-            }
-        }
     }
 
     pub fn toggle_block_snackbar(&mut self, ctx: &mut ViewContext<Self>) {
@@ -11537,17 +11455,6 @@ impl Workspace {
                 );
             });
         }
-    }
-
-    fn open_require_login_modal(&mut self, variant: AuthViewVariant, ctx: &mut ViewContext<Self>) {
-        self.require_login_modal.update(ctx, |modal, ctx| {
-            modal.set_variant(ctx, variant);
-        });
-
-        self.close_all_overlays(ctx);
-        self.current_workspace_state.is_require_login_modal_open = true;
-        ctx.focus(&self.require_login_modal);
-        ctx.notify();
     }
 
     fn open_palette(
@@ -14620,18 +14527,6 @@ impl Workspace {
     ) {
         // View-only sessions should not be able to run workflows
         if self.is_readonly_shared_session_active(ctx) {
-            return;
-        }
-        if self.auth_state.is_anonymous_or_logged_out()
-            && workflow.as_workflow().is_agent_mode_workflow()
-        {
-            AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                auth_manager.attempt_login_gated_feature(
-                    "Run Agent Mode Workflow",
-                    AuthViewVariant::RequireLoginCloseable,
-                    ctx,
-                )
-            });
             return;
         }
         if let Some(terminal_view_handle) =
@@ -19310,10 +19205,6 @@ impl Workspace {
                 ctx.open_url(&sign_up_url);
             });
         }
-        self.require_login_modal.update(ctx, |auth_modal, ctx| {
-            auth_modal.skip_to_browser_open_step(ctx);
-        });
-        self.open_require_login_modal(AuthViewVariant::RequireLoginCloseable, ctx);
     }
 
     fn redirect_to_sign_in(&mut self) {
@@ -19505,17 +19396,6 @@ impl TypedActionView for Workspace {
     fn handle_action(&mut self, action: &Self::Action, ctx: &mut ViewContext<Self>) {
         use WorkspaceAction::*;
         let window_id = ctx.window_id();
-
-        if self.auth_state.is_anonymous_or_logged_out() && action.blocked_for_anonymous_user() {
-            AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                auth_manager.attempt_login_gated_feature(
-                    action.into(),
-                    AuthViewVariant::RequireLoginCloseable,
-                    ctx,
-                )
-            });
-            return;
-        }
 
         match action {
             ActivateTab(index) => self.activate_tab(*index, ctx),
@@ -20616,15 +20496,7 @@ impl TypedActionView for Workspace {
                 self.insert_in_input(content, *replace_buffer, false, *ensure_agent_mode, ctx);
                 ctx.notify();
             }
-            AttemptLoginGatedAIUpgrade => {
-                AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                    auth_manager.attempt_login_gated_feature(
-                        "Upgrade AI Usage",
-                        AuthViewVariant::RequireLoginCloseable,
-                        ctx,
-                    )
-                });
-            }
+            AttemptLoginGatedAIUpgrade => {}
             #[cfg(all(enable_crash_recovery, target_os = "linux"))]
             DismissWaylandCrashRecoveryBannerAndOpenLink => {
                 self.dismiss_workspace_banner(ctx, &WorkspaceBanner::WaylandCrashRecovery);
@@ -22146,14 +22018,6 @@ impl View for Workspace {
 
         if self.current_workspace_state.is_ctrl_tab_palette_open {
             stack.add_child(ChildView::new(&self.ctrl_tab_palette).finish());
-        }
-
-        if self.current_workspace_state.is_require_login_modal_open {
-            stack.add_child(ChildView::new(&self.require_login_modal).finish());
-        }
-
-        if self.current_workspace_state.is_auth_override_modal_open {
-            stack.add_child(ChildView::new(&self.auth_override_warning_modal).finish());
         }
 
         if self.current_workspace_state.is_theme_creator_modal_open {

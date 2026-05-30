@@ -39,7 +39,6 @@ use crate::ai::request_usage_model::{
 };
 use crate::ai::AIRequestUsageModel;
 use crate::auth::auth_state::AuthState;
-use crate::auth::auth_view_modal::AuthViewVariant;
 use crate::auth::{AuthManager, AuthStateProvider};
 use crate::modal::{Modal, ModalEvent, ModalViewState};
 use crate::pricing::PricingInfoModel;
@@ -1941,26 +1940,6 @@ impl TypedActionView for BillingAndUsagePageV2View {
     type Action = BillingAndUsagePageAction;
 
     fn handle_action(&mut self, action: &Self::Action, ctx: &mut ViewContext<Self>) {
-        let is_login_gated = matches!(
-            action,
-            BillingAndUsagePageAction::Upgrade { .. }
-                | BillingAndUsagePageAction::GenerateStripeBillingPortalLink { .. },
-        );
-        if AuthStateProvider::as_ref(ctx)
-            .get()
-            .is_anonymous_or_logged_out()
-            && is_login_gated
-        {
-            AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                auth_manager.attempt_login_gated_feature(
-                    action.into(),
-                    AuthViewVariant::RequireLoginCloseable,
-                    ctx,
-                )
-            });
-            return;
-        }
-
         match action {
             BillingAndUsagePageAction::Upgrade { team_uid, user_id } => match team_uid {
                 Some(team_uid) => ctx.open_url(&UserWorkspaces::upgrade_link_for_team(*team_uid)),
@@ -1980,15 +1959,7 @@ impl TypedActionView for BillingAndUsagePageV2View {
             BillingAndUsagePageAction::SignupAnonymousUser => {
                 ctx.emit(BillingAndUsagePageEvent::SignupAnonymousUser);
             }
-            BillingAndUsagePageAction::AttemptLoginGatedUpgrade => {
-                AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                    auth_manager.attempt_login_gated_feature(
-                        action.into(),
-                        AuthViewVariant::RequireLoginCloseable,
-                        ctx,
-                    )
-                });
-            }
+            BillingAndUsagePageAction::AttemptLoginGatedUpgrade => {}
             BillingAndUsagePageAction::OpenUrl(url) => ctx.open_url(&url.url),
             // Not applicable in v2
             BillingAndUsagePageAction::UpdateUsageBasedPricingSettings { .. }

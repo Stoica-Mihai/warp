@@ -31,9 +31,7 @@ use super::settings_page::{
 };
 use super::{flags, SettingsAction, SettingsSection, ToggleSettingActionPair};
 use crate::appearance::Appearance;
-use crate::auth::auth_manager::{AuthManager, LoginGatedFeature};
 use crate::auth::auth_state::AuthState;
-use crate::auth::auth_view_modal::AuthViewVariant;
 use crate::auth::{AuthStateProvider, UserUid};
 use crate::report_if_error;
 use crate::server::ids::ServerId;
@@ -119,28 +117,6 @@ pub enum MainPageAction {
     OpenUrl(String),
 }
 
-impl MainPageAction {
-    fn blocked_for_anonymous_user(&self) -> bool {
-        use MainPageAction::*;
-        matches!(
-            self,
-            Upgrade { .. } | GenerateStripeBillingPortalLink { .. } | ToggleSettingsSync,
-        )
-    }
-}
-
-impl From<&MainPageAction> for LoginGatedFeature {
-    fn from(val: &MainPageAction) -> LoginGatedFeature {
-        use MainPageAction::*;
-        match val {
-            Upgrade { .. } => "Upgrade Plan",
-            GenerateStripeBillingPortalLink { .. } => "Generate Stripe Billing Portal Link",
-            ToggleSettingsSync => "Toggle Settings Sync",
-            _ => "Unknown reason",
-        }
-    }
-}
-
 #[derive(Clone, Copy)]
 pub enum MainSettingsPageEvent {
     #[allow(dead_code)]
@@ -161,22 +137,6 @@ impl TypedActionView for MainSettingsPageView {
     type Action = MainPageAction;
 
     fn handle_action(&mut self, action: &Self::Action, ctx: &mut ViewContext<Self>) {
-        // Block anonymous users from upgrading
-        if AuthStateProvider::as_ref(ctx)
-            .get()
-            .is_anonymous_or_logged_out()
-            && action.blocked_for_anonymous_user()
-        {
-            AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                auth_manager.attempt_login_gated_feature(
-                    action.into(),
-                    AuthViewVariant::RequireLoginCloseable,
-                    ctx,
-                )
-            });
-            return;
-        }
-
         match action {
             MainPageAction::ToggleSettingsSync => {
                 let _new_value =
@@ -226,11 +186,6 @@ impl MainSettingsPageView {
         let auth_state = AuthStateProvider::as_ref(ctx).get().clone();
 
         ctx.subscribe_to_model(&CloudPreferencesSettings::handle(ctx), |_, _, _, ctx| {
-            ctx.notify();
-        });
-
-        let auth_manager_handle = AuthManager::handle(ctx);
-        ctx.subscribe_to_model(&auth_manager_handle, |_, _, _, ctx| {
             ctx.notify();
         });
 

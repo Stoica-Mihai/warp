@@ -31,7 +31,6 @@ use crate::ai::execution_profiles::{AIExecutionProfile, CloudAIExecutionProfileM
 use crate::ai::facts::{AIFact, CloudAIFactModel};
 #[cfg(not(target_family = "wasm"))]
 use crate::ai::mcp::templatable::{CloudTemplatableMCPServerModel, TemplatableMCPServer};
-use crate::auth::auth_manager::AuthManager;
 use crate::auth::AuthStateProvider;
 use crate::cloud_object::model::actions::{
     ObjectAction, ObjectActionHistory, ObjectActionType, ObjectActions,
@@ -2279,23 +2278,6 @@ impl UpdateManager {
         force_expand: bool,
         ctx: &mut ModelContext<Self>,
     ) {
-        let count = CloudModel::handle(ctx).read(ctx, |model, ctx| {
-            model
-                .active_non_welcome_notebooks_in_space(Space::Personal, ctx)
-                .count()
-        });
-        if AuthStateProvider::handle(ctx).read(ctx, |auth_state_provider, _ctx| {
-            auth_state_provider
-                .get()
-                .is_anonymous_user_past_object_limit(ObjectType::Notebook, count + 1)
-                .unwrap_or_default()
-        }) {
-            AuthManager::handle(ctx).update(ctx, |auth_manager: &mut AuthManager, ctx| {
-                auth_manager.anonymous_user_hit_drive_object_limit(ctx);
-            });
-            return;
-        };
-
         self.create_object(
             model,
             owner,
@@ -2350,23 +2332,6 @@ impl UpdateManager {
         force_expand: bool,
         ctx: &mut ModelContext<Self>,
     ) {
-        let count = CloudModel::handle(ctx).read(ctx, |model, ctx| {
-            model
-                .active_non_welcome_workflows_in_space(Space::Personal, ctx)
-                .count()
-        });
-        if AuthStateProvider::handle(ctx).read(ctx, |auth_state_provider, _ctx| {
-            auth_state_provider
-                .get()
-                .is_anonymous_user_past_object_limit(ObjectType::Workflow, count + 1)
-                .unwrap_or_default()
-        }) {
-            AuthManager::handle(ctx).update(ctx, |auth_manager: &mut AuthManager, ctx| {
-                auth_manager.anonymous_user_hit_drive_object_limit(ctx);
-            });
-            return;
-        };
-
         self.create_object(
             CloudWorkflowModel::new(workflow),
             owner,
@@ -2416,26 +2381,6 @@ impl UpdateManager {
         force_expand: bool,
         ctx: &mut ModelContext<Self>,
     ) {
-        let count = CloudModel::handle(ctx).read(ctx, |model, ctx| {
-            model
-                .active_non_welcome_env_var_collections_in_space(Space::Personal, ctx)
-                .count()
-        });
-        let env_var_collection_type = ObjectType::GenericStringObject(
-            GenericStringObjectFormat::Json(JsonObjectType::EnvVarCollection),
-        );
-        if AuthStateProvider::handle(ctx).read(ctx, |auth_state_provider, _ctx| {
-            auth_state_provider
-                .get()
-                .is_anonymous_user_past_object_limit(env_var_collection_type, count + 1)
-                .unwrap_or_default()
-        }) {
-            AuthManager::handle(ctx).update(ctx, |auth_manager: &mut AuthManager, ctx| {
-                auth_manager.anonymous_user_hit_drive_object_limit(ctx);
-            });
-            return;
-        };
-
         self.create_object(
             model,
             owner,

@@ -271,9 +271,7 @@ use crate::ai::predict::prompt_suggestions::{
 use crate::ai_assistant::{AskAIType, ASK_AI_ASSISTANT_TEXT};
 use crate::antivirus::AntivirusInfo;
 use crate::appearance::{Appearance, AppearanceEvent};
-use crate::auth::auth_manager::AuthManager;
 use crate::auth::auth_state::AuthState;
-use crate::auth::auth_view_modal::AuthViewVariant;
 use crate::auth::{AuthStateProvider, UserUid};
 use crate::banner::{
     Banner, BannerAction, BannerEvent, BannerState, BannerTextButton, BannerTextContent,
@@ -18559,20 +18557,6 @@ impl TerminalView {
         block_index: BlockIndex,
         ctx: &mut ViewContext<Self>,
     ) {
-        if AuthStateProvider::as_ref(ctx)
-            .get()
-            .is_anonymous_or_logged_out()
-        {
-            AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                auth_manager.attempt_login_gated_feature(
-                    "Share Block",
-                    AuthViewVariant::ShareRequirementCloseable,
-                    ctx,
-                )
-            });
-            return;
-        }
-
         self.tips_completed.update(ctx, |tips, ctx| {
             mark_feature_used_and_write_to_user_defaults(
                 Tip::Hint(TipHint::BlockAction),
@@ -23981,15 +23965,7 @@ impl TypedActionView for TerminalView {
                 ctx.notify();
                 ctx.open_url(&hyperlink.url);
             }
-            AttemptLoginGatedFeature => {
-                AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                    auth_manager.attempt_login_gated_feature(
-                        "Upgrade AI Usage",
-                        AuthViewVariant::RequireLoginCloseable,
-                        ctx,
-                    )
-                });
-            }
+            AttemptLoginGatedFeature => {}
             StartFileDropTarget => {
                 let Some(session) = self
                     .active_block_session_id()
