@@ -2500,7 +2500,6 @@ impl ansi::Handler for TerminalModel {
         // the blocklist (for the local shell).
         self.exit_alt_screen(true);
 
-        let block_id = data.next_block_id.to_string();
         let is_for_in_band_command = self.block_list().active_block().is_in_band_command_block();
         let finished_block_bootstrap_stage = self.block_list().active_block().bootstrap_stage();
         delegate!(self.command_finished(data));

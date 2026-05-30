@@ -264,8 +264,6 @@ pub struct BlocklistAIActionExecutor {
     /// parallel phase can complete independently.
     async_executing_actions: std::collections::HashMap<AIAgentActionId, AsyncExecutingAction>,
 
-    /// Reference to the terminal model for checking session sharing state.
-    terminal_model: Arc<FairMutex<TerminalModel>>,
 }
 
 impl BlocklistAIActionExecutor {
@@ -345,7 +343,6 @@ impl BlocklistAIActionExecutor {
             use_computer_executor,
             request_computer_use_executor,
             async_executing_actions: Default::default(),
-            terminal_model,
             read_skill_executor,
             fetch_conversation_executor,
             start_agent_executor,

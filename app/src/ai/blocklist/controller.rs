@@ -958,7 +958,6 @@ impl BlocklistAIController {
         self.send_user_query_in_conversation_internal(
             query,
             conversation_id,
-            None,
             false,
             HashMap::new(),
             EntrypointType::AgentInitiated,
