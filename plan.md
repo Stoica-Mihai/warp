@@ -101,7 +101,7 @@ All telemetry surfaces removed across ~10 commits. Total: ~8918 LoC across step 
 
 | Finding | Location | Size | Difficulty | Why |
 |---|---|---|---|---|
-| `ai_assistant` panel | `app/src/ai_assistant/` | 10 files, 3.6k LoC | **EASY** | Self-contained AI panel, feature-gatable. |
+| ~~`ai_assistant` panel~~ | ~~`app/src/ai_assistant/`~~ | ~~10 files, 3.6k LoC~~ | **EASY** | ✅ **DONE** `782368f5` — panel + `warp_ai.rs` command search + all callers deleted. `WarpAiExecutionContext` → `ai/execution_context.rs`; `AskAIType` → `terminal/view.rs`. −4568 LoC, 35 files. 3-gate 0/0/0. |
 | `ai` engine crate | `crates/ai/` | 75 files, 25k LoC | **MEDIUM** | Fairly self-contained, but 628 app callers — delete only after callers refactored. |
 | Execution profiles + model selector | `app/src/ai/execution_profiles/`, `terminal/profile_model_selector.rs` (2.4k) | 9 files | **MEDIUM** | LLM model picker; 56-file fan-in. |
 | AI context menu / context chips | `app/src/context_chips/` | 23 files, 11.7k LoC | **MEDIUM** | Mixed into terminal input UI. |
