@@ -26,6 +26,7 @@ pub(crate) mod session_context;
 pub(crate) use request_input::RequestInput;
 pub(crate) use response_stream_id::{ClientIdentifiers, ResponseStreamId};
 pub(crate) use session_context::SessionContext;
+#[path = "history_model_stubs.rs"]
 pub mod history_model;
 pub mod inline_action;
 mod input_model_stubs;
