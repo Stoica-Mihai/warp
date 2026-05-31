@@ -17,7 +17,7 @@ use crate::terminal::model::session::active_session::ActiveSession;
 use crate::{
     ai::{
         agent::{AIAgentAction, AIAgentActionResultType, AIAgentActionType, UploadArtifactResult},
-        blocklist::{BlocklistAIHistoryModel, BlocklistAIPermissions},
+        blocklist::BlocklistAIPermissions,
         paths::host_native_absolute_path,
     },
 };
@@ -77,8 +77,8 @@ impl UploadArtifactExecutor {
     #[cfg_attr(target_family = "wasm", allow(unused_variables), allow(dead_code))]
     pub(super) fn execute(
         &mut self,
-        input: ExecuteActionInput,
-        ctx: &mut ModelContext<Self>,
+        _input: ExecuteActionInput,
+        _ctx: &mut ModelContext<Self>,
     ) -> AnyActionExecution {
         #[cfg(target_family = "wasm")]
         {
@@ -87,42 +87,8 @@ impl UploadArtifactExecutor {
 
         #[cfg(not(target_family = "wasm"))]
         {
-            let ExecuteActionInput {
-                action,
-                conversation_id,
-                ..
-            } = input;
-            let AIAgentAction {
-                action: AIAgentActionType::UploadArtifact(request),
-                ..
-            } = action
-            else {
-                return ActionExecution::<()>::InvalidAction.into();
-            };
-
-            let resolved_path = self.resolve_path(&request.file_path, ctx);
-            let server_conversation_token = BlocklistAIHistoryModel::as_ref(ctx)
-                .conversation(&conversation_id)
-                .and_then(|conversation| conversation.server_conversation_token())
-                .cloned();
-
-            let Some(server_conversation_token) = server_conversation_token else {
-                return ActionExecution::<()>::Sync(AIAgentActionResultType::UploadArtifact(
-                    UploadArtifactResult::Error(
-                        "Current conversation has not been synced to the server yet".to_string(),
-                    ),
-                ))
-                .into();
-            };
-
-            BlocklistAIPermissions::handle(ctx).update(ctx, |model, _ctx| {
-                model.add_temporary_file_read_permissions(conversation_id, [resolved_path.clone()]);
-            });
-
-            let _ = (resolved_path, server_conversation_token, request);
-
             ActionExecution::<()>::Sync(AIAgentActionResultType::UploadArtifact(
-                UploadArtifactResult::Error("Artifact upload via agent_sdk removed".to_string()),
+                UploadArtifactResult::Error("Artifact upload not available".to_string()),
             ))
             .into()
         }
