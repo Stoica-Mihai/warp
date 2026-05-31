@@ -21,13 +21,13 @@ use warpui::{
 };
 
 use crate::ai::agent::icons::{in_progress_icon, yellow_stop_icon};
-use crate::ai::blocklist::block::keyboard_navigable_buttons::{
+use crate::terminal::view::keyboard_navigable_buttons::{
     simple_navigation_button, KeyboardNavigableButtonBuilder, KeyboardNavigableButtons,
 };
-use crate::ai::blocklist::block::toggleable_items::ToggleableItemsView;
-use crate::ai::blocklist::block::view_impl::WithContentItemSpacing;
-use crate::ai::blocklist::inline_action::inline_action_header::HeaderConfig;
-use crate::ai::blocklist::inline_action::requested_action::RenderableAction;
+use crate::terminal::view::toggleable_items::ToggleableItemsView;
+use crate::terminal::view::with_content_item_spacing::WithContentItemSpacing;
+use crate::terminal::view::inline_action_header::HeaderConfig;
+use crate::terminal::view::requested_action::RenderableAction;
 use crate::ai::persisted_workspace::PersistedWorkspace;
 use crate::appearance::Appearance;
 use crate::ui_components::icons::Icon;

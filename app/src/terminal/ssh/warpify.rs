@@ -9,7 +9,7 @@ use warpui::elements::{
 use warpui::keymap::FixedBinding;
 use warpui::{AppContext, Element, Entity, SingletonEntity, TypedActionView, View, ViewContext};
 
-use crate::ai::blocklist::inline_action::requested_action::RenderableAction;
+use crate::terminal::view::requested_action::RenderableAction;
 use crate::appearance::Appearance;
 use crate::terminal::shell::ShellType;
 use crate::terminal::warpify;

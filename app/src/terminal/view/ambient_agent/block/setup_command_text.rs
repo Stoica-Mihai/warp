@@ -10,7 +10,7 @@ use warpui::{
     AppContext, Element, Entity, ModelHandle, SingletonEntity, TypedActionView, View, ViewContext,
 };
 
-use crate::ai::blocklist::inline_action::inline_action_icons;
+use crate::terminal::view::inline_action_icons;
 use crate::terminal::view::agent_view_state::agent_view_bg_color;
 use crate::terminal::view::ambient_agent::{AmbientAgentViewModel, AmbientAgentViewModelEvent};
 

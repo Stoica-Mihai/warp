@@ -11,7 +11,7 @@ use warpui::prelude::Container;
 use warpui::{AppContext, Element, ModelHandle};
 
 use super::AmbientAgentViewModel;
-use crate::ai::blocklist::block::view_impl::{
+use crate::terminal::view::with_content_item_spacing::{
     WithContentItemSpacing, CONTENT_ITEM_VERTICAL_MARGIN,
 };
 use crate::terminal::view::PADDING_LEFT;

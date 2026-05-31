@@ -20,13 +20,13 @@ use warpui::{
 };
 
 use crate::ai::agent::icons::{yellow_running_icon, yellow_stop_icon};
-use crate::ai::blocklist::block::view_impl::{
+use crate::terminal::view::with_content_item_spacing::{
     CONTENT_HORIZONTAL_PADDING, CONTENT_ITEM_VERTICAL_MARGIN,
 };
-use crate::ai::blocklist::inline_action::inline_action_header::{
+use crate::terminal::view::inline_action_header::{
     ExpandedConfig, HeaderConfig, InteractionMode, INLINE_ACTION_HORIZONTAL_PADDING,
 };
-use crate::ai::blocklist::inline_action::inline_action_icons::{self};
+use crate::terminal::view::inline_action_icons::{self};
 use crate::appearance::Appearance;
 use crate::settings::InputModeSettings;
 use crate::terminal::block_list_element::BlockListMenuSource;

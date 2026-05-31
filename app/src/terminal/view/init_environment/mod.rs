@@ -9,14 +9,14 @@ use warpui::{
 };
 
 use crate::ai::agent::icons::yellow_stop_icon;
-use crate::ai::blocklist::block::keyboard_navigable_buttons::{
+use crate::terminal::view::keyboard_navigable_buttons::{
     simple_navigation_button, KeyboardNavigableButtons,
 };
-use crate::ai::blocklist::inline_action::inline_action_header::{
+use crate::terminal::view::inline_action_header::{
     HeaderConfig, INLINE_ACTION_HEADER_VERTICAL_PADDING,
 };
-use crate::ai::blocklist::inline_action::inline_action_icons::cancelled_icon;
-use crate::ai::blocklist::inline_action::requested_action::RenderableAction;
+use crate::terminal::view::inline_action_icons::cancelled_icon;
+use crate::terminal::view::requested_action::RenderableAction;
 use crate::appearance::Appearance;
 
 const EXPLANATION_TEXT: &str = "Would you like to create an environment for this project so you can run cloud agents in it? The agent will guide you through choosing GitHub repos, configuring a Docker image, and specifying startup commands.";

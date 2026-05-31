@@ -29,10 +29,10 @@ use warpui::{
     ViewHandle,
 };
 
-use crate::ai::blocklist::block::keyboard_navigable_buttons::{
+use crate::terminal::view::keyboard_navigable_buttons::{
     rich_navigation_button, KeyboardNavigableButtons,
 };
-use crate::ai::blocklist::inline_action::inline_action_header::{
+use crate::terminal::view::inline_action_header::{
     HeaderConfig, INLINE_ACTION_HORIZONTAL_PADDING,
 };
 use crate::terminal::model::session::SessionId;

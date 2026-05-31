@@ -10,10 +10,10 @@ use warpui::{
 };
 
 use crate::ai::agent::icons::{failed_icon, yellow_running_icon};
-use crate::ai::blocklist::inline_action::inline_action_header::{
+use crate::terminal::view::inline_action_header::{
     ExpandedConfig, HeaderConfig, InteractionMode,
 };
-use crate::ai::blocklist::inline_action::inline_action_icons::green_check_icon;
+use crate::terminal::view::inline_action_icons::green_check_icon;
 use crate::ai::blocklist::inline_action::requested_command::VIEWING_COMMAND_DETAIL_MESSAGE;
 use crate::terminal::event::BlockCompletedEvent;
 use crate::terminal::model_events::{ModelEvent, ModelEventDispatcher};
