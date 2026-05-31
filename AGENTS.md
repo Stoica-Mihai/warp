@@ -19,45 +19,44 @@ Personal fork of [warpdotdev/warp](https://github.com/warpdotdev/warp), strippin
 
 Done so far — full per-commit log in `git log` and `plan.md`. Areas complete (all 3-gate green):
 
-telemetry · wasm-orphan crates · onboarding crate + flags · Sentry crash-reporting · Sublight rebrand · channel enum cascade · autoupdate pipeline · session-sharing (all vestiges incl. `SharedSessionStatus` + `is_shared_session_viewer` cascade) · Warp Drive server-sync + SyncQueue + ObjectClient · SharingDialog + permission-CRUD · login gate bypass · auth gate UI · AuthManager login stub · Firebase crate · server-driven A/B experiments · dead AuthClient privacy-sync · AuthView/AuthOverrideWarningModal cloud-gate UI · billing/teams/platform/referrals pages · AI assistant panel + Warp AI command search · AI settings pages + execution profile editor · execution profiles data model + inline profile selector · ScheduledAgentManager registration + AgentSource computation · **Phase C: `ai/agent_sdk/` STRIP COMPLETE** (`d3eb301d` + `889d83dd`) · **Phase E+F complete: `ai/blocklist/agent_view/` deleted + AI view files** (`94c6be3f`) · `TextLocation` relocated to `util/text_location` + `LinkActionConstructors` to `util/link_detection` (`73dd201c`)
+telemetry · wasm-orphan crates · onboarding crate + flags · Sentry crash-reporting · Sublight rebrand · channel enum cascade · autoupdate pipeline · session-sharing (all vestiges incl. `SharedSessionStatus` + `is_shared_session_viewer` cascade) · Warp Drive server-sync + SyncQueue + ObjectClient · SharingDialog + permission-CRUD · login gate bypass · auth gate UI · AuthManager login stub · Firebase crate · server-driven A/B experiments · dead AuthClient privacy-sync · AuthView/AuthOverrideWarningModal cloud-gate UI · billing/teams/platform/referrals pages · AI assistant panel + Warp AI command search · AI settings pages + execution profile editor · execution profiles data model + inline profile selector · ScheduledAgentManager registration + AgentSource computation · **Phase C: `ai/agent_sdk/` STRIP COMPLETE** (`d3eb301d` + `889d83dd`) · **Phase E+F complete: `ai/blocklist/agent_view/` deleted + AI view files** (`94c6be3f`) · `TextLocation` relocated to `util/text_location` + `LinkActionConstructors` to `util/link_detection` (`73dd201c`) · **Phase G-preview COMPLETE: `ai_controller` removed from TerminalView struct** (`1f600e66`, −10.97 MB)
 
-**Current state:** Binary **813.2 MB** (−31.0 MB total vs 844.2 MB baseline). **0 errors / ~250 warnings** (all AI territory, deferred, no `#[allow(dead_code)]` cheats). App always starts in Terminal.
+**Current state:** Binary **802.2 MB** (−42.0 MB total vs 844.2 MB baseline). **0 errors / ~300 warnings** (all AI territory, deferred, no `#[allow(dead_code)]` cheats). App always starts in Terminal.
 
-**Phase E+F done** (`94c6be3f`, −7.80 MB):
-- `ai/blocklist/agent_view/` deleted (entire dir, all agent view UI)
-- `terminal/view/agent_view.rs`, `load_ai_conversation.rs`, `use_agent_footer/`, `pending_user_query.rs` deleted
-- `terminal/input/agent.rs`, `terminal/input/conversations/` deleted
-- `ai/active_agent_views_model.rs` deleted
-- Non-AI types relocated: `AgentToolbarItemKind` → `context_chips/toolbar.rs`; `AgentViewState/EntryOrigin/DisplayMode/render_block_container` → `terminal/view/agent_view_state.rs`; `AgentInputButtonTheme` → `terminal/view/ambient_agent/button_theme.rs`; `ConversationRestorationInNewPaneType` inlined into `terminal/view.rs`
-- `ActiveAgentViewsModel` singleton removed from lib.rs (14 callers fixed)
-- All agent-view fields stripped from `TerminalView`, `Input`, `workspace/view.rs`, `pane_group/pane/terminal_pane.rs`
+**Phase G-preview done** (`1f600e66`, −10.97 MB):
+- `ai_controller: ModelHandle<BlocklistAIController>` removed from TerminalView struct (Phase G-preview goal)
+- `passive_suggestions_models`, `get_relevant_files_controller`, `cli_subagent_controller`, `agent_todos_popup`, `is_todo_popup_visible` removed (direct dependents)
+- 35 AI-only methods deleted from terminal/view.rs via recast_structural (28+7 passes)
+- `ai_controller` + `cli_subagent_controller` created as **local-only** variables in `new()`, passed to `Input::new()` — Input layer works unchanged
+- `ai_render_context`, `cli_subagent_views`, `pending_user_query_view_id/kind`, `queued_prompt_callback`, `conversation_completed_callbacks`, `usage_footer_view_ids` kept as static-default fields (rendering reads them)
+- Stub getters added: `ai_context_model()`, `ai_input_model()`, `active_conversation_id()`, `stop_local_agent_conversation()`, `remove_pending_user_query_block()`
+- All `ai_controller.update()` call sites in workspace/view.rs, code_review, pane_group, ai_document_view no-op'd
+- `controller_tests.rs` cleared + `#[ignore]`
 
-**Next: Phase F+G (must do together)** — correct deletion order:
+**Next: Phase F** — delete the blocklist model layers (safe now that `ai_controller` is out of TerminalView struct):
 
-1. **First excise `ai_controller`/AIBlock from `terminal/view.rs` (369 refs) and `terminal/input.rs`** — remove `ai_controller: ModelHandle<BlocklistAIController>` field, AIBlock construction/subscription/rendering branches, and all `BlocklistAI*` model references from the terminal view. This is Phase G-preview and is the prerequisite.
-
-   **SCOPE WARNING (2026-05-31 hard lesson):** Phase G-preview removes `ai_controller` + direct dependents (`passive_suggestions_models`, `cli_subagent_controller`, `ai_render_context`, `agent_todos_popup`, `get_relevant_files_controller`, `cli_subagent_views`). Do **NOT** also remove `ai_input_model`, `ai_context_model`, `ai_action_model` from `terminal/input.rs` Input struct — those fields are used by 50+ method bodies in Input and its render subfiles (`classic.rs`, `universal.rs`, `terminal.rs`). Removing them causes 150+ cascade errors that require Phase F level surgery. Leave those 3 in Input until Phase F deletes the model files that define them.
-
-   **Verified recast_structural query for 28 AI-only terminal/view.rs methods (run with `include_leading_attrs: true`, `template: ""`, `max_bytes: 15000000`):**
-   ```
-   (function_item name: (identifier) @name (#match? @name "^(handle_ai_controller_event|handle_legacy_passive_suggestions_event|handle_ai_context_model_event|handle_ai_history_model_event|handle_cli_subagent_controller_event|handle_resume_conversation|handle_usage_footer_toggled|handle_ai_input_model_event|handle_ai_action_model_event|focus_ai_block_if_self_focused|handle_maa_passive_suggestions_event|handle_ai_block_event|active_ai_block|last_ai_block|handle_shell_command_executor_event|handle_start_agent_executor_event|get_ai_notification_summary|maybe_insert_tombstone_for_non_running_shared_ambient_task|on_next_conversation_finished|update_context_blocks_and_exchanges|drop_hidden_passive_ai_blocks|clear_prompt_suggestions|try_clear_prompt_suggestions_banner_code_state|remove_pending_cloud_mode_query_if_exchange_has_renderable_user_query|pending_user_query_conversation_id|remove_pending_user_query_block|stop_local_agent_conversation|apply_cli_agent_footer_visibility)$")) @fn
-   ```
-   Second pass (7 more): `build_agent_todos_popup|handle_agent_todos_popup_event|ai_controller|ai_context_model|ai_input_model|active_conversation_id|active_conversation_task_id`
-
-   **Input::new() param removals (minimal — keep ai_input_model, ai_context_model):** remove only `ai_controller`, `ai_action_model`, `cli_subagent_controller` from the signature.
-
-2. **Then delete blocklist AI model layers** (safe once terminal/view.rs callers are gone):
-   - `ai/blocklist/block.rs` + `block/` (except: relocate `secret_redaction` → `app/src/secret_redaction.rs` first; relocate `keyboard_navigable_buttons`, `toggleable_items`, `numbered_button`, `compact_agent_input`, `inline_action_header`, `inline_action_icons`, `requested_action`, `WithContentItemSpacing` to `terminal/view/` — these are used by `init_project/`, `init_environment/`, `ssh_remote_server_choice_view`, `ambient_agent/`)
-   - `ai/blocklist/controller/` + `controller.rs`
-   - `ai/blocklist/action_model/` + `action_model.rs`
+1. **Delete `ai/blocklist/controller/` + `controller.rs`** — first and safest; TerminalView struct no longer holds a handle
+2. **Delete `ai/blocklist/action_model/` + `action_model.rs`** — remove `ai_action_model` from Input struct first
+3. **Delete remaining model layers:**
    - `ai/blocklist/history_model.rs` + `history_model/`
    - `ai/blocklist/input_model.rs`
    - `ai/blocklist/context_model.rs`
    - `ai/blocklist/orchestration_events.rs` + `orchestration_topology.rs` + `orchestration_event_streamer.rs`
    - `ai/blocklist/task_status_sync_model.rs`
    - `ai/blocklist/permissions.rs`, `persistence.rs`, `passive_suggestions/`, leaf files
-   - lib.rs: remove `BlocklistAIHistoryModel`, `BlocklistAIPermissions`, `OrchestrationEventService`, `TaskStatusSyncModel`, `OrchestrationEventStreamer`, `LocalSharedSessionLinkModel` registrations
+4. **Delete `ai/blocklist/block.rs` + `block/`** — before deleting, relocate:
+   - `secret_redaction` → `app/src/secret_redaction.rs`
+   - `keyboard_navigable_buttons`, `toggleable_items`, `numbered_button`, `compact_agent_input`, `inline_action_header`, `inline_action_icons`, `requested_action`, `WithContentItemSpacing` → `terminal/view/` (used by `init_project/`, `init_environment/`, `ssh_remote_server_choice_view`, `ambient_agent/`)
+5. **lib.rs:** remove `BlocklistAIHistoryModel`, `BlocklistAIPermissions`, `OrchestrationEventService`, `TaskStatusSyncModel`, `OrchestrationEventStreamer`, `LocalSharedSessionLinkModel` registrations
 
+**Phase F prerequisite:** Remove `ai_action_model`/`ai_input_model`/`ai_context_model` from Input struct. These 3 are used by 50+ method bodies in `terminal/input.rs` + subfiles (`classic.rs`, `universal.rs`, `terminal.rs`, `decorations.rs`). Phase F must stub/delete those method bodies, THEN remove the fields.
+
+**Phase G-preview lessons (2026-05-31):**
+- `ai_render_context` + `cli_subagent_views` woven into `block_list_element.rs` rendering — keep as static-default fields, not removed from struct.
+- **Local-only variable pattern**: create `ai_controller` + `cli_subagent_controller` in `new()` as locals, pass to Input — Input works unchanged.
+- Stub getters returning `&ModelHandle` let external callers chain `.as_ref(ctx)`.
+- `#[ignore]` suppresses test *execution* but not *compilation* — must empty the test body.
+- `Input::new()` keeps all 18 params including `ai_controller` + `cli_subagent_controller` — removing from Input is Phase F work.
 **KEEP in blocklist/:** `prompt/` + `prompt.rs`, `view_util.rs`, `keystroke_render.rs`, `code_block.rs`. KEEP `ai/mcp/`.
 
 **KEEP terminal/input/:** `inline_menu/`, `message_bar/`, `inline_history/`, `cloud_mode_v2_history_menu.rs` — these are **shared terminal UI infrastructure** used by 28+ non-AI modules (slash_commands, skills, plans, repos, rewind, models, etc.). NOT AI-only.
