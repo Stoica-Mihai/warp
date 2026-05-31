@@ -20,7 +20,6 @@ use crate::{
         blocklist::{BlocklistAIHistoryModel, BlocklistAIPermissions},
         paths::host_native_absolute_path,
     },
-    server::server_api::ServerApiProvider,
 };
 
 pub struct UploadArtifactExecutor {
@@ -121,7 +120,6 @@ impl UploadArtifactExecutor {
             });
 
             let _ = (resolved_path, server_conversation_token, request);
-            let _ = ServerApiProvider::as_ref(ctx);
 
             ActionExecution::<()>::Sync(AIAgentActionResultType::UploadArtifact(
                 UploadArtifactResult::Error("Artifact upload via agent_sdk removed".to_string()),
