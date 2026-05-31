@@ -86,7 +86,7 @@ impl From<InputClassifierDecisionSource> for InputTypeAutoDetectionSource {
     }
 }
 
-use super::context_model::BlocklistAIContextModel;
+use super::context_model_stubs::BlocklistAIContextModel;
 use super::telemetry_banner::should_collect_ai_ugc_telemetry;
 use crate::input_classifier::InputClassifierModel;
 use crate::settings::{AISettings, AISettingsChangedEvent, InputBoxType, InputSettings};

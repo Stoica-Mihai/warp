@@ -107,7 +107,7 @@ use crate::terminal::view::agent_view_state::AgentViewEntryOrigin;
 use crate::ai::blocklist::block::keyboard_navigable_buttons::{
     KeyboardNavigableButtonBuilder, KeyboardNavigableButtons,
 };
-use crate::ai::blocklist::context_model::AttachmentType;
+use crate::ai::blocklist::context_model_stubs::AttachmentType;
 use crate::ai::blocklist::inline_action::ask_user_question_view::{
     self, AskUserQuestionView, AskUserQuestionViewEvent,
 };

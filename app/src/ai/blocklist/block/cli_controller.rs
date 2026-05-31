@@ -13,7 +13,7 @@ use crate::ai::agent::{
     ReadShellCommandOutputResult, RequestCommandOutputResult,
     TransferShellCommandControlToUserResult, WriteToLongRunningShellCommandResult,
 };
-use crate::ai::blocklist::context_model::block_context_from_terminal_model;
+use crate::ai::blocklist::context_model_stubs::block_context_from_terminal_model;
 use crate::ai::blocklist::{
     BlocklistAIActionEvent, BlocklistAIActionModel, BlocklistAIHistoryEvent,
 };

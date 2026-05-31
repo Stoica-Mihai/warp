@@ -10,7 +10,7 @@ pub(crate) use action_stubs::{
 pub(crate) mod avatar_disc;
 pub mod block;
 pub mod code_block;
-mod context_model;
+mod context_model_stubs;
 pub(crate) mod handoff;
 
 pub(crate) mod orchestration_stubs;
@@ -48,7 +48,7 @@ pub(super) mod view_util;
 pub(crate) use block::model::testing::FakeAIBlockModel;
 pub(crate) use block::{init, model, AIBlock, AIBlockEvent, RequestedEditResolution};
 pub use block::{keyboard_navigable_buttons, toggleable_items};
-pub(crate) use context_model::{
+pub(crate) use context_model_stubs::{
     block_context_from_terminal_model, AttachmentType, BlocklistAIContextEvent,
     BlocklistAIContextModel, PendingAttachment, PendingFile, PendingQueryState,
 };
