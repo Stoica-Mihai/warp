@@ -473,10 +473,10 @@ pub fn init_actions_from_parent_view<T: Action + Clone>(
             context,
             flags::SHOW_TERMINAL_INPUT_MESSAGE_LINE_FLAG,
         )
-        .with_enabled(|| FeatureFlag::AgentView.is_enabled()),
+        .with_enabled(|| false),
     );
 
-    if FeatureFlag::AgentView.is_enabled() && AISettings::as_ref(app).is_any_ai_enabled(app) {
+    if AISettings::as_ref(app).is_any_ai_enabled(app) {
         toggle_binding_pairs.push(
             ToggleSettingActionPair::new(
                 "slash commands in terminal mode",
@@ -2175,14 +2175,6 @@ impl FeaturesPageView {
             editor_widgets.push(Box::new(AtContextMenuInTerminalModeWidget::default()));
         }
 
-        if FeatureFlag::AgentView.is_enabled()
-            && input_settings
-                .enable_slash_commands_in_terminal
-                .is_supported_on_current_platform()
-        {
-            editor_widgets.push(Box::new(SlashCommandsInTerminalModeWidget::default()));
-        }
-
         if input_settings
             .outline_codebase_symbols_for_at_context_menu
             .is_supported_on_current_platform()
@@ -2191,10 +2183,6 @@ impl FeaturesPageView {
             editor_widgets.push(Box::new(
                 OutlineCodebaseSymbolsForAtContextMenuWidget::default(),
             ));
-        }
-
-        if FeatureFlag::AgentView.is_enabled() {
-            editor_widgets.push(Box::new(ShowTerminalInputMessageLineWidget::default()));
         }
 
         editor_widgets.push(Box::new(TabKeyBehaviorWidget::default()));
@@ -2227,10 +2215,6 @@ impl FeaturesPageView {
             .is_supported_on_current_platform()
         {
             terminal_widgets.push(Box::new(AudibleBellWidget::default()));
-        }
-
-        if FeatureFlag::AgentView.is_enabled() {
-            terminal_widgets.push(Box::new(ShowTerminalZeroStateBlockWidget::default()));
         }
 
         terminal_widgets.push(Box::new(SmartSelectWidget::default()));
