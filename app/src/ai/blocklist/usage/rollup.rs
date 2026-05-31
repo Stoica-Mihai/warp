@@ -8,7 +8,7 @@
 //! footer's "View details" list.
 
 use crate::ai::agent::conversation::{AIConversation, AIConversationId};
-use crate::ai::blocklist::orchestration_topology::descendant_conversation_ids_in_spawn_order;
+use crate::ai::blocklist::descendant_conversation_ids_in_spawn_order;
 use crate::ai::blocklist::BlocklistAIHistoryModel;
 
 /// Avatar identity for a row in the per-agent breakdown.

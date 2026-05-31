@@ -21,10 +21,10 @@ use crate::ai::agent::{
 };
 use crate::ai::blocklist::AIActionStatus;
 use crate::ai::blocklist::avatar_disc::OrchestrationAvatar;
-use crate::ai::blocklist::orchestration_conversation_links::{
-    conversation_id_for_agent_id, conversation_navigation_card_with_icon,
-    dispatch_focus_or_open_child_agent_pane,
+use crate::ai::blocklist::{
+    conversation_id_for_agent_id, dispatch_focus_or_open_child_agent_pane,
 };
+use crate::ai::blocklist::orchestration_stubs::conversation_navigation_card_with_icon;
 use crate::ai::blocklist::block::model::AIBlockModelHelper;
 use crate::ai::blocklist::block::{
     received_message_collapsible_id, AIBlockAction, CollapsibleExpansionState,

@@ -12,9 +12,7 @@ use watcher::HomeDirectoryWatcher;
 use super::settings::initialize_history_persistence_for_tests;
 use crate::ai::agent_conversations_model::AgentConversationsModel;
 use crate::ai::ambient_agents::github_auth_notifier::GitHubAuthNotifier;
-use crate::ai::blocklist::orchestration_event_streamer::OrchestrationEventStreamer;
-use crate::ai::blocklist::orchestration_events::OrchestrationEventService;
-use crate::ai::blocklist::task_status_sync_model::TaskStatusSyncModel;
+use crate::ai::blocklist::{OrchestrationEventService, OrchestrationEventStreamer, TaskStatusSyncModel};
 use crate::ai::blocklist::{
     BlocklistAIHistoryModel, BlocklistAIPermissions, SerializedBlockListItem,
 };

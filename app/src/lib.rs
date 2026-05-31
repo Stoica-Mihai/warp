@@ -1481,15 +1481,11 @@ pub(crate) fn initialize_app(
     ctx.add_singleton_model(|_| CLIAgentSessionsModel::new());
     ctx.add_singleton_model(AgentNotificationsModel::new);
     ctx.add_singleton_model(BlocklistAIPermissions::new);
-    ctx.add_singleton_model(ai::blocklist::orchestration_events::OrchestrationEventService::new);
-    ctx.add_singleton_model(ai::blocklist::task_status_sync_model::TaskStatusSyncModel::new);
-    ctx.add_singleton_model(
-        ai::blocklist::local_shared_session_link_model::LocalSharedSessionLinkModel::new,
-    );
+    ctx.add_singleton_model(ai::blocklist::OrchestrationEventService::new);
+    ctx.add_singleton_model(ai::blocklist::TaskStatusSyncModel::new);
+    ctx.add_singleton_model(ai::blocklist::LocalSharedSessionLinkModel::new);
     if warp_core::features::FeatureFlag::OrchestrationV2.is_enabled() {
-        ctx.add_singleton_model(
-            ai::blocklist::orchestration_event_streamer::OrchestrationEventStreamer::new,
-        );
+        ctx.add_singleton_model(ai::blocklist::OrchestrationEventStreamer::new);
     }
 
     if launch_mode.supports_indexing() {

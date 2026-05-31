@@ -6,12 +6,10 @@ use warp_cli::agent::Harness;
 use warpui::{AppContext, Entity, ModelContext, ModelHandle, SingletonEntity};
 
 use crate::ai::agent::conversation::AIConversationId;
-use crate::ai::agent::task::TaskId;
 use crate::ai::agent::{
     AIAgentAction, AIAgentActionId, AIAgentActionResult, CancellationReason,
-    StartAgentExecutionMode,
+    StartAgentExecutionMode, SuggestPromptResult,
 };
-use crate::ai::get_relevant_files::api::FileContext as GrfFileContext;
 use crate::ai::local_child_harnesses::local_child_harness_disabled_message;
 
 #[derive(Debug, Clone)]
@@ -35,6 +33,14 @@ impl AIActionStatus {
     pub fn is_done(&self) -> bool {
         matches!(self, Self::Finished(_))
     }
+
+    pub fn is_queued(&self) -> bool { matches!(self, Self::Queued) }
+    pub fn is_preprocessing(&self) -> bool { matches!(self, Self::Preprocessing) }
+    pub fn is_cancelled(&self) -> bool { false }
+    pub fn is_failed(&self) -> bool { false }
+    pub fn is_success(&self) -> bool { false }
+    pub fn finished_result(&self) -> Option<&Arc<AIAgentActionResult>> { None }
+    pub fn is_cancelled_during_requested_command_execution(&self) -> bool { false }
 }
 
 pub struct ShellCommandExecutor;
@@ -93,11 +99,7 @@ impl SuggestPromptExecutor {
         Self
     }
 
-    pub fn complete_suggest_prompt_action(
-        &mut self,
-        _result: crate::ai::agent::SuggestPromptResult,
-    ) {
-    }
+    pub fn complete_suggest_prompt_action(&mut self, _result: SuggestPromptResult) {}
 }
 
 impl Entity for SuggestPromptExecutor {
@@ -121,6 +123,21 @@ impl Entity for SuggestNewConversationExecutor {
 }
 
 impl SingletonEntity for SuggestNewConversationExecutor {}
+
+pub struct AskUserQuestionExecutor;
+impl AskUserQuestionExecutor { pub fn new(_ctx: &mut ModelContext<Self>) -> Self { Self } }
+impl Entity for AskUserQuestionExecutor { type Event = (); }
+impl SingletonEntity for AskUserQuestionExecutor {}
+
+pub struct RequestFileEditsExecutor;
+impl RequestFileEditsExecutor { pub fn new(_ctx: &mut ModelContext<Self>) -> Self { Self } }
+impl Entity for RequestFileEditsExecutor { type Event = (); }
+impl SingletonEntity for RequestFileEditsExecutor {}
+
+pub struct SearchCodebaseExecutor;
+impl SearchCodebaseExecutor { pub fn new(_ctx: &mut ModelContext<Self>) -> Self { Self } }
+impl Entity for SearchCodebaseExecutor { type Event = (); }
+impl SingletonEntity for SearchCodebaseExecutor {}
 
 pub struct BlocklistAIActionModel;
 
@@ -213,6 +230,34 @@ impl BlocklistAIActionModel {
         _ctx: &mut ModelContext<Self>,
     ) {
     }
+
+    pub fn ask_user_question_executor(&mut self, _ctx: &AppContext) -> ModelHandle<AskUserQuestionExecutor> {
+        AskUserQuestionExecutor::handle(_ctx)
+    }
+
+    pub fn deny_run_agents(&mut self, _action_id: &AIAgentActionId, _ctx: &mut ModelContext<Self>) {}
+
+    pub fn get_async_running_action(&self, _conversation_id: &crate::ai::agent::conversation::AIConversationId) -> Option<&AIAgentActionId> { None }
+
+    pub fn get_finished_action_results(&self, _conversation_id: &crate::ai::agent::conversation::AIConversationId) -> impl Iterator<Item = (&AIAgentActionId, &AIAgentActionResult)> {
+        std::iter::empty()
+    }
+
+    pub fn get_pending_action(&self, _action_id: &AIAgentActionId) -> Option<&ai::agent::action::AIAgentAction> { None }
+
+    pub fn get_pending_actions_for_conversation(&self, _id: &crate::ai::agent::conversation::AIConversationId) -> impl Iterator<Item = &ai::agent::action::AIAgentAction> {
+        std::iter::empty()
+    }
+
+    pub fn has_unfinished_actions_for_conversation(&self, _id: &crate::ai::agent::conversation::AIConversationId) -> bool { false }
+
+    pub fn request_file_edits_executor(&self, _ctx: &AppContext) -> ModelHandle<RequestFileEditsExecutor> {
+        RequestFileEditsExecutor::handle(_ctx)
+    }
+
+    pub fn search_codebase_executor(&self, _ctx: &AppContext) -> ModelHandle<SearchCodebaseExecutor> {
+        SearchCodebaseExecutor::handle(_ctx)
+    }
 }
 
 impl Entity for BlocklistAIActionModel {
@@ -226,6 +271,25 @@ pub enum BlocklistAIActionEvent {
     ExecutingAction(AIAgentActionId),
     FinishedAction { action_id: AIAgentActionId, success: bool },
     CancelledAction,
+    QueuedAction(AIAgentActionId),
+    InsertCodeReviewComments(AIAgentActionId),
+    InitProject(AIAgentActionId),
+    ToggleCodeReview(AIAgentActionId),
+}
+
+impl BlocklistAIActionEvent {
+    pub fn action_id(&self) -> &AIAgentActionId {
+        match self {
+            Self::ActionBlockedOnUserConfirmation(id)
+            | Self::ExecutingAction(id)
+            | Self::QueuedAction(id)
+            | Self::InsertCodeReviewComments(id)
+            | Self::InitProject(id)
+            | Self::ToggleCodeReview(id) => id,
+            Self::FinishedAction { action_id, .. } => action_id,
+            Self::CancelledAction => panic!("CancelledAction has no action_id"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -305,6 +369,7 @@ pub struct StartAgentRequest {
     pub name: String,
     pub prompt: String,
     pub execution_mode: StartAgentExecutionMode,
+    pub lifecycle_subscription: Option<Vec<crate::ai::agent::LifecycleEventType>>,
     pub parent_conversation_id: AIConversationId,
     pub parent_run_id: Option<String>,
 }

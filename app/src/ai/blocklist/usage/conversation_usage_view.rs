@@ -16,7 +16,7 @@ use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::blocklist::avatar_disc::{
     render_agent_avatar_disc, render_orchestrator_avatar_disc,
 };
-use crate::ai::blocklist::orchestration_topology::descendant_conversation_ids_in_spawn_order;
+use crate::ai::blocklist::descendant_conversation_ids_in_spawn_order;
 use crate::ai::blocklist::usage::render_context_window_usage_icon;
 use crate::ai::blocklist::usage::rollup::{
     compute_orchestration_rollup, AgentAvatar, OrchestrationCreditRollup, PerAgentCreditEntry,

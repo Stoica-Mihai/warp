@@ -13,15 +13,16 @@ pub mod code_block;
 mod context_model;
 pub(crate) mod handoff;
 
-pub(crate) mod local_shared_session_link_model;
-pub(crate) mod orchestration_conversation_links;
-pub(crate) mod orchestration_event_streamer;
-pub(crate) mod orchestration_events;
-pub(crate) mod orchestration_topology;
+pub(crate) mod orchestration_stubs;
+pub(crate) use orchestration_stubs::{
+    LocalSharedSessionLinkModel, OrchestrationEventService, OrchestrationEventStreamer,
+    SendEventResult, TaskStatusSyncModel,
+    collect_descendant_conversation_ids_in_spawn_order, conversation_id_for_agent_id,
+    descendant_conversation_ids_in_spawn_order, dispatch_focus_or_open_child_agent_pane,
+};
 pub(crate) mod request_input;
 pub(crate) mod response_stream_id;
 pub(crate) mod session_context;
-pub(crate) mod task_status_sync_model;
 pub(crate) use request_input::RequestInput;
 pub(crate) use response_stream_id::{ClientIdentifiers, ResponseStreamId};
 pub(crate) use session_context::SessionContext;
