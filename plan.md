@@ -298,7 +298,71 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Step 2 `c42b65cb`: action_model deleted. Stub: `ai/blocklist/action_stubs.rs` (400+ lines).
 - Step 3 `0576df88`: orchestration cluster deleted (orchestration_events/streamer/topology/links, task_status_sync, local_shared_session_link). Stub: `ai/blocklist/orchestration_stubs.rs`.
 
-**What remains in `ai/blocklist/`:** `block.rs` (6506 lines) + `block/` dir + history_model + context_model + input_model + permissions + persistence + leaf files. No more controller/action_model/orchestration cluster. Stubs live in action_stubs.rs + orchestration_stubs.rs.
+**What remains in `ai/blocklist/`:** `block.rs` (6481 lines) + `block/` dir + `inline_action/` dir + `permissions.rs` + `persistence.rs` + leaf files. All model layers stubbed: action_stubs.rs + orchestration_stubs.rs + context_model_stubs.rs + input_model_stubs.rs + history_model_stubs.rs. Binary flat until block/ callers deleted.
+
+**Phase F steps 4–6 DONE** (2026-05-31 session):
+- Step 4 (`b3ae3d79`): `context_model.rs` (924 LoC) + tests deleted → `context_model_stubs.rs`. block_context_from_terminal_model kept intact. 3-gate 0/0/0.
+- Step 5 (`97a134ef`): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType kept real. 3-gate 0/0/0.
+- Step 6 (`125c0f72`): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op; `#[path]` redirect keeps 72 external `::history_model::` imports unchanged. 3-gate 0/0/0.
+
+**NEXT SESSION ENTRY POINT — "remove the stubs" — sub-tasks in order:**
+
+### Sub-task A: Relocate 7 shared modules out of block/ + inline_action/ (PREREQUISITE for deletion)
+
+These files live in AI-territory dirs but are used by non-AI code. Move them BEFORE deleting block/ and inline_action/:
+
+From `block/`:
+- `keyboard_navigable_buttons.rs` → `terminal/view/keyboard_navigable_buttons.rs`
+  - Callers: `init_environment/mod.rs`, `init_project/mod.rs`, `ssh_remote_server_choice_view.rs`
+- `toggleable_items.rs` → `terminal/view/toggleable_items.rs`
+  - Callers: `init_project/lsp_server_selector.rs`, `init_project/mod.rs`
+- `block/view_impl.rs::WithContentItemSpacing` (trait) → `terminal/view/with_content_item_spacing.rs`
+  - Caller: `init_project/mod.rs`
+
+From `inline_action/`:
+- `inline_action_header.rs` (INLINE_ACTION_HORIZONTAL_PADDING, HeaderConfig) → `terminal/view/inline_action_header.rs`
+  - Callers: `init_environment/mod.rs`, `init_project/lsp_server_selector.rs`, `inline_banner/passive_code_diff.rs`, `ssh_remote_server_choice_view.rs`
+- `inline_action_icons.rs` (icon_size, cancelled_icon, green_check_icon) → `terminal/view/inline_action_icons.rs`
+  - Callers: `init_environment/mod.rs`, `terminal/warpify/render.rs`, `view_components/compactible_action_button.rs`
+- `requested_action.rs` (ENTER_KEYSTROKE, ESCAPE_KEYSTROKE, RenderableAction) → `terminal/view/requested_action.rs`
+  - Callers: `terminal/ssh/install_tmux.rs`, `terminal/ssh/warpify.rs`, `init_environment/mod.rs`, `init_project/mod.rs`
+
+From `block/`:
+- `secret_redaction.rs` → `app/src/secret_redaction.rs`
+  - Callers: `terminal/block_list_element.rs`, `terminal/grid_renderer.rs`, `terminal/model/grid/secrets.rs`, `settings/privacy.rs`, `settings_view/privacy_page.rs`, `env_vars/`, `notebooks/`, `workspaces/`, `integration_testing/`
+
+**Method for each relocation:**
+1. Copy file to new location; add `mod X;` in the new parent
+2. Add `pub use` re-export from old location in old mod.rs/block.rs  
+3. Verify 3-gate green (callers still use old import path via re-export)
+4. Commit checkpoint
+5. In a follow-up: update callers to use new path, remove re-export
+
+### Sub-task B: Delete inline_action/ directory
+
+After relocation of inline_action_header/icons/requested_action, the remaining inline_action/ files are AI-only (code_diff_view, ask_user_question_view, requested_command, orchestration_controls, requested_script, host_picker, aws_bedrock_credentials_error, create_environment_modal, create_or_edit_document). Check callers, then delete.
+
+### Sub-task C: Delete block/ directory and block.rs
+
+After sub-task A and B, the remaining block/ files are AI-only. Delete:
+- `block.rs` (6481 lines) + `block/` dir
+- This removes all callers of the stubs → stub files become linker-invisible-then-removable
+- Expected binary shrink: SIGNIFICANT (block rendering was live-linked)
+
+### Sub-task D: Delete all stub files
+
+After sub-tasks A-C, no code calls the stubs anymore:
+- Delete `action_stubs.rs`, `orchestration_stubs.rs`, `context_model_stubs.rs`, `input_model_stubs.rs`, `history_model_stubs.rs`
+- Remove their `mod` + `use` declarations from `mod.rs`
+- Remove stub singleton registrations from `lib.rs` (`BlocklistAIHistoryModel`, `BlocklistAIPermissions`, etc.)
+
+### Sub-task E: Clean up Input struct + TerminalView
+
+Remove `ai_input_model`, `ai_context_model`, `ai_action_model` fields from:
+- `terminal/input.rs` `Input` struct (50+ method bodies must be updated/deleted)
+- `terminal/view.rs` `TerminalView` struct (already cleaned in G-preview; verify nothing remains)
+
+Also delete `permissions.rs` and stub out/delete `persistence.rs` (relocate `SerializedBlockListItem` first since it's used by `pane_group/mod.rs` + `persistence/block_list.rs`).
 
 **Correct Phase F+G order (CRITICAL — two subagents got this wrong):**
 
@@ -338,10 +402,11 @@ Keep: `ai_action_model`, `ai_input_model`, `ai_context_model`
 - ~~`ai/blocklist/orchestration_events.rs` + `orchestration_topology.rs` + `orchestration_event_streamer.rs` + `orchestration_conversation_links.rs`~~ ✅ `0576df88` (stubbed)
 - ~~`ai/blocklist/task_status_sync_model.rs`~~ ✅ `0576df88` (stubbed)
 - ~~`ai/blocklist/local_shared_session_link_model.rs`~~ ✅ `0576df88` (stubbed)
-- **NEXT: `ai/blocklist/context_model.rs`** — 10 external files. Stub pattern.
-- **NEXT: `ai/blocklist/input_model.rs`** — 33 external files. Stub pattern.
-- **NEXT: `ai/blocklist/history_model.rs` + `history_model/`** — 62 external files, ~40 stub methods. Largest remaining.
-- **NEXT: `ai/blocklist/permissions.rs` + `persistence.rs`** — scope TBD.
+- ~~`ai/blocklist/context_model.rs`~~ ✅ `b3ae3d79` (stubbed → context_model_stubs.rs)
+- ~~`ai/blocklist/input_model.rs`~~ ✅ `97a134ef` (stubbed → input_model_stubs.rs)
+- ~~`ai/blocklist/history_model.rs` + `history_model/`~~ ✅ `125c0f72` (stubbed → history_model_stubs.rs, #[path] redirect)
+- **NEXT: `ai/blocklist/permissions.rs`** — 15 external files (all AI territory); compiles fine; stub optional before block.rs.
+- `persistence.rs` DEFERRED — `SerializedBlockListItem` load-bearing for session restore. Relocate it before delete.
 - **LAST: `ai/blocklist/block.rs` + `block/`** — before deleting, relocate:
   - `secret_redaction` → `app/src/secret_redaction.rs`
   - `keyboard_navigable_buttons`, `toggleable_items`, `numbered_button`, `compact_agent_input`, `inline_action_header`, `inline_action_icons`, `requested_action`, `WithContentItemSpacing` → `terminal/view/`
