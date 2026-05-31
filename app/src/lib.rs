@@ -2127,23 +2127,9 @@ fn launch(ctx: &mut warpui::AppContext, app_state: Option<AppState>, launch_mode
                 maybe_register_app_as_login_item(ctx);
             }
         }
-        #[cfg_attr(target_family = "wasm", allow(unused_variables))]
-        LaunchMode::CommandLine {
-            command,
-            global_options,
-            ..
-        } => {
-            cfg_if::cfg_if! {
-                if #[cfg(target_family = "wasm")] {
-                    panic!("Cannot execute CLI command {command:?} on the web");
-                } else {
-                    if let Err(err) = crate::ai::agent_sdk::run(ctx, command.clone(), global_options.clone()) {
-                        eprintln!("{err:#}");
-                        report_error!(err);
-                        std::process::exit(1);
-                    }
-                }
-            }
+        LaunchMode::CommandLine { command, .. } => {
+            eprintln!("CLI agent command mode removed: {command:?}");
+            std::process::exit(1);
         }
         // Proxy should never reach launch() — it's a thin byte bridge.
         LaunchMode::RemoteServerProxy => {

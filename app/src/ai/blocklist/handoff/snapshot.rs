@@ -6,15 +6,13 @@
 //! right transport via [`SnapshotUploadTarget`] and converges on
 //! [`settle_handoff_snapshot_result`] to update the model.
 
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use remote_server::proto::UploadHandoffSnapshotResponse;
 use warp_util::standardized_path::StandardizedPath;
 use warpui::{ModelHandle, SingletonEntity, ViewContext};
 
-use crate::ai::agent_sdk::driver::upload_snapshot_for_handoff;
-use crate::ai::blocklist::handoff::touched_repos::{derive_touched_workspace, TouchedWorkspace};
+use crate::ai::blocklist::handoff::touched_repos::TouchedWorkspace;
 use crate::remote_server::manager::RemoteServerManager;
 use crate::server::server_api::ai::{AIClient, InitialSnapshotToken};
 use crate::server::server_api::ServerApiProvider;
@@ -163,24 +161,9 @@ async fn upload_handoff_snapshot(
             };
             (TouchedWorkspace::default(), result)
         }
-        SnapshotUploadTarget::Local { ai_client, http } => {
-            let local_paths: Vec<PathBuf> =
-                paths.iter().map(|sp| sp.to_local_path_lossy()).collect();
-            let workspace = derive_touched_workspace(local_paths).await;
-            let repo_paths: Vec<_> = workspace.repos.iter().map(|r| r.git_root.clone()).collect();
-            let upload_result = upload_snapshot_for_handoff(
-                repo_paths,
-                workspace.orphan_files.clone(),
-                ai_client,
-                http.as_ref(),
-            )
-            .await;
-            let result = match upload_result {
-                Ok(Some(token)) => Ok(HandoffUploadResult::Uploaded(token)),
-                Ok(None) => Ok(HandoffUploadResult::EmptyWorkspace),
-                Err(e) => Err(e),
-            };
-            (workspace, result)
+        SnapshotUploadTarget::Local { .. } => {
+            // Snapshot upload via agent_sdk removed; local handoffs report empty workspace.
+            (TouchedWorkspace::default(), Ok(HandoffUploadResult::EmptyWorkspace))
         }
     }
 }

@@ -13,7 +13,6 @@ use std::sync::Arc;
 use anyhow::Result;
 use warp_util::standardized_path::StandardizedPath;
 
-use crate::ai::agent_sdk::driver::upload_snapshot_for_handoff;
 use crate::ai::blocklist::handoff::touched_repos::derive_touched_workspace;
 use crate::server::server_api::ai::{AIClient, InitialSnapshotToken};
 
@@ -63,5 +62,7 @@ pub(crate) async fn gather_and_upload_handoff_snapshot(
         orphan_file_paths.len()
     );
 
-    upload_snapshot_for_handoff(repo_paths, orphan_file_paths, ai_client, http).await
+    // Snapshot upload via agent_sdk removed.
+    let _ = (repo_paths, orphan_file_paths, ai_client, http);
+    Ok(None)
 }

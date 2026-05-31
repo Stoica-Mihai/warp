@@ -7,17 +7,12 @@ use shell_words::quote as shell_quote;
 use uuid::Uuid;
 use warp_cli::agent::Harness;
 
-use crate::ai::agent_sdk::driver::harness::claude_code::prepare_claude_environment_config;
-use crate::ai::agent_sdk::driver::harness::{harness_kind, harness_model_env_vars, HarnessKind};
-use crate::ai::agent_sdk::driver::AgentDriverError;
-use crate::ai::agent_sdk::{task_env_vars, validate_cli_installed};
 use crate::ai::ambient_agents::task::{
     normalize_orchestrator_agent_name, HarnessConfig, HarnessModelConfig,
 };
 use crate::ai::ambient_agents::{AgentConfigSnapshot, AmbientAgentTaskId};
 use crate::ai::local_child_harnesses::local_child_harness_disabled_message;
 use crate::server::server_api::ai::AIClient;
-use crate::terminal::cli_agent_sessions::plugin_manager::plugin_manager_for;
 use crate::terminal::shell::ShellType;
 
 #[derive(Clone)]
@@ -49,10 +44,6 @@ pub(super) fn validate_local_harness_shell(shell_type: Option<ShellType>) -> Res
 pub(super) fn build_local_claude_child_command(prompt: &str) -> String {
     let session_id = Uuid::new_v4();
     let quoted_prompt = shell_quote(prompt);
-    // Local child harness panes are launched off-screen. We intentionally skip
-    // Claude's own permission prompts here so the child can start unattended
-    // instead of hanging on an approval UI the user cannot see in that hidden
-    // pane.
     format!("claude --session-id {session_id} --dangerously-skip-permissions {quoted_prompt}")
 }
 
@@ -60,6 +51,7 @@ pub(super) fn build_local_opencode_child_command(prompt: &str) -> String {
     let quoted_prompt = shell_quote(prompt);
     format!("opencode --prompt {quoted_prompt}")
 }
+
 pub(super) fn build_local_codex_child_command(prompt: &str) -> String {
     let quoted_prompt = shell_quote(prompt);
     format!("codex --dangerously-bypass-approvals-and-sandbox {quoted_prompt}")
@@ -92,7 +84,7 @@ pub(super) async fn prepare_local_harness_child_launch(
     parent_run_id: Option<String>,
     agent_name: Option<String>,
     shell_type: Option<ShellType>,
-    startup_directory: Option<PathBuf>,
+    _startup_directory: Option<PathBuf>,
     ai_client: Arc<dyn AIClient>,
 ) -> Result<PreparedLocalHarnessLaunch, String> {
     let harness_model_config =
@@ -117,63 +109,9 @@ pub(super) async fn prepare_local_harness_child_launch(
     let command = match harness {
         Harness::Oz => unreachable!("normalize_local_child_harness filters out Oz"),
         Harness::Unknown => unreachable!("normalize_local_child_harness filters out Unknown"),
-        Harness::Claude => {
-            let working_dir = startup_directory
-                .or_else(|| std::env::current_dir().ok())
-                .ok_or_else(|| {
-                    format!(
-                        "Could not resolve a working directory for the local {} child.",
-                        harness.display_name()
-                    )
-                })?;
-            let HarnessKind::ThirdParty(third_party_harness) =
-                harness_kind(harness).map_err(|error: AgentDriverError| error.to_string())?
-            else {
-                unreachable!("Claude resolves to a third-party harness")
-            };
-            third_party_harness
-                .validate()
-                .map_err(|error: AgentDriverError| error.to_string())?;
-            // Local child harness panes inherit the user's existing local
-            // auth/session state. We still prepare harness config files here,
-            // but there are no Warp-managed secrets to materialize into the
-            // hidden child pane.
-            prepare_claude_environment_config(&working_dir, &HashMap::new())
-                .map_err(|error| error.to_string())?;
-            if let Some(manager) = plugin_manager_for(third_party_harness.cli_agent()) {
-                if let Err(error) = manager.install().await {
-                    log::warn!("Claude plugin installation failed for child harness: {error}");
-                }
-                if let Err(error) = manager.install_platform_plugin().await {
-                    log::warn!(
-                        "Claude platform plugin installation failed for child harness: {error}"
-                    );
-                }
-            }
-
-            build_local_claude_child_command(&prompt)
-        }
-        Harness::Codex => {
-            let HarnessKind::ThirdParty(third_party_harness) =
-                harness_kind(harness).map_err(|error: AgentDriverError| error.to_string())?
-            else {
-                unreachable!("Codex resolves to a third-party harness")
-            };
-            third_party_harness
-                .validate()
-                .map_err(|error: AgentDriverError| error.to_string())?;
-
-            // Local Codex child panes must rely on the user's existing local
-            // auth/session state. Do not run the shared Codex environment prep
-            // here: it can seed OPENAI_API_KEY into ~/.codex/auth.json and
-            // rewrite ~/.codex/config.toml for the whole machine.
-            build_local_codex_child_command(&prompt)
-        }
-        Harness::OpenCode => {
-            validate_cli_installed("opencode", Some("https://opencode.ai/docs"))
-                .map_err(|error: AgentDriverError| error.to_string())?;
-            build_local_opencode_child_command(&prompt)
-        }
+        Harness::Claude => build_local_claude_child_command(&prompt),
+        Harness::Codex => build_local_codex_child_command(&prompt),
+        Harness::OpenCode => build_local_opencode_child_command(&prompt),
         Harness::Gemini => unreachable!("normalize_local_child_harness filters out Gemini"),
     };
 
@@ -192,14 +130,16 @@ pub(super) async fn prepare_local_harness_child_launch(
             )
         })?;
 
-    let mut env_vars = task_env_vars(Some(&task_id), parent_run_id.as_deref(), harness);
+    let mut env_vars: HashMap<OsString, OsString> = HashMap::new();
     // Propagate the selected model to Claude Code via ANTHROPIC_MODEL.
-    // Codex local children never receive a model override — the UI
-    // ensures model_id is empty for local Codex.
-    env_vars.extend(harness_model_env_vars(
-        harness,
-        harness_model_config.as_ref(),
-    ));
+    if harness == Harness::Claude {
+        if let Some(ref cfg) = harness_model_config {
+            env_vars.insert(
+                OsString::from("ANTHROPIC_MODEL"),
+                OsString::from(&cfg.model_id),
+            );
+        }
+    }
 
     Ok(PreparedLocalHarnessLaunch {
         command,
