@@ -70,7 +70,7 @@ use warpui::{
 #[cfg(feature = "agent_mode_debug")]
 use self::code_diff_view::FileDiff;
 use self::model::{AIBlockModel, AIBlockModelHelper};
-use super::action_model::{AIActionStatus, BlocklistAIActionEvent};
+use super::{AIActionStatus, BlocklistAIActionEvent};
 use super::code_block::CodeSnippetButtonHandles;
 use super::ClientIdentifiers;
 use super::inline_action::code_diff_view::{
@@ -102,7 +102,7 @@ use crate::ai::agent::{
 use crate::ai::agent_conversations_model::{AgentConversationsModel, AgentConversationsModelEvent};
 use crate::ai::ai_document_view::DEFAULT_PLANNING_DOCUMENT_TITLE;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
-use crate::ai::blocklist::action_model::NewConversationDecision;
+use crate::ai::blocklist::NewConversationDecision;
 use crate::terminal::view::agent_view_state::AgentViewEntryOrigin;
 use crate::ai::blocklist::block::keyboard_navigable_buttons::{
     KeyboardNavigableButtonBuilder, KeyboardNavigableButtons,
@@ -1855,7 +1855,7 @@ impl AIBlock {
                                 crate::ai::mcp::TemplatableMCPServerManager::as_ref(ctx)
                                     .tool_input_schema(*server_id, name.as_str())
                             {
-                                crate::ai::blocklist::action_model::coerce_integer_args(
+                                crate::ai::blocklist::coerce_integer_args(
                                     &mut map, &schema,
                                 );
                             }

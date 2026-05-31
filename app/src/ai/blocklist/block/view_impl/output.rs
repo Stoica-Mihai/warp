@@ -66,7 +66,7 @@ use crate::ai::agent::{
 };
 use crate::ai::agent_conversations_model::AgentConversationsModel;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
-use crate::ai::blocklist::action_model::AIActionStatus;
+use crate::ai::blocklist::AIActionStatus;
 use crate::ai::blocklist::block::model::{AIBlockModel, AIBlockModelHelper, AIBlockOutputStatus};
 use crate::ai::blocklist::block::view_impl::common::{
     MaybeShimmeringText, BLOCKED_ACTION_MESSAGE_FOR_GREP_OR_FILE_GLOB,

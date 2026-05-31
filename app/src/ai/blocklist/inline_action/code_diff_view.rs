@@ -47,9 +47,7 @@ use warpui::{
 
 use crate::ai::agent::icons::{self, yellow_stop_icon};
 use crate::ai::agent::{AIAgentActionId, AIIdentifiers, FileEdit, FileLocations, ServerOutputId};
-use crate::ai::blocklist::action_model::{
-    AIActionStatus, BlocklistAIActionEvent, BlocklistAIActionModel,
-};
+use crate::ai::blocklist::{AIActionStatus, BlocklistAIActionEvent, BlocklistAIActionModel};
 use crate::ai::blocklist::history_model::BlocklistAIHistoryModel;
 use crate::ai::blocklist::inline_action::inline_action_header::INLINE_ACTION_HORIZONTAL_PADDING;
 use crate::ai::blocklist::inline_action::inline_action_icons::{

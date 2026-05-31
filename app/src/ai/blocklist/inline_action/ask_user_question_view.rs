@@ -26,9 +26,7 @@ use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::icons::yellow_stop_icon;
 use crate::ai::agent::task::TaskId;
 use crate::ai::agent::{AIAgentActionId, AIAgentActionResult, AIAgentActionResultType};
-use crate::ai::blocklist::action_model::{
-    AIActionStatus, BlocklistAIActionEvent, BlocklistAIActionModel,
-};
+use crate::ai::blocklist::{AIActionStatus, BlocklistAIActionEvent, BlocklistAIActionModel};
 use crate::ai::blocklist::block::compact_agent_input;
 use crate::ai::blocklist::block::number_shortcut_buttons::{
     self, NumberShortcutButtonBuilder, NumberShortcutButtons, NumberShortcutButtonsConfig,

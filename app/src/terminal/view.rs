@@ -241,7 +241,7 @@ use crate::ai::blocklist::{
     ConversationStatusUpdate, InputConfig, InputType,
     InputTypeAutoDetectionSource,
     PendingAttachment, PendingQueryState, ShellCommandExecutor,
-    ShellCommandExecutorEvent, StartAgentExecutor, StartAgentExecutorEvent,
+    ShellCommandExecutorEvent,
     StartAgentRequest, ATTACH_AS_AGENT_MODE_CONTEXT_TEXT, PRE_REWIND_PREFIX,
 };
 use crate::ai::conversation_utils;

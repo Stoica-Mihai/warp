@@ -29,7 +29,7 @@ use crate::ai::agent::{
     icons, AIAgentActionId, AIAgentActionResult, AIAgentActionResultType, AIAgentActionType,
     AIAgentCitation, AIAgentOutputMessageType, CallMCPToolResult, RequestCommandOutputResult,
 };
-use crate::ai::blocklist::action_model::AIActionStatus;
+use crate::ai::blocklist::AIActionStatus;
 use crate::ai::blocklist::block::cli_controller::{
     LongRunningCommandControlState, UserTakeOverReason,
 };

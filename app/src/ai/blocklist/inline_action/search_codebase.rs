@@ -16,7 +16,7 @@ use super::search_results_common::{
 };
 use crate::ai::agent::icons::yellow_running_icon;
 use crate::ai::agent::FileContext;
-use crate::ai::blocklist::action_model::AIActionStatus;
+use crate::ai::blocklist::AIActionStatus;
 use crate::ai::blocklist::block::find::FindState;
 use crate::ai::blocklist::block::secret_redaction::SecretRedactionState;
 use crate::ai::blocklist::block::view_impl::output::{

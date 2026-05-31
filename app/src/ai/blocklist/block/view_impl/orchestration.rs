@@ -19,7 +19,7 @@ use crate::ai::agent::{
     AIAgentActionId, AIAgentActionResultType, MessageId, ReceivedMessageDisplay,
     SendMessageToAgentResult, StartAgentExecutionMode, StartAgentResult,
 };
-use crate::ai::blocklist::action_model::AIActionStatus;
+use crate::ai::blocklist::AIActionStatus;
 use crate::ai::blocklist::avatar_disc::OrchestrationAvatar;
 use crate::ai::blocklist::orchestration_conversation_links::{
     conversation_id_for_agent_id, conversation_navigation_card_with_icon,

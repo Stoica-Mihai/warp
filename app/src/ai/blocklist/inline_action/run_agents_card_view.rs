@@ -24,7 +24,7 @@ use warpui::{
 
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::{icons, AIAgentActionId, AIAgentActionResultType};
-use crate::ai::blocklist::action_model::{
+use crate::ai::blocklist::{
     AIActionStatus, BlocklistAIActionEvent, BlocklistAIActionModel, RunAgentsExecutor,
     RunAgentsExecutorEvent, RunAgentsSpawningSnapshot,
 };

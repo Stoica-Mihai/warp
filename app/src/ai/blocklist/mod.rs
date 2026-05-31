@@ -1,5 +1,12 @@
 //! This module contains model and view logic for Blocklist AI.
-mod action_model;
+pub(crate) mod action_stubs;
+pub(crate) use action_stubs::{
+    AIActionStatus, BlocklistAIActionEvent, BlocklistAIActionModel, NewConversationDecision,
+    ReadFileContextResult, RunAgentsExecutor, RunAgentsExecutorEvent, RunAgentsSpawningSnapshot,
+    ShellCommandExecutor, ShellCommandExecutorEvent, StartAgentExecutor, StartAgentExecutorEvent,
+    StartAgentRequest, StartAgentRequestId, coerce_integer_args, compose_run_agents_child_prompt,
+    read_local_file_context, run_agents_to_start_agent_mode,
+};
 pub(crate) mod avatar_disc;
 pub mod block;
 pub mod code_block;
@@ -36,13 +43,6 @@ pub(crate) mod codebase_index_speedbump_banner;
 pub(crate) mod telemetry_banner;
 pub(super) mod view_util;
 
-#[cfg_attr(target_family = "wasm", allow(unused_imports))]
-pub(crate) use action_model::{
-    apply_edits, read_local_file_context, BlocklistAIActionEvent, BlocklistAIActionModel,
-    FileReadResult, ReadFileContextResult, ShellCommandExecutor,
-    ShellCommandExecutorEvent, StartAgentExecutor, StartAgentExecutorEvent, StartAgentRequest,
-    StartAgentRequestId,
-};
 #[cfg(any(test, feature = "integration_tests"))]
 pub(crate) use block::model::testing::FakeAIBlockModel;
 pub(crate) use block::{init, model, AIBlock, AIBlockEvent, RequestedEditResolution};
