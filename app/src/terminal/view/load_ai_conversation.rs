@@ -22,9 +22,7 @@ use crate::ai::agent::{
     CreateDocumentsResult, EditDocumentsResult,
 };
 use crate::ai::ai_document_view::DEFAULT_PLANNING_DOCUMENT_TITLE;
-use crate::ai::blocklist::agent_view::{
-    AgentViewEntryBlockParams, AgentViewEntryOrigin, DismissalStrategy, EphemeralMessage,
-};
+use crate::ai::blocklist::agent_view::{AgentViewEntryOrigin, DismissalStrategy, EphemeralMessage};
 use crate::ai::blocklist::block::cli_controller::CLISubagentController;
 use crate::ai::blocklist::history_model::{
     BlocklistAIHistoryModel, CLIAgentConversation, CloudConversationData,
@@ -46,7 +44,7 @@ use crate::terminal::model::session::active_session::ActiveSession;
 use crate::terminal::model::terminal_model::BlockIndex;
 use crate::terminal::model_events::ModelEventDispatcher;
 use crate::terminal::view::{
-    AIBlockMetadata, Event, RichContent, RichContentInsertionPosition, RichContentMetadata,
+    AIBlockMetadata, Event, RichContent, RichContentMetadata,
     TerminalView,
 };
 use crate::terminal::TerminalModel;
@@ -482,45 +480,11 @@ impl TerminalView {
             }
         }
 
-        // Track which conversations have had their agent view blocks inserted
-        let mut conversations_with_agent_view_block = std::collections::HashSet::new();
-
         // Create AI blocks. Note this must happen after restoring action results in the action model,
         // because AI block creation relies on the action result for an action existing in order to determine
         // what the state should be.
         let blocks_created = ai_block_params.len();
         for params in ai_block_params {
-            let conversation_id = params.conversation_id;
-            let command_block_index = params.command_block_index;
-
-            if FeatureFlag::AgentView.is_enabled()
-                && params.is_restoring_on_startup
-                && !conversations_with_agent_view_block.contains(&conversation_id)
-            {
-                // Insert an agent view block before the first AI block of each conversation.
-                // Use the same insertion position as the AI block (based on command_block_index)
-                // so they stay together.
-                conversations_with_agent_view_block.insert(conversation_id);
-
-                let position = match command_block_index {
-                    Some(idx) => RichContentInsertionPosition::BeforeBlockIndex(idx),
-                    None => RichContentInsertionPosition::Append {
-                        insert_below_long_running_block: false,
-                    },
-                };
-                self.insert_agent_view_entry_block(
-                    AgentViewEntryBlockParams {
-                        conversation_id,
-                        is_new: false,
-                        is_restored: true,
-                        origin: AgentViewEntryOrigin::RestoreExistingConversation,
-                        agent_view_controller: self.agent_view_controller.clone(),
-                    },
-                    position,
-                    ctx,
-                );
-            }
-
             self.create_and_insert_ai_block(params, ctx);
         }
 
@@ -642,15 +606,6 @@ impl TerminalView {
 
         // Save the target working directory so we can detect when the dir doesn't exist on this machine.
         let target_dir = conversation_restoration.initial_working_directory();
-
-        // Extract the active conversation ID if agent view was open (only for startup restoration)
-        let active_conversation_id_to_restore = match &conversation_restoration {
-            ConversationRestorationInNewPaneType::Startup {
-                active_conversation_id,
-                ..
-            } => *active_conversation_id,
-            _ => None,
-        };
 
         // Extract restored conversations from restoration type
         let restored_conversations: Vec<RestoredAIConversation> = match conversation_restoration {
@@ -777,30 +732,6 @@ impl TerminalView {
             "Successfully restored {blocks_created} AI blocks on view creation for conversations: {conversation_ids:?}"
         );
 
-        // If agent view was open before the session was saved, restore it
-        if FeatureFlag::AgentView.is_enabled() {
-            if let Some(conversation_id) = active_conversation_id_to_restore {
-                // Check if the conversation was successfully restored
-                let conversation_exists = BlocklistAIHistoryModel::handle(ctx)
-                    .as_ref(ctx)
-                    .conversation(&conversation_id)
-                    .is_some();
-
-                if conversation_exists {
-                    log::info!("Restoring agent view for conversation: {conversation_id}");
-                    self.enter_agent_view_for_conversation(
-                        None,
-                        AgentViewEntryOrigin::RestoreExistingConversation,
-                        conversation_id,
-                        ctx,
-                    );
-                } else {
-                    log::warn!(
-                        "Cannot restore agent view: conversation {conversation_id} not found"
-                    );
-                }
-            }
-        }
     }
 
     /// When we fork a conversation, we copy all of the ai and terminal blocks that were part of the original conversation.
