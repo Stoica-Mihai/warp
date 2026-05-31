@@ -134,9 +134,6 @@ impl TerminalView {
         };
         self.pane_configuration.update(ctx, |pane_config, ctx| {
             pane_config.set_title(new_pane_title, ctx);
-            if FeatureFlag::AgentView.is_enabled() {
-                pane_config.refresh_pane_header_overflow_menu_items(ctx);
-            }
             pane_config.notify_header_content_changed(ctx);
         });
         self.update_agent_view_pane_header(ctx);
@@ -144,16 +141,7 @@ impl TerminalView {
 
     /// Updates the pane header's shareable object based on agent view state.
     /// This should be called when entering/exiting agent view or when the conversation changes.
-    pub(super) fn update_agent_view_pane_header(&mut self, ctx: &mut ViewContext<Self>) {
-        if !FeatureFlag::AgentView.is_enabled() {
-            return;
-        }
-
-        self.pane_configuration.update(ctx, |pane_config, ctx| {
-            pane_config.notify_header_content_changed(ctx);
-            pane_config.refresh_pane_header_overflow_menu_items(ctx);
-        });
-    }
+    pub(super) fn update_agent_view_pane_header(&mut self, _ctx: &mut ViewContext<Self>) {}
 
     pub(super) fn is_pane_focused(&self, app: &AppContext) -> bool {
         self.focus_handle.as_ref().is_none_or(|h| h.is_focused(app))
@@ -173,40 +161,8 @@ impl TerminalView {
 
     /// Renders the back button for the pane header, or an empty element if the
     /// back button should not be shown.
-    fn maybe_render_header_back_button(&self, app: &AppContext) -> Box<dyn Element> {
-        if !FeatureFlag::AgentView.is_enabled() || warpui::platform::is_mobile_device() {
-            return Flex::row().finish();
-        }
-
-        let in_nav_stack = self
-            .pane_stack
-            .as_ref()
-            .and_then(|h| h.upgrade(app))
-            .is_some_and(|stack| stack.as_ref(app).depth() > 1);
-
-        let is_transcript_viewer = self.model.lock().is_conversation_transcript_viewer();
-        let is_ambient_agent = self.is_ambient_agent_session(app);
-        let has_parent_terminal = (is_ambient_agent && self.is_nested_cloud_mode(app))
-            || (!is_ambient_agent && !is_transcript_viewer);
-        let is_fullscreen_agent_view = self.agent_view_controller.as_ref(app).is_fullscreen();
-
-        if in_nav_stack || (is_fullscreen_agent_view && has_parent_terminal) {
-            if FeatureFlag::OrchestrationV2.is_enabled() {
-                Flex::row()
-                    .with_cross_axis_alignment(CrossAxisAlignment::Center)
-                    .with_child(ChildView::new(&self.agent_view_back_button).finish())
-                    .finish()
-            } else {
-                Flex::column()
-                    .with_main_axis_alignment(MainAxisAlignment::Center)
-                    .with_cross_axis_alignment(CrossAxisAlignment::Start)
-                    .with_main_axis_size(MainAxisSize::Max)
-                    .with_child(ChildView::new(&self.agent_view_back_button).finish())
-                    .finish()
-            }
-        } else {
-            Flex::row().finish()
-        }
+    fn maybe_render_header_back_button(&self, _app: &AppContext) -> Box<dyn Element> {
+        Flex::row().finish()
     }
 
     fn render_header_title(
@@ -305,8 +261,7 @@ impl TerminalView {
         app: &AppContext,
     ) -> (Box<dyn Element>, f32) {
         let appearance = Appearance::as_ref(app);
-        let is_fullscreen_agent_view = FeatureFlag::AgentView.is_enabled()
-            && self.agent_view_controller.as_ref(app).is_fullscreen();
+        let is_fullscreen_agent_view = false;
         let icon_color = Some(
             appearance
                 .theme()
@@ -379,26 +334,11 @@ impl TerminalView {
         (right_row.finish(), min_width)
     }
 
-    fn render_parent_conversation_header_card(&self, app: &AppContext) -> Option<Box<dyn Element>> {
-        if !(FeatureFlag::OrchestrationV2.is_enabled()
-            && FeatureFlag::AgentView.is_enabled()
-            && self.agent_view_controller.as_ref(app).is_fullscreen())
-        {
-            return None;
-        }
-
-        let active_conversation_id = self
-            .agent_view_controller
-            .as_ref(app)
-            .agent_view_state()
-            .active_conversation_id()?;
-        let active_conversation =
-            BlocklistAIHistoryModel::as_ref(app).conversation(&active_conversation_id)?;
-        parent_conversation_navigation_card(
-            active_conversation,
-            self.mouse_states.parent_conversation_header_link.clone(),
-            app,
-        )
+    fn render_parent_conversation_header_card(
+        &self,
+        _app: &AppContext,
+    ) -> Option<Box<dyn Element>> {
+        None
     }
 
     fn maybe_add_parent_navigation_card(
@@ -407,57 +347,6 @@ impl TerminalView {
         parent_conversation_header_card: Option<Box<dyn Element>>,
         app: &AppContext,
     ) -> Box<dyn Element> {
-        // When `OrchestrationPillBar` is on, the pill bar takes the place of the
-        // parent navigation card (the parent pill is the "back to parent" link)
-        // and is shown for the orchestrator and the swap-target child panes.
-        // Split-off panes ("Open in new pane" / "Open in new tab") instead
-        // render a parent→child breadcrumb row so the user has a clear way
-        // back to the orchestrator without rendering the full sibling pill
-        // list a second time alongside the orchestrator's own pill bar.
-        //
-        // `OrchestrationViewerPillBar` is the parallel flag for shared
-        // session viewers (web + native). Children are registered via the
-        // REST data fetch in `OrchestrationViewerModel`; when none have
-        // arrived yet, `OrchestrationPillBar::pill_specs` returns `None`
-        // and the pill bar's `render` short-circuits to `Empty`, so the
-        // gate here is intentionally permissive.
-        if (FeatureFlag::OrchestrationPillBar.is_enabled()
-            || FeatureFlag::OrchestrationViewerPillBar.is_enabled())
-            && FeatureFlag::AgentView.is_enabled()
-            && self.agent_view_controller.as_ref(app).is_fullscreen()
-        {
-            // The wrapping `Flex::column` would otherwise pass an infinite
-            // vertical max constraint down to its non-flex children. That
-            // breaks the title's vertical centering: with infinite max.y,
-            // the centered `Align` inside `render_three_column_header`
-            // collapses to the title's own (small) line-box height, and
-            // the outer row's `CrossAxisAlignment::Stretch` then pins the
-            // title to the top of the row. Pinning the header to its
-            // standard `PANE_HEADER_HEIGHT` here restores the finite
-            // vertical constraint the centering logic relies on, while
-            // letting the pill bar / breadcrumb row sit immediately below
-            // at its own height.
-            let pinned_header = ConstrainedBox::new(header)
-                .with_height(PANE_HEADER_HEIGHT)
-                .finish();
-            let secondary_row: Box<dyn Element> = if self.is_orchestration_split_off() {
-                crate::ai::blocklist::agent_view::render_orchestration_breadcrumbs(
-                    self.agent_view_controller.as_ref(app),
-                    self.mouse_states.parent_conversation_header_link.clone(),
-                    self.mouse_states.breadcrumbs_horizontal_scroll.clone(),
-                    app,
-                )
-                .unwrap_or_else(|| Empty::new().finish())
-            } else {
-                ChildView::new(&self.orchestration_pill_bar).finish()
-            };
-            return Flex::column()
-                .with_cross_axis_alignment(CrossAxisAlignment::Stretch)
-                .with_child(pinned_header)
-                .with_child(secondary_row)
-                .finish();
-        }
-
         if !FeatureFlag::OrchestrationV2.is_enabled() {
             return header;
         }
@@ -485,8 +374,7 @@ impl TerminalView {
         header_ctx: &view::HeaderRenderContext,
         app: &AppContext,
     ) -> Box<dyn Element> {
-        let is_fullscreen_agent_view = FeatureFlag::AgentView.is_enabled()
-            && self.agent_view_controller.as_ref(app).is_fullscreen();
+        let is_fullscreen_agent_view = false;
         let parent_conversation_header_card = self.render_parent_conversation_header_card(app);
 
         let left = self.maybe_render_header_back_button(app);
@@ -591,8 +479,7 @@ impl BackingView for TerminalView {
     }
 
     fn should_render_header(&self, app: &AppContext) -> bool {
-        let is_fullscreen_agent_view = FeatureFlag::AgentView.is_enabled()
-            && self.agent_view_controller.as_ref(app).is_fullscreen();
+        let is_fullscreen_agent_view = false;
         is_fullscreen_agent_view
             || FeatureFlag::ContextWindowUsageV2.is_enabled()
                 && self.split_pane_state(app).is_in_split_pane()
@@ -761,26 +648,18 @@ impl TerminalView {
             .selected_conversation(ctx)
             .filter(|conversation| {
                 !conversation.is_entirely_passive()
-                    && (conversation.title().is_some_and(|title| !title.is_empty())
-                        || FeatureFlag::AgentView.is_enabled())
+                    && conversation.title().is_some_and(|title| !title.is_empty())
             })
     }
 
     fn selected_conversation_display_title_for_chrome(
         &self,
         conversation: &AIConversation,
-        is_ambient_agent: bool,
+        _is_ambient_agent: bool,
     ) -> String {
-        if FeatureFlag::AgentView.is_enabled() {
-            conversation
-                .title()
-                .filter(|title| !title.is_empty())
-                .unwrap_or_else(|| default_agent_conversation_title(is_ambient_agent))
-        } else {
-            conversation
-                .title()
-                .expect("checked above that title exists")
-        }
+        conversation
+            .title()
+            .expect("checked above that title exists")
     }
 
     /// Returns `true` while a cloud-mode ambient agent run is still spinning up. This covers
