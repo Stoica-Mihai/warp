@@ -525,12 +525,7 @@ fn request_ambient_agent_task_id_for_hidden_child(
     child_pane_id: PaneId,
     ctx: &mut ViewContext<PaneGroup>,
 ) -> Option<AmbientAgentTaskId> {
-    let terminal_view = panes
-        .terminal_view_from_pane_id(child_pane_id, ctx)
-        .expect("child pane should have a terminal view");
-    let ai_controller = terminal_view.as_ref(ctx).ai_controller().clone();
-
-    ai_controller.update(ctx, |controller, _| controller.get_ambient_agent_task_id())
+    None
 }
 
 fn ambient_child_session_state(

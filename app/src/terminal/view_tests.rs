@@ -148,18 +148,6 @@ fn append_exchange_with_inputs_and_handle_event(
             (conversation_id, task_id, exchange_id, response_stream_id)
         });
 
-    view.handle_ai_history_model_event(
-        history_model,
-        &BlocklistAIHistoryEvent::AppendedExchange {
-            exchange_id,
-            task_id: task_id.clone(),
-            terminal_view_id: view.view_id,
-            conversation_id,
-            is_hidden: false,
-            response_stream_id: Some(response_stream_id.clone()),
-        },
-        ctx,
-    );
     (conversation_id, task_id, exchange_id, response_stream_id)
 }
 
@@ -185,16 +173,6 @@ fn update_exchange_input_and_handle_event(
             .expect("exchange should append");
     });
 
-    view.handle_ai_history_model_event(
-        history_model,
-        &BlocklistAIHistoryEvent::UpdatedStreamingExchange {
-            exchange_id,
-            terminal_view_id: view.view_id,
-            conversation_id,
-            is_hidden: false,
-        },
-        ctx,
-    );
 }
 
 fn ai_block_count(view: &TerminalView) -> usize {

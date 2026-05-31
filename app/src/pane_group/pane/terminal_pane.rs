@@ -1527,17 +1527,7 @@ fn launch_local_no_harness_child(
                         ctx,
                     );
 
-                    new_terminal_view.update(ctx, |terminal_view, ctx| {
-                        terminal_view
-                            .ai_controller()
-                            .update(ctx, |controller, ctx| {
-                                controller.send_agent_query_in_conversation(
-                                    prompt.clone(),
-                                    conversation_id,
-                                    ctx,
-                                );
-                            });
-                    });
+                
                 } else {
                     let _ = create_error_child_agent_conversation(
                         group,
