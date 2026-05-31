@@ -110,7 +110,7 @@ All telemetry surfaces removed across ~10 commits. Total: ~8918 LoC across step 
 | `context_chips` (terminal prompt chips) | `app/src/context_chips/` | 23 files, 11.7k LoC | **KEEP** | Core terminal prompt rendering: git branch, directory, virtualenv, SSH, k8s chips. NOT a cloud/AI surface. Do NOT remove. |
 | ~~AI settings pages~~ | ~~`settings_view/{ai_page,execution_profile_view}.rs`~~ | ~~~9.4k LoC~~ | **MEDIUM** | ✅ **DONE** `111a175e` — ai_page.rs (7824) + editor/ (1992) + modals + warp_drive_page deleted. −13,934 LoC. Binary −25.1 MB. |
 | `app/src/ai/agent` (LLM exec core) | `app/src/ai/agent/` | 32 files, 22.5k LoC | **HARD** | Warp agent driver/harness/todos/SDK. |
-| `app/src/ai/blocklist` (AI block render) | `app/src/ai/blocklist/` | 179 files, 102k LoC | **HARD** | AI block rendering + interaction; 296-file fan-in. |
+| `app/src/ai/blocklist` (AI block render) | `app/src/ai/blocklist/` | 179 files, 102k LoC | **HARD** | `agent_view/` deleted (`94c6be3f`). model layers (controller/history/context/input/action) remain; see Phase F/G below. |
 | Conversation/history models | `app/src/ai/blocklist/history_model.rs`, `agent_conversations_model.rs` | ~15k LoC | **HARD** | AI chat state, conversation IDs; on-disk. |
 | Render-path AI coupling | `terminal/view.rs` (203 refs), `input.rs` (151), `pane_group/mod.rs` (95), `workspace/view.rs` (105) | — | **HARD** | Core spider files — excise AI branches, keep render. Do LAST. |
 
@@ -264,6 +264,55 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - **~105 `SharedSessionStatus` read-sites** (`shared_session_status().is_*()`) across block rendering = always-false dead branches; collapse last. Includes the leftover `NewWorkspaceSource::SharedSessionAsViewer` arms + the `response_initiator`/`shared_session_response_initiator` carriers above + terminal_model's `ordered_terminal_events_for_shared_session_tx` + `OrderedTerminalEventType` (pub, never set). KEEP the `SharedSessionStatus` type only if the field is still set somewhere; if all read-sites collapse, remove the type + `shared_session_status()` + field.
 
 **Method that worked:** collapse dead `if flag.is_enabled() {…}` branches first (compiles fine with flag still defined — it's just fewer readers), bank green; remove flag def LAST once its readers hit zero. Cascades (banner module, dialog subsystem, URI route, REMOTE_CONTROL, close-session widget) surface as dead-code/unused-import warnings after the readers drop — use `cargo check --features gui` as the worklist oracle. For a subsystem that's reachable only through a now-permanently-false gate (close-confirm dialog, share banners), trace it to its event emitter — if the emitter is itself gated on `shared_session_status().is_sharer()` (always false), the whole chain is dead and removes cleanly. When a UI chip lives in kept agent code, re-gate it on the OTHER (off-by-default) flag rather than ripping the agent subsystem — defers cleanly, preserves default behavior.
+
+### AI strip — current state (`73dd201c`, 2026-05-31)
+
+**Binary**: 813.2 MB (−31.0 MB vs 844.2 MB baseline). 3-gate 0/0/0. 0 errors, ~250 warnings (AI territory, deferred).
+
+**Done this session:**
+- `ai/blocklist/agent_view/` deleted (`94c6be3f`, −7.80 MB). All AI agent view UI gone.
+- `terminal/view/agent_view.rs`, `load_ai_conversation.rs`, `use_agent_footer/`, `pending_user_query.rs` deleted.
+- `terminal/input/agent.rs`, `terminal/input/conversations/` deleted.
+- `ai/active_agent_views_model.rs` deleted.
+- Relocated types: `AgentToolbarItemKind` → `context_chips/toolbar.rs`; `AgentViewState/EntryOrigin/render_block_container` → `terminal/view/agent_view_state.rs`; `AgentInputButtonTheme` → `terminal/view/ambient_agent/button_theme.rs`.
+- `TextLocation` relocated to `util/text_location.rs`; `LinkActionConstructors` to `util/link_detection.rs` (`73dd201c`).
+
+**What remains in `ai/blocklist/`:** `block.rs` (6506 lines) + `block/` dir + controller + action_model + history_model + context_model + input_model + orchestration cluster + permissions + persistence + passive_suggestions + leaf files.
+
+**Correct Phase F+G order (CRITICAL — two subagents got this wrong):**
+
+```
+Phase G-preview FIRST: excise ai_controller from terminal/view.rs
+Phase F AFTER: delete block.rs + model layers
+```
+
+**Why:** `TerminalView` has `ai_controller: ModelHandle<BlocklistAIController>` as a struct field, with 369 AIBlock/BlocklistAI* refs in `terminal/view.rs` (23,991 lines). Deleting the model layer without excising callers violates the green-always invariant. Same root cause as the original abandoned `strip-cloud` branch.
+
+**Phase G-preview target** — excise from `terminal/view.rs`:
+1. Remove `ai_controller: ModelHandle<BlocklistAIController>` struct field + all constructor/update sites
+2. Remove `AIBlockModelImpl`/`BlocklistAIController` construction (lines ~2980, ~4767, ~4855, ~4899)
+3. Remove `BlocklistAIControllerEvent` + `BlocklistAIActionEvent` + `BlocklistAIContextEvent` subscriptions
+4. Remove AIBlock rendering branches (369 sites via cargo check oracle)
+5. Simultaneously fix `context_chips/display.rs` (ai_input_model/ai_context_model fields), `pane_group/mod.rs` (14+ BlocklistAIHistoryModel calls), `terminal/input/slash_commands/`, data sources in `terminal/input/`, `tab.rs`, `workspace/view.rs`, etc.
+
+**Phase F deletions** (after G-preview, safe once callers gone):
+- `ai/blocklist/block.rs` + `block/` dir — AIBlock is Warp-only; vendor CLI agents use PTY, not AIBlock
+- Before deleting block/: relocate `secret_redaction` → `app/src/secret_redaction.rs`; relocate `keyboard_navigable_buttons`, `toggleable_items`, `numbered_button`, `compact_agent_input`, `inline_action_header`, `inline_action_icons`, `requested_action`, `WithContentItemSpacing` → `terminal/view/` (used by `init_project/`, `init_environment/`, `ssh_remote_server_choice_view`, `ambient_agent/`)
+- `ai/blocklist/controller/` + `controller.rs`
+- `ai/blocklist/action_model/` + `action_model.rs`
+- `ai/blocklist/history_model.rs` + `history_model/`
+- `ai/blocklist/input_model.rs`
+- `ai/blocklist/context_model.rs`
+- `ai/blocklist/orchestration_events.rs` + `orchestration_topology.rs` + `orchestration_event_streamer.rs`
+- `ai/blocklist/task_status_sync_model.rs`
+- `ai/blocklist/permissions.rs` + `persistence.rs` + `passive_suggestions/` + leaf files
+- lib.rs: remove `BlocklistAIHistoryModel`, `BlocklistAIPermissions`, `OrchestrationEventService`, `TaskStatusSyncModel`, `OrchestrationEventStreamer`, `LocalSharedSessionLinkModel` registrations
+
+**KEEP in blocklist/:** `prompt/`, `view_util.rs`, `keystroke_render.rs`, `code_block.rs`. KEEP `ai/mcp/`.
+
+**KEEP terminal/input/:** `inline_menu/`, `message_bar/`, `inline_history/`, `cloud_mode_v2_history_menu.rs` — shared terminal UI infrastructure used by 28+ non-AI modules. NOT AI-only.
+
+---
 
 ### shared_session strip — original plan (reference)
 
