@@ -7076,15 +7076,8 @@ impl PaneGroup {
     }
 
     /// Add and focus a cloud mode pane.
-    pub fn add_ambient_agent_pane(&mut self, ctx: &mut ViewContext<Self>) {
-        if !FeatureFlag::AgentView.is_enabled() || !FeatureFlag::CloudMode.is_enabled() {
-            return;
-        }
-
-        let pane_data = self.create_ambient_agent_pane(ctx);
-
-        // Add the pane to the right
-        let _ = self.add_pane(Direction::Right, None, Box::new(pane_data), true, ctx);
+    pub fn add_ambient_agent_pane(&mut self, _ctx: &mut ViewContext<Self>) {
+        // Cloud mode / agent view stripped.
     }
 
     /// Close overlays whose state is managed by this pane group or its terminal panes. Does not

@@ -5478,20 +5478,6 @@ impl Workspace {
             }
         }
 
-        // 3. Cloud Agent (if flags enabled)
-        if is_any_ai_enabled
-            && FeatureFlag::AgentView.is_enabled()
-            && FeatureFlag::CloudMode.is_enabled()
-        {
-            let mut cloud_item = MenuItemFields::new("Cloud Agent")
-                .with_on_select_action(WorkspaceAction::AddAmbientAgentTab)
-                .with_icon(icons::Icon::LayoutAlt01);
-            if effective_default == DefaultSessionMode::CloudAgent {
-                cloud_item = cloud_item.with_key_shortcut_label(shortcut_label.clone());
-            }
-            menu_items.push(cloud_item.into_item());
-        }
-
         // 3b. Local Docker Sandbox
         if FeatureFlag::LocalDockerSandbox.is_enabled() {
             let mut docker_item = MenuItemFields::new("Local Docker Sandbox")
@@ -6962,42 +6948,7 @@ impl Workspace {
     /// Auto-opens the conversation list on first app start.
     /// Once we've done this once, we persist a preference so subsequent restarts
     /// will respect the user's visibility preference (restored from workspace state).
-    fn maybe_auto_open_conversation_list(&mut self, ctx: &mut ViewContext<Self>) {
-        if !FeatureFlag::AgentViewConversationListView.is_enabled()
-            || !AISettings::as_ref(ctx).is_any_ai_enabled(ctx)
-        {
-            return;
-        }
-
-        let has_auto_opened = *AISettings::as_ref(ctx).has_auto_opened_conversation_list;
-        if has_auto_opened {
-            return;
-        }
-
-        // Only auto-open on terminal tabs, not on settings or other non-terminal tabs
-        let has_terminal = self
-            .active_tab_pane_group()
-            .as_ref(ctx)
-            .has_terminal_panes();
-        if !has_terminal {
-            return;
-        }
-
-        // For first-time-users, auto-open the conversation list for discoverability
-        if !self.active_tab_pane_group().as_ref(ctx).left_panel_open {
-            self.open_left_panel(ctx);
-        }
-        self.left_panel_view.update(ctx, |lp, ctx| {
-            lp.restore_active_view_from_snapshot(ToolPanelView::ConversationListView, ctx);
-        });
-
-        // Mark that we've done the one-time auto-open
-        AISettings::handle(ctx).update(ctx, |settings, ctx| {
-            report_if_error!(settings
-                .has_auto_opened_conversation_list
-                .set_value(true, ctx));
-        });
-    }
+    fn maybe_auto_open_conversation_list(&mut self, _ctx: &mut ViewContext<Self>) {}
 
     fn close_left_panel(&mut self, ctx: &mut ViewContext<Self>) {
         self.left_panel_open = false;
@@ -9507,18 +9458,8 @@ impl Workspace {
         }
     }
 
-    fn add_ambient_agent_tab(&mut self, ctx: &mut ViewContext<Self>) {
-        if !FeatureFlag::AgentView.is_enabled() || !FeatureFlag::CloudMode.is_enabled() {
-            return;
-        }
-
-        self.add_tab_with_pane_layout(
-            PanesLayout::AmbientAgent,
-            Arc::new(HashMap::new()),
-            None,
-            ctx,
-        );
-        ctx.notify();
+    fn add_ambient_agent_tab(&mut self, _ctx: &mut ViewContext<Self>) {
+        // Cloud agent tab stripped.
     }
 
     // Adds a tab with a specific shell, only meant to be dispatched directly by actions.
@@ -9717,14 +9658,6 @@ impl Workspace {
 
         // If the previous tab's left panel was open, maintain that state with the new tab
         // (unless we're restoring the tab from a persisted snapshot).
-        if FeatureFlag::AgentViewConversationListView.is_enabled()
-            && !is_restoration
-            && left_panel_was_open
-        {
-            self.active_tab_pane_group().update(ctx, |pg, ctx| {
-                pg.set_left_panel_open(true, ctx);
-            });
-        }
     }
 
     pub fn add_tab_from_existing_pane(
@@ -10129,10 +10062,7 @@ impl Workspace {
         conversation_id: AIConversationId,
         ctx: &mut ViewContext<Self>,
     ) {
-        let terminal_view_for_active_pane = self.active_session_view(ctx).filter(|_| {
-            self.get_active_session_terminal_model(ctx).is_some()
-                && FeatureFlag::AgentView.is_enabled()
-        });
+        let terminal_view_for_active_pane: Option<ViewHandle<TerminalView>> = None;
 
         // If we can't restore in the active pane, fall back to restoring in new tab.
         let Some(terminal_view) = &terminal_view_for_active_pane else {
@@ -18715,13 +18645,6 @@ impl Workspace {
     /// Computes the list of available left panel views based on current AI settings and feature flags.
     fn compute_left_panel_views(ctx: &AppContext) -> Vec<ToolPanelView> {
         let mut views = vec![];
-        if FeatureFlag::AgentViewConversationListView.is_enabled()
-            && AISettings::as_ref(ctx).is_any_ai_enabled(ctx)
-            && *AISettings::as_ref(ctx).show_conversation_history
-        {
-            views.push(ToolPanelView::ConversationListView);
-        }
-
         if cfg!(feature = "local_fs") && *CodeSettings::as_ref(ctx).show_project_explorer.value() {
             views.push(ToolPanelView::ProjectExplorer);
         }
@@ -20514,17 +20437,7 @@ impl TypedActionView for Workspace {
                     );
                 }
             }
-            ToggleConversationListView => {
-                if FeatureFlag::AgentViewConversationListView.is_enabled() {
-                    let is_showing = self.left_panel_view.as_ref(ctx).active_view()
-                        == ToolPanelView::ConversationListView;
-                    self.toggle_left_panel_view(
-                        &LeftPanelAction::ConversationListView,
-                        is_showing,
-                        ctx,
-                    );
-                }
-            }
+            ToggleConversationListView => {}
             ShowRewindConfirmationDialog {
                 ai_block_view_id,
                 exchange_id,
@@ -20844,17 +20757,6 @@ impl View for Workspace {
                 context.set.insert("LongRunningCommand");
             }
 
-            if FeatureFlag::AgentView.is_enabled() {
-                let agent_view_state = terminal_view
-                    .agent_view_controller()
-                    .as_ref(app)
-                    .agent_view_state();
-                if agent_view_state.is_fullscreen() {
-                    context.set.insert(flags::ACTIVE_AGENT_VIEW);
-                } else if agent_view_state.is_inline() {
-                    context.set.insert(flags::ACTIVE_INLINE_AGENT_VIEW);
-                }
-            }
         }
 
         #[cfg(target_family = "wasm")]
