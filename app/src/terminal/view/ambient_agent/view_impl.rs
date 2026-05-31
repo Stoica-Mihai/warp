@@ -588,28 +588,6 @@ impl TerminalView {
             return;
         }
 
-        // If cloud mode is started from fullscreen agent view, we must ensure the resulting
-        // rich content (ambient agent entry block) is scoped to the terminal-level.
-        if FeatureFlag::AgentView.is_enabled()
-            && self.agent_view_controller.as_ref(ctx).is_fullscreen()
-        {
-            let prompt = initial_prompt.clone();
-            self.set_pending_cloud_mode_start_callback(
-                Box::new(move |view, ctx| {
-                    view.start_cloud_mode(prompt, ctx);
-                }),
-                ctx,
-            );
-
-            // Starting cloud mode from agent view is analogous to starting a new agent
-            // conversation: we exit without confirmation and continue after ExitedAgentView.
-            self.agent_view_controller.update(ctx, |controller, ctx| {
-                controller.exit_agent_view_without_confirmation(ctx);
-            });
-
-            return;
-        }
-
         self.start_cloud_mode(initial_prompt, ctx);
     }
 
