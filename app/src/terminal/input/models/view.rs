@@ -12,7 +12,6 @@ use warpui::{
     ViewHandle,
 };
 
-use crate::ai::blocklist::agent_view::AgentViewController;
 use crate::ai::blocklist::block::cli_controller::{CLISubagentController, CLISubagentEvent};
 use crate::ai::blocklist::{BlocklistAIHistoryEvent, BlocklistAIHistoryModel};
 use crate::ai::llms::{LLMId, LLMPreferences, LLMPreferencesEvent};
@@ -111,7 +110,6 @@ impl InlineModelSelectorView {
     pub fn new(
         terminal_view_id: EntityId,
         suggestions_mode_model: ModelHandle<InputSuggestionsModeModel>,
-        agent_view_controller: ModelHandle<AgentViewController>,
         input_buffer_model: &ModelHandle<InputBufferModel>,
         cli_subagent_controller: ModelHandle<CLISubagentController>,
         positioner: &ModelHandle<InlineMenuPositioner>,
@@ -164,7 +162,6 @@ impl InlineModelSelectorView {
                     mixer.clone(),
                     positioner.clone(),
                     &suggestions_mode_model,
-                    agent_view_controller,
                     tab_configs,
                     None,
                     ctx,
@@ -211,7 +208,6 @@ impl InlineModelSelectorView {
                     mixer.clone(),
                     positioner.clone(),
                     &suggestions_mode_model,
-                    agent_view_controller,
                     tab_configs,
                     None,
                     ctx,

@@ -2,7 +2,7 @@ use float_cmp::assert_approx_eq;
 use warpui::App;
 
 use super::*;
-use crate::ai::blocklist::agent_view::AgentViewState;
+use crate::terminal::view::agent_view_state::AgentViewState;
 use crate::terminal::event_listener::ChannelEventListener;
 use crate::terminal::model::ansi::{self, Handler as _, PreexecValue};
 use crate::terminal::model::blocks::insert_block;

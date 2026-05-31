@@ -12,7 +12,6 @@ use ordered_float::OrderedFloat;
 use warpui::{AppContext, Entity, EntityId, ModelHandle, SingletonEntity};
 
 use crate::ai::agent::conversation::{AIConversationId, ConversationStatus};
-use crate::ai::blocklist::agent_view::AgentViewController;
 use crate::ai::blocklist::BlocklistAIHistoryModel;
 use crate::input_suggestions::{HistoryInputSuggestion, HistoryOrder};
 use crate::search::data_source::{Query, QueryFilter, QueryResult};
@@ -68,87 +67,14 @@ impl InlineMenuAction for AcceptHistoryItem {
 pub struct InlineHistoryMenuDataSource {
     terminal_view_id: EntityId,
     active_session: ModelHandle<ActiveSession>,
-    agent_view_controller: ModelHandle<AgentViewController>,
 }
 
 impl InlineHistoryMenuDataSource {
-    pub fn new(
-        terminal_view_id: EntityId,
-        active_session: ModelHandle<ActiveSession>,
-        agent_view_controller: ModelHandle<AgentViewController>,
-    ) -> Self {
+    pub fn new(terminal_view_id: EntityId, active_session: ModelHandle<ActiveSession>) -> Self {
         Self {
             terminal_view_id,
             active_session,
-            agent_view_controller,
         }
-    }
-
-    fn build_agent_view_results(
-        &self,
-        query: &Query,
-        prefix_match_len: usize,
-        session_id: Option<SessionId>,
-        app: &AppContext,
-    ) -> Vec<QueryResult<AcceptHistoryItem>> {
-        let trimmed_query = query.text.trim();
-        let include_commands =
-            query.filters.is_empty() || query.filters.contains(&QueryFilter::Commands);
-        let include_prompts =
-            query.filters.is_empty() || query.filters.contains(&QueryFilter::PromptHistory);
-
-        let history = History::handle(app).as_ref(app);
-        let config = UpArrowHistoryConfig {
-            include_commands,
-            include_prompts,
-        };
-        let suggestions = history.up_arrow_suggestions_for_terminal_view(
-            self.terminal_view_id,
-            session_id,
-            config,
-            app,
-        );
-
-        let mut results: Vec<QueryResult<AcceptHistoryItem>> = Vec::new();
-        for suggestion in suggestions {
-            if !trimmed_query.is_empty() && !suggestion.text().starts_with(trimmed_query) {
-                continue;
-            }
-
-            let (search_item, score) = match suggestion {
-                HistoryInputSuggestion::Command { entry } => {
-                    let command = entry.command.trim();
-                    if command.is_empty() {
-                        continue;
-                    }
-                    let timestamp = entry.start_ts.unwrap_or_else(Local::now);
-                    (
-                        InlineHistoryItem::command(
-                            command.to_string(),
-                            entry.linked_workflow_data(),
-                            timestamp,
-                        )
-                        .with_prefix_match_len(prefix_match_len),
-                        OrderedFloat(results.len() as f64),
-                    )
-                }
-                HistoryInputSuggestion::AIQuery { entry } => {
-                    let query_text = entry.query_text.trim();
-                    if query_text.is_empty() {
-                        continue;
-                    }
-                    (
-                        InlineHistoryItem::ai_prompt(query_text.to_string(), entry.start_time)
-                            .with_prefix_match_len(prefix_match_len),
-                        OrderedFloat(results.len() as f64),
-                    )
-                }
-            };
-
-            results.push(QueryResult::from(search_item.with_score(score)));
-        }
-
-        results
     }
 
     fn build_conversation_entries(&self, trimmed_query: &str, app: &AppContext) -> Vec<MenuEntry> {
@@ -261,11 +187,6 @@ impl SyncDataSource for InlineHistoryMenuDataSource {
         let prefix_match_len = trimmed_query.len();
 
         let session_id = self.active_session.as_ref(app).session(app).map(|s| s.id());
-        let is_agent_view = self.agent_view_controller.as_ref(app).is_active();
-
-        if is_agent_view {
-            return Ok(self.build_agent_view_results(query, prefix_match_len, session_id, app));
-        }
 
         let include_commands =
             query.filters.is_empty() || query.filters.contains(&QueryFilter::Commands);

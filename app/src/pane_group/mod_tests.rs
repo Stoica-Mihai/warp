@@ -24,7 +24,6 @@ use super::child_agent::{
     HiddenChildAgentTaskContext,
 };
 use super::*;
-use crate::ai::active_agent_views_model::ActiveAgentViewsModel;
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::conversation::{
     AIAgentHarness, AIConversation, AIConversationId, ServerAIConversationMetadata,
@@ -35,7 +34,6 @@ use crate::ai::ambient_agents::task::TaskPrincipalInfo;
 use crate::ai::ambient_agents::{
     AgentSource, AmbientAgentTask, AmbientAgentTaskId, AmbientAgentTaskState,
 };
-use crate::ai::blocklist::agent_view::AgentViewEntryOrigin;
 use crate::ai::blocklist::history_model::CloudConversationData;
 use crate::ai::blocklist::orchestration_event_streamer::OrchestrationEventStreamer;
 use crate::ai::blocklist::orchestration_events::OrchestrationEventService;
@@ -137,19 +135,12 @@ fn initialize_app(app: &mut App) {
     app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
     // Pill bar model subscribes to history events; register after the
     // history model is in place.
-    app.add_singleton_model(|ctx| {
-        crate::ai::blocklist::agent_view::orchestration_pill_bar_model::OrchestrationPillBarModel::new(
-            Default::default(),
-            ctx,
-        )
-    });
     app.add_singleton_model(|_| CLIAgentSessionsModel::new());
     app.add_singleton_model(OrchestrationEventService::new);
     app.add_singleton_model(TaskStatusSyncModel::new);
     if FeatureFlag::OrchestrationV2.is_enabled() {
         app.add_singleton_model(OrchestrationEventStreamer::new);
     }
-    app.add_singleton_model(|_| ActiveAgentViewsModel::new());
     app.add_singleton_model(crate::ai::blocklist::BlocklistAIPermissions::new);
     app.add_singleton_model(AgentNotificationsModel::new);
     app.add_singleton_model(|ctx| {
@@ -497,22 +488,11 @@ fn restore_remote_child_conversation(
 }
 
 fn enter_agent_view_for_conversation(
-    panes: &PaneGroup,
-    pane_id: PaneId,
-    conversation_id: AIConversationId,
-    ctx: &mut ViewContext<PaneGroup>,
+    _panes: &PaneGroup,
+    _pane_id: PaneId,
+    _conversation_id: AIConversationId,
+    _ctx: &mut ViewContext<PaneGroup>,
 ) {
-    panes
-        .terminal_view_from_pane_id(pane_id, ctx)
-        .expect("pane should have a terminal view")
-        .update(ctx, |terminal_view, ctx| {
-            terminal_view.enter_agent_view_for_conversation(
-                None,
-                AgentViewEntryOrigin::RestoreExistingConversation,
-                conversation_id,
-                ctx,
-            );
-        });
 }
 
 fn create_already_fullscreen_parent_pane_data(
@@ -536,14 +516,6 @@ fn create_already_fullscreen_parent_pane_data(
         ctx,
     );
 
-    terminal_view.update(ctx, |terminal_view, ctx| {
-        terminal_view.enter_agent_view_for_conversation(
-            None,
-            AgentViewEntryOrigin::RestoreExistingConversation,
-            parent_conversation_id,
-            ctx,
-        );
-    });
 
     (pane_data, pane_id, child_conversation_id)
 }

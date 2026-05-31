@@ -6,7 +6,7 @@ use warpui::App;
 
 use super::*;
 use crate::ai::agent::AIAgentActionId;
-use crate::ai::blocklist::agent_view::{
+use crate::terminal::view::agent_view_state::{
     AgentViewDisplayMode, AgentViewEntryOrigin, AgentViewState,
 };
 use crate::settings::TerminalSpacing;

@@ -10,9 +10,8 @@ use warpui::{
     AppContext, Element, Entity, ModelHandle, SingletonEntity, TypedActionView, View, ViewContext,
 };
 
-use crate::ai::blocklist::agent_view::{agent_view_bg_color, AgentViewController};
 use crate::ai::blocklist::inline_action::inline_action_icons;
-use crate::ai::blocklist::{BlocklistAIHistoryEvent, BlocklistAIHistoryModel};
+use crate::terminal::view::agent_view_state::agent_view_bg_color;
 use crate::terminal::view::ambient_agent::{AmbientAgentViewModel, AmbientAgentViewModelEvent};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -104,34 +103,8 @@ impl CloudModeSetupTextBlock {
     pub fn new(
         group_id: SetupCommandGroupId,
         ambient_agent_view_model: ModelHandle<AmbientAgentViewModel>,
-        agent_view_controller: ModelHandle<AgentViewController>,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
-        if let Some(conversation_id) = agent_view_controller
-            .as_ref(ctx)
-            .agent_view_state()
-            .active_conversation_id()
-        {
-            ctx.subscribe_to_model(
-                &BlocklistAIHistoryModel::handle(ctx),
-                move |me, history_model, event, ctx| {
-                    if let BlocklistAIHistoryEvent::AppendedExchange {
-                        conversation_id: updated_conversation_id,
-                        ..
-                    } = event
-                    {
-                        if *updated_conversation_id == conversation_id {
-                            me.ambient_agent_view_model.update(ctx, |model, ctx| {
-                                model.finish_setup_command_group(me.group_id, ctx);
-                                model.set_setup_command_group_visibility(me.group_id, false, ctx);
-                            });
-                            ctx.unsubscribe_to_model(&history_model);
-                        }
-                    }
-                },
-            );
-        }
-
         ctx.subscribe_to_model(&ambient_agent_view_model, |_, _, event, ctx| {
             if let AmbientAgentViewModelEvent::UpdatedSetupCommandVisibility = event {
                 ctx.notify();

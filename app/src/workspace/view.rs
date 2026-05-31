@@ -127,7 +127,6 @@ use super::util::{
     WorkspaceMouseStates, WorkspaceState,
 };
 use super::{util, ActiveSession, TabBarDropTargetData, TabBarLocation, WorkspaceRegistry};
-use crate::ai::active_agent_views_model::ActiveAgentViewsModel;
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::conversation::{AIConversation, AIConversationId};
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
@@ -148,8 +147,6 @@ use crate::ai::agent_management::AgentManagementEvent;
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
 use crate::ai::ambient_agents::telemetry::HandoffEntryPoint;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
-use crate::ai::blocklist::agent_view::agent_input_footer::editor::AgentToolbarEditorMode;
-use crate::ai::blocklist::agent_view::editor::{AgentToolbarEditorEvent, AgentToolbarEditorModal};
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
 use crate::ai::blocklist::handoff;
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
@@ -885,7 +882,6 @@ pub struct Workspace {
     settings_error_banner_dismissed: bool,
     workflow_modal: ViewHandle<WorkflowModal>,
     prompt_editor_modal: ViewHandle<PromptEditorModal>,
-    agent_toolbar_editor_modal: ViewHandle<AgentToolbarEditorModal>,
     header_toolbar_editor_modal: ViewHandle<HeaderToolbarEditorModal>,
     header_toolbar_context_menu: ViewHandle<Menu<WorkspaceAction>>,
     show_header_toolbar_context_menu: Option<Vector2F>,
@@ -1293,16 +1289,6 @@ impl Workspace {
         let modal = ctx.add_typed_action_view(PromptEditorModal::new);
         ctx.subscribe_to_view(&modal, |me, _, event, ctx| {
             me.handle_prompt_editor_modal_event(event, ctx);
-        });
-        modal
-    }
-
-    fn build_agent_toolbar_editor_modal(
-        ctx: &mut ViewContext<Self>,
-    ) -> ViewHandle<AgentToolbarEditorModal> {
-        let modal = ctx.add_typed_action_view(AgentToolbarEditorModal::new);
-        ctx.subscribe_to_view(&modal, |me, _, event, ctx| {
-            me.handle_agent_toolbar_editor_modal_event(event, ctx);
         });
         modal
     }
@@ -2503,7 +2489,6 @@ impl Workspace {
             .collect();
 
         let prompt_editor_modal = Self::build_prompt_editor_modal(ctx);
-        let agent_toolbar_editor_modal = Self::build_agent_toolbar_editor_modal(ctx);
 
         Self::observe_server_api(ctx);
 
@@ -2658,7 +2643,6 @@ impl Workspace {
             update_toast_stack,
             cached_keybindings,
             prompt_editor_modal,
-            agent_toolbar_editor_modal,
             header_toolbar_editor_modal: Self::build_header_toolbar_editor_modal(ctx),
             header_toolbar_context_menu: Self::build_header_toolbar_context_menu(ctx),
             show_header_toolbar_context_menu: None,
@@ -4106,22 +4090,12 @@ impl Workspace {
         task_id: AmbientAgentTaskId,
         ctx: &AppContext,
     ) -> Option<(usize, PaneViewLocator)> {
-        // First, check ActiveAgentViewsModel for the terminal view that has this task registered.
-        // This is the authoritative source since it's updated when the session is joined.
-        let active_terminal_view_id =
-            ActiveAgentViewsModel::as_ref(ctx).get_terminal_view_id_for_ambient_task(task_id);
-
         self.tabs.iter().enumerate().find_map(|(index, tab)| {
             let pane_group = tab.pane_group.as_ref(ctx);
             let pane_id = pane_group.visible_pane_ids().into_iter().find(|pane_id| {
                 pane_group
                     .terminal_view_from_pane_id(*pane_id, ctx)
                     .is_some_and(|tv| {
-                        // Check if this is the terminal view registered in ActiveAgentViewsModel
-                        if active_terminal_view_id == Some(tv.id()) {
-                            return true;
-                        }
-                        // Fall back to checking the terminal view directly.
                         tv.as_ref(ctx).ambient_agent_task_id_for_details_panel(ctx) == Some(task_id)
                     })
             });
@@ -4234,22 +4208,14 @@ impl Workspace {
             })
     }
 
-    /// Notifies the agent views model and notifications model that a terminal view gained focus.
+    /// Notifies the notifications model that a terminal view gained focus.
     fn notify_terminal_focus_change(
         &self,
         focused_terminal_view_id: Option<EntityId>,
         ambient_agent_task_id: Option<AmbientAgentTaskId>,
         ctx: &mut ViewContext<Self>,
     ) {
-        let window_id = ctx.window_id();
-        ActiveAgentViewsModel::handle(ctx).update(ctx, |model, ctx| {
-            model.handle_pane_focus_change(
-                window_id,
-                focused_terminal_view_id,
-                ambient_agent_task_id,
-                ctx,
-            );
-        });
+        let _ = ambient_agent_task_id;
         if let Some(terminal_view_id) = focused_terminal_view_id {
             let is_active_window = ctx.windows().active_window() == Some(ctx.window_id());
             if is_active_window {
@@ -4801,20 +4767,6 @@ impl Workspace {
         match event {
             PromptEditorModalEvent::Close => {
                 self.current_workspace_state.is_prompt_editor_open = false;
-                self.focus_active_tab(ctx);
-                ctx.notify();
-            }
-        }
-    }
-
-    fn handle_agent_toolbar_editor_modal_event(
-        &mut self,
-        event: &AgentToolbarEditorEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            AgentToolbarEditorEvent::Close => {
-                self.current_workspace_state.is_agent_toolbar_editor_open = false;
                 self.focus_active_tab(ctx);
                 ctx.notify();
             }
@@ -11933,17 +11885,6 @@ impl Workspace {
             source_view.clone()
         };
 
-        let agent_view_controller = target.as_ref(ctx).agent_view_controller().clone();
-        if agent_view_controller
-            .as_ref(ctx)
-            .agent_view_state()
-            .is_fullscreen()
-        {
-            agent_view_controller.update(ctx, |controller, ctx| {
-                controller.exit_agent_view_without_confirmation(ctx);
-            });
-        }
-
         target
     }
 
@@ -12571,12 +12512,8 @@ impl Workspace {
             pane_group::Event::OpenPromptEditor => {
                 self.open_prompt_editor(PromptEditorOpenSource::InputContextMenu, ctx);
             }
-            pane_group::Event::OpenAgentToolbarEditor => {
-                self.open_agent_toolbar_editor(AgentToolbarEditorMode::AgentView, ctx);
-            }
-            pane_group::Event::OpenCLIAgentToolbarEditor => {
-                self.open_agent_toolbar_editor(AgentToolbarEditorMode::CLIAgent, ctx);
-            }
+            pane_group::Event::OpenAgentToolbarEditor => {}
+            pane_group::Event::OpenCLIAgentToolbarEditor => {}
             pane_group::Event::OpenMCPSettingsPage { page } => {
                 // Open the MCP servers settings page to the list page
                 self.open_mcp_servers_page(page.unwrap_or_default(), None, ctx);
@@ -15549,21 +15486,6 @@ impl Workspace {
         self.close_all_overlays(ctx);
         self.current_workspace_state.is_prompt_editor_open = true;
         ctx.focus(&self.prompt_editor_modal);
-    }
-
-    fn open_agent_toolbar_editor(
-        &mut self,
-        mode: AgentToolbarEditorMode,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if !FeatureFlag::AgentToolbarEditor.is_enabled() {
-            return;
-        }
-        self.agent_toolbar_editor_modal
-            .update(ctx, |modal, ctx| modal.open(mode, ctx));
-        self.close_all_overlays(ctx);
-        self.current_workspace_state.is_agent_toolbar_editor_open = true;
-        ctx.focus(&self.agent_toolbar_editor_modal);
     }
 
     fn open_theme_creator_modal(&mut self, ctx: &mut ViewContext<Self>) {
@@ -19735,12 +19657,8 @@ impl TypedActionView for Workspace {
             OpenPromptEditor { open_source } => {
                 self.open_prompt_editor(*open_source, ctx);
             }
-            OpenAgentToolbarEditor => {
-                self.open_agent_toolbar_editor(AgentToolbarEditorMode::AgentView, ctx);
-            }
-            OpenCLIAgentToolbarEditor => {
-                self.open_agent_toolbar_editor(AgentToolbarEditorMode::CLIAgent, ctx);
-            }
+            OpenAgentToolbarEditor => {}
+            OpenCLIAgentToolbarEditor => {}
             OpenHeaderToolbarEditor => {
                 self.open_header_toolbar_editor(ctx);
             }
@@ -20495,32 +20413,6 @@ impl TypedActionView for Workspace {
                 conversation_id,
                 terminal_view_id,
             } => {
-                // Exit agent view first if this conversation is currently expanded.
-                // This must happen before updating BlocklistAIHistoryModel to avoid
-                // circular model references.
-                if let Some(controller) = ActiveAgentViewsModel::as_ref(ctx)
-                    .get_controller_for_conversation(*conversation_id, ctx)
-                {
-                    let succesfully_exited_agent_view =
-                        controller.update(ctx, |controller, ctx| {
-                            controller.exit_agent_view(ctx);
-                            !controller.is_active()
-                        });
-
-                    if !succesfully_exited_agent_view {
-                        ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                            toast_stack.add_ephemeral_toast(
-                                DismissibleToast::error(
-                                    "Failed to delete conversation. Please exit the agent view and try again.".to_string(),
-                                ),
-                                window_id,
-                                ctx,
-                            );
-                        });
-                        return;
-                    }
-                }
-
                 conversation_utils::delete_conversation(*conversation_id, *terminal_view_id, ctx);
 
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
@@ -21373,12 +21265,6 @@ impl View for Workspace {
 
         if self.current_workspace_state.is_prompt_editor_open {
             stack.add_child(ChildView::new(&self.prompt_editor_modal).finish());
-        }
-
-        if FeatureFlag::AgentToolbarEditor.is_enabled()
-            && self.current_workspace_state.is_agent_toolbar_editor_open
-        {
-            stack.add_child(ChildView::new(&self.agent_toolbar_editor_modal).finish());
         }
 
         if self.current_workspace_state.is_header_toolbar_editor_open {

@@ -19,7 +19,6 @@ pub use zero_state::*;
 
 use super::AcceptSlashCommandOrSavedPrompt;
 use crate::ai::agent_conversations_model::{AgentConversationsModel, AgentConversationsModelEvent};
-use crate::ai::blocklist::agent_view::{AgentViewController, AgentViewControllerEvent};
 use crate::ai::blocklist::block::cli_controller::{CLISubagentController, CLISubagentEvent};
 use crate::ai::blocklist::{BlocklistAIHistoryEvent, BlocklistAIHistoryModel};
 use crate::ai::skills::{SkillDescriptor, SkillManager};
@@ -44,7 +43,6 @@ use crate::workspaces::user_workspaces::{UserWorkspaces, UserWorkspacesEvent};
 
 pub struct DataSourceArgs {
     pub active_session: ModelHandle<ActiveSession>,
-    pub agent_view_controller: ModelHandle<AgentViewController>,
     pub cli_subagent_controller: ModelHandle<CLISubagentController>,
     pub terminal_view_id: EntityId,
     pub ambient_agent_view_model: Option<ModelHandle<AmbientAgentViewModel>>,
@@ -64,7 +62,6 @@ struct ActiveCommandsContext {
 
 pub struct SlashCommandDataSource {
     active_session: ModelHandle<ActiveSession>,
-    agent_view_controller: ModelHandle<AgentViewController>,
     cli_subagent_controller: ModelHandle<CLISubagentController>,
     terminal_view_id: EntityId,
     active_commands_by_id: HashMap<SlashCommandId, StaticCommand>,
@@ -85,7 +82,6 @@ impl SlashCommandDataSource {
     fn build(args: DataSourceArgs, is_cloud_mode_v2: bool, ctx: &mut ModelContext<Self>) -> Self {
         let DataSourceArgs {
             active_session,
-            agent_view_controller,
             cli_subagent_controller,
             terminal_view_id,
             ambient_agent_view_model,
@@ -102,13 +98,6 @@ impl SlashCommandDataSource {
             {
                 me.recompute_active_commands(ctx);
             }
-        });
-        ctx.subscribe_to_model(&agent_view_controller, |me, event, ctx| match event {
-            AgentViewControllerEvent::EnteredAgentView { .. }
-            | AgentViewControllerEvent::ExitedAgentView { .. } => {
-                me.recompute_active_commands(ctx);
-            }
-            _ => (),
         });
         ctx.subscribe_to_model(&AISettings::handle(ctx), |me, event, ctx| {
             if matches!(
@@ -183,7 +172,6 @@ impl SlashCommandDataSource {
 
         let mut me = Self {
             active_session,
-            agent_view_controller,
             cli_subagent_controller,
             terminal_view_id,
             active_commands_by_id: Default::default(),
@@ -370,10 +358,6 @@ impl SlashCommandDataSource {
         self.active_commands_by_id.iter()
     }
 
-    pub fn is_agent_view_active(&self, ctx: &AppContext) -> bool {
-        self.agent_view_controller.as_ref(ctx).is_active()
-    }
-
     pub fn active_session_for_v2_zero_state(&self) -> &ModelHandle<ActiveSession> {
         &self.active_session
     }
@@ -406,16 +390,11 @@ impl SlashCommandDataSource {
     /// command. Conversations without a `task_id` are local and never qualify.
     #[cfg(not(target_family = "wasm"))]
     fn active_conversation_is_cloud_oz(&self, ctx: &AppContext) -> bool {
-        let agent_view_state = self.agent_view_controller.as_ref(ctx).agent_view_state();
-        let conversation_id = match agent_view_state.active_conversation_id() {
-            Some(id) => id,
-            None => match BlocklistAIHistoryModel::as_ref(ctx)
-                .active_conversation(self.terminal_view_id)
-            {
+        let conversation_id =
+            match BlocklistAIHistoryModel::as_ref(ctx).active_conversation(self.terminal_view_id) {
                 Some(conv) => conv.id(),
                 None => return false,
-            },
-        };
+            };
 
         let history = BlocklistAIHistoryModel::as_ref(ctx);
         let Some(conversation) = history.conversation(&conversation_id) else {

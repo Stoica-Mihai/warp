@@ -28,7 +28,6 @@ use warpui::{
     SingletonEntity, WindowId,
 };
 
-use crate::ai::active_agent_views_model::ActiveAgentViewsModel;
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::conversation::{AIConversationId, ConversationStatus};
 use crate::ai::ambient_agents::{
@@ -592,11 +591,6 @@ impl AgentConversationsModel {
             me.handle_history_event(event, ctx);
         });
 
-        let active_views_model = ActiveAgentViewsModel::handle(ctx);
-        ctx.subscribe_to_model(&active_views_model, |me, _event, ctx| {
-            me.sync_conversations(ctx);
-        });
-
         // Subscribe to UpdateManager for RTC task updates
         if FeatureFlag::AmbientAgentsRTC.is_enabled() {
             let update_manager = UpdateManager::handle(ctx);
@@ -663,7 +657,11 @@ impl AgentConversationsModel {
         event: &UpdateManagerEvent,
         ctx: &mut ModelContext<Self>,
     ) {
-        let UpdateManagerEvent::AmbientTaskUpdated { task_id, timestamp } = event else {
+        let UpdateManagerEvent::AmbientTaskUpdated {
+            task_id: _,
+            timestamp,
+        } = event
+        else {
             return;
         };
 
@@ -675,16 +673,8 @@ impl AgentConversationsModel {
             // (a) If management view or conversation list is open, throttled list-fetch.
             self.handle_rtc_for_list_views(*timestamp, ctx);
         } else {
-            let has_open_tab = ActiveAgentViewsModel::as_ref(ctx)
-                .get_terminal_view_id_for_ambient_task(*task_id)
-                .is_some();
-            if has_open_tab {
-                // (b) If this task has an open tab (any window), force a re-fetch.
-                self.async_fetch_task(task_id, ctx);
-            } else {
-                // (c) No list surface open: record earliest timestamp for flush on next view open.
-                record_earliest_rtc_task_refresh_timestamp(&mut self.dirty_since, *timestamp);
-            }
+            // No list surface open: record earliest timestamp for flush on next view open.
+            record_earliest_rtc_task_refresh_timestamp(&mut self.dirty_since, *timestamp);
         }
     }
 
@@ -1112,10 +1102,8 @@ impl AgentConversationsModel {
         &self,
         entry: &AgentConversationEntry,
         restore_layout: Option<RestoreConversationLayout>,
-        app: &AppContext,
+        _app: &AppContext,
     ) -> Option<WorkspaceAction> {
-        let active_views_model = ActiveAgentViewsModel::as_ref(app);
-
         if let Some(task_id) = entry.identity.ambient_agent_task_id {
             match self
                 .tasks
@@ -1129,47 +1117,9 @@ impl AgentConversationsModel {
                     });
                 }
                 Some(AmbientAgentLiveSessionState::ActiveUnattachable) => {
-                    return active_views_model
-                        .get_terminal_view_id_for_ambient_task(task_id)
-                        .map(
-                            |terminal_view_id| WorkspaceAction::FocusTerminalViewInWorkspace {
-                                terminal_view_id,
-                            },
-                        );
+                    return None;
                 }
                 Some(AmbientAgentLiveSessionState::Inactive) | None => {}
-            }
-
-            if let Some(terminal_view_id) =
-                active_views_model.get_terminal_view_id_for_ambient_task(task_id)
-            {
-                return Some(WorkspaceAction::FocusTerminalViewInWorkspace { terminal_view_id });
-            }
-        }
-
-        if let Some(conversation_id) = entry.identity.local_conversation_id {
-            if active_views_model.is_conversation_open(conversation_id, app) {
-                if let Some(nav_data) = self
-                    .conversations
-                    .get(&conversation_id)
-                    .map(|metadata| &metadata.nav_data)
-                {
-                    return Some(WorkspaceAction::RestoreOrNavigateToConversation {
-                        conversation_id,
-                        window_id: nav_data.window_id,
-                        pane_view_locator: nav_data.pane_view_locator,
-                        terminal_view_id: nav_data.terminal_view_id,
-                        restore_layout,
-                    });
-                }
-
-                if let Some(terminal_view_id) =
-                    active_views_model.get_terminal_view_id_for_conversation(conversation_id, app)
-                {
-                    return Some(WorkspaceAction::FocusTerminalViewInWorkspace {
-                        terminal_view_id,
-                    });
-                }
             }
         }
 

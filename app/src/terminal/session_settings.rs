@@ -11,7 +11,7 @@ use warp_core::settings::macros::define_settings_group;
 use warp_core::settings::{RespectUserSyncSetting, SupportedPlatforms, SyncToCloud};
 pub use working_directory_config::*;
 
-use crate::ai::blocklist::agent_view::toolbar_item::AgentToolbarItemKind;
+use crate::context_chips::toolbar::AgentToolbarItemKind;
 use crate::context_chips::prompt::PromptSelection;
 use crate::context_chips::ContextChipKind;
 

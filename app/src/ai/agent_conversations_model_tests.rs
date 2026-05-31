@@ -19,7 +19,6 @@ use super::{
     ConversationMetadata, ConversationUpdateKind, EnvironmentFilter, HarnessFilter, OwnerFilter,
     RtcTaskRefreshThrottleState, StatusFilter, TaskFetchState, MAX_PERSONAL_TASKS, MAX_TEAM_TASKS,
 };
-use crate::ai::active_agent_views_model::ActiveAgentViewsModel;
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::conversation::{
     AIAgentHarness, AIConversation, AIConversationId, ConversationStatus,
@@ -667,7 +666,6 @@ fn all_owner_filters() -> AgentManagementFilters {
 fn add_entry_projection_test_models(app: &mut App) {
     app.add_singleton_model(|_| AuthStateProvider::new_for_test());
     app.add_singleton_model(|_| BlocklistAIHistoryModel::new(vec![], &[]));
-    app.add_singleton_model(|_| ActiveAgentViewsModel::new());
 }
 
 fn mock_server_metadata() -> ServerMetadata {
@@ -977,10 +975,6 @@ fn test_resolve_open_action_prefers_active_ambient_terminal() {
             model.tasks.insert(task_id, task);
             model
         });
-        ActiveAgentViewsModel::handle(&app).update(&mut app, |model, ctx| {
-            model.register_ambient_session(terminal_view_id, task_id, ctx);
-        });
-
         app.update(|ctx| {
             let action = AgentConversationsModel::resolve_open_action(
                 AgentConversationNavigationSubject::Entry(AgentConversationEntryId::AmbientRun(
@@ -1481,10 +1475,6 @@ fn test_resolve_open_action_reopens_ambient_session_after_terminal_unregister() 
             model.tasks.insert(task_id, task);
             model
         });
-        ActiveAgentViewsModel::handle(&app).update(&mut app, |model, ctx| {
-            model.register_ambient_session(terminal_view_id, task_id, ctx);
-        });
-
         app.update(|ctx| {
             let action = AgentConversationsModel::resolve_open_action(
                 AgentConversationNavigationSubject::Entry(AgentConversationEntryId::AmbientRun(
@@ -1501,10 +1491,6 @@ fn test_resolve_open_action_reopens_ambient_session_after_terminal_unregister() 
                     task_id: resolved_task_id,
                 }) if resolved_session_id.to_string() == session_id && resolved_task_id == task_id
             ));
-        });
-
-        ActiveAgentViewsModel::handle(&app).update(&mut app, |model, ctx| {
-            model.unregister_ambient_session(terminal_view_id, ctx);
         });
 
         app.update(|ctx| {

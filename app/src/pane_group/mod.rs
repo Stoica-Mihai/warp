@@ -38,7 +38,6 @@ use warpui::{
     ViewHandle, WeakViewHandle, WindowId,
 };
 
-use crate::ai::active_agent_views_model::ActiveAgentViewsModel;
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::conversation::{AIConversation, AIConversationId};
 use crate::ai::agent_conversations_model::{
@@ -2623,21 +2622,7 @@ impl PaneGroup {
         let Some(terminal_pane_id) = pane_id.as_terminal_pane_id() else {
             return;
         };
-        let Some(parent_conversation_id) = self
-            .terminal_view_from_pane_id(terminal_pane_id, ctx)
-            .and_then(|terminal_view| {
-                let terminal_view = terminal_view.as_ref(ctx);
-                let agent_view_state = terminal_view
-                    .agent_view_controller()
-                    .as_ref(ctx)
-                    .agent_view_state();
-                if agent_view_state.is_fullscreen() {
-                    agent_view_state.active_conversation_id()
-                } else {
-                    None
-                }
-            })
-        else {
+        let Some(parent_conversation_id) = None::<AIConversationId> else {
             return;
         };
 
@@ -3430,15 +3415,7 @@ impl PaneGroup {
         }
 
         let _ = cloud_conversation;
-
-        // Register the transcript viewer as an ambient session so it appears in the Active section
-        // of the conversation list.
-        if let Some(task_id) = ambient_agent_task_id {
-            ActiveAgentViewsModel::handle(ctx).update(ctx, |active_views, ctx| {
-                active_views.register_ambient_session(terminal_view.id(), task_id, ctx);
-            });
-        }
-
+        let _ = ambient_agent_task_id;
 
         ctx.notify();
     }
@@ -4826,10 +4803,6 @@ impl PaneGroup {
                 .set_is_executing_oz_environment_startup_commands(false);
         });
         let _ = cloud_conversation;
-
-        ActiveAgentViewsModel::handle(ctx).update(ctx, |active_views, ctx| {
-            active_views.register_ambient_session(terminal_view.id(), task_id, ctx);
-        });
     }
 
     /// Clear all panes that were hidden due to being closed (for undo functionality)
@@ -5463,13 +5436,7 @@ impl PaneGroup {
             history_model.mark_terminal_view_as_conversation_transcript_viewer(terminal_view.id());
         });
 
-        // Register the transcript viewer as an ambient session so it appears in the Active section
-        // of the conversation list.
-        if let Some(task_id) = ambient_agent_task_id {
-            ActiveAgentViewsModel::handle(ctx).update(ctx, |active_views, ctx| {
-                active_views.register_ambient_session(terminal_view.id(), task_id, ctx);
-            });
-        }
+        let _ = ambient_agent_task_id;
 
         (terminal_view, terminal_manager)
     }
@@ -6574,12 +6541,7 @@ impl PaneGroup {
                 continue;
             };
             let view_id = terminal_view.id();
-            let active_conv = terminal_view
-                .as_ref(ctx)
-                .agent_view_controller()
-                .as_ref(ctx)
-                .agent_view_state()
-                .active_conversation_id();
+            let active_conv: Option<AIConversationId> = None;
             let hidden_for_close = self.is_pane_hidden_for_close(pane_id);
             let hidden_for_child_agent = self.panes.is_pane_hidden_for_child_agent(pane_id);
             let in_tree = self.panes.is_pane_in_tree(pane_id);
@@ -6627,12 +6589,7 @@ impl PaneGroup {
             let Some(terminal_view) = self.terminal_view_from_pane_id(pane_id, ctx) else {
                 continue;
             };
-            let active_id = terminal_view
-                .as_ref(ctx)
-                .agent_view_controller()
-                .as_ref(ctx)
-                .agent_view_state()
-                .active_conversation_id();
+            let active_id: Option<AIConversationId> = None;
             if active_id == Some(conversation_id) {
                 return Some(terminal_pane_id);
             }

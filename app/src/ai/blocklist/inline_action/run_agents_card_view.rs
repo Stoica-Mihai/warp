@@ -28,7 +28,6 @@ use crate::ai::blocklist::action_model::{
     AIActionStatus, BlocklistAIActionEvent, BlocklistAIActionModel, RunAgentsExecutor,
     RunAgentsExecutorEvent, RunAgentsSpawningSnapshot,
 };
-use crate::ai::blocklist::agent_view::orchestration_pill_bar::render_static_agent_pill;
 use crate::ai::blocklist::block::model::AIBlockModel;
 use crate::ai::blocklist::block::view_impl::WithContentItemSpacing;
 use crate::ai::blocklist::block::AIBlock;
@@ -1259,6 +1258,27 @@ fn render_summary(state: &RunAgentsEditState, appearance: &Appearance) -> Box<dy
 
     Container::new(summary_text)
         .with_margin_bottom(12.)
+        .finish()
+}
+
+fn render_static_agent_pill(name: &str, app: &AppContext) -> Box<dyn Element> {
+    let appearance = Appearance::as_ref(app);
+    let theme = appearance.theme();
+    let text_color = theme.ansi_fg_magenta();
+    let mut bg_color = text_color;
+    bg_color.a = 26;
+    let label_text = Text::new(name.to_string(), appearance.ui_font_family(), 12.)
+        .with_color(text_color)
+        .soft_wrap(false)
+        .finish();
+
+    Container::new(label_text)
+        .with_padding_left(8.)
+        .with_padding_right(10.)
+        .with_padding_top(2.)
+        .with_padding_bottom(2.)
+        .with_background_color(bg_color)
+        .with_corner_radius(CornerRadius::with_all(Radius::Pixels(11.)))
         .finish()
 }
 

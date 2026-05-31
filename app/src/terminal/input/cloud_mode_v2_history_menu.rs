@@ -11,7 +11,6 @@ use warpui::{
     ViewHandle,
 };
 
-use crate::ai::blocklist::agent_view::AgentViewController;
 use crate::search::data_source::{Query, QueryFilter};
 use crate::search::mixer::SearchMixer;
 use crate::terminal::input::buffer_model::{InputBufferModel, InputBufferUpdateEvent};
@@ -52,18 +51,12 @@ impl CloudModeV2HistoryMenuView {
         terminal_view_id: EntityId,
         active_session: ModelHandle<ActiveSession>,
         input_suggestions_model: &ModelHandle<InputSuggestionsModeModel>,
-        agent_view_controller: ModelHandle<AgentViewController>,
         positioner: &ModelHandle<InlineMenuPositioner>,
         buffer_model: ModelHandle<InputBufferModel>,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
-        let data_source = ctx.add_model(|_| {
-            InlineHistoryMenuDataSource::new(
-                terminal_view_id,
-                active_session,
-                agent_view_controller.clone(),
-            )
-        });
+        let data_source = ctx
+            .add_model(|_| InlineHistoryMenuDataSource::new(terminal_view_id, active_session));
 
         let mixer = ctx.add_model(|ctx| {
             let mut mixer = SearchMixer::<AcceptHistoryItem>::new();
@@ -73,13 +66,7 @@ impl CloudModeV2HistoryMenuView {
         });
 
         let menu_view = ctx.add_typed_action_view(|ctx| {
-            InlineMenuView::new(
-                mixer.clone(),
-                positioner.clone(),
-                input_suggestions_model,
-                agent_view_controller,
-                ctx,
-            )
+            InlineMenuView::new(mixer.clone(), positioner.clone(), input_suggestions_model, ctx)
             .with_compact_layout()
             .with_dismiss_on_row_click()
         });

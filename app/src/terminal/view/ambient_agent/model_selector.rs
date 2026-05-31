@@ -16,7 +16,7 @@ use warpui::{
     ViewContext, ViewHandle,
 };
 
-use crate::ai::blocklist::agent_view::agent_input_footer::AgentInputButtonTheme;
+use super::button_theme::AgentInputButtonTheme;
 use crate::ai::cloud_agent_settings::CloudAgentSettings;
 use crate::ai::execution_profiles::model_menu_items::is_auto;
 use crate::ai::harness_availability::{HarnessAvailabilityEvent, HarnessAvailabilityModel};

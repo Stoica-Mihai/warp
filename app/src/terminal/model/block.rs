@@ -40,7 +40,7 @@ use super::session::{command_executor, Sessions};
 pub use super::BlockId;
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::redaction::redact_secrets;
-use crate::ai::blocklist::agent_view::AgentViewState;
+use crate::terminal::view::agent_view_state::AgentViewState;
 use crate::context_chips::prompt_snapshot::PromptSnapshot;
 use crate::server::block::DisplaySetting;
 use crate::server::ids::SyncId;

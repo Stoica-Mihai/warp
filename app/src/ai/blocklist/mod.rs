@@ -1,6 +1,6 @@
 //! This module contains model, controller, and view logic for Blocklist AI.
 mod action_model;
-pub mod agent_view;
+pub(crate) mod avatar_disc;
 pub mod block;
 pub mod code_block;
 mod context_model;
@@ -8,6 +8,7 @@ mod controller;
 pub(crate) mod handoff;
 
 pub(crate) mod local_shared_session_link_model;
+pub(crate) mod orchestration_conversation_links;
 pub(crate) mod orchestration_event_streamer;
 pub(crate) mod orchestration_events;
 pub(crate) mod orchestration_topology;
@@ -17,6 +18,7 @@ pub(super) use controller::RequestInput;
 pub mod history_model;
 pub mod inline_action;
 mod input_model;
+pub(crate) mod keystroke_render;
 mod permissions;
 mod persistence;
 pub mod prompt;

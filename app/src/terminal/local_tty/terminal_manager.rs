@@ -26,7 +26,6 @@ use {
 use super::event_loop::EventLoop;
 use super::shell::{ShellStarter, ShellStarterSource};
 use super::{mio_channel, recorder};
-use crate::ai::active_agent_views_model::ActiveAgentViewsModel;
 use crate::ai::aws_credentials::AwsCredentialRefresher as _;
 use crate::ai::blocklist::{
     InputConfig, SerializedBlockListItem,
@@ -337,19 +336,6 @@ impl TerminalManager {
         );
 
         wire_up_remote_server_controller_with_view(&remote_server_controller, &view, ctx);
-
-        let terminal_view_id = view.id();
-
-        let agent_view_controller = view.as_ref(ctx).agent_view_controller().clone();
-        let active_session = view.as_ref(ctx).active_session().clone();
-        ActiveAgentViewsModel::handle(ctx).update(ctx, |model, ctx| {
-            model.register_agent_view_controller(
-                &agent_view_controller,
-                &active_session,
-                terminal_view_id,
-                ctx,
-            );
-        });
 
 
         #[cfg(windows)]

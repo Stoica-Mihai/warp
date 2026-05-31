@@ -1,7 +1,6 @@
 use warpui::elements::ChildView;
 use warpui::{Element, Entity, ModelHandle, View, ViewContext, ViewHandle};
 
-use crate::ai::blocklist::agent_view::AgentViewController;
 use crate::search::data_source::Query;
 use crate::search::mixer::SearchMixer;
 use crate::server::ids::SyncId;
@@ -27,7 +26,6 @@ pub struct InlinePromptsMenuView {
 impl InlinePromptsMenuView {
     pub fn new(
         suggestions_mode_model: ModelHandle<InputSuggestionsModeModel>,
-        agent_view_controller: ModelHandle<AgentViewController>,
         input_buffer_model: &ModelHandle<InputBufferModel>,
         positioner: &ModelHandle<InlineMenuPositioner>,
         ctx: &mut ViewContext<Self>,
@@ -46,7 +44,6 @@ impl InlinePromptsMenuView {
                 mixer.clone(),
                 positioner.clone(),
                 &suggestions_mode_model,
-                agent_view_controller,
                 ctx,
             )
         });

@@ -33,11 +33,6 @@ use crate::ai::agent::{
     icons, AIAgentExchangeId, AIAgentOutput, AIAgentOutputMessageType, CancellationReason,
     SummarizationType,
 };
-use crate::ai::blocklist::agent_view::child_agent_status_card::ChildAgentStatusCard;
-use crate::ai::blocklist::agent_view::shortcuts::AgentShortcutViewModel;
-use crate::ai::blocklist::agent_view::{
-    agent_view_bg_fill, AgentMessageBar, AgentViewController, EphemeralMessageModel,
-};
 use crate::ai::blocklist::model::AIBlockModelHelper;
 use crate::ai::blocklist::summarization_cancel_dialog::{
     self, SummarizationCancelDialog, SummarizationCancelDialogEvent,
@@ -91,7 +86,6 @@ pub struct BlocklistAIStatusBar {
     cli_subagent_controller: ModelHandle<CLISubagentController>,
     context_model: ModelHandle<BlocklistAIContextModel>,
     input_model: ModelHandle<BlocklistAIInputModel>,
-    agent_view_controller: ModelHandle<AgentViewController>,
     terminal_model: Arc<FairMutex<TerminalModel>>,
     shimmering_text_handle: ShimmeringTextStateHandle,
     state_handles: StateHandles,
@@ -115,17 +109,12 @@ pub struct BlocklistAIStatusBar {
     last_read_refresh_handle: Option<SpawnedFutureHandle>,
 
     latest_response_stream_id: Option<ResponseStreamId>,
-
-    ephemeral_message_model: ModelHandle<EphemeralMessageModel>,
-    agent_message_bar: ViewHandle<AgentMessageBar>,
-    child_agent_status_card: ViewHandle<ChildAgentStatusCard>,
 }
 
 impl BlocklistAIStatusBar {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         controller: ModelHandle<BlocklistAIController>,
-        agent_view_controller: ModelHandle<AgentViewController>,
         cli_subagent_controller: ModelHandle<CLISubagentController>,
         action_model: ModelHandle<BlocklistAIActionModel>,
         context_model: ModelHandle<BlocklistAIContextModel>,
@@ -133,12 +122,7 @@ impl BlocklistAIStatusBar {
         input_buffer_model: ModelHandle<InputBufferModel>,
         model_event_dispatcher: &ModelHandle<ModelEventDispatcher>,
         terminal_model: Arc<FairMutex<TerminalModel>>,
-        shortcut_view_model: ModelHandle<AgentShortcutViewModel>,
         ambient_agent_view_model: Option<ModelHandle<AmbientAgentViewModel>>,
-        input_suggestions_model: ModelHandle<InputSuggestionsModeModel>,
-        slash_command_model: ModelHandle<SlashCommandModel>,
-        ephemeral_message_model: ModelHandle<EphemeralMessageModel>,
-        handoff_compose_state: ModelHandle<HandoffComposeState>,
         terminal_view_id: EntityId,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
@@ -248,8 +232,6 @@ impl BlocklistAIStatusBar {
                 ctx.notify();
             }
         });
-        ctx.subscribe_to_model(&agent_view_controller, |_, _, _, ctx| ctx.notify());
-
         let input_settings = InputSettings::handle(ctx);
         ctx.subscribe_to_model(&input_settings, |_, _, _, ctx| ctx.notify());
         let input_mode_settings = InputModeSettings::handle(ctx);
@@ -314,29 +296,6 @@ impl BlocklistAIStatusBar {
             _ => (),
         });
 
-        ctx.subscribe_to_model(&ephemeral_message_model, |_, _, _, ctx| {
-            ctx.notify();
-        });
-
-        let agent_message_bar = ctx.add_view(|ctx| {
-            AgentMessageBar::new(
-                agent_view_controller.clone(),
-                ephemeral_message_model.clone(),
-                shortcut_view_model.clone(),
-                input_buffer_model,
-                input_model.clone(),
-                input_suggestions_model,
-                slash_command_model,
-                context_model.clone(),
-                handoff_compose_state,
-                terminal_model.clone(),
-                ctx,
-            )
-        });
-
-        let child_agent_status_card = ctx.add_typed_action_view(|ctx| {
-            ChildAgentStatusCard::new(agent_view_controller.clone(), ctx)
-        });
         if let Some(ambient_agent_view_model) = ambient_agent_view_model.as_ref() {
             ctx.subscribe_to_model(ambient_agent_view_model, |_me, _, event, ctx| match event {
                 AmbientAgentViewModelEvent::DispatchedAgent
@@ -361,7 +320,6 @@ impl BlocklistAIStatusBar {
             input_model,
             terminal_model,
             controller,
-            agent_view_controller,
             cli_subagent_controller,
             state_handles: Default::default(),
             autoexecute_keystroke,
@@ -376,9 +334,6 @@ impl BlocklistAIStatusBar {
             summarization_start_time: None,
             last_read_refresh_handle: None,
             ambient_agent_view_model,
-            ephemeral_message_model,
-            agent_message_bar,
-            child_agent_status_card,
         }
     }
 
@@ -421,7 +376,6 @@ impl BlocklistAIStatusBar {
 
     pub fn notify_and_notify_children(&mut self, ctx: &mut ViewContext<Self>) {
         ctx.notify();
-        self.agent_message_bar.update(ctx, |_, ctx| ctx.notify());
     }
 
     fn reset_model_for_exchange(
@@ -1007,7 +961,6 @@ impl View for BlocklistAIStatusBar {
 
     fn render(&self, app: &AppContext) -> Box<dyn warpui::Element> {
         let appearance = Appearance::as_ref(app);
-        let agent_view_controller = self.agent_view_controller.as_ref(app);
         if let Some(cloud_mode_setup_terminal_message) =
             self.render_cloud_mode_setup_terminal_message(app)
         {
@@ -1024,7 +977,6 @@ impl View for BlocklistAIStatusBar {
                         let terminal_model = self.terminal_model.lock();
                         is_cloud_agent_pre_first_exchange(
                             Some(ambient_agent_view_model),
-                            &self.agent_view_controller,
                             &terminal_model,
                             app,
                         )
@@ -1051,11 +1003,6 @@ impl View for BlocklistAIStatusBar {
                 .block_list()
                 .active_block()
                 .is_agent_tagged_in()
-                && self
-                    .ephemeral_message_model
-                    .as_ref(app)
-                    .current_message()
-                    .is_none()
             {
                 render_warping_indicator_base(
                     WarpingIndicatorProps {
@@ -1080,13 +1027,9 @@ impl View for BlocklistAIStatusBar {
                     },
                     app,
                 )
-            } else if let (Some(warping_indicator), true) = (
-                self.render_warping_indicator_for_latest_exchange(app),
-                self.ephemeral_message_model
-                    .as_ref(app)
-                    .current_message()
-                    .is_none(),
-            ) {
+            } else if let Some(warping_indicator) =
+                self.render_warping_indicator_for_latest_exchange(app)
+            {
                 warping_indicator
             } else if self.ambient_agent_view_model.as_ref().is_some_and(
                 |ambient_agent_view_model| {
@@ -1097,30 +1040,14 @@ impl View for BlocklistAIStatusBar {
             ) {
                 // Don't render warping indicator - the loading screen is shown in the main view
                 return Empty::new().finish();
-            } else if agent_view_controller.is_active() {
-                // The new orchestration pill bar in the agent view header
-                // replaces the legacy child-agent status card rows; when
-                // it's enabled, render only the message bar here.
-                let mut column = Flex::column();
-                if !FeatureFlag::OrchestrationPillBar.is_enabled() {
-                    column =
-                        column.with_child(ChildView::new(&self.child_agent_status_card).finish());
-                }
-                column = column.with_child(ChildView::new(&self.agent_message_bar).finish());
-                return column.finish();
             } else {
                 return Empty::new().finish();
             };
 
         let appearance = Appearance::as_ref(app);
         let theme = appearance.theme();
-        let background = if agent_view_controller.is_inline() {
-            agent_view_bg_fill(app)
-        } else if InputSettings::as_ref(app).is_universal_developer_input_enabled(app)
-            || FeatureFlag::AgentView.is_enabled()
-        {
-            // Use a fully transparent background for universal developer input (or unconditionally, if the new
-            // modality is enabled)
+        let background = if InputSettings::as_ref(app).is_universal_developer_input_enabled(app) {
+            // Use a fully transparent background for universal developer input.
             Fill::Solid(ColorU::transparent_black())
         } else {
             theme.ai_blocks_overlay()
@@ -1140,8 +1067,7 @@ impl View for BlocklistAIStatusBar {
                 self.context_model.as_ref(app).selected_conversation_id(app) == Some(id)
             });
 
-        if !FeatureFlag::AgentView.is_enabled()
-            && self.input_model.as_ref(app).is_ai_input_enabled()
+        if self.input_model.as_ref(app).is_ai_input_enabled()
             && !is_passive_code_diff
             && is_active_exchange_in_selected_conversation
             && !self.terminal_model.lock().is_alt_screen_active()
@@ -1157,7 +1083,7 @@ impl View for BlocklistAIStatusBar {
 
         let is_input_pinned_to_top = InputModeSettings::as_ref(app).is_pinned_to_top();
         let is_udi_enabled = InputSettings::as_ref(app).is_universal_developer_input_enabled(app);
-        if !FeatureFlag::AgentView.is_enabled() && is_udi_enabled {
+        if is_udi_enabled {
             if is_input_pinned_to_top {
                 // Use 2px padding on the top, so combined with the 6px padding on the universal
                 // input it's an equal 8px on both sides.
@@ -1169,17 +1095,6 @@ impl View for BlocklistAIStatusBar {
             }
         } else {
             container = container.with_vertical_padding(8.);
-        }
-
-        // When the agent view is active, keep the child agent status card
-        // visible above the warping/status indicator so it doesn't disappear
-        // while the agent is working. The new orchestration pill bar
-        // replaces this card, so skip it when that flag is on.
-        if agent_view_controller.is_active() && !FeatureFlag::OrchestrationPillBar.is_enabled() {
-            return Flex::column()
-                .with_child(ChildView::new(&self.child_agent_status_card).finish())
-                .with_child(container.finish())
-                .finish();
         }
 
         container.finish()

@@ -9,7 +9,6 @@ use warpui::r#async::{SpawnedFutureHandle, Timer};
 use warpui::{AppContext, Entity, EntityId, ModelContext, SingletonEntity};
 
 use super::AmbientAgentProgressUIState;
-use crate::ai::active_agent_views_model::ActiveAgentViewsModel;
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::extract_user_query_mode;
 use crate::ai::ambient_agents::github_auth_notifier::{GitHubAuthEvent, GitHubAuthNotifier};
@@ -1255,10 +1254,6 @@ impl AmbientAgentViewModel {
                         );
                     });
                 }
-
-                ActiveAgentViewsModel::handle(ctx).update(ctx, |model, ctx| {
-                    model.register_ambient_session(self.terminal_view_id, task_id, ctx);
-                });
 
                 ctx.emit(AmbientAgentViewModelEvent::ProgressUpdated);
             }

@@ -5,7 +5,6 @@ use warpui::{Element, Entity, ModelHandle, View, ViewContext, ViewHandle};
 
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::AIAgentExchangeId;
-use crate::ai::blocklist::agent_view::AgentViewController;
 use crate::search::data_source::Query;
 use crate::search::mixer::SearchMixer;
 use crate::terminal::input::buffer_model::{InputBufferModel, InputBufferUpdateEvent};
@@ -38,7 +37,6 @@ impl RewindMenuView {
     pub fn new(
         conversation_id: AIConversationId,
         input_suggestions_model: ModelHandle<InputSuggestionsModeModel>,
-        agent_view_controller: ModelHandle<AgentViewController>,
         positioner: &ModelHandle<InlineMenuPositioner>,
         input_buffer_model: &ModelHandle<InputBufferModel>,
         ctx: &mut ViewContext<Self>,
@@ -57,7 +55,6 @@ impl RewindMenuView {
                 mixer.clone(),
                 positioner.clone(),
                 &input_suggestions_model,
-                agent_view_controller,
                 ctx,
             )
         });

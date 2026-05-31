@@ -55,7 +55,7 @@ use super::view::{
 };
 use super::warpify::render::{draw_flag_pole, render_subshell_flag};
 use super::{heights_approx_eq, TerminalModel, HEIGHT_FUDGE_FACTOR_LINES};
-use crate::ai::blocklist::agent_view::{agent_view_bg_fill, AgentViewState};
+use crate::terminal::view::agent_view_state::{agent_view_bg_fill, AgentViewState};
 use crate::ai::blocklist::ai_brand_color;
 use crate::appearance::Appearance;
 use crate::drive::settings::WarpDriveSettings;

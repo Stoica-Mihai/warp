@@ -9,7 +9,6 @@ use super::event_listener::ChannelEventListener;
 use super::model::session::Sessions;
 use super::model_events::ModelEventDispatcher;
 use super::{ShellLaunchState, TerminalManager, TerminalModel, TerminalView};
-use crate::ai::active_agent_views_model::ActiveAgentViewsModel;
 use crate::ai::blocklist::SerializedBlockListItem;
 use crate::context_chips::prompt_type::PromptType;
 use crate::pane_group::TerminalViewResources;
@@ -110,15 +109,8 @@ impl TerminalManager for MockTerminalManager {
     fn on_view_detached(
         &self,
         _detach_type: crate::pane_group::pane::DetachType,
-        app: &mut AppContext,
+        _app: &mut AppContext,
     ) {
-        // If this is a conversation transcript viewer, unregister the ambient session.
-        if self.model.lock().is_conversation_transcript_viewer() {
-            let terminal_view_id = self.view.id();
-            ActiveAgentViewsModel::handle(app).update(app, |model, ctx| {
-                model.unregister_ambient_session(terminal_view_id, ctx);
-            });
-        }
     }
 
     fn as_any(&self) -> &dyn std::any::Any {

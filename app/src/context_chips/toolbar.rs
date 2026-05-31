@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use warpui::SingletonEntity;
 
-use super::editor::AgentToolbarEditorMode;
 use crate::context_chips::{agent_footer_available_chips, available_chips, ContextChipKind};
 use crate::features::FeatureFlag;
 use crate::settings::AISettings;
@@ -25,7 +24,7 @@ impl ToolbarAvailability {
     }
 }
 
-/// A configurable item
+/// A configurable item.
 ///
 /// This unifies context-chip data displays with interactive control buttons so
 /// they can all be arranged through the same drag-and-drop editor.
@@ -125,7 +124,7 @@ impl AgentToolbarItemKind {
 
     /// Whether this item should remain visible during `&` handoff-compose mode.
     /// Only items relevant to composing a cloud run are shown.
-    pub(super) fn is_available_during_handoff_compose(&self) -> bool {
+    pub(crate) fn is_available_during_handoff_compose(&self) -> bool {
         match self {
             Self::ContextChip(ContextChipKind::ShellGitBranch) => true,
             Self::ModelSelector | Self::VoiceInput | Self::FileAttach => true,
@@ -256,22 +255,6 @@ impl AgentToolbarItemKind {
             Self::Settings,
         ]);
         items
-    }
-
-    /// Returns the appropriate defaults and available items for a given editor mode.
-    pub fn defaults_for_mode(mode: AgentToolbarEditorMode) -> (Vec<Self>, Vec<Self>, Vec<Self>) {
-        match mode {
-            AgentToolbarEditorMode::AgentView => (
-                Self::default_left(),
-                Self::default_right(),
-                Self::all_available(),
-            ),
-            AgentToolbarEditorMode::CLIAgent => (
-                Self::cli_default_left(),
-                Self::cli_default_right(),
-                Self::all_available_for_cli_input(),
-            ),
-        }
     }
 }
 

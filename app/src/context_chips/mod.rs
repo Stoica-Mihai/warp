@@ -14,6 +14,7 @@ pub mod prompt_snapshot;
 pub mod prompt_type;
 pub mod renderer;
 pub mod spacing;
+pub mod toolbar;
 
 use std::collections::HashMap;
 use std::time::Duration;

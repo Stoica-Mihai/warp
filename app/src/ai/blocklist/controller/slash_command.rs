@@ -12,9 +12,7 @@ use crate::ai::agent::{
     AIAgentContext, AIAgentInput, CancellationReason, CloneRepositoryURL, EntrypointType,
     RequestMetadata,
 };
-use crate::ai::blocklist::agent_view::AgentViewEntryOrigin;
 use crate::search::slash_command_menu::static_commands::commands;
-use crate::terminal::input::slash_commands::SlashCommandTrigger;
 use crate::BlocklistAIHistoryModel;
 
 pub enum SlashCommandRequest {
@@ -90,24 +88,9 @@ impl SlashCommandRequest {
             .active_conversation_id(controller.terminal_view_id);
 
         // If no existing conversation, create a new one.
-        // When AgentView is enabled, enter agent view which creates the conversation
-        // and ensures AI blocks render correctly in the agent view.
-        let Some(conversation_id) = conversation_id.or_else(|| {
-            if FeatureFlag::AgentView.is_enabled() {
-                controller.context_model.update(ctx, |context_model, ctx| {
-                    context_model
-                        .try_enter_agent_view_for_new_conversation(
-                            AgentViewEntryOrigin::SlashCommand {
-                                trigger: SlashCommandTrigger::input(),
-                            },
-                            ctx,
-                        )
-                        .ok()
-                })
-            } else {
-                Some(controller.start_new_conversation_for_request(ctx).id())
-            }
-        }) else {
+        let Some(conversation_id) = conversation_id
+            .or_else(|| Some(controller.start_new_conversation_for_request(ctx).id()))
+        else {
             log::error!("Failed to get conversation ID for slash command request");
             return;
         };

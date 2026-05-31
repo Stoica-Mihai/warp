@@ -2,6 +2,7 @@ mod auth_secret_ftux_dropdown;
 mod auth_secret_ftux_view;
 pub(crate) mod auth_secret_selector;
 mod block;
+mod button_theme;
 mod first_time_setup;
 mod footer;
 mod harness_selector;
@@ -43,7 +44,6 @@ pub use tips::{get_cloud_mode_tips, CloudModeTip};
 use warpui::geometry::vector::Vector2F;
 use warpui::{AppContext, ModelHandle, ViewHandle, WindowId};
 
-use crate::ai::blocklist::agent_view::{AgentViewController, AgentViewState};
 use crate::pane_group::TerminalViewResources;
 use crate::terminal::model::terminal_model::ConversationTranscriptViewerStatus;
 use crate::terminal::shell::{ShellName, ShellType};
@@ -95,7 +95,6 @@ pub fn create_cloud_mode_view(
 /// agent turn. In this state, we hide the interactive input and render a loading footer.
 pub fn is_cloud_agent_pre_first_exchange(
     ambient_agent_view_model: Option<&ModelHandle<AmbientAgentViewModel>>,
-    agent_view_controller: &ModelHandle<AgentViewController>,
     terminal_model: &TerminalModel,
     app: &AppContext,
 ) -> bool {
@@ -113,15 +112,8 @@ pub fn is_cloud_agent_pre_first_exchange(
         return false;
     }
 
-    let agent_view_state = agent_view_controller.as_ref(app).agent_view_state().clone();
-    let AgentViewState::Active { origin, .. } = agent_view_state else {
-        return false;
-    };
-
-    // Handoff panes enter agent view with `RestoreExistingConversation` because they restore the
-    // forked conversation, not `CloudAgent`. The `is_local_to_cloud_handoff` flag is the
-    // authoritative "this is a cloud agent pane" signal for that path, so accept either.
-    if !origin.is_cloud_agent() && !view_model.is_local_to_cloud_handoff() {
+    // The `is_local_to_cloud_handoff` flag is the authoritative "this is a cloud agent pane" signal.
+    if !view_model.is_local_to_cloud_handoff() {
         return false;
     }
 

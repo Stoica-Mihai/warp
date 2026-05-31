@@ -3,7 +3,6 @@ use warp_core::features::FeatureFlag;
 use warpui::{App, EntityId, ModelHandle, SingletonEntity};
 
 use super::AgentNotificationsModel;
-use crate::ai::active_agent_views_model::ActiveAgentViewsModel;
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent_management::notifications::{
     NotificationCategory, NotificationFilter, NotificationOrigin, NotificationSourceAgent,
@@ -24,7 +23,6 @@ fn setup_app(
     initialize_settings_for_tests(app);
     let history = app.add_singleton_model(|_| BlocklistAIHistoryModel::new(vec![], &[]));
     app.add_singleton_model(|_| CLIAgentSessionsModel::new());
-    app.add_singleton_model(|_| ActiveAgentViewsModel::new());
     let notifications = app.add_singleton_model(AgentNotificationsModel::new);
     (history, notifications)
 }

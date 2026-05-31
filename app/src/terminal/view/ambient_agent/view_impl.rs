@@ -36,11 +36,8 @@ const CHILD_AGENT_GITHUB_AUTH_REQUIRED_BLOCKED_ACTION: &str =
     "GitHub authentication required before starting the child agent.";
 
 impl TerminalView {
-    fn active_ambient_agent_conversation_id(&self, ctx: &AppContext) -> Option<AIConversationId> {
-        self.agent_view_controller
-            .as_ref(ctx)
-            .agent_view_state()
-            .active_conversation_id()
+    fn active_ambient_agent_conversation_id(&self, _ctx: &AppContext) -> Option<AIConversationId> {
+        None
     }
 
     fn active_ambient_agent_conversation_is_child(&self, ctx: &AppContext) -> bool {
@@ -145,18 +142,6 @@ impl TerminalView {
                     return;
                 }
                 if FeatureFlag::CloudModeSetupV2.is_enabled() {
-                    // Render the submitted cloud prompt via the queued-prompt UI while the
-                    // real shared-session transcript catches up. `request.prompt` is stored
-                    // stripped of any `/plan` / `/orchestrate` prefix; rebuild the display
-                    // form from `request.mode` so the user sees exactly what they typed.
-                    let prompt = ambient_agent_view_model
-                        .as_ref(ctx)
-                        .request()
-                        .map(|request| display_user_query_with_mode(request.mode, &request.prompt))
-                        .unwrap_or_default();
-                    if !prompt.is_empty() {
-                        self.insert_cloud_mode_queued_user_query_block(prompt, ctx);
-                    }
                 }
                 // Re-render to show loading state.
                 ctx.emit(TerminalViewEvent::TerminalViewStateChanged);
@@ -173,13 +158,6 @@ impl TerminalView {
                     None,
                     ctx,
                 );
-                let pending_prompt = ambient_agent_view_model
-                    .as_ref(ctx)
-                    .pending_followup_prompt()
-                    .map(str::to_owned);
-                if let Some(prompt) = pending_prompt {
-                    self.insert_cloud_mode_queued_user_query_block(prompt, ctx);
-                }
                 ctx.notify();
             }
             AmbientAgentViewModelEvent::SessionReady { .. }
@@ -296,11 +274,7 @@ impl TerminalView {
             AmbientAgentViewModelEvent::HarnessCommandStarted { block_id } => {
                 // Stop classifying the harness block as an environment setup command, mirroring
                 // the Oz path in the `AppendedExchange` handler.
-                let conversation_id = self
-                    .agent_view_controller
-                    .as_ref(ctx)
-                    .agent_view_state()
-                    .active_conversation_id();
+                let conversation_id = self.active_ambient_agent_conversation_id(ctx);
                 {
                     let mut model = self.model.lock();
                     if model
@@ -440,7 +414,6 @@ impl TerminalView {
                 super::CloudModeSetupTextBlock::new(
                     group_id,
                     ambient_agent_view_model.clone(),
-                    self.agent_view_controller.clone(),
                     ctx,
                 )
             });

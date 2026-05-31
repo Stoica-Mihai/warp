@@ -6,7 +6,6 @@ use warpui::{
 };
 
 use super::{AutoCloudHandoffTrigger, Workspace, WorkspaceAction, WorkspaceRegistry};
-use crate::ai::active_agent_views_model::{ActiveAgentViewsModel, ConversationOrTaskId};
 use crate::ai::agent::conversation::{AIConversation, AIConversationId};
 use crate::settings::AISettings;
 use crate::system::{SystemStats, SystemStatsEvent};
@@ -203,15 +202,9 @@ impl AutoCloudHandoffController {
     }
 
     fn last_focused_local_conversation(
-        ctx: &ModelContext<Self>,
+        _ctx: &ModelContext<Self>,
     ) -> Option<(EntityId, AIConversationId)> {
-        let active_agent_views = ActiveAgentViewsModel::as_ref(ctx);
-        let terminal_view_id = active_agent_views.get_last_focused_terminal_id()?;
-        let conversation_id = match active_agent_views.get_last_focused_conversation()? {
-            ConversationOrTaskId::ConversationId(conversation_id) => conversation_id,
-            ConversationOrTaskId::TaskId(_) => return None,
-        };
-        Some((terminal_view_id, conversation_id))
+        None
     }
 
     fn is_trigger_enabled(trigger: AutoCloudHandoffTrigger, ctx: &ModelContext<Self>) -> bool {

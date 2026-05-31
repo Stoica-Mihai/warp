@@ -19,7 +19,7 @@ use warpui::{
     ViewHandle,
 };
 
-use crate::ai::blocklist::agent_view::agent_input_footer::AgentInputButtonTheme;
+use super::button_theme::AgentInputButtonTheme;
 use crate::ai::cloud_agent_settings::CloudAgentSettings;
 use crate::ai::harness_availability::HarnessAvailabilityModel;
 use crate::ai::harness_display::{brand_color, icon_for};

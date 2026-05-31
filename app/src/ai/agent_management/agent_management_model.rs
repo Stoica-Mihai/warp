@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use warp_core::features::FeatureFlag;
 use warpui::{AppContext, Entity, EntityId, ModelContext, SingletonEntity, ViewHandle, WindowId};
 
-use crate::ai::active_agent_views_model::{ActiveAgentViewsEvent, ActiveAgentViewsModel};
 use crate::ai::agent::conversation::{AIConversationId, ConversationStatus};
 use crate::ai::agent_management::notifications::{
     NotificationCategory, NotificationId, NotificationItem, NotificationItems, NotificationOrigin,
@@ -49,11 +48,6 @@ impl AgentNotificationsModel {
             me.handle_cli_agent_session_event(event, ctx);
         });
 
-        let active_views_model = ActiveAgentViewsModel::handle(ctx);
-        ctx.subscribe_to_model(&active_views_model, |me, event, ctx| {
-            me.handle_active_agent_views_changed(event, ctx);
-        });
-
         Self {
             notifications: NotificationItems::default(),
             pending_artifacts: HashMap::new(),
@@ -90,33 +84,6 @@ impl AgentNotificationsModel {
             .mark_all_terminal_view_items_as_read(terminal_view_id)
         {
             ctx.emit(AgentManagementEvent::NotificationUpdated);
-        }
-    }
-
-    fn handle_active_agent_views_changed(
-        &mut self,
-        event: &ActiveAgentViewsEvent,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        if !FeatureFlag::HOANotifications.is_enabled() {
-            return;
-        }
-
-        match event {
-            ActiveAgentViewsEvent::ConversationClosed { conversation_id } => {
-                // When a conversation is closed, clean up its notifications
-                // (as there's no conversation to navigate to when you click said notifications).
-                if self
-                    .notifications
-                    .remove_by_origin(NotificationOrigin::Conversation(*conversation_id))
-                {
-                    ctx.emit(AgentManagementEvent::NotificationUpdated);
-                }
-            }
-            ActiveAgentViewsEvent::TerminalViewFocused
-            | ActiveAgentViewsEvent::WindowClosed
-            | ActiveAgentViewsEvent::AmbientSessionOpened { .. }
-            | ActiveAgentViewsEvent::AmbientSessionClosed { .. } => {}
         }
     }
 
@@ -301,89 +268,15 @@ impl AgentNotificationsModel {
 
     fn handle_history_event_for_mailbox(
         &mut self,
-        status: &ConversationStatus,
+        _status: &ConversationStatus,
         conversation_id: AIConversationId,
-        latest_query: Option<String>,
-        terminal_view_id: EntityId,
+        _latest_query: Option<String>,
+        _terminal_view_id: EntityId,
         ctx: &mut ModelContext<Self>,
     ) {
         let origin = NotificationOrigin::Conversation(conversation_id);
-
-        // If the conversation view is no longer open, don't create notifications for it
-        // (there's nothing to navigate to when clicking them).
-        if !ActiveAgentViewsModel::as_ref(ctx).is_conversation_open(conversation_id, ctx) {
-            self.pending_artifacts.remove(&conversation_id);
-            self.remove_notification_by_source(origin, ctx);
-            return;
-        }
-
-        let title = latest_query.unwrap_or_else(|| "Agent task".to_owned());
-        let metadata = TerminalViewMetadata::lookup(terminal_view_id, ctx);
-        let oz_agent = NotificationSourceAgent::Oz {
-            is_ambient: metadata.is_ambient,
-        };
-
-        match status {
-            // When the agent resumes its work, clear stale notifications.
-            ConversationStatus::InProgress => {
-                self.remove_notification_by_source(origin, ctx);
-            }
-            ConversationStatus::Success => {
-                let artifacts = self.flush_pending_artifacts(conversation_id);
-                self.add_notification(
-                    title,
-                    "Task completed.".to_owned(),
-                    NotificationCategory::Complete,
-                    oz_agent,
-                    origin,
-                    terminal_view_id,
-                    artifacts,
-                    metadata.branch,
-                    ctx,
-                );
-            }
-            ConversationStatus::Cancelled => {
-                let artifacts = self.flush_pending_artifacts(conversation_id);
-                self.add_notification(
-                    title,
-                    "Task was cancelled.".to_owned(),
-                    NotificationCategory::Complete,
-                    oz_agent,
-                    origin,
-                    terminal_view_id,
-                    artifacts,
-                    metadata.branch,
-                    ctx,
-                );
-            }
-            ConversationStatus::Blocked { blocked_action } => {
-                self.add_notification(
-                    title,
-                    blocked_action.clone(),
-                    NotificationCategory::Request,
-                    oz_agent,
-                    origin,
-                    terminal_view_id,
-                    vec![],
-                    metadata.branch,
-                    ctx,
-                );
-            }
-            ConversationStatus::Error => {
-                let artifacts = self.flush_pending_artifacts(conversation_id);
-                self.add_notification(
-                    title,
-                    "Something went wrong.".to_owned(),
-                    NotificationCategory::Error,
-                    oz_agent,
-                    origin,
-                    terminal_view_id,
-                    artifacts,
-                    metadata.branch,
-                    ctx,
-                );
-            }
-        }
+        self.pending_artifacts.remove(&conversation_id);
+        self.remove_notification_by_source(origin, ctx);
     }
 
     /// Removes the existing notification for the given source (if any) and emits an update event.

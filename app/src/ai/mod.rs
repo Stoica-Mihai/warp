@@ -1,6 +1,5 @@
 //! This module houses all horizontal/cross-cutting AI functionality throughout
 //! Warp (including Agent Mode).
-pub(crate) mod active_agent_views_model;
 pub mod execution_context;
 pub(crate) mod agent;
 pub(crate) mod agent_conversations_model;

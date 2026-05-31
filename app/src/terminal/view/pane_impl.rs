@@ -19,7 +19,7 @@ use super::{Event, PaneConfiguration, TerminalAction, TerminalViewState};
 use crate::ai::agent::conversation::{
     AIConversation, ConversationStatus, ServerAIConversationMetadata,
 };
-use crate::ai::blocklist::agent_view::agent_view_bg_fill;
+use crate::terminal::view::agent_view_state::agent_view_bg_fill;
 use crate::appearance::Appearance;
 use crate::features::FeatureFlag;
 use crate::menu::{MenuItem, MenuItemFields};
@@ -676,7 +676,6 @@ impl TerminalView {
         let model = self.model.lock();
         is_cloud_agent_pre_first_exchange(
             self.ambient_agent_view_model.as_ref(),
-            &self.agent_view_controller,
             &model,
             ctx,
         )

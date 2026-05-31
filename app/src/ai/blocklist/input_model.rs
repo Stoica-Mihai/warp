@@ -86,7 +86,6 @@ impl From<InputClassifierDecisionSource> for InputTypeAutoDetectionSource {
     }
 }
 
-use super::agent_view::{AgentViewController, AgentViewControllerEvent, AgentViewEntryOrigin};
 use super::context_model::BlocklistAIContextModel;
 use super::telemetry_banner::should_collect_ai_ugc_telemetry;
 use crate::input_classifier::InputClassifierModel;
@@ -150,15 +149,11 @@ impl InputConfig {
 
     pub fn unlocked_if_autodetection_enabled(
         self,
-        is_in_fullscreen_agent_view: bool,
+        _is_in_fullscreen_agent_view: bool,
         app: &AppContext,
     ) -> Self {
         Self {
-            is_locked: if !FeatureFlag::AgentView.is_enabled() || is_in_fullscreen_agent_view {
-                !AISettings::as_ref(app).is_ai_autodetection_enabled(app)
-            } else {
-                !AISettings::as_ref(app).is_nld_in_terminal_enabled(app)
-            },
+            is_locked: !AISettings::as_ref(app).is_ai_autodetection_enabled(app),
             ..self
         }
     }
@@ -208,8 +203,6 @@ pub struct BlocklistAIInputModel {
     /// if a persistent lock is in place and a buffer is submitted.
     was_lock_set_with_empty_buffer: bool,
 
-    agent_view_controller: ModelHandle<AgentViewController>,
-
     /// Handle to the per-pane context model. Used to read pending image / file attachments
     /// when deciding whether to force-lock the input to AI mode (see
     /// [`BlocklistAIContextModel::has_locking_attachment`]).
@@ -224,7 +217,6 @@ pub struct BlocklistAIInputModel {
 impl BlocklistAIInputModel {
     pub fn new(
         model: Arc<FairMutex<TerminalModel>>,
-        agent_view_controller: ModelHandle<AgentViewController>,
         ai_context_model: ModelHandle<BlocklistAIContextModel>,
         terminal_view_id: EntityId,
         ctx: &mut ModelContext<Self>,
@@ -261,25 +253,6 @@ impl BlocklistAIInputModel {
 
         ctx.subscribe_to_model(&AISettings::handle(ctx), move |me, event, ctx| {
             match event {
-                AISettingsChangedEvent::AIAutoDetectionEnabled { .. }
-                    if FeatureFlag::AgentView.is_enabled() =>
-                {
-                    if me.agent_view_controller.as_ref(ctx).is_fullscreen() {
-                        // Use context-specific check to determine if autodetection should be enabled
-                        let is_nld_enabled =
-                            AISettings::as_ref(ctx).is_ai_autodetection_enabled(ctx);
-
-                        // If autodetection is enabled, unlock the input.
-                        me.set_input_config_internal(
-                            InputConfig {
-                                is_locked: !is_nld_enabled,
-                                input_type: InputType::AI,
-                            },
-                            None,
-                            ctx,
-                        );
-                    }
-                }
                 AISettingsChangedEvent::AIAutoDetectionEnabled { .. } => {
                     // Use context-specific check to determine if autodetection should be enabled
                     let is_autodetection_enabled =
@@ -295,120 +268,17 @@ impl BlocklistAIInputModel {
                         ctx,
                     );
                 }
-                AISettingsChangedEvent::NLDInTerminalEnabled { .. }
-                    if FeatureFlag::AgentView.is_enabled()
-                        && !me.agent_view_controller.as_ref(ctx).is_active() =>
-                {
-                    let is_nld_enabled = AISettings::as_ref(ctx).is_nld_in_terminal_enabled(ctx);
-                    me.set_input_config_internal(
-                        InputConfig {
-                            is_locked: !is_nld_enabled,
-                            input_type: InputType::Shell,
-                        },
-                        None,
-                        ctx,
-                    );
-                }
                 _ => (),
             }
         });
 
-        if FeatureFlag::AgentView.is_enabled() {
-            ctx.subscribe_to_model(&agent_view_controller, |me, event, ctx| match event {
-                AgentViewControllerEvent::EnteredAgentView {
-                    display_mode,
-                    origin,
-                    ..
-                } => {
-                    if display_mode.is_inline() {
-                        me.set_input_config_internal(
-                            InputConfig {
-                                input_type: InputType::AI,
-                                is_locked: true,
-                            },
-                            Some(InputTypeAutoDetectionSource::InlineAgentViewEntry),
-                            ctx,
-                        );
-                    } else if matches!(origin, AgentViewEntryOrigin::ClearBuffer) {
-                        let is_autodetection_enabled =
-                            AISettings::as_ref(ctx).is_ai_autodetection_enabled(ctx);
-                        me.set_input_config_internal(
-                            InputConfig {
-                                input_type: me.input_config().input_type,
-                                is_locked: !is_autodetection_enabled,
-                            },
-                            None,
-                            ctx,
-                        );
-                    } else if me.has_locking_attachment(ctx) {
-                        // Interaction patterns that should fully bypass NLD on
-                        // entry: image / file attachment in progress / attached.
-                        // Force-lock to AI regardless of the user's NLD setting so the
-                        // classifier never gets a chance to drop the buffer back to shell.
-                        me.set_input_config_internal(
-                            InputConfig {
-                                input_type: InputType::AI,
-                                is_locked: true,
-                            },
-                            Some(InputTypeAutoDetectionSource::AttachmentForcedAi),
-                            ctx,
-                        );
-                    } else {
-                        let is_autodetection_enabled =
-                            AISettings::as_ref(ctx).is_ai_autodetection_enabled(ctx);
-                        if is_autodetection_enabled {
-                            // Upon entering the agent view, temporarily disable autodetection as
-                            // the existing buffer contents, if any are now most likely intended to
-                            // be sent to the agent, and if the input would otherwise trigger a
-                            // false-negative classification, we'd drop the user right into shell
-                            // mode.
-                            me.temporarily_disable_autodetection();
-                        }
-                        me.set_input_config_internal(
-                            InputConfig {
-                                input_type: InputType::AI,
-                                is_locked: !is_autodetection_enabled,
-                            },
-                            None,
-                            ctx,
-                        );
-                    }
-                }
-                AgentViewControllerEvent::ExitedAgentView {
-                    is_exit_before_new_entrance,
-                    ..
-                } => {
-                    if !is_exit_before_new_entrance {
-                        // When truly exiting agent view, use the terminal-specific NLD setting
-                        // since the user is returning to terminal mode.
-                        let is_nld_in_terminal_enabled =
-                            AISettings::as_ref(ctx).is_nld_in_terminal_enabled(ctx);
-                        me.set_input_config_internal(
-                            InputConfig {
-                                input_type: InputType::Shell,
-                                is_locked: !is_nld_in_terminal_enabled,
-                            },
-                            None,
-                            ctx,
-                        );
-                    }
-                }
-                _ => (),
-            });
-        }
-
-        let is_autodetection_enabled = if FeatureFlag::AgentView.is_enabled() {
-            AISettings::as_ref(ctx).is_nld_in_terminal_enabled(ctx)
-        } else {
-            AISettings::as_ref(ctx).is_ai_autodetection_enabled(ctx)
-        };
+        let is_autodetection_enabled = AISettings::as_ref(ctx).is_ai_autodetection_enabled(ctx);
         let initial_decision_source = None;
         Self {
             input_config: InputConfig {
                 input_type: InputType::Shell,
                 is_locked: !is_autodetection_enabled,
             },
-            agent_view_controller,
             ai_context_model,
             terminal_view_id,
             last_ai_autodetection_ts: None,
@@ -457,13 +327,6 @@ impl BlocklistAIInputModel {
         new_config: InputConfig,
         ctx: &mut ModelContext<Self>,
     ) {
-        // When agent view is active, the input should behave like Universal mode
-        // even if Classic mode is selected (e.g. when PS1 is enabled).
-        if FeatureFlag::AgentView.is_enabled() && self.agent_view_controller.as_ref(ctx).is_active()
-        {
-            return;
-        }
-
         let input_type = InputSettings::as_ref(ctx).input_type(ctx);
         if !matches!(input_type, InputBoxType::Classic) {
             return;
@@ -505,15 +368,6 @@ impl BlocklistAIInputModel {
         // autodetected AI input will trigger entering the agent view with that query. In the CLI
         // agent rich input case, the input must be in AI mode to suppress shell decorations
         // (syntax highlighting, error underlining).
-        if FeatureFlag::AgentView.is_enabled()
-            && !self.agent_view_controller.as_ref(ctx).is_active()
-            && new_config.input_type.is_ai()
-            && new_config.is_locked
-            && !CLIAgentSessionsModel::as_ref(ctx).is_input_open(self.terminal_view_id)
-        {
-            return false;
-        }
-
         if self.input_config == new_config {
             self.last_ai_autodetection_source = decision_source;
             return false;
@@ -613,16 +467,7 @@ impl BlocklistAIInputModel {
         }
 
         let ai_settings = AISettings::as_ref(app);
-        if FeatureFlag::AgentView.is_enabled() {
-            if self.agent_view_controller.as_ref(app).is_fullscreen() {
-                ai_settings.is_ai_autodetection_enabled(app)
-            } else {
-                ai_settings.is_nld_in_terminal_enabled(app)
-            }
-        } else {
-            // AgentView not enabled: use the main autodetection setting
-            ai_settings.is_ai_autodetection_enabled(app)
-        }
+        ai_settings.is_ai_autodetection_enabled(app)
     }
 
     /// Temporarily disable autodetection for a fixed duration.
@@ -664,10 +509,8 @@ impl BlocklistAIInputModel {
         } else {
             // If NLD is enabled and input is currently locked, unlock it, as we want to
             // resume autodetection for the next input.
-            self.input_config.unlocked_if_autodetection_enabled(
-                self.agent_view_controller.as_ref(ctx).is_fullscreen(),
-                ctx,
-            )
+            self.input_config
+                .unlocked_if_autodetection_enabled(false, ctx)
         };
 
         self.set_input_config(

@@ -18,12 +18,10 @@ use super::{
     DetachType, PaneConfiguration, PaneContent, PaneId, PaneStackEvent, PaneView, ShareableLink,
     ShareableLinkError, TerminalPaneId,
 };
-use crate::ai::active_agent_views_model::ActiveAgentViewsModel;
 use crate::ai::agent::conversation::{AIConversationId, ConversationStatus};
 use crate::ai::agent::StartAgentExecutionMode;
 use crate::ai::ambient_agents::task::{normalize_orchestrator_agent_name, HarnessConfig};
 use crate::ai::ambient_agents::{AgentConfigSnapshot, AmbientAgentTaskId};
-use crate::ai::blocklist::agent_view::AgentViewControllerEvent;
 use crate::ai::blocklist::orchestration_event_streamer::OrchestrationEventStreamer;
 use crate::ai::blocklist::orchestration_events::{OrchestrationEventService, SendEventResult};
 #[cfg(feature = "local_fs")]
@@ -359,47 +357,6 @@ impl PaneContent for TerminalPane {
             );
         }
 
-        // Store the pane group entity ID on the agent view controller so the
-        // message bar can perform pane-group-scoped visibility checks.
-        let pane_group_id = ctx.view_id();
-        let terminal_view = self.terminal_view(ctx);
-        let agent_view_controller = terminal_view.as_ref(ctx).agent_view_controller().clone();
-        agent_view_controller.update(ctx, |controller, _ctx| {
-            controller.set_pane_group_id(pane_group_id);
-        });
-        ctx.subscribe_to_model(&agent_view_controller, move |group, _, event, ctx| {
-            if let AgentViewControllerEvent::EnteredAgentView {
-                conversation_id,
-                display_mode,
-                ..
-            } = event
-            {
-                if display_mode.is_fullscreen() {
-                    group.restore_missing_child_agent_panes_for_parent(
-                        *conversation_id,
-                        terminal_pane_id.into(),
-                        ctx,
-                    );
-                }
-            }
-        });
-        let active_session = terminal_view.as_ref(ctx).active_session().clone();
-        let active_stack_view = pane_stack.as_ref(ctx).active_view().clone();
-        let active_ambient_session_registration = active_stack_view
-            .as_ref(ctx)
-            .ambient_agent_task_id_for_details_panel(ctx)
-            .map(|task_id| (active_stack_view.id(), task_id));
-        ActiveAgentViewsModel::handle(ctx).update(ctx, |model, ctx| {
-            model.register_agent_view_controller(
-                &agent_view_controller,
-                &active_session,
-                terminal_view_id,
-                ctx,
-            );
-            if let Some((terminal_view_id, task_id)) = active_ambient_session_registration {
-                model.register_ambient_session(terminal_view_id, task_id, ctx);
-            }
-        });
     }
 
     fn detach(
@@ -435,37 +392,19 @@ impl PaneContent for TerminalPane {
             ctx.unsubscribe_to_view(&view);
         }
 
-        // Notify the active agent views model that the terminal view has been closed
-        // (and that any active views are no longer active). On a `HiddenForClose` detach,
-        // `attach` will re-register via `register_agent_view_controller` when the tab is
-        // restored, so this is safe to run unconditionally.
-        let terminal_view_id = self.terminal_view(ctx).id();
-        ActiveAgentViewsModel::handle(ctx).update(ctx, |model, ctx| {
-            for terminal_view_id in terminal_view_ids {
-                model.unregister_agent_view_controller(terminal_view_id, ctx);
-                model.unregister_ambient_session(terminal_view_id, ctx);
-            }
-        });
-
         // Clean up any active CLI agent session so its notification is removed.
         // Skip this for moves — the session is still running and will re-register in the new tab.
         if !matches!(detach_type, DetachType::Moved) {
             CLIAgentSessionsModel::handle(ctx).update(ctx, |sessions, ctx| {
-                sessions.remove_session(terminal_view_id, ctx);
+                for terminal_view_id in &terminal_view_ids {
+                    sessions.remove_session(*terminal_view_id, ctx);
+                }
             });
         }
 
         ctx.unsubscribe_to_model(&pane_stack);
 
         ctx.unsubscribe_to_view(&self.view);
-        ctx.unsubscribe_to_model(
-            &self
-                .terminal_view(ctx)
-                .as_ref(ctx)
-                .agent_view_controller()
-                .clone(),
-        );
-
 
         #[cfg(feature = "local_fs")]
         {
@@ -523,19 +462,7 @@ impl PaneContent for TerminalPane {
                 .map(|conversation| conversation.id())
                 .collect();
 
-            // Capture agent view state: if fullscreen, store the active conversation ID
-            let active_conversation_id = view
-                .agent_view_controller()
-                .as_ref(app)
-                .agent_view_state()
-                .display_mode()
-                .filter(|mode| mode.is_fullscreen())
-                .and_then(|_| {
-                    view.agent_view_controller()
-                        .as_ref(app)
-                        .agent_view_state()
-                        .active_conversation_id()
-                });
+            let active_conversation_id = None;
 
             LeafContents::Terminal(TerminalPaneSnapshot {
                 uuid: self.uuid.clone(),

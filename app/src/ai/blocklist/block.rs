@@ -103,7 +103,7 @@ use crate::ai::agent_conversations_model::{AgentConversationsModel, AgentConvers
 use crate::ai::ai_document_view::DEFAULT_PLANNING_DOCUMENT_TITLE;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::blocklist::action_model::NewConversationDecision;
-use crate::ai::blocklist::agent_view::{AgentViewController, AgentViewEntryOrigin};
+use crate::terminal::view::agent_view_state::AgentViewEntryOrigin;
 use crate::ai::blocklist::block::keyboard_navigable_buttons::{
     KeyboardNavigableButtonBuilder, KeyboardNavigableButtons,
 };
@@ -918,11 +918,6 @@ pub struct AIBlock {
     /// Whether the usage summary footer is expanded.
     is_usage_footer_expanded: bool,
 
-    /// Controller for reading/modifying `AgentView` state for this terminal pane (e.g. if there is
-    /// an active agent view or not, which affects whether or not this block should be hidden).
-    ///
-    /// Only used when `FeatureFlag::AgentView` is enabled.
-    agent_view_controller: ModelHandle<AgentViewController>,
     ambient_agent_view_model: Option<ModelHandle<AmbientAgentViewModel>>,
 
     /// View for AWS Bedrock credentials error, created lazily when the error occurs.
@@ -972,7 +967,6 @@ impl AIBlock {
         active_session: ModelHandle<ActiveSession>,
         cli_subagent_controller: &ModelHandle<CLISubagentController>,
         model_event_dispatcher: &ModelHandle<ModelEventDispatcher>,
-        agent_view_controller: ModelHandle<AgentViewController>,
         ambient_agent_view_model: Option<ModelHandle<AmbientAgentViewModel>>,
         terminal_view_handle: WeakViewHandle<TerminalView>,
         terminal_view_id: EntityId,
@@ -1215,10 +1209,6 @@ impl AIBlock {
             }
         });
 
-        if FeatureFlag::AgentView.is_enabled() {
-            ctx.subscribe_to_model(&agent_view_controller, |_, _, _, ctx| ctx.notify());
-        }
-
         // Handoff prep emits ambient-agent events before submit, while still composing.
         // Only the run lifecycle events can change `is_cloud_agent_pre_first_exchange`
         // for this block's footer.
@@ -1378,7 +1368,6 @@ impl AIBlock {
             view_screenshot_buttons: Default::default(),
             last_right_clicked_command: None,
             is_usage_footer_expanded: false,
-            agent_view_controller,
             ambient_agent_view_model,
             aws_bedrock_credentials_error_view: None,
             imported_comments: Default::default(),
@@ -2631,30 +2620,7 @@ impl AIBlock {
         //
         // This is typically the case for the initial exchange in a conversation started for a
         // 'passive' AI feature like suggested prompts.
-        if is_for_hidden_exchange {
-            return true;
-        }
-        if !FeatureFlag::AgentView.is_enabled() {
-            return false;
-        }
-
-        if let Some(active_conversation_id) = self
-            .agent_view_controller
-            .as_ref(app)
-            .agent_view_state()
-            .active_conversation_id()
-        {
-            // If the agent view is active, only AI blocks for the active agent view conversation
-            // should be visible.
-            active_conversation_id != self.client_ids.conversation_id
-        } else {
-            // If there is no active agent view, only passive, non-hidden (we checked for if the
-            // exchange is hidden already above) exchanges are rendered.
-            //
-            // These correspond to AI blocks with a successfully received suggested code diff or
-            // unit test suggestion.
-            !self.model.request_type(app).is_passive()
-        }
+        is_for_hidden_exchange
     }
 
     pub fn is_passive_conversation(&self, app: &AppContext) -> bool {
@@ -2933,19 +2899,13 @@ impl AIBlock {
                     ctx.emit(AIBlockEvent::DismissedPassiveBlock);
                 }
                 CodeDiffViewEvent::ViewDetails => {
-                    // We only need to set the selected conversation when agent view is disabled;
-                    // when agent view is enabled, you have to enter the agent view for the code diff
-                    // conversation to follow-up in the first place, and hitting 'view details'
-                    // shouldn't auto-enter the agent view.
-                    if !FeatureFlag::AgentView.is_enabled() {
-                        me.context_model.update(ctx, |context_model, ctx| {
-                            context_model.set_pending_query_state_for_existing_conversation(
-                                me.client_ids.conversation_id,
-                                AgentViewEntryOrigin::ViewPassiveCodeDiffDetails,
-                                ctx,
-                            );
-                        });
-                    }
+                    me.context_model.update(ctx, |context_model, ctx| {
+                        context_model.set_pending_query_state_for_existing_conversation(
+                            me.client_ids.conversation_id,
+                            AgentViewEntryOrigin::ViewPassiveCodeDiffDetails,
+                            ctx,
+                        );
+                    });
                     ctx.emit(AIBlockEvent::FocusTerminal);
                     ctx.notify();
                 }
@@ -3806,21 +3766,6 @@ impl AIBlock {
         let Some(query) = view.as_ref(ctx).query() else {
             return false;
         };
-
-        if FeatureFlag::AgentView.is_enabled()
-            && self
-                .agent_view_controller
-                .update(ctx, |controller, ctx| {
-                    controller.try_enter_agent_view(
-                        Some(self.client_ids.conversation_id),
-                        AgentViewEntryOrigin::AcceptedUnitTestSuggestion,
-                        ctx,
-                    )
-                })
-                .is_err()
-        {
-            return false;
-        }
 
         let action_id = view.as_ref(ctx).action_id().clone();
 
@@ -5876,22 +5821,17 @@ impl TypedActionView for AIBlock {
                     state.reset_interaction_state();
                 }
 
-                let is_read_only = self.terminal_model.lock().is_read_only();
-                if FeatureFlag::AgentView.is_enabled() && !is_read_only {
-                    ctx.emit(AIBlockEvent::InsertForkSlashCommand);
-                } else {
-                    ctx.dispatch_global_action(
-                        "workspace:fork_ai_conversation",
-                        ForkAIConversationParams {
-                            conversation_id: self.client_ids.conversation_id,
-                            fork_from_exchange: None,
-                            summarize_after_fork: false,
-                            summarization_prompt: None,
-                            initial_prompt: None,
-                            destination: ForkedConversationDestination::SplitPane,
-                        },
-                    );
-                }
+                ctx.dispatch_global_action(
+                    "workspace:fork_ai_conversation",
+                    ForkAIConversationParams {
+                        conversation_id: self.client_ids.conversation_id,
+                        fork_from_exchange: None,
+                        summarize_after_fork: false,
+                        summarization_prompt: None,
+                        initial_prompt: None,
+                        destination: ForkedConversationDestination::SplitPane,
+                    },
+                );
                 ctx.notify();
             }
             AIBlockAction::SelectText => {

@@ -9,7 +9,6 @@ use super::{
     ConversationMetadata, CreatedOnFilter, CreatorFilter, EnvironmentFilter, HarnessFilter,
     OwnerFilter, SessionStatus, SourceFilter, StatusFilter,
 };
-use crate::ai::active_agent_views_model::{ActiveAgentViewsModel, ConversationOrTaskId};
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::ambient_agents::{AgentSource, AmbientAgentTask, AmbientAgentTaskId};
@@ -41,16 +40,6 @@ impl AgentConversationEntryId {
     }
 }
 
-impl From<ConversationOrTaskId> for AgentConversationEntryId {
-    fn from(id: ConversationOrTaskId) -> Self {
-        match id {
-            ConversationOrTaskId::ConversationId(conversation_id) => {
-                AgentConversationEntryId::Conversation(conversation_id)
-            }
-            ConversationOrTaskId::TaskId(task_id) => AgentConversationEntryId::AmbientRun(task_id),
-        }
-    }
-}
 
 /// Navigation request input for resolving an entry or server-token handle at action time.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -432,11 +421,7 @@ pub(super) fn entry_for_task(
         .active_execution_session_id()
         .and_then(parse_session_id)
         .is_some();
-    let has_open_ambient_session = ActiveAgentViewsModel::as_ref(app)
-        .get_terminal_view_id_for_ambient_task(task.task_id)
-        .is_some();
-    let can_open = has_open_ambient_session
-        || has_active_session_id
+    let can_open = has_active_session_id
         || local_conversation_id.is_some()
         || server_conversation_token.is_some();
     let can_copy_link = task.has_active_execution()

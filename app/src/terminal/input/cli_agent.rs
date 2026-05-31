@@ -74,15 +74,6 @@ impl Input {
         }
 
         column.add_child(editor_element);
-        column.add_child(
-            SavePosition::new(
-                Container::new(ChildView::new(&self.agent_input_footer).finish())
-                    .with_padding_right(*TERMINAL_VIEW_PADDING_LEFT)
-                    .finish(),
-                &self.prompt_save_position_id(),
-            )
-            .finish(),
-        );
 
         stack.add_child(wrap_input_with_terminal_padding_and_focus_handler(
             self.is_active_session(app),

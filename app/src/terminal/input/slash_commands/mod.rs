@@ -26,9 +26,7 @@ use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent_conversations_model::AgentConversationsModel;
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
 use crate::ai::ambient_agents::telemetry::HandoffEntryPoint;
-use crate::ai::blocklist::agent_view::{
-    AgentViewEntryOrigin, DismissalStrategy, EphemeralMessage, ENTER_OR_EXIT_CONFIRMATION_WINDOW,
-};
+use crate::terminal::view::agent_view_state::AgentViewEntryOrigin;
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
 use crate::ai::blocklist::handoff::PendingCloudLaunch;
 use crate::ai::blocklist::{
@@ -143,7 +141,7 @@ fn open_file_command_path(
 
 impl Input {
     fn is_slash_command_available(&self, command: &StaticCommand, ctx: &AppContext) -> bool {
-        let slash_command_data_source = if self.is_cloud_mode_input_v2_composing(ctx) {
+        let slash_command_data_source = if false {
             let Some(data_source) = self.cloud_mode_composer_slash_command_data_source.as_ref()
             else {
                 return false;
@@ -386,36 +384,7 @@ impl Input {
                     .as_ref(ctx)
                     .can_start_new_conversation()
                 {
-                    self.ephemeral_message_model.update(ctx, |model, ctx| {
-                        let appearance = Appearance::handle(ctx).as_ref(ctx);
-                        let message = Message::from_text(
-                            "cannot start new conversation while terminal command is running",
-                        )
-                        .with_text_color(appearance.theme().ansi_fg_red());
-                        model.show_ephemeral_message(
-                            EphemeralMessage::new(
-                                message,
-                                DismissalStrategy::Timer(ENTER_OR_EXIT_CONFIRMATION_WINDOW),
-                            ),
-                            ctx,
-                        );
-                    });
                     return true;
-                }
-                // Keybindings can be triggered reflexively while users are already in an active
-                // conversation, so we gate only this path behind a second-press confirmation.
-                // Typed `/agent`/`/new` and slash-menu execution stay single-step by design.
-                if trigger.is_keybinding() && self.agent_view_controller.as_ref(ctx).is_active() {
-                    let should_start_new_conversation =
-                        self.agent_view_controller.update(ctx, |controller, ctx| {
-                            controller
-                                .should_start_new_conversation_for_keybinding(command.name, ctx)
-                        });
-                    if !should_start_new_conversation {
-                        // Keep the current input/conversation untouched on first press; only the
-                        // ephemeral confirmation prompt should change.
-                        return true;
-                    }
                 }
 
                 let prompt = argument.and_then(|argument| {
@@ -451,7 +420,7 @@ impl Input {
                 ctx.emit(Event::CreateDockerSandbox);
             }
             _conversations if command.name == commands::CONVERSATIONS.name => {
-                if self.is_cloud_mode_input_v2_composing(ctx) {
+                if false {
                     self.suggestions_mode_model.update(ctx, |model, ctx| {
                         model.set_mode(InputSuggestionsMode::Closed, ctx);
                     });
@@ -727,7 +696,7 @@ impl Input {
                 if !FeatureFlag::ListSkills.is_enabled() {
                     return false;
                 }
-                if self.is_cloud_mode_input_v2_composing(ctx) {
+                if false {
                     self.apply_v2_slash_section_filter(CloudModeV2Section::Skills, ctx);
                     return true;
                 }
@@ -735,7 +704,7 @@ impl Input {
                 self.open_invoke_skill_selector(ctx);
             }
             _host if command.name == commands::HOST.name => {
-                if !self.is_cloud_mode_input_v2_composing(ctx) {
+                if !false {
                     return false;
                 }
                 // Only open the host selector when a default host is configured.
@@ -753,7 +722,7 @@ impl Input {
                 return true;
             }
             _harness if command.name == commands::HARNESS.name => {
-                if !self.is_cloud_mode_input_v2_composing(ctx) {
+                if !false {
                     // Defensive: the command is registered only when the V2 flag is on and its
                     // availability requires CLOUD_AGENT_V2, so this branch should be unreachable.
                     return false;
@@ -766,32 +735,13 @@ impl Input {
                 return true;
             }
             _environment if command.name == commands::ENVIRONMENT.name => {
-                if !self.is_cloud_mode_input_v2_composing(ctx) {
-                    return false;
-                }
-                self.suggestions_mode_model.update(ctx, |model, ctx| {
-                    model.set_mode(InputSuggestionsMode::Closed, ctx);
-                });
-                self.clear_buffer_and_reset_undo_stack(ctx);
-                self.open_v2_environment_selector(ctx);
-                return true;
+                return false;
             }
             _models if command.name == commands::MODEL.name => {
-                if self.is_cloud_mode_input_v2_composing(ctx) {
-                    self.suggestions_mode_model.update(ctx, |model, ctx| {
-                        model.set_mode(InputSuggestionsMode::Closed, ctx);
-                    });
-                    self.clear_buffer_and_reset_undo_stack(ctx);
-                    self.agent_input_footer.update(ctx, |footer, ctx| {
-                        footer.open_v2_model_selector(ctx);
-                    });
-                    return true;
-                } else {
-                    self.open_model_selector(ctx);
-                }
+                self.open_model_selector(ctx);
             }
             _prompts if command.name == commands::PROMPTS.name => {
-                if self.is_cloud_mode_input_v2_composing(ctx) {
+                if false {
                     self.apply_v2_slash_section_filter(CloudModeV2Section::Prompts, ctx);
                     return true;
                 }
@@ -1071,7 +1021,7 @@ impl Input {
             self.suggestions_mode_model.as_ref(ctx).mode(),
             InputSuggestionsMode::SlashCommands
         ) {
-            if self.is_cloud_mode_input_v2_composing(ctx) {
+            if false {
                 if let Some(view) = self.cloud_mode_v2_slash_commands_view.clone() {
                     view.update(ctx, |view, ctx| {
                         view.accept_selected_item(true, ctx);
@@ -1102,7 +1052,7 @@ impl Input {
                 )
             }
             SlashCommandEntryState::SkillCommand(_)
-                if self.is_cloud_mode_input_v2_composing(ctx) =>
+                if false =>
             {
                 false
             }
@@ -1138,7 +1088,7 @@ impl Input {
         &mut self,
         ctx: &mut ViewContext<Self>,
     ) -> bool {
-        if !self.is_cloud_mode_input_v2_composing(ctx) {
+        if !false {
             return false;
         }
         let Some(view) = self.cloud_mode_v2_slash_commands_view.clone() else {
@@ -1173,7 +1123,7 @@ impl Input {
             self.suggestions_mode_model.as_ref(ctx).mode(),
             InputSuggestionsMode::SlashCommands
         ) {
-            if self.is_cloud_mode_input_v2_composing(ctx) {
+            if false {
                 if let Some(view) = self.cloud_mode_v2_slash_commands_view.clone() {
                     view.update(ctx, |view, ctx| {
                         view.accept_selected_item(false, ctx);
@@ -1203,7 +1153,7 @@ impl Input {
                 )
             }
             SlashCommandEntryState::SkillCommand(_)
-                if self.is_cloud_mode_input_v2_composing(ctx) =>
+                if false =>
             {
                 false
             }

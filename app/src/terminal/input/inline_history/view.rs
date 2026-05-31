@@ -9,7 +9,6 @@ use warpui::elements::ChildView;
 use warpui::{AppContext, Element, Entity, EntityId, ModelHandle, View, ViewContext, ViewHandle};
 
 use crate::ai::agent::conversation::AIConversationId;
-use crate::ai::blocklist::agent_view::{AgentViewController, AgentViewControllerEvent};
 use crate::features::FeatureFlag;
 use crate::search::data_source::{Query, QueryFilter};
 use crate::search::mixer::{SearchMixer, SearchMixerEvent};
@@ -171,18 +170,15 @@ impl InlineHistoryMenuView {
         terminal_view_id: EntityId,
         active_session: ModelHandle<ActiveSession>,
         input_suggestions_model: &ModelHandle<InputSuggestionsModeModel>,
-        agent_view_controller: ModelHandle<AgentViewController>,
         positioner: &ModelHandle<InlineMenuPositioner>,
         buffer_model: ModelHandle<InputBufferModel>,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
-        let is_agent_view = agent_view_controller.as_ref(ctx).is_active();
-        let tab_configs = build_tab_configs(is_agent_view);
+        let tab_configs = build_tab_configs(false);
         Self::new_inner(
             terminal_view_id,
             active_session,
             input_suggestions_model,
-            agent_view_controller,
             positioner,
             buffer_model,
             tab_configs,
@@ -196,7 +192,6 @@ impl InlineHistoryMenuView {
         terminal_view_id: EntityId,
         active_session: ModelHandle<ActiveSession>,
         input_suggestions_model: &ModelHandle<InputSuggestionsModeModel>,
-        agent_view_controller: ModelHandle<AgentViewController>,
         positioner: &ModelHandle<InlineMenuPositioner>,
         buffer_model: ModelHandle<InputBufferModel>,
         tab_configs: Vec<InlineMenuTabConfig<HistoryTab>>,
@@ -206,7 +201,6 @@ impl InlineHistoryMenuView {
             terminal_view_id,
             active_session,
             input_suggestions_model,
-            agent_view_controller,
             positioner,
             buffer_model,
             tab_configs,
@@ -220,20 +214,14 @@ impl InlineHistoryMenuView {
         terminal_view_id: EntityId,
         active_session: ModelHandle<ActiveSession>,
         input_suggestions_model: &ModelHandle<InputSuggestionsModeModel>,
-        agent_view_controller: ModelHandle<AgentViewController>,
         positioner: &ModelHandle<InlineMenuPositioner>,
         buffer_model: ModelHandle<InputBufferModel>,
         tab_configs: Vec<InlineMenuTabConfig<HistoryTab>>,
         caller_supplied_tabs: bool,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
-        let data_source = ctx.add_model(|_| {
-            InlineHistoryMenuDataSource::new(
-                terminal_view_id,
-                active_session,
-                agent_view_controller.clone(),
-            )
-        });
+        let data_source = ctx
+            .add_model(|_| InlineHistoryMenuDataSource::new(terminal_view_id, active_session));
 
         let initial_filters = tab_configs
             .first()
@@ -283,7 +271,6 @@ impl InlineHistoryMenuView {
                     mixer.clone(),
                     positioner.clone(),
                     input_suggestions_model,
-                    agent_view_controller.clone(),
                     tab_configs,
                     None,
                     ctx,
@@ -296,7 +283,6 @@ impl InlineHistoryMenuView {
                     mixer.clone(),
                     positioner.clone(),
                     input_suggestions_model,
-                    agent_view_controller.clone(),
                     tab_configs,
                     None,
                     ctx,
@@ -327,37 +313,6 @@ impl InlineHistoryMenuView {
                 }
                 me.pending_initial_buffer_sync = false;
                 me.open_with_current_buffer(ctx);
-            },
-        );
-
-        let suggestions_mode_model = input_suggestions_model.clone();
-        ctx.subscribe_to_model(
-            &agent_view_controller,
-            move |me, controller, event, ctx| match event {
-                AgentViewControllerEvent::EnteredAgentView { .. }
-                | AgentViewControllerEvent::ExitedAgentView { .. } => {
-                    // Only auto-rebuild tabs from `is_agent_view` when the
-                    // caller did not supply tabs explicitly. Callers that
-                    // pinned tabs (e.g. the cloud-mode V2 wrapper) want their
-                    // tab set preserved across agent-view enter/exit.
-                    if !me.caller_supplied_tabs {
-                        let is_agent_view = controller.as_ref(ctx).is_active();
-                        let new_configs = build_tab_configs(is_agent_view);
-                        me.model.update(ctx, |model, _| {
-                            model.set_tab_configs(new_configs);
-                        });
-                        if suggestions_mode_model.as_ref(ctx).is_inline_history_menu() {
-                            me.pending_tab_switch_selection = me
-                                .model
-                                .as_ref(ctx)
-                                .selected_item()
-                                .map(HistoryItemIdentity::from_item);
-                            me.rerun_query(ctx);
-                        }
-                    }
-                    me.menu_view.update(ctx, |_, ctx| ctx.notify());
-                }
-                AgentViewControllerEvent::ExitConfirmed { .. } => {}
             },
         );
 

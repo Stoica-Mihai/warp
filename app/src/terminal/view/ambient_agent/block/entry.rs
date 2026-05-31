@@ -18,7 +18,7 @@ use super::super::{AmbientAgentViewModelEvent, Status};
 use crate::ai::agent::conversation::ConversationStatus;
 use crate::ai::agent_conversations_model::{AgentConversationsModel, AgentConversationsModelEvent};
 use crate::ai::ambient_agents::AmbientAgentTaskId;
-use crate::ai::blocklist::agent_view::{render_block_container, AgentViewEntryOrigin};
+use crate::terminal::view::agent_view_state::{render_block_container, AgentViewEntryOrigin};
 use crate::pane_group::pane::{PaneConfiguration, PaneConfigurationEvent, PaneStack};
 use crate::terminal::view::ambient_agent::AmbientAgentViewModel;
 use crate::terminal::{BlockListSettings, TerminalManager, TerminalView};

@@ -14,7 +14,6 @@ use warpui::{App, EntityId, ModelHandle};
 
 use super::{BlocklistAIContextModel, PendingAttachment, PendingFile};
 use crate::ai::agent::ImageContext;
-use crate::ai::blocklist::agent_view::{AgentViewController, EphemeralMessageModel};
 use crate::terminal::color::{self, Colors};
 use crate::terminal::event_listener::ChannelEventListener;
 use crate::terminal::model::test_utils::block_size;
@@ -53,22 +52,7 @@ fn build_test_context_model(app: &mut App) -> ModelHandle<BlocklistAIContextMode
     )));
     let terminal_view_id = EntityId::new();
 
-    let ephemeral_message_model = app.add_model(|_| EphemeralMessageModel::new());
-    let agent_view_controller = app.add_model(|_| {
-        AgentViewController::new(
-            terminal_model.clone(),
-            terminal_view_id,
-            ephemeral_message_model,
-        )
-    });
-
-    app.add_model(|_| {
-        BlocklistAIContextModel::new_for_test(
-            terminal_model,
-            terminal_view_id,
-            agent_view_controller,
-        )
-    })
+    app.add_model(|_| BlocklistAIContextModel::new_for_test(terminal_model, terminal_view_id))
 }
 
 fn make_image_attachment(file_name: &str) -> PendingAttachment {

@@ -30,7 +30,6 @@ use warpui::r#async::FutureExt as _;
 
 use crate::ai::agent::conversation::AIConversation;
 use crate::ai::agent::{AIAgentAction, AIAgentActionType, AIAgentOutputMessageType};
-use crate::ai::blocklist::agent_view::agent_input_footer::sort_environments_by_recency;
 use crate::ai::cloud_environments::{CloudAmbientAgentEnvironment, GithubRepo};
 use crate::server::ids::SyncId;
 
@@ -209,6 +208,21 @@ pub(crate) async fn resolve_repo_for_path(path: &Path) -> Option<TouchedRepo> {
 /// which calls it unconditionally and applies the result on top of whatever the
 /// `EnvironmentSelector`'s `ensure_default_selection` had already picked. When
 /// this returns `None`, callers leave the existing selection alone.
+pub(crate) fn sort_environments_by_recency(environments: &mut [CloudAmbientAgentEnvironment]) {
+    environments.sort_by(|a, b| {
+        b.metadata
+            .last_task_run_ts
+            .cmp(&a.metadata.last_task_run_ts)
+            .then_with(|| {
+                a.model()
+                    .string_model
+                    .name
+                    .to_lowercase()
+                    .cmp(&b.model().string_model.name.to_lowercase())
+            })
+    });
+}
+
 pub(crate) fn pick_handoff_overlap_env(
     workspace: &TouchedWorkspace,
     mut envs: Vec<CloudAmbientAgentEnvironment>,

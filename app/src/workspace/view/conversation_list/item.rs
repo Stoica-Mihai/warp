@@ -13,7 +13,6 @@ use warpui::text_layout::TextStyle;
 use warpui::ui_components::components::{UiComponent, UiComponentStyles};
 use warpui::{AppContext, SingletonEntity, ViewHandle};
 
-use crate::ai::active_agent_views_model::ActiveAgentViewsModel;
 use crate::ai::agent_conversations_model::{
     AgentConversationEntry, AgentConversationEntryId, AgentConversationProvenance,
 };
@@ -412,16 +411,7 @@ fn format_item_subtext(conversation: &AgentConversationEntry, app: &AppContext) 
             .map(|source| source.display_name().to_string());
     }
 
-    let live_pwd = conversation
-        .identity
-        .local_conversation_id
-        .and_then(|conversation_id| {
-            ActiveAgentViewsModel::as_ref(app)
-                .get_active_session_for_conversation(conversation_id, app)
-                .and_then(|session| session.as_ref(app).current_working_directory().cloned())
-        });
-
-    let pwd = live_pwd.or_else(|| conversation.display.working_directory.clone());
+    let pwd = conversation.display.working_directory.clone();
     pwd.map(|pwd| {
         let home_dir = dirs::home_dir().and_then(|p| p.to_str().map(String::from));
         user_friendly_path(&pwd, home_dir.as_deref()).into_owned()

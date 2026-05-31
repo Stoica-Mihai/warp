@@ -13,7 +13,6 @@ use crate::ai::agent::{
     ReadShellCommandOutputResult, RequestCommandOutputResult,
     TransferShellCommandControlToUserResult, WriteToLongRunningShellCommandResult,
 };
-use crate::ai::blocklist::agent_view::{AgentViewController, AgentViewEntryOrigin};
 use crate::ai::blocklist::context_model::block_context_from_terminal_model;
 use crate::ai::blocklist::{
     BlocklistAIActionEvent, BlocklistAIActionModel, BlocklistAIController, BlocklistAIHistoryEvent,
@@ -120,7 +119,6 @@ impl LongRunningCommandControlState {
 pub struct CLISubagentController {
     controller: ModelHandle<BlocklistAIController>,
     action_model: ModelHandle<BlocklistAIActionModel>,
-    agent_view_controller: Option<ModelHandle<AgentViewController>>,
     terminal_model: Arc<FairMutex<TerminalModel>>,
     terminal_view_id: EntityId,
     // Active or recently-active CLI subagent state, keyed by the associated block.
@@ -131,7 +129,6 @@ impl CLISubagentController {
     pub fn new(
         controller: &ModelHandle<BlocklistAIController>,
         action_model: &ModelHandle<BlocklistAIActionModel>,
-        agent_view_controller: Option<ModelHandle<AgentViewController>>,
         terminal_model: Arc<FairMutex<TerminalModel>>,
         model_event_dispatcher: &ModelHandle<ModelEventDispatcher>,
         terminal_view_id: EntityId,
@@ -208,8 +205,6 @@ impl CLISubagentController {
                 let block_id = block.id().clone();
                 let conversation_id = block.ai_conversation_id();
                 let requested_command_action_id = block.requested_command_action_id().cloned();
-                let was_agent_tagged_in = block.interaction_mode().is_agent_tagged_in();
-                let has_agent_metadata = block.agent_interaction_metadata().is_some();
                 drop(terminal_model);
                 let removed_subagent_state = me.active_subagents_by_block.remove(&block_id);
                 if removed_subagent_state
@@ -223,38 +218,10 @@ impl CLISubagentController {
                     .as_ref()
                     .is_some_and(|state| state.task_id.is_some())
                 {
-                    let is_inline_agent_view =
-                        me.agent_view_controller.as_ref().is_some_and(|controller| {
-                            controller.read(ctx, |controller, _| controller.is_inline())
-                        });
-
-                    if is_inline_agent_view {
-                        // Mark conversation as successfully completed BEFORE exiting agent view.
-                        // The command finished naturally, so this is a successful completion.
-                        if let Some(conversation_id) = conversation_id {
-                            me.controller.update(ctx, |controller, ctx| {
-                                controller.cancel_conversation_progress(
-                                    conversation_id,
-                                    CancellationReason::OptimisticCLISubagentCompletion,
-                                    ctx,
-                                );
-                            });
-                        }
-                    }
-
                     ctx.emit(CLISubagentEvent::FinishedSubagent {
                         block_id,
                         conversation_id,
                         initial_requested_command_action_id: requested_command_action_id,
-                    });
-                }
-
-                // Exit inline agent view if agent was tagged in or had metadata (was in control).
-                if let Some(agent_view_controller) = &me.agent_view_controller {
-                    agent_view_controller.update(ctx, |controller, ctx| {
-                        if controller.is_inline() && (was_agent_tagged_in || has_agent_metadata) {
-                            controller.exit_agent_view(ctx);
-                        }
                     });
                 }
             }
@@ -263,7 +230,6 @@ impl CLISubagentController {
         Self {
             controller: controller.clone(),
             action_model: action_model.clone(),
-            agent_view_controller,
             terminal_model,
             terminal_view_id,
             active_subagents_by_block: HashMap::new(),
@@ -375,19 +341,6 @@ impl CLISubagentController {
         let action_id = active_block.requested_command_action_id().cloned();
         let agent_has_control = active_block.is_agent_in_control();
         drop(terminal_model);
-        if let Some(agent_view_controller) = &self.agent_view_controller {
-            agent_view_controller.update(ctx, |controller, ctx| {
-                if !controller.is_inline() {
-                    if let Err(e) = controller.try_enter_inline_agent_view(
-                        conversation_id,
-                        AgentViewEntryOrigin::LongRunningCommand,
-                        ctx,
-                    ) {
-                        log::error!("Failed to enter inline agent view for LRC handoff: {e}");
-                    }
-                }
-            });
-        }
 
         // Trigger an auto-resume of the conversation when handing control to the agent.
         if let Some(conversation_id) = conversation_id {

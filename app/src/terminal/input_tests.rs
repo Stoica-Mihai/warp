@@ -24,7 +24,6 @@ use watcher::HomeDirectoryWatcher;
 use workflows::workflow::{Argument, ArgumentType, Workflow};
 
 use super::*;
-use crate::ai::active_agent_views_model::ActiveAgentViewsModel;
 use crate::ai::agent_conversations_model::AgentConversationsModel;
 use crate::ai::blocklist::{AIQueryHistory, BlocklistAIPermissions};
 use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
@@ -122,16 +121,7 @@ pub fn initialize_app(app: &mut App) {
         AIRequestUsageModel::new_for_test(ServerApiProvider::as_ref(ctx).get_ai_client(), ctx)
     });
     app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
-    // Pill bar model subscribes to history events; register after the
-    // history model is in place.
-    app.add_singleton_model(|ctx| {
-        crate::ai::blocklist::agent_view::orchestration_pill_bar_model::OrchestrationPillBarModel::new(
-            Default::default(),
-            ctx,
-        )
-    });
     app.add_singleton_model(|_| CLIAgentSessionsModel::new());
-    app.add_singleton_model(|_| ActiveAgentViewsModel::new());
     app.add_singleton_model(AgentNotificationsModel::new);
     app.add_singleton_model(BlocklistAIPermissions::new);
     app.add_singleton_model(|_| AuthStateProvider::new_for_test());
@@ -2631,195 +2621,6 @@ fn test_shell_lock_respected_when_slash_command_typed() {
             let ai_model = input.ai_input_model.as_ref(ctx);
             assert!(!ai_model.is_ai_input_enabled());
             assert!(ai_model.is_input_type_locked());
-        });
-    });
-}
-
-#[test]
-fn test_new_conversation_keybinding_requires_double_press_in_non_empty_agent_view() {
-    App::test((), |mut app| async move {
-        let _agent_view_flag = FeatureFlag::AgentView.override_enabled(true);
-        initialize_app(&mut app);
-
-        let terminal = add_window_with_bootstrapped_terminal(&mut app, None, None).await;
-        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
-
-        let conversation_id = terminal.update(&mut app, |view, ctx| {
-            view.agent_view_controller().update(ctx, |controller, ctx| {
-                controller
-                    .try_enter_agent_view(
-                        None,
-                        AgentViewEntryOrigin::Input {
-                            was_prompt_autodetected: false,
-                        },
-                        ctx,
-                    )
-                    .expect("Should be able to enter agent view")
-            })
-        });
-
-        terminal.update(&mut app, |view, ctx| {
-            view.ai_controller().update(ctx, |controller, ctx| {
-                controller.send_user_query_in_conversation(
-                    "hello".to_owned(),
-                    conversation_id,
-                    ctx,
-                );
-            });
-        });
-
-        let is_non_empty = BlocklistAIHistoryModel::handle(&app).read(&app, |history, _| {
-            history
-                .conversation(&conversation_id)
-                .is_some_and(|conversation| !conversation.is_empty())
-        });
-        assert!(is_non_empty);
-
-        input.update(&mut app, |input, ctx| {
-            input.user_insert("draft", ctx);
-            input.handle_action(
-                &InputAction::TriggerSlashCommandFromKeybinding(commands::AGENT.name),
-                ctx,
-            );
-        });
-
-        terminal.read(&app, |view, ctx| {
-            assert_eq!(
-                view.agent_view_controller()
-                    .as_ref(ctx)
-                    .agent_view_state()
-                    .active_conversation_id(),
-                Some(conversation_id),
-            );
-        });
-        input.read(&app, |input, ctx| {
-            assert_eq!(input.buffer_text(ctx), "draft");
-        });
-
-        input.update(&mut app, |input, ctx| {
-            input.handle_action(
-                &InputAction::TriggerSlashCommandFromKeybinding(commands::AGENT.name),
-                ctx,
-            );
-        });
-
-        terminal.read(&app, |view, ctx| {
-            let active_conversation_id = view
-                .agent_view_controller()
-                .as_ref(ctx)
-                .agent_view_state()
-                .active_conversation_id()
-                .expect("agent view should still be active");
-            assert_ne!(active_conversation_id, conversation_id);
-        });
-    });
-}
-
-#[test]
-fn test_new_conversation_keybinding_does_not_require_confirmation_in_empty_agent_view() {
-    App::test((), |mut app| async move {
-        let _agent_view_flag = FeatureFlag::AgentView.override_enabled(true);
-        initialize_app(&mut app);
-
-        let terminal = add_window_with_bootstrapped_terminal(&mut app, None, None).await;
-        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
-
-        let conversation_id = terminal.update(&mut app, |view, ctx| {
-            view.agent_view_controller().update(ctx, |controller, ctx| {
-                controller
-                    .try_enter_agent_view(
-                        None,
-                        AgentViewEntryOrigin::Input {
-                            was_prompt_autodetected: false,
-                        },
-                        ctx,
-                    )
-                    .expect("Should be able to enter agent view")
-            })
-        });
-
-        let is_empty = BlocklistAIHistoryModel::handle(&app).read(&app, |history, _| {
-            history
-                .conversation(&conversation_id)
-                .is_some_and(|conversation| conversation.is_empty())
-        });
-        assert!(is_empty);
-
-        input.update(&mut app, |input, ctx| {
-            input.user_insert("draft", ctx);
-            input.handle_action(
-                &InputAction::TriggerSlashCommandFromKeybinding(commands::AGENT.name),
-                ctx,
-            );
-        });
-
-        terminal.read(&app, |view, ctx| {
-            let active_conversation_id = view
-                .agent_view_controller()
-                .as_ref(ctx)
-                .agent_view_state()
-                .active_conversation_id()
-                .expect("agent view should still be active");
-            assert_ne!(active_conversation_id, conversation_id);
-        });
-    });
-}
-
-#[test]
-fn test_new_conversation_input_trigger_remains_single_step_in_non_empty_agent_view() {
-    App::test((), |mut app| async move {
-        let _agent_view_flag = FeatureFlag::AgentView.override_enabled(true);
-        initialize_app(&mut app);
-
-        let terminal = add_window_with_bootstrapped_terminal(&mut app, None, None).await;
-        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
-
-        let conversation_id = terminal.update(&mut app, |view, ctx| {
-            view.agent_view_controller().update(ctx, |controller, ctx| {
-                controller
-                    .try_enter_agent_view(
-                        None,
-                        AgentViewEntryOrigin::Input {
-                            was_prompt_autodetected: false,
-                        },
-                        ctx,
-                    )
-                    .expect("Should be able to enter agent view")
-            })
-        });
-
-        terminal.update(&mut app, |view, ctx| {
-            view.ai_controller().update(ctx, |controller, ctx| {
-                controller.send_user_query_in_conversation(
-                    "hello".to_owned(),
-                    conversation_id,
-                    ctx,
-                );
-            });
-        });
-
-        let command = COMMAND_REGISTRY
-            .get_command_with_name(commands::NEW.name)
-            .expect("/new command should exist");
-        input.update(&mut app, |input, ctx| {
-            let handled = input.execute_slash_command(
-                command,
-                None,
-                SlashCommandTrigger::input(),
-                /*is_queued_prompt*/ false,
-                ctx,
-            );
-            assert!(handled);
-        });
-
-        terminal.read(&app, |view, ctx| {
-            let active_conversation_id = view
-                .agent_view_controller()
-                .as_ref(ctx)
-                .agent_view_state()
-                .active_conversation_id()
-                .expect("agent view should still be active");
-            assert_ne!(active_conversation_id, conversation_id);
         });
     });
 }
@@ -5646,21 +5447,7 @@ input_mode_prefix_tests! {
     test_shell_input_prefix_with_udi: (true, InputType::Shell),
     test_shell_input_prefix_with_no_udi: (false, InputType::Shell),
 }
-fn enter_fullscreen_agent_view_for_test(terminal: &ViewHandle<TerminalView>, app: &mut App) {
-    terminal.update(app, |view, ctx| {
-        view.agent_view_controller().update(ctx, |controller, ctx| {
-            controller
-                .try_enter_agent_view(
-                    None,
-                    AgentViewEntryOrigin::Input {
-                        was_prompt_autodetected: false,
-                    },
-                    ctx,
-                )
-                .expect("Should be able to enter agent view");
-        });
-    });
-}
+fn enter_fullscreen_agent_view_for_test(_terminal: &ViewHandle<TerminalView>, _app: &mut App) {}
 
 #[test]
 fn test_cloud_handoff_prefix_remains_text_when_handoff_flag_disabled() {
@@ -6604,67 +6391,6 @@ fn test_agent_view_terminal_only_initial_input_config_unlocked_when_autodetectio
             !config.is_locked,
             "Expected terminal-only AgentView input to start unlocked when autodetection is enabled"
         );
-    });
-}
-
-#[test]
-fn test_terminal_only_ai_enter_enters_agent_view_and_clears_buffer() {
-    use crate::ai::blocklist::agent_view::AgentViewState;
-    use crate::ai::blocklist::InputConfig;
-
-    App::test((), |mut app| async move {
-        let _am_flag = FeatureFlag::AgentMode.override_enabled(true);
-        let _agent_view_flag = FeatureFlag::AgentView.override_enabled(true);
-
-        initialize_app(&mut app);
-
-        AISettings::handle(&app).update(&mut app, |ai_settings, ctx| {
-            let _ = ai_settings
-                .ai_autodetection_enabled_internal
-                .set_value(true, ctx);
-            assert!(ai_settings.is_ai_autodetection_enabled(ctx));
-        });
-
-        let terminal = add_window_with_bootstrapped_terminal(&mut app, None, None).await;
-        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
-
-        // Put the input into (unlocked) AI mode while agent view is inactive.
-        input.update(&mut app, |input, ctx| {
-            input.ai_input_model().update(ctx, |ai_input, ctx| {
-                ai_input.set_input_config(
-                    InputConfig {
-                        input_type: InputType::AI,
-                        is_locked: false,
-                    },
-                    false, /* is_input_buffer_empty */
-                    None,
-                    ctx,
-                );
-            });
-
-            input.clear_buffer_and_reset_undo_stack(ctx);
-            input.user_insert("what is the current date", ctx);
-        });
-
-        input.update(&mut app, |input, ctx| {
-            input.input_enter(ctx);
-        });
-
-        // Buffer should be cleared.
-        input.read(&app, |input, ctx| {
-            assert!(input.buffer_text(ctx).is_empty());
-        });
-
-        // Agent view should now be active.
-        terminal.read(&app, |terminal, _| {
-            let state = terminal
-                .model
-                .lock()
-                .block_list()
-                .agent_view_state()
-                .clone();
-            assert!(matches!(state, AgentViewState::Active { .. }));
-        });
     });
 }
 

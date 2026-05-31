@@ -17,7 +17,6 @@ use warpui::platform::TerminationMode;
 use warpui::{AppContext, EntityId, SingletonEntity as _, TypedActionView, ViewHandle, WindowId};
 
 use self::docker::open_docker_container;
-use crate::ai::active_agent_views_model::{ActiveAgentViewsModel, ConversationOrTaskId};
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::ambient_agents::github_auth_notifier::GitHubAuthNotifier;
 use crate::cloud_object::ObjectType;
@@ -959,25 +958,7 @@ impl Action {
                 }
             }
             Action::FocusCloudMode => {
-                let active_agent_views = ActiveAgentViewsModel::as_ref(ctx);
-                let focused_conversation = primary_window_id
-                    .and_then(|wid| active_agent_views.get_focused_conversation(wid));
-                let mut terminal_view_id = match focused_conversation {
-                    Some(ConversationOrTaskId::TaskId(task_id)) => {
-                        active_agent_views.get_terminal_view_id_for_ambient_task(task_id)
-                    }
-                    Some(ConversationOrTaskId::ConversationId(conversation_id)) => {
-                        active_agent_views
-                            .get_terminal_view_id_for_conversation(conversation_id, ctx)
-                    }
-                    None => None,
-                };
-                if terminal_view_id.is_none() {
-                    terminal_view_id = find_cloud_mode_terminal_view_id(primary_window_id, ctx);
-                }
-                if terminal_view_id.is_none() {
-                    terminal_view_id = active_agent_views.get_last_focused_terminal_id();
-                }
+                let mut terminal_view_id = find_cloud_mode_terminal_view_id(primary_window_id, ctx);
                 if terminal_view_id.is_none() {
                     terminal_view_id = primary_window_id
                         .and_then(|window_id| active_terminal_view_id_in_window(window_id, ctx));

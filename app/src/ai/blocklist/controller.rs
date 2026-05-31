@@ -25,10 +25,10 @@ use warpui::{AppContext, Entity, EntityId, ModelContext, ModelHandle, SingletonE
 
 use self::response_stream::{ResponseStream, ResponseStreamEvent};
 use super::action_model::{BlocklistAIActionEvent, BlocklistAIActionModel};
-use super::agent_view::{AgentViewController, AgentViewControllerEvent, AgentViewEntryOrigin};
 use super::context_model::BlocklistAIContextModel;
 use super::history_model::BlocklistAIHistoryModel;
 use super::input_model::InputConfig;
+use crate::terminal::view::agent_view_state::AgentViewEntryOrigin;
 use super::orchestration_events::{OrchestrationEventService, OrchestrationEventServiceEvent};
 use super::{BlocklistAIInputModel, InputType, ResponseStreamId};
 use crate::ai::agent::api::{self, ServerConversationToken};
@@ -366,7 +366,6 @@ impl BlocklistAIController {
         context_model: ModelHandle<BlocklistAIContextModel>,
         action_model: ModelHandle<BlocklistAIActionModel>,
         active_session: ModelHandle<ActiveSession>,
-        agent_view_controller: ModelHandle<AgentViewController>,
         terminal_model: Arc<FairMutex<TerminalModel>>,
         terminal_view_id: EntityId,
         ctx: &mut ModelContext<Self>,
@@ -482,47 +481,6 @@ impl BlocklistAIController {
                 FollowUpTrigger::Auto
             };
             me.send_follow_up_for_conversation(*conversation_id, trigger, ctx);
-        });
-
-        ctx.subscribe_to_model(&agent_view_controller, |me, event, ctx| {
-            let AgentViewControllerEvent::ExitedAgentView {
-                conversation_id,
-                final_exchange_count,
-                is_exit_before_new_entrance,
-                ..
-            } = event
-            else {
-                return;
-            };
-
-            // Skip if this exit is part of an in-place switch — cancelling here
-            // would kill an in-flight stream every time the user navigates.
-            if *is_exit_before_new_entrance {
-                return;
-            }
-
-            // If we exited a brand-new empty conversation, there's nothing meaningful to cancel.
-            if *final_exchange_count == 0 {
-                return;
-            }
-
-            let history = BlocklistAIHistoryModel::handle(ctx);
-            let Some(conversation) = history.as_ref(ctx).conversation(conversation_id) else {
-                return;
-            };
-
-            // Viewer sessions should not send cancellations.
-            if conversation.is_viewing_shared_session() {
-                return;
-            }
-
-            if conversation.status().is_in_progress() {
-                me.cancel_conversation_progress(
-                    *conversation_id,
-                    CancellationReason::ManuallyCancelled,
-                    ctx,
-                );
-            }
         });
 
         // Subscribe to the orchestration event service to inject events

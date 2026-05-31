@@ -20,8 +20,8 @@ use crate::ai::agent::{
     SendMessageToAgentResult, StartAgentExecutionMode, StartAgentResult,
 };
 use crate::ai::blocklist::action_model::AIActionStatus;
-use crate::ai::blocklist::agent_view::orchestration_avatar::OrchestrationAvatar;
-use crate::ai::blocklist::agent_view::orchestration_conversation_links::{
+use crate::ai::blocklist::avatar_disc::OrchestrationAvatar;
+use crate::ai::blocklist::orchestration_conversation_links::{
     conversation_id_for_agent_id, conversation_navigation_card_with_icon,
     dispatch_focus_or_open_child_agent_pane,
 };
