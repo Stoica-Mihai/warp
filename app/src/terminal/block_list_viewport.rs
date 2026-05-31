@@ -2045,9 +2045,7 @@ impl Iterator for ViewportIter<'_> {
                     }
                 },
                 _ => {
-                    if !FeatureFlag::AgentView.is_enabled() || block_height.as_f64() > 0. {
-                        return next;
-                    }
+                    return next;
                 }
             }
         }

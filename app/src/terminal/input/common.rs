@@ -31,14 +31,10 @@ use crate::workspaces::user_workspaces::UserWorkspaces;
 /// The message bar is hidden when AI is disabled, the user has turned it off in settings,
 /// or the session is a shared ambient agent session.
 pub(super) fn should_show_terminal_input_message_bar(
-    model: &TerminalModel,
-    app: &AppContext,
+    _model: &TerminalModel,
+    _app: &AppContext,
 ) -> bool {
-    FeatureFlag::AgentView.is_enabled()
-        && !FeatureFlag::AgentViewPromptChip.is_enabled()
-        && InputSettings::as_ref(app).is_terminal_input_message_bar_enabled()
-        && AISettings::as_ref(app).is_any_ai_enabled(app)
-        && !model.is_shared_ambient_agent_session()
+    false
 }
 
 /// Renders vim status bar

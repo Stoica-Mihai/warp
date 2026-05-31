@@ -116,7 +116,6 @@ impl Input {
 
         if FeatureFlag::ImageAsContext.is_enabled()
             && matches!(ai_input_model.input_type(), InputType::AI)
-            && !FeatureFlag::AgentView.is_enabled()
         {
             if let Some(images) = self.render_attachment_chips(appearance) {
                 column.add_child(
@@ -189,14 +188,12 @@ impl Input {
             );
         }
 
-        if !FeatureFlag::AgentView.is_enabled() {
-            if let Some(vim_state) = vim_state.as_ref() {
-                if show_vim_status {
-                    add_vim_status_to_stack(
-                        &mut stack, vim_state, appearance,
-                        false, // legacy doesn't use adjusted padding for vim status
-                    );
-                }
+        if let Some(vim_state) = vim_state.as_ref() {
+            if show_vim_status {
+                add_vim_status_to_stack(
+                    &mut stack, vim_state, appearance,
+                    false, // legacy doesn't use adjusted padding for vim status
+                );
             }
         }
 
@@ -242,7 +239,7 @@ impl Input {
         // When AgentView is enabled, match terminal-mode input behavior and only render the
         // divider adjacent to the status/message line when block dividers are enabled.
         let show_block_dividers = *BlockListSettings::as_ref(app).show_block_dividers.value();
-        let should_render_divider = !FeatureFlag::AgentView.is_enabled() || show_block_dividers;
+        let should_render_divider = true;
 
         let border = match input_mode {
             InputMode::PinnedToBottom => Border::top(if should_render_divider {

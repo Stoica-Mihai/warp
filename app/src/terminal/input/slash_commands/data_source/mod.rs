@@ -236,17 +236,8 @@ impl SlashCommandDataSource {
 
         let mut session_context = Availability::empty();
 
-        let is_agent_view_active = self.agent_view_controller.as_ref(ctx).is_active();
-        if !FeatureFlag::AgentView.is_enabled() {
-            // When the AgentView feature flag is disabled, set both view bits so that
-            // either view requirement is satisfied (but other requirements like
-            // REPOSITORY and LOCAL still apply).
-            session_context |= Availability::AGENT_VIEW | Availability::TERMINAL_VIEW;
-        } else if is_agent_view_active {
-            session_context |= Availability::AGENT_VIEW;
-        } else {
-            session_context |= Availability::TERMINAL_VIEW;
-        }
+        // Set both view bits so that either view requirement is satisfied.
+        session_context |= Availability::AGENT_VIEW | Availability::TERMINAL_VIEW;
 
         if self.active_repo_root.is_some() {
             session_context |= Availability::REPOSITORY;
@@ -269,14 +260,10 @@ impl SlashCommandDataSource {
             session_context |= Availability::NO_LRC_CONTROL;
         }
 
-        let has_active_conversation = if is_agent_view_active {
-            // There is always an active conversation in the agent view.
-            true
-        } else {
+        let has_active_conversation =
             BlocklistAIHistoryModel::as_ref(ctx)
                 .active_conversation(self.terminal_view_id)
-                .is_some()
-        };
+                .is_some();
         if has_active_conversation {
             session_context |= Availability::ACTIVE_CONVERSATION;
         }
