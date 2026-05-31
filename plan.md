@@ -305,56 +305,63 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Step 5 (`97a134ef`): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType kept real. 3-gate 0/0/0.
 - Step 6 (`125c0f72`): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op; `#[path]` redirect keeps 72 external `::history_model::` imports unchanged. 3-gate 0/0/0.
 
-**NEXT SESSION ENTRY POINT — "remove the stubs" — sub-tasks in order:**
+**CURRENT STATE (2026-05-31 session 2):**
+- 3-gate error counts: 71/92/71 (ALL pre-existing AI territory — NOT zero as AGENTS.md claimed; pre-dates this session)
+- Commits this session: `4bc84447` + `386ccd84` + `f3bae3a1`
 
-### Sub-task A: Relocate 7 shared modules out of block/ + inline_action/ (PREREQUISITE for deletion)
+### Sub-task A: Relocate shared non-AI modules — ✅ DONE
 
-These files live in AI-territory dirs but are used by non-AI code. Move them BEFORE deleting block/ and inline_action/:
+All done. New canonical locations in `terminal/view/`:
+- `inline_action_icons.rs` ✅ (old file = pub use re-export)
+- `inline_action_header.rs` ✅
+- `requested_action.rs` ✅
+- `requested_script.rs` ✅ (also needed by `terminal/ssh/install_tmux.rs`)
+- `keyboard_navigable_buttons.rs` ✅
+- `toggleable_items.rs` ✅
+- `with_content_item_spacing.rs` ✅ (extracted from block/view_impl.rs)
 
-From `block/`:
-- `keyboard_navigable_buttons.rs` → `terminal/view/keyboard_navigable_buttons.rs`
-  - Callers: `init_environment/mod.rs`, `init_project/mod.rs`, `ssh_remote_server_choice_view.rs`
-- `toggleable_items.rs` → `terminal/view/toggleable_items.rs`
-  - Callers: `init_project/lsp_server_selector.rs`, `init_project/mod.rs`
-- `block/view_impl.rs::WithContentItemSpacing` (trait) → `terminal/view/with_content_item_spacing.rs`
-  - Caller: `init_project/mod.rs`
+All non-AI callers updated to canonical paths. Old files in block/ and inline_action/ are pub use re-exports.
 
-From `inline_action/`:
-- `inline_action_header.rs` (INLINE_ACTION_HORIZONTAL_PADDING, HeaderConfig) → `terminal/view/inline_action_header.rs`
-  - Callers: `init_environment/mod.rs`, `init_project/lsp_server_selector.rs`, `inline_banner/passive_code_diff.rs`, `ssh_remote_server_choice_view.rs`
-- `inline_action_icons.rs` (icon_size, cancelled_icon, green_check_icon) → `terminal/view/inline_action_icons.rs`
-  - Callers: `init_environment/mod.rs`, `terminal/warpify/render.rs`, `view_components/compactible_action_button.rs`
-- `requested_action.rs` (ENTER_KEYSTROKE, ESCAPE_KEYSTROKE, RenderableAction) → `terminal/view/requested_action.rs`
-  - Callers: `terminal/ssh/install_tmux.rs`, `terminal/ssh/warpify.rs`, `init_environment/mod.rs`, `init_project/mod.rs`
+**Two items from original list deferred:**
+- `secret_redaction.rs` — has AI-type deps (`AIBlockAction`, `AIAgentOutput`, `AIAgentTextSection`) baked in; pure-function part (`find_secrets_in_text*`) can be split out, but requires reading 717 lines to identify the split. Deferred to Phase G pass.
+- `numbered_button.rs` — only used by `keyboard_navigable_buttons.rs` (now in terminal/view via `crate::ai::blocklist::block::numbered_button::render_recommended_badge`) and `number_shortcut_buttons.rs` (AI). Must relocate `render_recommended_badge` to terminal/view before block/ can be deleted.
 
-From `block/`:
-- `secret_redaction.rs` → `app/src/secret_redaction.rs`
-  - Callers: `terminal/block_list_element.rs`, `terminal/grid_renderer.rs`, `terminal/model/grid/secrets.rs`, `settings/privacy.rs`, `settings_view/privacy_page.rs`, `env_vars/`, `notebooks/`, `workspaces/`, `integration_testing/`
+### Sub-task B: Delete inline_action/ directory — ⏸ BLOCKED
 
-**Method for each relocation:**
-1. Copy file to new location; add `mod X;` in the new parent
-2. Add `pub use` re-export from old location in old mod.rs/block.rs  
-3. Verify 3-gate green (callers still use old import path via re-export)
-4. Commit checkpoint
-5. In a follow-up: update callers to use new path, remove re-export
+Blocker: `code_diff_view` is the sole remaining non-AI dependency in inline_action/:
+- `terminal/view.rs:231` — `use ..::code_diff_view::{CodeDiffView, FileDiff}`
+- `terminal/view.rs:10618` — `use ..::code_diff_view::CodeDiffViewEvent`
+- `workspace/view.rs:157` — `use ..::code_diff_view::CodeDiffView`
+- `pane_group/mod.rs:50` — `CodeDiffView`
+- `pane_group/pane/code_diff_pane.rs:8` — `CodeDiffView`, `CodeDiffViewEvent`
+- `pane_group/pane/code_diff_pane_model.rs:3` — same
+- `pane_group/pane/mod.rs:44` — `CodeDiffView`
+- `terminal/view/inline_banner/passive_code_diff.rs:4` — `CodeDiffView`
+- `code/inline_diff.rs:21` — `DiffSessionType`
 
-### Sub-task B: Delete inline_action/ directory
-
-After relocation of inline_action_header/icons/requested_action, the remaining inline_action/ files are AI-only (code_diff_view, ask_user_question_view, requested_command, orchestration_controls, requested_script, host_picker, aws_bedrock_credentials_error, create_environment_modal, create_or_edit_document). Check callers, then delete.
+**Plan:** In Phase G pass (when cleaning terminal/view.rs of AI refs), delete `passive_code_diff.rs` + `code_diff_pane.rs` + `code_diff_pane_model.rs` (all AI-specific views), remove CodeDiffView from workspace/view.rs, pane_group/, code/inline_diff.rs. THEN inline_action/ can be deleted.
 
 ### Sub-task C: Delete block/ directory and block.rs
 
-After sub-task A and B, the remaining block/ files are AI-only. Delete:
-- `block.rs` (6481 lines) + `block/` dir
-- This removes all callers of the stubs → stub files become linker-invisible-then-removable
-- Expected binary shrink: SIGNIFICANT (block rendering was live-linked)
+**CAN be done BEFORE sub-task B** via block_stubs.rs:
+1. Relocate `numbered_button::render_recommended_badge` → terminal/view (or inline in keyboard_navigable_buttons.rs)
+2. Handle `secret_redaction.rs` — split pure fns to `app/src/secret_redaction.rs`, keep AI-rendering fns; OR stub them
+3. Create `blocklist/block_stubs.rs` with stubs for: `AIBlock`, `AIBlockEvent`, `RequestedEditResolution`, `AIBlockResponseRating`, `TextLocation` (already in util), `init`, `model`, `FakeAIBlockModel`
+4. Delete `block.rs` (6481 lines) + `block/` dir
+5. Cargo check oracle → fix until 3-gate green
+6. Expected binary shrink: LARGE (block rendering was live-linked)
+
+**Non-AI callers of block.rs types to stub for:**
+- `terminal/block_list_element.rs`, `terminal/view.rs` — `AIBlock`, `AIBlockEvent`
+- `pane_group/`, `workspace/view.rs` — `AIBlock`
+- `lib.rs` — `init`, `model`, `FakeAIBlockModel` (cfg-test)
 
 ### Sub-task D: Delete all stub files
 
-After sub-tasks A-C, no code calls the stubs anymore:
+After sub-tasks A+C (or A+B+C), no code calls stubs:
 - Delete `action_stubs.rs`, `orchestration_stubs.rs`, `context_model_stubs.rs`, `input_model_stubs.rs`, `history_model_stubs.rs`
-- Remove their `mod` + `use` declarations from `mod.rs`
-- Remove stub singleton registrations from `lib.rs` (`BlocklistAIHistoryModel`, `BlocklistAIPermissions`, etc.)
+- Remove `mod` + `use` from `mod.rs`
+- Remove `lib.rs` singleton regs: `BlocklistAIHistoryModel`, `BlocklistAIPermissions`
 
 ### Sub-task E: Clean up Input struct + TerminalView
 
@@ -362,7 +369,7 @@ Remove `ai_input_model`, `ai_context_model`, `ai_action_model` fields from:
 - `terminal/input.rs` `Input` struct (50+ method bodies must be updated/deleted)
 - `terminal/view.rs` `TerminalView` struct (already cleaned in G-preview; verify nothing remains)
 
-Also delete `permissions.rs` and stub out/delete `persistence.rs` (relocate `SerializedBlockListItem` first since it's used by `pane_group/mod.rs` + `persistence/block_list.rs`).
+Also delete `permissions.rs` (all AI callers) + stub/delete `persistence.rs` (relocate `SerializedBlockListItem` first).
 
 **Correct Phase F+G order (CRITICAL — two subagents got this wrong):**
 
@@ -405,11 +412,18 @@ Keep: `ai_action_model`, `ai_input_model`, `ai_context_model`
 - ~~`ai/blocklist/context_model.rs`~~ ✅ `b3ae3d79` (stubbed → context_model_stubs.rs)
 - ~~`ai/blocklist/input_model.rs`~~ ✅ `97a134ef` (stubbed → input_model_stubs.rs)
 - ~~`ai/blocklist/history_model.rs` + `history_model/`~~ ✅ `125c0f72` (stubbed → history_model_stubs.rs, #[path] redirect)
-- **NEXT: `ai/blocklist/permissions.rs`** — 15 external files (all AI territory); compiles fine; stub optional before block.rs.
+- **`ai/blocklist/permissions.rs`** — all AI callers; safe to stub + delete with block.rs in sub-task C.
 - `persistence.rs` DEFERRED — `SerializedBlockListItem` load-bearing for session restore. Relocate it before delete.
-- **LAST: `ai/blocklist/block.rs` + `block/`** — before deleting, relocate:
-  - `secret_redaction` → `app/src/secret_redaction.rs`
-  - `keyboard_navigable_buttons`, `toggleable_items`, `numbered_button`, `compact_agent_input`, `inline_action_header`, `inline_action_icons`, `requested_action`, `WithContentItemSpacing` → `terminal/view/`
+- **NEXT: `ai/blocklist/block.rs` + `block/`** (sub-task C) — prerequisites:
+  - ~~`keyboard_navigable_buttons`~~ ✅ relocated to `terminal/view/`
+  - ~~`toggleable_items`~~ ✅ relocated to `terminal/view/`
+  - ~~`inline_action_header`~~ ✅ relocated to `terminal/view/`
+  - ~~`inline_action_icons`~~ ✅ relocated to `terminal/view/`
+  - ~~`requested_action`~~ ✅ relocated to `terminal/view/`
+  - ~~`requested_script`~~ ✅ relocated to `terminal/view/`
+  - ~~`WithContentItemSpacing`~~ ✅ relocated to `terminal/view/with_content_item_spacing.rs`
+  - **`numbered_button::render_recommended_badge`** — needed by `terminal/view/keyboard_navigable_buttons.rs`; widen to `pub` in terminal/view copy (DONE `pub(crate)` in original, must inline or move `numbered_button.rs` before block/ deleted)
+  - **`secret_redaction`** — 717 LoC, has AI-type deps; split pure fns (find_secrets_in_text*) to `app/src/secret_redaction.rs`; AI-rendering part deleted with block/
 - lib.rs: remove `BlocklistAIHistoryModel`, `BlocklistAIPermissions` registrations (OrchestrationEventService/TaskStatusSyncModel/OrchestrationEventStreamer/LocalSharedSessionLinkModel already updated to stubs)
 
 **KEEP in blocklist/:** `prompt/`, `view_util.rs`, `keystroke_render.rs`, `code_block.rs`. KEEP `ai/mcp/`.

@@ -31,13 +31,19 @@ telemetry · wasm-orphan crates · onboarding crate + flags · Sentry crash-repo
 - **Step 5** (`97a134ef`, 0 MB): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType/InputTypeAutoDetectionSource kept real. 3-gate 0/0/0.
 - **Step 6** (`125c0f72`, 0 MB): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op. `#[path]` redirect keeps 72 external `::history_model::` imports working. 3-gate 0/0/0.
 
-**Next: Phase F steps 7–9** — remaining blocklist cleanup + block.rs:
+**Phase F sub-task A DONE** (session 2, `4bc84447` + `386ccd84` + `f3bae3a1`):
+Relocated to `terminal/view/`: inline_action_icons, inline_action_header, requested_action, requested_script, keyboard_navigable_buttons, toggleable_items, with_content_item_spacing. Old files = pub use re-exports. All non-AI callers updated. Inlined ORCHESTRATION_WARP_WORKER_HOST + VIEWING_COMMAND_DETAIL_MESSAGE.
 
-7. **Delete `ai/blocklist/permissions.rs`** — 15 external files (block.rs, block/cli.rs, agent/api.rs — all AI territory); compiles fine now. Defer `persistence.rs` — `SerializedBlockListItem` is load-bearing for session restore in `pane_group/mod.rs` + `persistence/block_list.rs`.
-8. **Delete `ai/blocklist/block.rs` + `block/`** — requires relocating first:
-   - `secret_redaction` → `app/src/secret_redaction.rs`
-   - `keyboard_navigable_buttons`, `toggleable_items`, `numbered_button`, `compact_agent_input`, `inline_action_header`, `inline_action_icons`, `requested_action`, `WithContentItemSpacing` → `terminal/view/` (used by `init_project/`, `init_environment/`, `ssh_remote_server_choice_view`, `ambient_agent/`)
-9. **lib.rs:** remove `BlocklistAIHistoryModel`, `BlocklistAIPermissions` registrations (OrchestrationEventService/TaskStatusSyncModel/OrchestrationEventStreamer/LocalSharedSessionLinkModel already updated to use stubs)
+**Next: Phase F sub-task C — delete `ai/blocklist/block.rs` + `block/`** (big binary win). See plan.md. Sub-task B (inline_action/) blocked by code_diff_view — Phase G.
+
+Remaining prerequisites for block/ deletion:
+- Relocate `numbered_button::render_recommended_badge` (needed by `terminal/view/keyboard_navigable_buttons.rs`)
+- Split `secret_redaction.rs` (pure fns → `app/src/secret_redaction.rs`; AI-rendering deleted with block/)
+- Create `blocklist/block_stubs.rs` for AIBlock, AIBlockEvent, AIBlockResponseRating, init, model
+- Delete `permissions.rs` alongside block/ (all AI callers)
+- Relocate `SerializedBlockListItem` from `persistence.rs` before delete
+
+9. **lib.rs:** remove `BlocklistAIHistoryModel`, `BlocklistAIPermissions` registrations (OrchestrationEventService/TaskStatusSyncModel/OrchestrationEventStreamer/LocalSharedSessionLinkModel already updated to stubs)
 
 **STUB PATTERN (established this session):**
 - Delete the module files, create `ai/blocklist/<name>_stubs.rs`, stub all types with no-op implementations, re-export from `mod.rs`.
