@@ -23,40 +23,40 @@ telemetry · wasm-orphan crates · onboarding crate + flags · Sentry crash-repo
 
 **Current state:** Binary **794.3 MB** (−49.9 MB total vs 844.2 MB baseline). **0 errors / ~400 warnings** (all AI territory, deferred, no `#[allow(dead_code)]` cheats). App always starts in Terminal.
 
-**Phase G-preview done** (`1f600e66`, −10.97 MB): `ai_controller` removed from TerminalView struct; 35 AI-only methods deleted; passive_suggestions_models/agent_todos removed; local-only var pattern used.
+**Phase F steps 1–3 DONE** (2026-05-31):
+- **Step 1** (`202b79e0`, −7.96 MB): `controller/` + `passive_suggestions/` deleted. Types relocated: `SessionContext`, `RequestInput`, `ResponseStreamId`, `ClientIdentifiers` → `ai/blocklist/*.rs`. −6,081 LoC.
+- **Step 2** (`c42b65cb`, 0 MB linker-invisible): `action_model/` deleted. All types → `action_stubs.rs`. −13,421 LoC.
+- **Step 3** (`0576df88`, 0 MB linker-invisible): orchestration cluster deleted (orchestration_events, orchestration_event_streamer, orchestration_topology, orchestration_conversation_links, task_status_sync_model, local_shared_session_link_model). Types → `orchestration_stubs.rs`. −6,369 LoC.
 
-**Phase F step 1 DONE** (`202b79e0`, −7.96 MB):
-- `ai/blocklist/controller/` + `controller.rs` + `controller_tests.rs` + `passive_suggestions/` deleted
-- `SessionContext`, `RequestInput`, `ResponseStreamId`, `ClientIdentifiers` relocated to new `ai/blocklist/` type files
-- `BlocklistAIController` field/param/subscribe/update calls removed from terminal/input.rs, terminal/view.rs, block.rs, cli_controller.rs, status_bar.rs
-- SlashCommandRequest, ATTACHMENT_REGEX constants removed from terminal/
-- 3-gate green, 0 errors, −6,081 LoC
+**Next: Phase F steps 4–7** — remaining model layer deletions:
 
-**Phase F step 2 IN PROGRESS** (`action_model/` deleted, break sites being fixed):
-
-**Next: Phase F** — remaining model layer deletions:
-
-1. ~~**Delete `ai/blocklist/controller/` + `controller.rs`**~~ ✅ done (`202b79e0`)
-2. **Delete `ai/blocklist/action_model/` + `action_model.rs`** — IN PROGRESS (action_model deleted; fixing break sites)
-3. **Delete remaining model layers:**
-   - `ai/blocklist/history_model.rs` + `history_model/`
-   - `ai/blocklist/input_model.rs`
-   - `ai/blocklist/context_model.rs`
-   - `ai/blocklist/orchestration_events.rs` + `orchestration_topology.rs` + `orchestration_event_streamer.rs`
-   - `ai/blocklist/task_status_sync_model.rs`
-   - `ai/blocklist/permissions.rs`, `persistence.rs`, `passive_suggestions/`, leaf files
-4. **Delete `ai/blocklist/block.rs` + `block/`** — before deleting, relocate:
+4. **Delete `ai/blocklist/context_model.rs`** — 10 external files; moderate scope
+5. **Delete `ai/blocklist/input_model.rs`** — 33 external files; ai_input_model still in Input struct  
+6. **Delete `ai/blocklist/history_model.rs` + `history_model/`** — 62 external files; ~40 stub methods needed (largest remaining single target)
+7. **Delete `ai/blocklist/permissions.rs`, `persistence.rs`** — scope TBD
+8. **Delete `ai/blocklist/block.rs` + `block/`** — requires relocating first:
    - `secret_redaction` → `app/src/secret_redaction.rs`
    - `keyboard_navigable_buttons`, `toggleable_items`, `numbered_button`, `compact_agent_input`, `inline_action_header`, `inline_action_icons`, `requested_action`, `WithContentItemSpacing` → `terminal/view/` (used by `init_project/`, `init_environment/`, `ssh_remote_server_choice_view`, `ambient_agent/`)
-5. **lib.rs:** remove `BlocklistAIHistoryModel`, `BlocklistAIPermissions`, `OrchestrationEventService`, `TaskStatusSyncModel`, `OrchestrationEventStreamer`, `LocalSharedSessionLinkModel` registrations
+9. **lib.rs:** remove `BlocklistAIHistoryModel`, `BlocklistAIPermissions` registrations (OrchestrationEventService/TaskStatusSyncModel/OrchestrationEventStreamer/LocalSharedSessionLinkModel already updated to use stubs)
 
-**Phase F prerequisite:** Remove `ai_action_model`/`ai_input_model`/`ai_context_model` from Input struct. These 3 are used by 50+ method bodies in `terminal/input.rs` + subfiles (`classic.rs`, `universal.rs`, `terminal.rs`, `decorations.rs`). Phase F must stub/delete those method bodies, THEN remove the fields.
+**STUB PATTERN (established this session):**
+- Delete the module files, create `ai/blocklist/<name>_stubs.rs`, stub all types with no-op implementations, re-export from `mod.rs`.
+- For types still needed by non-deleted ai/agent/ code: relocate to new `ai/blocklist/<type>.rs` file instead.
+- Run cargo check oracle loop to discover missing stub methods — add them iteratively.
+- Stubs are linker-invisible (binary doesn't shrink) until the CALLERS in block/, inline_action/ are deleted.
+
+**Phase F prerequisite note:** `ai_action_model`/`ai_input_model`/`ai_context_model` are still in Input struct AND TerminalView struct. Removing them from Input requires fixing 50+ method bodies. The stubs approach means these fields now reference no-op implementations — fine to remove in a later pass alongside block/ deletion.
 
 **Phase F lessons (2026-05-31):**
-- **Relocate type pattern**: When deleting a module whose types are used by non-deleted ai/agent/ code, create minimal stub files (SessionContext/RequestInput/ResponseStreamId/ClientIdentifiers → `ai/blocklist/*.rs`) and re-export from mod.rs. Consumers don't need to change import paths.
-- **passive_suggestions was dead** — all handler methods already deleted in Phase G-preview; the types were dead imports in terminal/view.rs. Safe to delete with the controller.
-- **Phase F step 1 lesson**: controller + passive_suggestions deleted together since passive_suggestions only imported controller types.
+- **Stub pattern**: Delete module, create `<name>_stubs.rs` in `ai/blocklist/`, stub all types (unit structs, empty enums, no-op methods), re-export from `mod.rs`. Cargo check oracle finds missing methods iteratively.
+- **Relocate pattern** (for types still used by non-deleted ai/agent/ code): create minimal file in `ai/blocklist/` with just the struct/type, re-export from mod.rs. Consumers keep same import path.
+- **Linker visibility**: Stubs keep binary size flat. Real shrink comes when the CALLERS (block/, inline_action/) are deleted — deferred to step 8.
+- **passive_suggestions was dead** — all handler methods already deleted in G-preview; types were dead imports. Safe to delete with controller.
+- **orchestration_conversation_links functions**: UI rendering functions (conversation_navigation_card_with_icon returning `Box<dyn Element>`) need a warpui stub: `warpui::elements::Empty::new().finish()`.
+- **action_stubs.rs** grew to 400+ lines across 3 iterations. The cargo check oracle reliably finds missing variants/methods.
 - stub type files need `#[derive(Clone)]` for types used with `.clone()` calls.
+- **SingletonEntity impls**: All stub models need `impl SingletonEntity for X {}` so callers can use `X::handle(ctx)` and `X::as_ref(ctx)` patterns.
+- **run_agents_to_start_agent_mode** and **coerce_integer_args** are non-trivial functions used by block/ internals — copied verbatim from deleted action_model into action_stubs.rs (they only depend on crate/workspace deps, no deleted types).
 
 **Phase G-preview lessons (2026-05-31):**
 - `ai_render_context` + `cli_subagent_views` woven into `block_list_element.rs` rendering — keep as static-default fields, not removed from struct.

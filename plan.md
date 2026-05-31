@@ -265,9 +265,9 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 **Method that worked:** collapse dead `if flag.is_enabled() {…}` branches first (compiles fine with flag still defined — it's just fewer readers), bank green; remove flag def LAST once its readers hit zero. Cascades (banner module, dialog subsystem, URI route, REMOTE_CONTROL, close-session widget) surface as dead-code/unused-import warnings after the readers drop — use `cargo check --features gui` as the worklist oracle. For a subsystem that's reachable only through a now-permanently-false gate (close-confirm dialog, share banners), trace it to its event emitter — if the emitter is itself gated on `shared_session_status().is_sharer()` (always false), the whole chain is dead and removes cleanly. When a UI chip lives in kept agent code, re-gate it on the OTHER (off-by-default) flag rather than ripping the agent subsystem — defers cleanly, preserves default behavior.
 
-### AI strip — current state (`1f600e66`, 2026-05-31)
+### AI strip — current state (`0576df88`, 2026-05-31)
 
-**Binary**: 802.2 MB (−11.0 MB vs 813.2 MB). 3-gate 0/0/0. 0 errors, ~300 warnings (AI territory, deferred).
+**Binary**: 794.3 MB (−7.96 MB vs `1f600e66`). 3-gate 0/0/0. 0 errors, ~400 warnings (AI territory, deferred).
 
 **Phase G-preview DONE (`1f600e66`):**
 - `ai_controller: ModelHandle<BlocklistAIController>` removed from TerminalView struct (Phase G-preview goal achieved).
@@ -293,7 +293,12 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Relocated types: `AgentToolbarItemKind` → `context_chips/toolbar.rs`; `AgentViewState/EntryOrigin/render_block_container` → `terminal/view/agent_view_state.rs`; `AgentInputButtonTheme` → `terminal/view/ambient_agent/button_theme.rs`.
 - `TextLocation` relocated to `util/text_location.rs`; `LinkActionConstructors` to `util/link_detection.rs` (`73dd201c`).
 
-**What remains in `ai/blocklist/`:** `block.rs` (6506 lines) + `block/` dir + controller + action_model + history_model + context_model + input_model + orchestration cluster + permissions + persistence + passive_suggestions + leaf files.
+**Phase F steps 1–3 DONE:**
+- Step 1 `202b79e0`: controller + passive_suggestions deleted. Relocated: SessionContext, RequestInput, ResponseStreamId, ClientIdentifiers.
+- Step 2 `c42b65cb`: action_model deleted. Stub: `ai/blocklist/action_stubs.rs` (400+ lines).
+- Step 3 `0576df88`: orchestration cluster deleted (orchestration_events/streamer/topology/links, task_status_sync, local_shared_session_link). Stub: `ai/blocklist/orchestration_stubs.rs`.
+
+**What remains in `ai/blocklist/`:** `block.rs` (6506 lines) + `block/` dir + history_model + context_model + input_model + permissions + persistence + leaf files. No more controller/action_model/orchestration cluster. Stubs live in action_stubs.rs + orchestration_stubs.rs.
 
 **Correct Phase F+G order (CRITICAL — two subagents got this wrong):**
 
@@ -326,18 +331,21 @@ Also delete (second recast pass, 7 methods): `build_agent_todos_popup|handle_age
 `ai_controller`, `passive_suggestions_models`, `get_relevant_files_controller`, `ai_render_context`, `conversation_ended_tombstone_view_id`, `conversation_completed_callbacks`, `cli_subagent_views`, `cli_subagent_controller`, `pending_user_query_view_id`, `pending_user_query_kind`, `queued_prompt_callback`, `is_todo_popup_visible`, `agent_todos_popup`, `usage_footer_view_ids`
 Keep: `ai_action_model`, `ai_input_model`, `ai_context_model`
 
-**Phase F deletions** (after G-preview, safe once callers gone):
-- `ai/blocklist/block.rs` + `block/` dir — AIBlock is Warp-only; vendor CLI agents use PTY, not AIBlock
-- Before deleting block/: relocate `secret_redaction` → `app/src/secret_redaction.rs`; relocate `keyboard_navigable_buttons`, `toggleable_items`, `numbered_button`, `compact_agent_input`, `inline_action_header`, `inline_action_icons`, `requested_action`, `WithContentItemSpacing` → `terminal/view/` (used by `init_project/`, `init_environment/`, `ssh_remote_server_choice_view`, `ambient_agent/`)
-- `ai/blocklist/controller/` + `controller.rs`
-- `ai/blocklist/action_model/` + `action_model.rs`
-- `ai/blocklist/history_model.rs` + `history_model/`
-- `ai/blocklist/input_model.rs`
-- `ai/blocklist/context_model.rs`
-- `ai/blocklist/orchestration_events.rs` + `orchestration_topology.rs` + `orchestration_event_streamer.rs`
-- `ai/blocklist/task_status_sync_model.rs`
-- `ai/blocklist/permissions.rs` + `persistence.rs` + `passive_suggestions/` + leaf files
-- lib.rs: remove `BlocklistAIHistoryModel`, `BlocklistAIPermissions`, `OrchestrationEventService`, `TaskStatusSyncModel`, `OrchestrationEventStreamer`, `LocalSharedSessionLinkModel` registrations
+**Phase F deletions status:**
+- ~~`ai/blocklist/controller/` + `controller.rs`~~ ✅ `202b79e0`
+- ~~`ai/blocklist/passive_suggestions/`~~ ✅ `202b79e0`
+- ~~`ai/blocklist/action_model/` + `action_model.rs`~~ ✅ `c42b65cb` (stubbed)
+- ~~`ai/blocklist/orchestration_events.rs` + `orchestration_topology.rs` + `orchestration_event_streamer.rs` + `orchestration_conversation_links.rs`~~ ✅ `0576df88` (stubbed)
+- ~~`ai/blocklist/task_status_sync_model.rs`~~ ✅ `0576df88` (stubbed)
+- ~~`ai/blocklist/local_shared_session_link_model.rs`~~ ✅ `0576df88` (stubbed)
+- **NEXT: `ai/blocklist/context_model.rs`** — 10 external files. Stub pattern.
+- **NEXT: `ai/blocklist/input_model.rs`** — 33 external files. Stub pattern.
+- **NEXT: `ai/blocklist/history_model.rs` + `history_model/`** — 62 external files, ~40 stub methods. Largest remaining.
+- **NEXT: `ai/blocklist/permissions.rs` + `persistence.rs`** — scope TBD.
+- **LAST: `ai/blocklist/block.rs` + `block/`** — before deleting, relocate:
+  - `secret_redaction` → `app/src/secret_redaction.rs`
+  - `keyboard_navigable_buttons`, `toggleable_items`, `numbered_button`, `compact_agent_input`, `inline_action_header`, `inline_action_icons`, `requested_action`, `WithContentItemSpacing` → `terminal/view/`
+- lib.rs: remove `BlocklistAIHistoryModel`, `BlocklistAIPermissions` registrations (OrchestrationEventService/TaskStatusSyncModel/OrchestrationEventStreamer/LocalSharedSessionLinkModel already updated to stubs)
 
 **KEEP in blocklist/:** `prompt/`, `view_util.rs`, `keystroke_render.rs`, `code_block.rs`. KEEP `ai/mcp/`.
 
