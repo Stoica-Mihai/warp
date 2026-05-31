@@ -2980,16 +2980,7 @@ impl TerminalView {
                                                 );
                                             });
                                         }
-                                        AgentViewZeroStateEvent::OpenConversation {
-                                            conversation_id,
-                                        } => {
-                                            me.enter_agent_view_for_conversation(
-                                                None,
-                                                AgentViewEntryOrigin::ConversationListView,
-                                                *conversation_id,
-                                                ctx,
-                                            );
-                                        }
+                                        AgentViewZeroStateEvent::OpenConversation { .. } => {}
                                     },
                                 );
                                 me.insert_rich_content(
@@ -5636,45 +5627,8 @@ impl TerminalView {
                     ctx,
                 );
             }
-            CLISubagentEvent::FinishedSubagent {
-                block_id,
-                conversation_id,
-                ..
-            } => {
+            CLISubagentEvent::FinishedSubagent { block_id, .. } => {
                 self.cli_subagent_views.remove(block_id);
-
-                if FeatureFlag::AgentView.is_enabled() {
-                    let Some(conversation_id) = conversation_id else {
-                        return;
-                    };
-
-                    if self.has_existing_lrc_agent_view_block(*conversation_id)
-                        || self
-                            .agent_view_controller
-                            .as_ref(ctx)
-                            .agent_view_state()
-                            .is_active()
-                    {
-                        return;
-                    }
-
-                    // In the case that the user has taken control and already exited the agent view,
-                    // we insert the corresponding agent view block on command finish instead.
-                    self.insert_agent_view_entry_block(
-                        AgentViewEntryBlockParams {
-                            conversation_id: *conversation_id,
-                            is_new: true,
-                            is_restored: false,
-                            origin: AgentViewEntryOrigin::LongRunningCommand,
-                            agent_view_controller: self.agent_view_controller.clone(),
-                        },
-                        RichContentInsertionPosition::Append {
-                            insert_below_long_running_block: true,
-                        },
-                        ctx,
-                    );
-                    ctx.notify();
-                }
             }
             CLISubagentEvent::ToggledHideResponses => {}
             CLISubagentEvent::UpdatedLastSnapshot => {}
@@ -5695,36 +5649,22 @@ impl TerminalView {
         conversation_id: &AIConversationId,
         ctx: &mut ViewContext<Self>,
     ) {
-        if FeatureFlag::AgentView.is_enabled() {
-            self.enter_agent_view_for_conversation(
-                None,
-                AgentViewEntryOrigin::ContinueConversationButton,
+        self.ai_context_model.update(ctx, |context_model, ctx| {
+            context_model.set_pending_query_state_for_existing_conversation(
                 *conversation_id,
+                AgentViewEntryOrigin::ContinueConversationButton,
                 ctx,
             );
-        } else {
-            // Set pending query as follow-up in context model
-            self.ai_context_model.update(ctx, |context_model, ctx| {
-                context_model.set_pending_query_state_for_existing_conversation(
-                    *conversation_id,
-                    AgentViewEntryOrigin::ContinueConversationButton,
-                    ctx,
-                );
-            });
+        });
 
-            // Set input config to AI mode, preserving user's autodetect preference
-            self.ai_input_model.update(ctx, |input_model, ctx| {
-                input_model.set_input_type(
-                    InputType::AI,
-                    Some(InputTypeAutoDetectionSource::ContinueConversation),
-                    ctx,
-                );
-            });
-        }
+        self.ai_input_model.update(ctx, |input_model, ctx| {
+            input_model.set_input_type(
+                InputType::AI,
+                Some(InputTypeAutoDetectionSource::ContinueConversation),
+                ctx,
+            );
+        });
 
-        // Send telemetry for follow-up toggle
-
-        // Focus the input
         self.redetermine_global_focus(ctx);
     }
 
@@ -5733,17 +5673,13 @@ impl TerminalView {
         conversation_id: &AIConversationId,
         ctx: &mut ViewContext<Self>,
     ) {
-        // If `AgentView` is enabled, this button is only rendered when the agent view is already
-        // active for the selected conversation, so this call is redundant.
-        if !FeatureFlag::AgentView.is_enabled() {
-            self.ai_context_model.update(ctx, |context_model, ctx| {
-                context_model.set_pending_query_state_for_existing_conversation(
-                    *conversation_id,
-                    AgentViewEntryOrigin::ResumeConversationButton,
-                    ctx,
-                )
-            });
-        }
+        self.ai_context_model.update(ctx, |context_model, ctx| {
+            context_model.set_pending_query_state_for_existing_conversation(
+                *conversation_id,
+                AgentViewEntryOrigin::ResumeConversationButton,
+                ctx,
+            )
+        });
 
         self.ai_controller.update(ctx, |controller, ctx| {
             controller.resume_conversation(
@@ -9026,73 +8962,9 @@ impl TerminalView {
             },
         );
 
-        if FeatureFlag::PromptSuggestionsViaMAA.is_enabled() {
-            let conversation_id = if let Some(conversation_id) = conversation_id {
-                conversation_id
-            } else {
-                match self.try_enter_agent_view(
-                    None,
-                    AgentViewEntryOrigin::AcceptedPromptSuggestion,
-                    None,
-                    ctx,
-                ) {
-                    Ok(conversation_id) => {
-                        if let Some(block_id) = trigger_block_id.as_ref() {
-                            self.associate_and_promote_block_for_conversation(
-                                block_id.clone(),
-                                conversation_id,
-                                ctx,
-                            );
-                        }
-                        conversation_id
-                    }
-                    Err(e) => {
-                        log::error!("Failed to enter agent view for passive code diff: {e:?}");
-                        return false;
-                    }
-                }
-            };
-
-            self.ai_controller.update(ctx, |controller, ctx| {
-                controller.send_passive_suggestion_result(
-                    Some(conversation_id),
-                    PassiveSuggestionResultType::Prompt { prompt },
-                    trigger,
-                    ctx,
-                );
-            });
-        } else {
-            if let Some(PassiveSuggestionTrigger::ShellCommandCompleted(c)) = &banner_state.trigger
-            {
-                let block_id = c.executed_shell_command.id.clone();
-                self.ai_context_model.update(ctx, |context_model, ctx| {
-                    context_model.set_pending_context_block_ids(vec![block_id], true, ctx);
-                });
-            }
-            // When `should_start_new_conversation` is false and agent view is already
-            // active, continue in the existing conversation rather than starting a new one.
-            let conversation_id = if !should_start_new_conversation {
-                self.agent_view_controller
-                    .as_ref(ctx)
-                    .agent_view_state()
-                    .active_conversation_id()
-            } else {
-                None
-            };
-            self.enter_agent_view(
-                Some(prompt),
-                conversation_id,
-                AgentViewEntryOrigin::AcceptedPromptSuggestion,
-                ctx,
-            );
-        }
-
-        // Send telemetry.
-        if is_static_suggestion {
-        } else {
-        }
-
-        true
+        // Agent view removed; prompt suggestion acceptance is a no-op.
+        let _ = (prompt, trigger, conversation_id, should_start_new_conversation, is_static_suggestion);
+        false
     }
 
     /// Try clearing agent mode query banner's passive code generation state.
@@ -10992,18 +10864,7 @@ impl TerminalView {
                             }
                             ctx.emit(Event::PendingCommandCompleted);
 
-                            // If agent view entry was deferred until setup commands
-                            // finished, enter it now (unless suppressed by onboarding).
-                            if self.enter_agent_view_after_pending_commands {
-                                self.enter_agent_view_after_pending_commands = false;
-                                self.enter_agent_view_for_new_conversation(
-                                    None,
-                                    AgentViewEntryOrigin::Input {
-                                        was_prompt_autodetected: false,
-                                    },
-                                    ctx,
-                                );
-                            }
+                            self.enter_agent_view_after_pending_commands = false;
                         }
                     }
                 }
@@ -12473,20 +12334,11 @@ impl TerminalView {
             .and_then(|session_id| self.sessions.as_ref(ctx).get(session_id))
             .and_then(|session| session.path().clone());
 
-        // Create new conversation for init flow (this ensures we enter the agent view)
-        let Some(conversation_id) = (if FeatureFlag::AgentView.is_enabled() {
-            self.enter_agent_view_for_new_conversation(None, AgentViewEntryOrigin::SlashInit, ctx);
-            self.agent_view_controller()
-                .as_ref(ctx)
-                .agent_view_state()
-                .active_conversation_id()
-        } else {
-            Some(
-                BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, ctx| {
-                    history_model.start_new_conversation(self.view_id, false, false, false, ctx)
-                }),
-            )
-        }) else {
+        let Some(conversation_id) = Some(
+            BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, ctx| {
+                history_model.start_new_conversation(self.view_id, false, false, false, ctx)
+            }),
+        ) else {
             return;
         };
 
@@ -12729,16 +12581,6 @@ impl TerminalView {
     }
 
     fn setup_cloud_environment(&mut self, args: Vec<String>, ctx: &mut ViewContext<Self>) {
-        if FeatureFlag::AgentView.is_enabled()
-            && !self.agent_view_controller.as_ref(ctx).is_active()
-        {
-            self.enter_agent_view_for_new_conversation(
-                None,
-                AgentViewEntryOrigin::CreateEnvironment,
-                ctx,
-            );
-        }
-
         let repos = args;
         let (button_label, use_current_dir) = if !repos.is_empty() {
             (
@@ -12846,16 +12688,6 @@ impl TerminalView {
         args: Vec<String>,
         ctx: &mut ViewContext<Self>,
     ) {
-        if FeatureFlag::AgentView.is_enabled()
-            && !self.agent_view_controller.as_ref(ctx).is_active()
-        {
-            self.enter_agent_view_for_new_conversation(
-                None,
-                AgentViewEntryOrigin::CreateEnvironment,
-                ctx,
-            );
-        }
-
         let repos = args;
 
         #[cfg(feature = "local_fs")]
@@ -13567,79 +13399,7 @@ impl TerminalView {
                     ctx.notify();
                 }
                 CodeDiffViewEvent::ContinuePassiveCodeDiffWithAgent { accepted } => {
-                    let conversation_id = if let Some(conversation_id) = conversation_id {
-                        conversation_id
-                    } else {
-                        // No existing conversation (ephemeral shell-command trigger): start a
-                        // new one and open the agent view.
-                        match me.try_enter_agent_view(
-                            None,
-                            AgentViewEntryOrigin::AcceptedPassiveCodeDiff,
-                            None,
-                            ctx,
-                        ) {
-                            Ok(conversation_id) => {
-                                if let Some(block_id) = trigger_block_id.as_ref() {
-                                    me.associate_and_promote_block_for_conversation(
-                                        block_id.clone(),
-                                        conversation_id,
-                                        ctx,
-                                    );
-                                }
-                                me.set_rich_content_agent_view_conversation_id(
-                                    wrapper_view_id,
-                                    conversation_id,
-                                );
-                                conversation_id
-                            }
-                            Err(e) => {
-                                log::error!(
-                                    "Failed to enter agent view for passive code diff: {e:?}"
-                                );
-                                return;
-                            }
-                        }
-                    };
-
-                    // Use the passive diff summary as the conversation title.
-                    if let Some(title) = title_for_result.as_ref() {
-                        BlocklistAIHistoryModel::handle(ctx).update(ctx, |history, _ctx| {
-                            if let Some(conversation) = history.conversation_mut(&conversation_id) {
-                                conversation.set_fallback_display_title(title.clone());
-                            }
-                        });
-                    }
-
-                    let summary = title_for_result.clone().unwrap_or_default();
-                    let diffs = original_edits.clone();
-                    if *accepted {
-                        me.ai_controller.update(ctx, |controller, ctx| {
-                            controller.send_passive_suggestion_result(
-                                Some(conversation_id),
-                                PassiveSuggestionResultType::CodeDiff {
-                                    diffs,
-                                    summary,
-                                    accepted: true,
-                                },
-                                Some(trigger.clone()),
-                                ctx,
-                            );
-                        });
-                    } else {
-                        // Queue the result so it's included with the next
-                        // user-initiated request on this conversation.
-                        me.ai_controller.update(ctx, |controller, _ctx| {
-                            controller.queue_passive_suggestion_result(
-                                conversation_id,
-                                PassiveSuggestionResultType::CodeDiff {
-                                    diffs,
-                                    summary,
-                                    accepted: false,
-                                },
-                                Some(trigger.clone()),
-                            );
-                        });
-                    }
+                    let _ = (accepted, conversation_id, trigger_block_id.as_ref(), title_for_result.as_ref(), original_edits.clone());
                 }
                 CodeDiffViewEvent::EditModeChanged { enabled } => {
                     if *enabled {
@@ -16641,56 +16401,8 @@ impl TerminalView {
         self.clear_buffer(ctx);
     }
 
-    /// Performs a variant of the "clear buffer" action that is special for the agent view.
-    /// Returns true iff the clear was successful.
-    fn try_clear_buffer_in_agent_view(&mut self, ctx: &mut ViewContext<Self>) -> bool {
-        let at_least_one_visible_block = self
-            .model
-            .lock()
-            .block_list()
-            .has_visible_block_height_item_where(|_| true);
-
-        // If there are no visible blocks, then "clear buffer" is a no-op.
-        if !at_least_one_visible_block {
-            true
-        } else {
-            // Otherwise, there are some visible blocks and we need to clear stuff.
-            let active_block_is_long_running = self
-                .model
-                .lock()
-                .block_list()
-                .active_block()
-                .is_active_and_long_running();
-            let is_agent_monitoring = self
-                .model
-                .lock()
-                .block_list()
-                .active_block()
-                .is_agent_monitoring();
-
-            // If there isn't an active long running block, then "clear buffer" just starts a new convo.
-            if !active_block_is_long_running {
-                self.enter_agent_view_for_new_conversation(
-                    None,
-                    AgentViewEntryOrigin::ClearBuffer,
-                    ctx,
-                );
-                true
-            } else if is_agent_monitoring {
-                // Otherwise, if the agent is monitoring this long-running block,
-                // then clear just that block and leave the rest of the blocklist in tact.
-                self.model.lock().clear_screen(ClearMode::ActiveBlock);
-                self.find_model.update(ctx, |find_model, ctx| {
-                    find_model.clear_matches(ctx);
-                });
-                self.update_find_selection(ctx);
-                true
-            } else {
-                // Otherwise, if this is a long-running command that is not agent-monitored,
-                // just clear the buffer normally.
-                false
-            }
-        }
+    fn try_clear_buffer_in_agent_view(&mut self, _ctx: &mut ViewContext<Self>) -> bool {
+        false
     }
 
     fn clear_buffer(&mut self, ctx: &mut ViewContext<Self>) {
@@ -18965,27 +18677,7 @@ impl TerminalView {
                     );
                 }
             }
-            InputEvent::EnterAgentView {
-                initial_prompt,
-                conversation_id,
-                origin,
-            } => match conversation_id {
-                Some(id) => {
-                    self.enter_agent_view_for_conversation(
-                        initial_prompt.clone(),
-                        *origin,
-                        *id,
-                        ctx,
-                    );
-                }
-                None => {
-                    self.enter_agent_view_for_new_conversation(
-                        initial_prompt.clone(),
-                        *origin,
-                        ctx,
-                    );
-                }
-            },
+            InputEvent::EnterAgentView { .. } => {}
             InputEvent::EnterCloudAgentView { initial_prompt } => {
                 self.enter_cloud_agent_view(initial_prompt.clone(), ctx);
             }
@@ -18996,39 +18688,7 @@ impl TerminalView {
                 }
                 self.create_and_push_docker_sandbox(ctx);
             }
-            InputEvent::ExitCloudModeAndStartLocalAgent { initial_prompt } => {
-                let origin = AgentViewEntryOrigin::Input {
-                    was_prompt_autodetected: false,
-                };
-                let initial_prompt = initial_prompt.clone();
-
-                if let Some(pane_stack) = self.pane_stack.as_ref().and_then(|h| h.upgrade(ctx)) {
-                    let should_pop = pane_stack.as_ref(ctx).depth() > 1;
-                    if should_pop {
-                        pane_stack.update(ctx, |stack, ctx| {
-                            stack.pop(ctx);
-                        });
-                    }
-
-                    let active_view = pane_stack.as_ref(ctx).active_view().clone();
-
-                    // If the active view is `self`, this cloud-mode terminal is the root of the
-                    // pane stack and has no parent terminal to host a local agent conversation.
-                    if active_view.id() == self.id() {
-                        log::warn!(
-                            "ExitCloudModeAndStartLocalAgent received but cloud-mode pane has no parent terminal"
-                        );
-                    } else {
-                        active_view.update(ctx, |view, ctx| {
-                            view.enter_agent_view_for_new_conversation(initial_prompt, origin, ctx);
-                        });
-                    }
-                } else {
-                    log::warn!(
-                        "ExitCloudModeAndStartLocalAgent received but no pane stack available; cannot start local agent without a parent terminal"
-                    );
-                }
-
+            InputEvent::ExitCloudModeAndStartLocalAgent { .. } => {
                 ctx.notify();
             }
             InputEvent::Escape => {
@@ -20240,30 +19900,17 @@ impl TerminalView {
             review_comments,
         };
 
-        if FeatureFlag::AgentView.is_enabled()
-            && !self.agent_view_controller.as_ref(ctx).is_active()
-        {
-            self.enter_agent_view_for_new_conversation(
-                None,
-                AgentViewEntryOrigin::InlineCodeReview,
+        self.ai_input_model.update(ctx, |input_model, ctx| {
+            input_model.set_input_config(
+                input_model
+                    .input_config()
+                    .with_input_type(InputType::AI)
+                    .unlocked_if_autodetection_enabled(false, ctx),
+                true,
+                Some(InputTypeAutoDetectionSource::InlineCodeReviewSend),
                 ctx,
             );
-        } else {
-            // In general, user has expressed intent to "enter agent mode" by sending the inline review.
-            // When NLD is on, this means unlocking any status locks similar to other agent mode queries.
-            // When NLD is off, we override the input mode to AI.
-            self.ai_input_model.update(ctx, |input_model, ctx| {
-                input_model.set_input_config(
-                    input_model
-                        .input_config()
-                        .with_input_type(InputType::AI)
-                        .unlocked_if_autodetection_enabled(false, ctx),
-                    true,
-                    Some(InputTypeAutoDetectionSource::InlineCodeReviewSend),
-                    ctx,
-                );
-            });
-        }
+        });
 
         self.ai_controller.update(ctx, |controller, ctx| {
             // Send the code review request to the AI controller and return the result
