@@ -8084,11 +8084,9 @@ impl EditorView {
         let input_settings = InputSettings::as_ref(ctx);
         let is_universal_input_enabled = input_settings.is_universal_developer_input_enabled(ctx);
         let is_any_ai_enabled = AISettings::as_ref(ctx).is_any_ai_enabled(ctx);
-        let should_show_image = !FeatureFlag::AgentView.is_enabled()
-            && self.image_context_options.should_show_button()
+        let should_show_image = self.image_context_options.should_show_button()
             && !is_universal_input_enabled;
-        let should_show_at_context_menu = !FeatureFlag::AgentView.is_enabled()
-            && !is_universal_input_enabled
+        let should_show_at_context_menu = !is_universal_input_enabled
             && is_any_ai_enabled
             && {
                 if !self.is_ai_input {

@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use warp_core::features::FeatureFlag;
 use warpui::elements::{
     ChildView, Clipped, Container, CrossAxisAlignment, Element, Flex, MainAxisAlignment,
     MainAxisSize, ParentElement, Wrap,
@@ -373,9 +372,8 @@ impl View for PromptDisplay {
     }
 
     fn render(&self, app: &AppContext) -> Box<dyn Element> {
-        let should_render_udi_chips = InputSettings::as_ref(app)
-            .is_universal_developer_input_enabled(app)
-            || FeatureFlag::AgentView.is_enabled();
+        let should_render_udi_chips =
+            InputSettings::as_ref(app).is_universal_developer_input_enabled(app);
         let mut row = if should_render_udi_chips {
             RowBuilder::Wrap(
                 Wrap::row()

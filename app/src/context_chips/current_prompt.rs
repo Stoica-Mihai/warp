@@ -29,7 +29,6 @@ use crate::code_review::git_status_update::{GitRepoStatusEvent, GitRepoStatusMod
 use crate::context_chips::display_chip::GitLineChanges;
 use crate::debounce::debounce;
 use crate::editor::EditorView;
-use crate::features::FeatureFlag;
 use crate::menu::{MenuItem, MenuItemFields};
 use crate::report_if_error;
 use crate::settings::{InputSettings, WarpPromptSeparator};
@@ -261,7 +260,6 @@ impl CurrentPrompt {
             // or AgentView is enabled (agent view needs chips regardless of PS1 setting).
             if *SessionSettings::as_ref(ctx).honor_ps1
                 && !InputSettings::as_ref(ctx).is_universal_developer_input_enabled(ctx)
-                && !FeatureFlag::AgentView.is_enabled()
             {
                 return;
             }
@@ -1102,26 +1100,7 @@ impl CurrentPrompt {
     fn chips_to_run(&self, ctx: &AppContext) -> Vec<ContextChipKind> {
         let mut chips = self.configured_chips(ctx);
 
-        if FeatureFlag::AgentView.is_enabled() {
-            let footer_chips = SessionSettings::as_ref(ctx)
-                .agent_footer_chip_selection
-                .all_chips();
-            for chip_kind in footer_chips {
-                if !chips.contains(&chip_kind) {
-                    chips.push(chip_kind);
-                }
-            }
 
-            // Also include chips configured for the CLI agent footer.
-            let cli_footer_chips = SessionSettings::as_ref(ctx)
-                .cli_agent_footer_chip_selection
-                .all_chips();
-            for chip_kind in cli_footer_chips {
-                if !chips.contains(&chip_kind) {
-                    chips.push(chip_kind);
-                }
-            }
-        }
 
         chips
     }
@@ -1619,12 +1598,8 @@ impl CurrentPrompt {
     /// Whether or not context chips are active. If this is false, we can skip running them.
     fn active(&self, ctx: &AppContext) -> bool {
         // Context chips are active when:
-        // 1. PS1 is not honored (normal case), OR
-        // 2. Universal developer input is enabled (overrides PS1 behavior), OR
-        // 3. AgentView feature is enabled (agent view needs chips regardless of PS1)
         !*SessionSettings::as_ref(ctx).honor_ps1
             || InputSettings::as_ref(ctx).is_universal_developer_input_enabled(ctx)
-            || FeatureFlag::AgentView.is_enabled()
     }
 }
 
