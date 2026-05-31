@@ -23,17 +23,17 @@ telemetry · wasm-orphan crates · onboarding crate + flags · Sentry crash-repo
 
 **Current state:** Binary **794.3 MB** (−49.9 MB total vs 844.2 MB baseline). **0 errors / ~400 warnings** (all AI territory, deferred, no `#[allow(dead_code)]` cheats). App always starts in Terminal.
 
-**Phase F steps 1–3 DONE** (2026-05-31):
-- **Step 1** (`202b79e0`, −7.96 MB): `controller/` + `passive_suggestions/` deleted. Types relocated: `SessionContext`, `RequestInput`, `ResponseStreamId`, `ClientIdentifiers` → `ai/blocklist/*.rs`. −6,081 LoC.
-- **Step 2** (`c42b65cb`, 0 MB linker-invisible): `action_model/` deleted. All types → `action_stubs.rs`. −13,421 LoC.
-- **Step 3** (`0576df88`, 0 MB linker-invisible): orchestration cluster deleted (orchestration_events, orchestration_event_streamer, orchestration_topology, orchestration_conversation_links, task_status_sync_model, local_shared_session_link_model). Types → `orchestration_stubs.rs`. −6,369 LoC.
+**Phase F steps 1–6 DONE** (2026-05-31):
+- **Step 1** (`202b79e0`, −7.96 MB): `controller/` + `passive_suggestions/` deleted. −6,081 LoC.
+- **Step 2** (`c42b65cb`, 0 MB): `action_model/` deleted → `action_stubs.rs`. −13,421 LoC.
+- **Step 3** (`0576df88`, 0 MB): orchestration cluster deleted → `orchestration_stubs.rs`. −6,369 LoC.
+- **Step 4** (`b3ae3d79`, 0 MB): `context_model.rs` (924 LoC) + tests deleted → `context_model_stubs.rs`. block_context_from_terminal_model kept intact. 3-gate 0/0/0.
+- **Step 5** (`97a134ef`, 0 MB): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType/InputTypeAutoDetectionSource kept real. 3-gate 0/0/0.
+- **Step 6** (`125c0f72`, 0 MB): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op. `#[path]` redirect keeps 72 external `::history_model::` imports working. 3-gate 0/0/0.
 
-**Next: Phase F steps 4–7** — remaining model layer deletions:
+**Next: Phase F steps 7–9** — remaining blocklist cleanup + block.rs:
 
-4. **Delete `ai/blocklist/context_model.rs`** — 10 external files; moderate scope
-5. **Delete `ai/blocklist/input_model.rs`** — 33 external files; ai_input_model still in Input struct  
-6. **Delete `ai/blocklist/history_model.rs` + `history_model/`** — 62 external files; ~40 stub methods needed (largest remaining single target)
-7. **Delete `ai/blocklist/permissions.rs`, `persistence.rs`** — scope TBD
+7. **Delete `ai/blocklist/permissions.rs`** — 15 external files (block.rs, block/cli.rs, agent/api.rs — all AI territory); compiles fine now. Defer `persistence.rs` — `SerializedBlockListItem` is load-bearing for session restore in `pane_group/mod.rs` + `persistence/block_list.rs`.
 8. **Delete `ai/blocklist/block.rs` + `block/`** — requires relocating first:
    - `secret_redaction` → `app/src/secret_redaction.rs`
    - `keyboard_navigable_buttons`, `toggleable_items`, `numbered_button`, `compact_agent_input`, `inline_action_header`, `inline_action_icons`, `requested_action`, `WithContentItemSpacing` → `terminal/view/` (used by `init_project/`, `init_environment/`, `ssh_remote_server_choice_view`, `ambient_agent/`)
@@ -46,6 +46,13 @@ telemetry · wasm-orphan crates · onboarding crate + flags · Sentry crash-repo
 - Stubs are linker-invisible (binary doesn't shrink) until the CALLERS in block/, inline_action/ are deleted.
 
 **Phase F prerequisite note:** `ai_action_model`/`ai_input_model`/`ai_context_model` are still in Input struct AND TerminalView struct. Removing them from Input requires fixing 50+ method bodies. The stubs approach means these fields now reference no-op implementations — fine to remove in a later pass alongside block/ deletion.
+
+**Phase F steps 4–6 lessons (2026-05-31):**
+- **`#[path]` redirect trick**: for modules with 20+ external direct imports (`::history_model::X`), use `#[path = "history_model_stubs.rs"] pub mod history_model;` in mod.rs — keeps ALL external `::history_model::` imports working without touching any caller. Avoids a 20-file import rewrite.
+- **First-try green**: both context_model and history_model stubs passed cargo check on the first attempt with no oracle iterations needed — comprehensive upfront analysis of callers avoids iteration cycles.
+- **input_model stub**: `detect_and_set_input_type` no-op removes AI autodetection; `should_run_input_autodetection` always false; InputConfig/InputType kept real (used in shell rendering decisions). Model still stores and emits config changes — shell mode toggle still works.
+- **history_model SingletonEntity**: must be registered in lib.rs (see Phase F step 6 commit). If you remove the registration call, warpui panics at runtime when `BlocklistAIHistoryModel::handle(ctx)` is called (same lesson as AIExecutionProfilesModel in step 2).
+- **`persistence.rs` is NOT purely AI**: `SerializedBlockListItem` is the session-restore data type used by `pane_group/mod.rs` and `persistence/block_list.rs`. Do NOT stub/delete without relocating this type first. `PersistedAIInput`/`PersistedAIInputType` are AI-only and can be stubbed later alongside block.rs deletion.
 
 **Phase F lessons (2026-05-31):**
 - **Stub pattern**: Delete module, create `<name>_stubs.rs` in `ai/blocklist/`, stub all types (unit structs, empty enums, no-op methods), re-export from `mod.rs`. Cargo check oracle finds missing methods iteratively.
