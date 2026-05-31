@@ -25,7 +25,7 @@ use warpui::{
     AppContext, Element, Entity, SingletonEntity, TypedActionView, View, ViewContext, ViewHandle,
 };
 
-use crate::ai::blocklist::secret_redaction::find_secrets_in_text;
+use crate::secret_redaction::find_secrets_in_text;
 use crate::ai::mcp::parsing::{prettify_json, resolve_json, ParsedTemplatableMCPServerResult};
 use crate::ai::mcp::templatable::CloudTemplatableMCPServer;
 use crate::ai::mcp::{

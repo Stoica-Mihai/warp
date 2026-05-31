@@ -35,7 +35,7 @@ use warpui::{
 use super::aliases::WorkflowAliases;
 use super::command_parser::WorkflowCommandDisplayData;
 use super::{CloudWorkflowModel, WorkflowSource, WorkflowType, WorkflowViewMode};
-use crate::ai::blocklist::secret_redaction::find_secrets_in_text;
+use crate::secret_redaction::find_secrets_in_text;
 use crate::ai::AIRequestUsageModel;
 use crate::appearance::Appearance;
 use crate::auth::auth_state::AuthState;

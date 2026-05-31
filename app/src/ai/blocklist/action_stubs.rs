@@ -125,7 +125,12 @@ impl Entity for SuggestNewConversationExecutor {
 impl SingletonEntity for SuggestNewConversationExecutor {}
 
 pub struct AskUserQuestionExecutor;
-impl AskUserQuestionExecutor { pub fn new(_ctx: &mut ModelContext<Self>) -> Self { Self } }
+
+impl AskUserQuestionExecutor {
+    pub fn new(_ctx: &mut ModelContext<Self>) -> Self { Self }
+    pub fn complete(&mut self, _answers: std::collections::HashMap<String, crate::ai::agent::AskUserQuestionItem>) {}
+}
+
 impl Entity for AskUserQuestionExecutor { type Event = (); }
 impl SingletonEntity for AskUserQuestionExecutor {}
 
@@ -142,7 +147,14 @@ impl SingletonEntity for SearchCodebaseExecutor {}
 pub struct BlocklistAIActionModel;
 
 impl BlocklistAIActionModel {
-    pub fn new(_ctx: &mut ModelContext<Self>) -> Self {
+    pub fn new(
+        _terminal_model: std::sync::Arc<parking_lot::FairMutex<crate::terminal::TerminalModel>>,
+        _active_session: warpui::ModelHandle<crate::terminal::model::session::active_session::ActiveSession>,
+        _model_events: &warpui::ModelHandle<crate::terminal::model_events::ModelEventDispatcher>,
+        _get_relevant_files_controller: warpui::ModelHandle<crate::ai::get_relevant_files::controller::GetRelevantFilesController>,
+        _terminal_view_id: warpui::EntityId,
+        _ctx: &mut ModelContext<Self>,
+    ) -> Self {
         Self
     }
 
@@ -243,9 +255,9 @@ impl BlocklistAIActionModel {
         std::iter::empty()
     }
 
-    pub fn get_pending_action(&self, _action_id: &AIAgentActionId) -> Option<&ai::agent::action::AIAgentAction> { None }
+    pub fn get_pending_action(&self, _action_id: &AIAgentActionId) -> Option<&crate::ai::agent::AIAgentAction> { None }
 
-    pub fn get_pending_actions_for_conversation(&self, _id: &crate::ai::agent::conversation::AIConversationId) -> impl Iterator<Item = &ai::agent::action::AIAgentAction> {
+    pub fn get_pending_actions_for_conversation(&self, _id: &crate::ai::agent::conversation::AIConversationId) -> impl Iterator<Item = &crate::ai::agent::AIAgentAction> {
         std::iter::empty()
     }
 

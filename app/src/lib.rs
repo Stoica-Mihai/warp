@@ -66,6 +66,7 @@ mod resource_limits;
 mod reward_view;
 mod safe_triangle;
 mod search_bar;
+mod secret_redaction;
 mod server;
 mod session_management;
 mod shell_indicator;

@@ -455,8 +455,8 @@ impl BlocklistAIHistoryModel {
         false
     }
 
-    pub fn get_local_conversations_metadata(&self) -> Vec<&AIConversationMetadata> {
-        vec![]
+    pub fn get_local_conversations_metadata(&self) -> impl Iterator<Item = &AIConversationMetadata> {
+        std::iter::empty()
     }
 
     pub fn get_conversation_metadata(&self, _conversation_id: &AIConversationId) -> Option<&AIConversationMetadata> {
@@ -479,8 +479,24 @@ impl BlocklistAIHistoryModel {
         AIConversationId::new()
     }
 
-    pub(crate) fn all_ai_queries(&self, _terminal_view_id: EntityId) -> Vec<super::AIQueryHistory> {
-        vec![]
+    pub(crate) fn all_ai_queries(&self, _terminal_view_id: EntityId) -> impl Iterator<Item = super::AIQueryHistory> {
+        std::iter::empty()
+    }
+
+    pub fn load_conversation_by_server_token<C>(
+        &mut self,
+        _token: &ServerConversationToken,
+        _ctx: &mut C,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Option<CloudConversationData>> + Send>> {
+        Box::pin(std::future::ready(None))
+    }
+
+    pub fn load_conversation_data<C>(
+        &self,
+        _conversation_id: AIConversationId,
+        _ctx: &mut C,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Option<CloudConversationData>> + Send>> {
+        Box::pin(std::future::ready(None))
     }
 
     pub fn restore_conversations(&mut self, _terminal_view_id: EntityId, _conversations: Vec<AIConversation>, _ctx: &mut ModelContext<Self>) {}

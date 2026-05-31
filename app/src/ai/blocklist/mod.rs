@@ -8,6 +8,7 @@ pub(crate) use action_stubs::{
     read_local_file_context, run_agents_to_start_agent_mode,
 };
 pub(crate) mod avatar_disc;
+#[path = "block_stubs.rs"]
 pub mod block;
 pub mod code_block;
 mod context_model_stubs;
