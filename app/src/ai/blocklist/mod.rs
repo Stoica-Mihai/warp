@@ -28,7 +28,7 @@ pub(crate) use response_stream_id::{ClientIdentifiers, ResponseStreamId};
 pub(crate) use session_context::SessionContext;
 pub mod history_model;
 pub mod inline_action;
-mod input_model;
+mod input_model_stubs;
 pub(crate) mod keystroke_render;
 mod permissions;
 mod persistence;
@@ -56,7 +56,7 @@ pub(crate) use history_model::{
     AIQueryHistory, AIQueryHistoryOutputStatus, BlocklistAIHistoryEvent, BlocklistAIHistoryModel,
     ConversationStatusUpdate, FORK_PREFIX, PRE_REWIND_PREFIX,
 };
-pub(crate) use input_model::{
+pub(crate) use input_model_stubs::{
     BlocklistAIInputEvent, BlocklistAIInputModel, InputConfig, InputType,
     InputTypeAutoDetectionSource,
 };
