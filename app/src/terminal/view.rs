@@ -7,9 +7,7 @@ mod bookmarks;
 mod context_menu;
 pub mod init;
 pub mod inline_banner;
-pub mod load_ai_conversation;
 use ai::agent::action::InsertReviewComment;
-pub use load_ai_conversation::ConversationRestorationInNewPaneType;
 // TODO(advait): if we align on prompt suggestions banner in Input, move code out of inline_banner mod.
 pub(crate) mod init_environment;
 mod init_project;
@@ -24,6 +22,8 @@ use crate::ai::skills::SkillOpenOrigin;
 use crate::global_resource_handles::GlobalResourceHandlesProvider;
 pub(crate) mod docker_sandbox;
 mod link_detection;
+pub mod load_ai_conversation;
+pub use load_ai_conversation::ConversationRestorationInNewPaneType;
 mod open_in_warp;
 mod pane_impl;
 mod passive_suggestions;
@@ -255,6 +255,7 @@ use crate::ai::blocklist::{
     ShellCommandExecutorEvent, SlashCommandRequest, StartAgentExecutor, StartAgentExecutorEvent,
     StartAgentRequest, ATTACH_AS_AGENT_MODE_CONTEXT_TEXT, PRE_REWIND_PREFIX,
 };
+use crate::ai::blocklist::history_model::{CLIAgentConversation, CloudConversationData};
 use crate::ai::conversation_utils;
 use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentModel, AIDocumentVersion};
 use crate::ai::execution_profiles::profiles::{AIExecutionProfilesModel, ClientProfileId};
