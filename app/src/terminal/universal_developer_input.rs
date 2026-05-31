@@ -2,7 +2,6 @@ use std::borrow::Cow;
 use std::boxed::Box;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use pathfinder_color::ColorU;
 #[cfg(not(target_family = "wasm"))]
@@ -17,8 +16,7 @@ use warp_core::ui::theme;
 use warp_core::ui::theme::color::internal_colors;
 use warpui::elements::{
     ChildView, Clipped, Container, CornerRadius, CrossAxisAlignment, Fill, Flex, MainAxisAlignment,
-    MainAxisSize, ParentElement, Radius, Rect, Shrinkable, SizeConstraintCondition,
-    SizeConstraintSwitch,
+    MainAxisSize, ParentElement, Radius, Rect, Shrinkable,
 };
 use warpui::ui_components::components::UiComponentStyles;
 use warpui::ui_components::segmented_control::{
@@ -26,7 +24,7 @@ use warpui::ui_components::segmented_control::{
 };
 use warpui::{
     AppContext, Element, Entity, EntityId, ModelHandle, SingletonEntity as _, TypedActionView,
-    View, ViewAsRef, ViewContext, ViewHandle,
+    View, ViewContext, ViewHandle,
 };
 
 use crate::ai::blocklist::block::cli_controller::CLISubagentController;
@@ -35,9 +33,7 @@ use crate::ai::blocklist::prompt::PromptIconButtonTheme;
 use crate::ai::blocklist::{
     BlocklistAIHistoryEvent, BlocklistAIInputModel, InputConfig, InputType,
 };
-use crate::ai::llms::LLMPreferences;
 use crate::ai::AIRequestUsageModel;
-use crate::cloud_object::model::generic_string_model::StringModel;
 use crate::network::NetworkStatus;
 #[cfg(not(target_family = "wasm"))]
 use crate::search::ai_context_menu::view::AIContextMenu;
@@ -45,14 +41,12 @@ use crate::search::ai_context_menu::view::AIContextMenu;
 use crate::settings::InputSettings;
 use crate::settings::{AISettings, AISettingsChangedEvent};
 use crate::settings_view::SettingsSection;
-use crate::terminal::input::MenuPositioningProvider;
 use crate::terminal::keys::TerminalKeybindings;
 use crate::terminal::model::block::BlockMetadata;
 #[cfg(not(target_family = "wasm"))]
 use crate::terminal::model::session::SessionType;
 use crate::terminal::model::session::Sessions;
 use crate::terminal::session_settings::{SessionSettings, SessionSettingsChangedEvent};
-use crate::terminal::view::ambient_agent::AmbientAgentViewModel;
 use crate::ui_components::icons::Icon;
 use crate::view_components::action_button::{
     ActionButton, ActionButtonTheme, ButtonSize, NakedTheme, TooltipAlignment,
@@ -278,11 +272,9 @@ pub enum UniversalDeveloperInputButtonBarEvent {
 
 impl UniversalDeveloperInputButtonBar {
     pub fn new(
-        menu_positioning_provider: Arc<dyn MenuPositioningProvider>,
         terminal_view_id: EntityId,
         input_model: ModelHandle<BlocklistAIInputModel>,
         cli_subagent_controller: ModelHandle<CLISubagentController>,
-        ambient_agent_view_model: Option<ModelHandle<AmbientAgentViewModel>>,
         terminal_model: std::sync::Arc<parking_lot::FairMutex<crate::terminal::TerminalModel>>,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
@@ -619,8 +611,6 @@ impl UniversalDeveloperInputButtonBar {
 
     fn update_button_bar_styles(&self, ctx: &mut ViewContext<Self>) {
         self.update_icon_button_themes(ctx);
-
-        let is_blurred = self.cached_ui_state.borrow().is_button_bar_blurred();
     }
 
     /// Update the themes of the icon buttons to reflect the blurred state

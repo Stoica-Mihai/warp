@@ -220,7 +220,7 @@ pub(crate) fn create_error_child_agent_conversation(
         orchestration_harness,
         error_message,
     } = request;
-    let Some((terminal_view, terminal_view_id, conversation_id)) =
+    let Some((_terminal_view, terminal_view_id, conversation_id)) =
         create_error_child_agent_conversation_context(
             group,
             parent_pane_id,

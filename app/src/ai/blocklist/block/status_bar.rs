@@ -338,7 +338,7 @@ impl BlocklistAIStatusBar {
             ChildAgentStatusCard::new(agent_view_controller.clone(), ctx)
         });
         if let Some(ambient_agent_view_model) = ambient_agent_view_model.as_ref() {
-            ctx.subscribe_to_model(ambient_agent_view_model, |me, _, event, ctx| match event {
+            ctx.subscribe_to_model(ambient_agent_view_model, |_me, _, event, ctx| match event {
                 AmbientAgentViewModelEvent::DispatchedAgent
                 | AmbientAgentViewModelEvent::ProgressUpdated => {
                     ctx.notify();

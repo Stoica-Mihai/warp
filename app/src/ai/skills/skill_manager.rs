@@ -8,7 +8,7 @@ use ai::skills::{
     SkillReference,
 };
 pub use file_watchers::{
-    extract_skill_parent_directory, read_skills_from_directories, SkillWatcher, SkillWatcherEvent,
+    extract_skill_parent_directory, SkillWatcher, SkillWatcherEvent,
 };
 use warp_core::channel::ChannelState;
 use warp_core::features::FeatureFlag;

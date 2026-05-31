@@ -731,12 +731,6 @@ pub struct NewTerminalOptions {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum DefaultSessionModeBehavior {
-    Apply,
-    Ignore,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum NewPaneVisibility {
     Visible,
     HiddenForMove,
@@ -3524,7 +3518,6 @@ impl PaneGroup {
             self.active_session_id(ctx),
             chosen_shell,
             None, /* conversation_restoration */
-            DefaultSessionModeBehavior::Ignore,
             ctx,
         );
         ctx.emit(Event::AppStateChanged);
@@ -5682,7 +5675,6 @@ impl PaneGroup {
             base_pane_id_for_context,
             chosen_shell,
             conversation_restoration,
-            DefaultSessionModeBehavior::Apply,
             ctx,
         )
     }
@@ -5695,7 +5687,6 @@ impl PaneGroup {
         base_pane_id_for_context: Option<TerminalPaneId>,
         chosen_shell: Option<AvailableShell>,
         conversation_restoration: Option<ConversationRestorationInNewPaneType>,
-        default_session_mode_behavior: DefaultSessionModeBehavior,
         ctx: &mut ViewContext<Self>,
     ) -> TerminalPaneId {
         // If restoring a conversation, use its initial working directory if it exists
@@ -5728,7 +5719,6 @@ impl PaneGroup {
             chosen_shell,
             startup_directory,
             conversation_restoration,
-            default_session_mode_behavior,
             ctx,
         )
     }
@@ -5782,7 +5772,6 @@ impl PaneGroup {
         (pane_data, view)
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn add_session_in_directory(
         &mut self,
         direction: Direction,
@@ -5790,7 +5779,6 @@ impl PaneGroup {
         chosen_shell: Option<AvailableShell>,
         startup_directory: Option<PathBuf>,
         conversation_restoration: Option<ConversationRestorationInNewPaneType>,
-        default_session_mode_behavior: DefaultSessionModeBehavior,
         ctx: &mut ViewContext<Self>,
     ) -> TerminalPaneId {
         let (pane_data, _view) = self.create_terminal_pane_data(
@@ -7044,7 +7032,6 @@ impl PaneGroup {
             self.focused_pane_id(ctx).as_terminal_pane_id(),
             None, /* chosen_shell */
             None, /* conversation_restoration */
-            DefaultSessionModeBehavior::Ignore,
             ctx,
         );
 

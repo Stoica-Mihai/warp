@@ -31,8 +31,6 @@ pub fn render_cloud_mode_loading_screen(
     shimmer_handle: &ShimmeringTextStateHandle,
     app: &AppContext,
 ) -> Box<dyn Element> {
-    let theme = appearance.theme();
-    // Larger font size for the main loading text
     let loading_font_size = appearance.monospace_font_size() + 2.;
 
     // Create the shimmering warp loading text element

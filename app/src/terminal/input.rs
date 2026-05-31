@@ -2097,11 +2097,9 @@ impl Input {
 
         let universal_developer_input_button_bar = ctx.add_typed_action_view(|ctx| {
             UniversalDeveloperInputButtonBar::new(
-                menu_positioning_provider.clone(),
                 terminal_view_id,
                 ai_input_model.clone(),
                 cli_subagent_controller.clone(),
-                ambient_agent_view_model.clone(),
                 model.clone(),
                 ctx,
             )
@@ -4265,7 +4263,7 @@ impl Input {
             InlineModelSelectorEvent::SelectedModel {
                 id,
                 selected_tab,
-                set_as_default,
+                ..
             } => {
                 match selected_tab {
                     InlineModelSelectorTab::BaseAgent => {
@@ -4590,7 +4588,7 @@ impl Input {
         ctx: &mut ViewContext<Self>,
     ) {
         match event {
-            inline_history::InlineHistoryMenuEvent::NavigateToConversation { conversation_id } => {
+            inline_history::InlineHistoryMenuEvent::NavigateToConversation { .. } => {
                 if self
                     .suggestions_mode_model
                     .as_ref(ctx)
@@ -4602,13 +4600,6 @@ impl Input {
                     ctx.notify();
                 }
                 self.clear_buffer_and_reset_undo_stack(ctx);
-                self.agent_view_controller.update(ctx, |controller, ctx| {
-                    let _ = controller.try_enter_agent_view(
-                        Some(*conversation_id),
-                        AgentViewEntryOrigin::InlineHistoryMenu,
-                        ctx,
-                    );
-                });
             }
             inline_history::InlineHistoryMenuEvent::AcceptCommand { command, .. } => {
                 if self

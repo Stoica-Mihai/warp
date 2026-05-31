@@ -355,10 +355,10 @@ impl JsonModel for AIExecutionProfile {
 // `crate::ai::execution_profiles::profiles::AIExecutionProfilesModel`.
 
 pub mod profiles {
-    use warpui::{Entity, ModelContext, ModelHandle, SingletonEntity};
+    use warpui::{Entity, ModelContext, SingletonEntity};
     pub use super::{
         ActionPermission, AIExecutionProfile, AskUserQuestionPermission,
-        CloudAIExecutionProfile, CloudAIExecutionProfileModel, ComputerUsePermission,
+        ComputerUsePermission,
         RunAgentsPermission, WriteToPtyPermission,
     };
     use crate::ai::llms::LLMId;

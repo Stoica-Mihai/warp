@@ -204,7 +204,7 @@ use crate::ai::agent::{
     AIAgentActionId, AIAgentActionType, AIAgentCitation, AIAgentContext, AIAgentExchangeId,
     AIAgentInput, AIAgentOutputStatus, AIAgentPtyWriteMode, AIAgentTextSection,
     AgentReviewCommentBatch, CancellationReason, FileLocations, FinishedAIAgentOutput,
-    PassiveCodeDiffEntry, PassiveSuggestionResultType, PassiveSuggestionTrigger, RenderableAIError,
+    PassiveCodeDiffEntry, PassiveSuggestionTrigger, RenderableAIError,
     ServerOutputId, ShellCommandCompletedTrigger,
 };
 #[cfg(feature = "local_fs")]
@@ -2379,11 +2379,6 @@ pub struct TerminalView {
     /// Commands that should run as separate blocks after the active pending
     /// command finishes successfully.
     pending_command_queue: VecDeque<String>,
-    /// When true, enter agent view after pending setup commands complete
-    /// (i.e. after `PendingCommandCompleted` is emitted). Set by
-    /// `pane_tree_from_template_recursive` when a tab config has both
-    /// commands and `PaneMode::Agent`.
-    enter_agent_view_after_pending_commands: bool,
     slow_bootstrap_banner: ViewHandle<Banner<TerminalAction>>,
     is_slow_bootstrap_banner_open: bool,
 
@@ -3987,7 +3982,6 @@ impl TerminalView {
             is_login_shell_bootstrapped: false,
             awaiting_pending_command_completion: false,
             pending_command_queue: Default::default(),
-            enter_agent_view_after_pending_commands: false,
             slow_bootstrap_banner,
             is_slow_bootstrap_banner_open: false,
             incompatible_configuration_banner,
@@ -10863,8 +10857,6 @@ impl TerminalView {
                                 self.pending_command_queue.clear();
                             }
                             ctx.emit(Event::PendingCommandCompleted);
-
-                            self.enter_agent_view_after_pending_commands = false;
                         }
                     }
                 }
@@ -13799,20 +13791,6 @@ impl TerminalView {
         self.awaiting_pending_command_completion
             || !self.pending_command_queue.is_empty()
             || self.input.as_ref(ctx).has_pending_command()
-    }
-
-    /// Marks this terminal to enter agent view once pending setup commands
-    /// finish. Called from `pane_tree_from_template_recursive` when the tab
-    /// config has both commands and `PaneMode::Agent`.
-    pub fn set_enter_agent_view_after_pending_commands(&mut self) {
-        self.enter_agent_view_after_pending_commands = true;
-    }
-
-    /// Clears the deferred agent view entry flag. Called by the workspace
-    /// during onboarding to keep the session in terminal mode for the
-    /// guided tutorial.
-    pub fn clear_enter_agent_view_after_pending_commands(&mut self) {
-        self.enter_agent_view_after_pending_commands = false;
     }
 
     #[cfg(not(target_family = "wasm"))]

@@ -12,8 +12,6 @@ pub use ai::skills::SkillReference;
 
 #[cfg(not(target_family = "wasm"))]
 mod global_skills;
-#[cfg(not(target_family = "wasm"))]
-pub use global_skills::{filter_skills_by_spec, resolve_skill_repos};
 
 mod listed_skill;
 pub use listed_skill::SkillDescriptor;
@@ -26,17 +24,11 @@ pub use skill_utils::{
 
 #[cfg(not(target_family = "wasm"))]
 mod resolve_skill_spec;
-#[cfg(not(target_family = "wasm"))]
-pub use resolve_skill_spec::{
-    clone_repo_for_skill, resolve_skill_spec, ResolveSkillError, ResolvedSkill,
-};
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "local_fs")] {
         mod skill_manager;
-        pub use skill_manager::{
-            read_skills_from_directories, SkillManager, SkillWatcher,
-        };
+        pub use skill_manager::SkillManager;
         #[cfg(test)]
         pub use skill_manager::BundledSkillActivation;
     }

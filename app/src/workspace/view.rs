@@ -778,14 +778,6 @@ struct WorkspaceBannerFields {
     button: Option<WorkspaceBannerButtonDetails>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum DefaultSessionModeBehavior {
-    /// Respect the user's default-session-mode setting and auto-enter agent view when applicable.
-    Apply,
-    /// Skip default-session-mode auto-entry because the caller is explicitly specifying the mode for the new session.
-    Ignore,
-}
-
 #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
 struct CodeReviewPaneContext {
     repo_path: Option<LocalOrRemotePath>,
@@ -3668,7 +3660,6 @@ impl Workspace {
             None,
             None,
             false,
-            DefaultSessionModeBehavior::Ignore,
             ctx,
         );
         self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
@@ -3701,7 +3692,6 @@ impl Workspace {
             None,
             None,
             false,
-            DefaultSessionModeBehavior::Ignore,
             ctx,
         );
         self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
@@ -9505,8 +9495,7 @@ impl Workspace {
                     Some(shell),
                     None,
                     true, /* hide_homepage */
-                    DefaultSessionModeBehavior::Ignore,
-                    ctx,
+                            ctx,
                 );
                 ctx.notify();
             });
@@ -9565,12 +9554,10 @@ impl Workspace {
             chosen_shell,
             conversation_restoration,
             hide_homepage,
-            DefaultSessionModeBehavior::Apply,
             ctx,
         );
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn add_new_session_tab_internal_with_default_session_mode_behavior(
         &mut self,
         new_session_source: NewSessionSource,
@@ -9578,7 +9565,6 @@ impl Workspace {
         chosen_shell: Option<AvailableShell>,
         conversation_restoration: Option<ConversationRestorationInNewPaneType>,
         hide_homepage: bool,
-        default_session_mode_behavior: DefaultSessionModeBehavior,
         ctx: &mut ViewContext<Self>,
     ) {
         #[cfg(feature = "local_tty")]
@@ -10788,7 +10774,6 @@ impl Workspace {
     fn summarize_active_ai_conversation(
         &mut self,
         prompt: Option<String>,
-        initial_prompt: Option<String>,
         ctx: &mut ViewContext<Self>,
     ) {
         let Some(terminal_view) = self
@@ -12425,7 +12410,7 @@ impl Workspace {
         let local_fork_id = local_fork.id();
 
         let handoff_target = self.prepare_handoff_target(&source_view, ctx);
-        let Some((new_pane_view, model_handle)) =
+        let Some((_new_pane_view, model_handle)) =
             handoff_target.update(ctx, |view, view_ctx| view.start_cloud_mode(None, view_ctx))
         else {
             log::warn!(
@@ -15370,8 +15355,7 @@ impl Workspace {
                     None,
                     None,
                     false,
-                    DefaultSessionModeBehavior::Ignore,
-                    ctx,
+                            ctx,
                 );
                 self.current_workspace_state.is_codex_modal_open = false;
                 ctx.notify();
@@ -15477,7 +15461,6 @@ impl Workspace {
             None,
             None,
             false,
-            DefaultSessionModeBehavior::Ignore,
             ctx,
         );
     }
@@ -18923,8 +18906,7 @@ impl TypedActionView for Workspace {
                     None,
                     None,
                     *hide_homepage,
-                    DefaultSessionModeBehavior::Ignore,
-                    ctx,
+                            ctx,
                 );
                 ctx.notify();
             }
@@ -20199,11 +20181,8 @@ impl TypedActionView for Workspace {
                     ctx,
                 );
             }
-            SummarizeAIConversation {
-                prompt,
-                initial_prompt,
-            } => {
-                self.summarize_active_ai_conversation(prompt.clone(), initial_prompt.clone(), ctx);
+            SummarizeAIConversation { prompt, .. } => {
+                self.summarize_active_ai_conversation(prompt.clone(), ctx);
             }
             QueuePromptForConversation { .. } => {}
             InsertForkSlashCommand => {
