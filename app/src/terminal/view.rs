@@ -219,7 +219,7 @@ use crate::ai::blocklist::agent_view::{
     get_agent_view_entry_block_position_id, AgentViewController, AgentViewControllerEvent,
     AgentViewDisplayMode, AgentViewEntryBlockParams, AgentViewEntryOrigin,
     AgentViewHeaderDisabledTheme, AgentViewHeaderTheme, AgentViewZeroStateBlock,
-    AgentViewZeroStateEvent, EphemeralMessageModel, ExitConfirmationTrigger, InlineAgentViewHeader,
+    AgentViewZeroStateEvent, EphemeralMessageModel, InlineAgentViewHeader,
     OrchestrationPillBar, ENTER_OR_EXIT_CONFIRMATION_WINDOW,
 };
 use crate::ai::blocklist::block::cli::{CLISubagentView, CLISubagentViewEvent};
@@ -392,7 +392,7 @@ use crate::terminal::grid_size_util::grid_cell_dimensions;
 use crate::terminal::input::decorations::InputBackgroundJobOptions;
 use crate::terminal::input::inline_menu::InlineMenuPositioner;
 use crate::terminal::input::{
-    CommandExecutionSource, InputAction, InputEmptyStateChangeReason, InputState, MenuPositioning,
+    CommandExecutionSource, InputAction, InputState, MenuPositioning,
     MenuPositioningProvider,
 };
 use crate::terminal::ligature_settings::{should_use_ligature_rendering, LigatureSettings};
@@ -456,7 +456,6 @@ use crate::terminal::view::ssh_remote_server_failed_banner::{
     SshRemoteServerFailedBanner, SshRemoteServerFailedBannerEvent,
 };
 use crate::terminal::view::telemetry::PromptSuggestionFallbackReason;
-use crate::terminal::view::zero_state_block::TerminalViewZeroStateBlock;
 use crate::terminal::warpify::render::render_subshell_separator;
 use crate::terminal::warpify::settings::WarpifySettings;
 use crate::terminal::warpify::SubshellSource;
@@ -7138,7 +7137,7 @@ impl TerminalView {
 
     fn handle_ctrl_c_input_event(
         &mut self,
-        cleared_buffer_len: usize,
+        _cleared_buffer_len: usize,
         ctx: &mut ViewContext<Self>,
     ) {
         let did_resolve_prompt_suggestion = self
@@ -11843,7 +11842,7 @@ impl TerminalView {
             })
         }
 
-        let is_subshell_or_ssh = session.is_subshell_or_ssh();
+        let _is_subshell_or_ssh = session.is_subshell_or_ssh();
 
         // Make sure we decorate any text that is already in the input.  We
         // need to make sure external commands have finished loading before
@@ -11887,9 +11886,9 @@ impl TerminalView {
 
         self.ignore_next_set_title_event = true;
 
-        let is_launch_modal_open = OneTimeModalModel::as_ref(ctx).is_oz_launch_modal_open();
+        let _is_launch_modal_open = OneTimeModalModel::as_ref(ctx).is_oz_launch_modal_open();
 
-        let has_plugin_instructions_block = self.rich_content_views.iter().any(|rc| {
+        let _has_plugin_instructions_block = self.rich_content_views.iter().any(|rc| {
             matches!(
                 rc.metadata(),
                 Some(RichContentMetadata::PluginInstructionsBlock)
@@ -18403,7 +18402,7 @@ impl TerminalView {
                 ctx.emit(Event::Escape)
             }
             InputEvent::InputStateChanged(_) => {}
-            InputEvent::InputEmptyStateChanged { is_empty, reason } => {
+            InputEvent::InputEmptyStateChanged { is_empty, reason: _ } => {
                 // Update the universal developer input button bar with the new empty state
                 let universal_developer_input_button_bar = self
                     .input
@@ -18661,7 +18660,7 @@ impl TerminalView {
         // Now walk backwards to find the first non-hidden item before the active block.
         cursor.prev();
         while let Some(item) = cursor.item() {
-            let is_hidden = item.height() == BlockHeight::zero();
+            let _is_hidden = item.height() == BlockHeight::zero();
             match item {
                 // We use `should_hide` rather than height to determine visibility because agent view
                 // entry blocks render as 0 height while agent view is active, and when we call this

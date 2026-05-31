@@ -1,10 +1,10 @@
 //! This module contains the implementation of `BackingView` for `TerminalView`, as well as
 //! business logic for integrating the terminal view with the pane infra (`crate::pane_group`).
 use warpui::elements::{
-    ConstrainedBox, CrossAxisAlignment, Empty, Flex, MainAxisAlignment, MainAxisSize,
+    ConstrainedBox, CrossAxisAlignment, Flex, MainAxisAlignment, MainAxisSize,
     ParentElement, Shrinkable,
 };
-use warpui::prelude::{ChildView, Container};
+use warpui::prelude::Container;
 use warpui::text_layout::ClipConfig;
 use warpui::ui_components::components::UiComponent;
 #[cfg(not(target_arch = "wasm32"))]
@@ -20,8 +20,6 @@ use crate::ai::agent::conversation::{
     AIConversation, ConversationStatus, ServerAIConversationMetadata,
 };
 use crate::ai::blocklist::agent_view::agent_view_bg_fill;
-use crate::ai::blocklist::agent_view::orchestration_conversation_links::parent_conversation_navigation_card;
-use crate::ai::blocklist::BlocklistAIHistoryModel;
 use crate::appearance::Appearance;
 use crate::features::FeatureFlag;
 use crate::menu::{MenuItem, MenuItemFields};
@@ -30,7 +28,7 @@ use crate::pane_group::pane::view::header::components::{
     header_edge_min_width, render_pane_header_buttons, render_pane_header_title_text,
     render_three_column_header, CenteredHeaderEdgeWidth,
 };
-use crate::pane_group::pane::view::header::{render_pane_header_draggable, PANE_HEADER_HEIGHT};
+use crate::pane_group::pane::view::header::render_pane_header_draggable;
 use crate::pane_group::pane::view::PaneHeaderAction;
 use crate::pane_group::pane::{view, PaneStack};
 use crate::pane_group::{BackingView, SplitPaneState};
@@ -345,7 +343,7 @@ impl TerminalView {
         &self,
         header: Box<dyn Element>,
         parent_conversation_header_card: Option<Box<dyn Element>>,
-        app: &AppContext,
+        _app: &AppContext,
     ) -> Box<dyn Element> {
         if !FeatureFlag::OrchestrationV2.is_enabled() {
             return header;

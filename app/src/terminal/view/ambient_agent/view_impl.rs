@@ -24,7 +24,6 @@ use crate::ai::blocklist::BlocklistAIHistoryModel;
 use crate::ai::conversation_details_panel::ConversationDetailsData;
 use crate::ai::AIRequestUsageModel;
 use crate::pane_group::TerminalViewResources;
-use crate::terminal::cli_agent_sessions::CLIAgentSessionsModel;
 use crate::terminal::view::rich_content::{RichContentInsertionPosition, RichContentMetadata};
 use crate::terminal::view::{
     ConversationDetailsPanelAutoOpenPolicy, Event as TerminalViewEvent, TerminalView,

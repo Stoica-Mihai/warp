@@ -9572,7 +9572,7 @@ impl Workspace {
     ) {
         // Remember whether the left panel was open on the current active pane group
         // before creating a new active pane group.
-        let left_panel_was_open = if self.tabs.is_empty() {
+        let _left_panel_was_open = if self.tabs.is_empty() {
             false
         } else {
             self.active_tab_pane_group().as_ref(ctx).left_panel_open

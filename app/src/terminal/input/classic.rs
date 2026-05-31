@@ -238,7 +238,7 @@ impl Input {
 
         // When AgentView is enabled, match terminal-mode input behavior and only render the
         // divider adjacent to the status/message line when block dividers are enabled.
-        let show_block_dividers = *BlockListSettings::as_ref(app).show_block_dividers.value();
+        let _show_block_dividers = *BlockListSettings::as_ref(app).show_block_dividers.value();
         let should_render_divider = true;
 
         let border = match input_mode {

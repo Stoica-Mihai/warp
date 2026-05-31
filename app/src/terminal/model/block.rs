@@ -20,7 +20,6 @@ use pathfinder_color::ColorU;
 use pathfinder_geometry::vector::Vector2F;
 pub use serialized_block::*;
 use warp_core::command::ExitCode;
-use warp_core::features::FeatureFlag;
 use warp_terminal::model::grid::Dimensions as _;
 use warp_terminal::model::{KeyboardModes, KeyboardModesApplyBehavior};
 use warp_util::path::user_friendly_path;
@@ -41,7 +40,7 @@ use super::session::{command_executor, Sessions};
 pub use super::BlockId;
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::redaction::redact_secrets;
-use crate::ai::blocklist::agent_view::{AgentViewDisplayMode, AgentViewState};
+use crate::ai::blocklist::agent_view::AgentViewState;
 use crate::context_chips::prompt_snapshot::PromptSnapshot;
 use crate::server::block::DisplaySetting;
 use crate::server::ids::SyncId;
@@ -1373,7 +1372,7 @@ impl Block {
     }
 
     /// If true, this block is hidden and has a height of 0.
-    pub fn should_hide_block(&self, agent_view_state: &AgentViewState) -> bool {
+    pub fn should_hide_block(&self, _agent_view_state: &AgentViewState) -> bool {
         if self.hidden {
             return true;
         }
