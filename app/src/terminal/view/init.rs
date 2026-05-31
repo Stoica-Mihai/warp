@@ -300,16 +300,8 @@ pub fn init(app: &mut AppContext) {
                 interaction_source: InteractionSource::Keybinding,
             }),
         )
-        .with_mac_key_binding(if FeatureFlag::AgentView.is_enabled() {
-            "ctrl-enter"
-        } else {
-            "cmd-enter"
-        })
-        .with_linux_or_windows_key_binding(if FeatureFlag::AgentView.is_enabled() {
-            "alt-shift-enter"
-        } else {
-            "ctrl-shift-enter"
-        })
+        .with_mac_key_binding("cmd-enter")
+        .with_linux_or_windows_key_binding("ctrl-shift-enter")
         .with_context_predicate(
             id!("Terminal") & !id!("IMEOpen") & id!(flags::HAS_PENDING_PROMPT_SUGGESTION),
         ),
@@ -899,11 +891,7 @@ pub fn init(app: &mut AppContext) {
             TerminalAction::EnterCloudAgentView,
             id!("Terminal") & id!(flags::IS_ANY_AI_ENABLED),
         )
-        .with_enabled(|| {
-            FeatureFlag::AgentView.is_enabled()
-                && FeatureFlag::CloudMode.is_enabled()
-                && FeatureFlag::CloudModeFromLocalSession.is_enabled()
-        })
+        .with_enabled(|| false)
         .with_group(bindings::BindingGroup::WarpAi.as_str())]);
         if cfg!(target_os = "macos") {
             // On MacOS, if the user has the 'Option as meta' setting enabled, the cmd-alt-enter
@@ -970,7 +958,7 @@ fn register_input_mode_bindings(app: &mut AppContext) {
             & !id!(flags::HAS_PENDING_PROMPT_SUGGESTION)
             & !id!(SSH_ERROR_BLOCK_VISIBLE_KEY),
     )
-    .with_enabled(|| FeatureFlag::AgentView.is_enabled())]);
+    .with_enabled(|| false)]);
 
     app.register_editable_bindings([
         EditableBinding::new(

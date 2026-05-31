@@ -97,23 +97,8 @@ impl RichContentItem {
         Self::new(content_type, view_id, agent_view_conversation_id, false)
     }
 
-    pub fn should_hide_for_agent_view_state(&self, agent_view_state: &AgentViewState) -> bool {
-        if !FeatureFlag::AgentView.is_enabled() {
-            return false;
-        }
-
-        match agent_view_state {
-            AgentViewState::Active {
-                conversation_id,
-                display_mode: AgentViewDisplayMode::FullScreen,
-                ..
-            } => Some(*conversation_id) != self.agent_view_conversation_id,
-            AgentViewState::Active {
-                display_mode: AgentViewDisplayMode::Inline,
-                ..
-            }
-            | AgentViewState::Inactive => self.agent_view_conversation_id.is_some(),
-        }
+    pub fn should_hide_for_agent_view_state(&self, _agent_view_state: &AgentViewState) -> bool {
+        false
     }
 }
 

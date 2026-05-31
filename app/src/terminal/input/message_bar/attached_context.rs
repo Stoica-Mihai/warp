@@ -28,12 +28,6 @@ pub struct AttachedBlocksMessageProducer;
 
 impl<Args: AttachedContextArgs + Copy> MessageProvider<Args> for AttachedBlocksMessageProducer {
     fn produce_message(&self, args: Args) -> Option<Message> {
-        // When AgentViewBlockContext is enabled, user-executed blocks are auto-attached
-        // as context, so we don't need to show this message.
-        if FeatureFlag::AgentViewBlockContext.is_enabled() {
-            return None;
-        }
-
         // In the agent view, only show the attached context message if in AI mode.
         if args.agent_view_controller().is_active()
             && !args.input_buffer_model().current_value().is_empty()

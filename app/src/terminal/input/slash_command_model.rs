@@ -305,16 +305,7 @@ impl SlashCommandModel {
                     }
                 }
 
-                if !FeatureFlag::AgentView.is_enabled()
-                    || detected_command.command.auto_enter_ai_mode
                 {
-                    // In the old modality, when there is a detected slash command, the input _must_ be in
-                    // AI mode; we don't respect `StaticCommand::auto_enter_ai_mode = false`. That field is
-                    // only used in the new modality.
-                    //
-                    // The fact that we've even detected a command implies that the input mode is in AI
-                    // mode, either locked or unlocked; if the input were locked to shell mode then the
-                    // state would be `DisabledUntilEmptyBuffer` and we would have shortcircuited above.
                     self.ai_input_model.update(ctx, |input_model, ctx| {
                         input_model.set_input_type(
                             InputType::AI,
