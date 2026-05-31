@@ -6,6 +6,7 @@ pub(crate) mod blocklist_filter;
 pub(crate) mod inline_action_icons;
 pub(crate) mod inline_action_header;
 pub(crate) mod requested_action;
+pub(crate) mod requested_script;
 pub(crate) mod keyboard_navigable_buttons;
 pub(crate) mod toggleable_items;
 pub(crate) mod with_content_item_spacing;

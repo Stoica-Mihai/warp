@@ -14,7 +14,7 @@ use crate::terminal::view::inline_action_header::{
     ExpandedConfig, HeaderConfig, InteractionMode,
 };
 use crate::terminal::view::inline_action_icons::green_check_icon;
-use crate::ai::blocklist::inline_action::requested_command::VIEWING_COMMAND_DETAIL_MESSAGE;
+const VIEWING_COMMAND_DETAIL_MESSAGE: &str = "Viewing command detail";
 use crate::terminal::event::BlockCompletedEvent;
 use crate::terminal::model_events::{ModelEvent, ModelEventDispatcher};
 use crate::terminal::view::ambient_agent::{

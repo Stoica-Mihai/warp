@@ -14,8 +14,8 @@ use warpui::{
 };
 
 use crate::terminal::view::requested_action::{ENTER_KEYSTROKE, ESCAPE_KEYSTROKE};
-use crate::ai::blocklist::inline_action::requested_script::{
-    self, RequestedScriptMouseStates, RequestedScriptStatus, TitledScript,
+use crate::terminal::view::requested_script::{
+    self as requested_script, RequestedScriptMouseStates, RequestedScriptStatus, TitledScript,
 };
 use crate::appearance::Appearance;
 use crate::terminal::model::ansi::SystemDetails;
