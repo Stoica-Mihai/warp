@@ -1961,7 +1961,6 @@ impl Input {
             session_context: initial_session_context.clone(),
             current_repo_path: current_repo_path.clone(),
             model_events: model_events.clone(),
-            agent_view_controller: agent_view_controller.clone(),
             ambient_agent_view_model: ambient_agent_view_model.clone(),
         };
 
@@ -1975,7 +1974,6 @@ impl Input {
                 initial_session_context.clone(),
                 current_repo_path.clone(),
                 model_events.clone(),
-                agent_view_controller.clone(),
                 ctx,
             )
         });

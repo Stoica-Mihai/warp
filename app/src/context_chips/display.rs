@@ -13,7 +13,6 @@ use warpui::{
 use super::display_chip::{DisplayChip, DisplayChipConfig, PromptDisplayChipEvent};
 use super::prompt_type::PromptType;
 use super::{git_line_changes_from_chips, ChipResult, ContextChipKind};
-use crate::ai::blocklist::agent_view::AgentViewController;
 use crate::ai::blocklist::{
     BlocklistAIContextModel, BlocklistAIHistoryEvent, BlocklistAIHistoryModel,
     BlocklistAIInputEvent, BlocklistAIInputModel,
@@ -63,7 +62,6 @@ pub struct PromptDisplay {
     /// Whether the pane this prompt belongs to is currently focused.
     pane_is_focused: bool,
 
-    agent_view_controller: ModelHandle<AgentViewController>,
 }
 
 const PROMPT_CHIP_DISPLAY_ID: &str = "PromptChipDisplay";
@@ -101,7 +99,6 @@ impl PromptDisplay {
         session_context: Option<SessionContext>,
         current_repo_path: Option<PathBuf>,
         model_events: ModelHandle<ModelEventDispatcher>,
-        agent_view_controller: ModelHandle<AgentViewController>,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
         ctx.observe(&prompt, |me, _, ctx| me.handle_prompt_change(ctx));
@@ -130,10 +127,6 @@ impl PromptDisplay {
             },
         );
 
-        ctx.subscribe_to_model(&agent_view_controller, |_, _, _, ctx| {
-            ctx.notify();
-        });
-
         Self {
             prompt,
             display_chips: vec![],
@@ -144,7 +137,7 @@ impl PromptDisplay {
             session_context,
             current_repo_path,
             model_events,
-            agent_view_controller,
+
             pane_is_focused: true,
         }
     }
@@ -221,7 +214,6 @@ impl PromptDisplay {
                         session_context: self.session_context.clone(),
                         current_repo_path: self.current_repo_path.clone(),
                         model_events: self.model_events.clone(),
-                        agent_view_controller: self.agent_view_controller.clone(),
                         ambient_agent_view_model: None,
                     },
                 );

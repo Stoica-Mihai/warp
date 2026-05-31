@@ -31,7 +31,6 @@ use super::{
     agent_view_chip_color, github_pr_display_text_from_url, render_text_from_kind, ChipResult,
     ContextChipKind,
 };
-use crate::ai::blocklist::agent_view::AgentViewController;
 use crate::ai::blocklist::prompt::plan_and_todo_list::{PlanAndTodoListEvent, PlanAndTodoListView};
 use crate::ai::blocklist::{BlocklistAIContextModel, BlocklistAIInputModel};
 use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentVersion};
@@ -292,7 +291,6 @@ pub struct DisplayChip {
     quota_reset_popup: ViewHandle<FeaturePopup>,
     session_context: Option<SessionContext>,
     menu_positioning_provider: Arc<dyn MenuPositioningProvider>,
-    agent_view_controller: ModelHandle<AgentViewController>,
     is_in_agent_view: bool,
     /// Optional because `DisplayChip` sometimes should be disabled, depending on if it is in an ambient agent view.
     ambient_agent_view_model: Option<ModelHandle<AmbientAgentViewModel>>,
@@ -434,7 +432,6 @@ pub struct DisplayChipConfig {
     pub session_context: Option<SessionContext>,
     pub current_repo_path: Option<PathBuf>,
     pub model_events: ModelHandle<ModelEventDispatcher>,
-    pub agent_view_controller: ModelHandle<AgentViewController>,
     /// Optional because `DisplayChip` sometimes should be disabled, depending on if it is in an ambient agent view.
     pub ambient_agent_view_model: Option<ModelHandle<AmbientAgentViewModel>>,
 }
@@ -548,12 +545,6 @@ impl DisplayChip {
         is_in_agent_view: bool,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
-        // Re-render this chip whenever Agent Mode state changes so UDI font/color updates
-        // immediately on enter/exit.
-        ctx.subscribe_to_model(&config.agent_view_controller, |_me, _model, _event, ctx| {
-            ctx.notify();
-        });
-
         let display_chip_kind = match chip_result.kind {
             ContextChipKind::AgentPlanAndTodoList => {
                 let context_model = config.ai_context_model.clone();
@@ -866,7 +857,6 @@ impl DisplayChip {
             quota_reset_popup,
             session_context: config.session_context,
             menu_positioning_provider: config.menu_positioning_provider,
-            agent_view_controller: config.agent_view_controller.clone(),
             is_in_agent_view,
             ambient_agent_view_model: config.ambient_agent_view_model,
             code_review_keybinding,
