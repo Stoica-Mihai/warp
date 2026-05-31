@@ -9,8 +9,7 @@ use warpui::text::char_slice;
 use warpui::Action;
 
 use crate::ai::agent::{AIAgentActionType, AIAgentOutput, AIAgentTextSection, ReadFilesRequest};
-use crate::ai::blocklist::block::view_impl::output::LinkActionConstructors;
-use crate::ai::blocklist::block::TextLocation;
+use crate::util::text_location::TextLocation;
 use crate::terminal::links::should_directly_open_link;
 use crate::terminal::model::grid::grid_handler::is_file_link_separator;
 use crate::terminal::ShellLaunchData;
@@ -127,6 +126,20 @@ pub(crate) struct HoverableDetectedLink {
 pub(crate) struct DetectedLinksInTextLocation {
     pub(crate) detected_links: HashMap<Range<usize>, HoverableDetectedLink>,
 }
+
+pub struct LinkActionConstructors<A: Action> {
+    pub construct_open_link_action: fn(std::ops::Range<usize>, TextLocation) -> A,
+    pub construct_open_link_tooltip_action: fn(std::ops::Range<usize>, TextLocation) -> A,
+    pub construct_changed_hover_on_link_action: fn(std::ops::Range<usize>, TextLocation, bool) -> A,
+}
+
+impl<A: Action> Clone for LinkActionConstructors<A> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<A: Action> Copy for LinkActionConstructors<A> {}
 
 pub(crate) fn add_link_detection_mouse_interactions<T: PartialClickableElement, A: Action>(
     mut element: T,

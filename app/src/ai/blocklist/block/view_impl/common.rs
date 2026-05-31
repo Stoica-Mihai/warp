@@ -46,7 +46,7 @@ use warpui::ui_components::button::Button;
 use warpui::ui_components::components::{Coords, UiComponent, UiComponentStyles};
 use warpui::{Action, AppContext, Element, EventContext, SingletonEntity, View, ViewHandle};
 
-use super::output::LinkActionConstructors;
+use crate::util::link_detection::LinkActionConstructors;
 use super::{add_highlights_to_rich_text, add_highlights_to_text};
 use crate::ai::agent::conversation::AIConversation;
 use crate::ai::agent::icons::red_stop_icon;

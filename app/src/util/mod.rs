@@ -7,6 +7,7 @@ pub mod file;
 pub mod git;
 pub mod image;
 pub(crate) mod link_detection;
+pub mod text_location;
 pub mod links;
 pub mod openable_file_type;
 pub mod path;

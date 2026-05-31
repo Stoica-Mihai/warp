@@ -113,7 +113,9 @@ use crate::terminal::ShellLaunchData;
 use crate::ui_components::blended_colors;
 use crate::ui_components::buttons::icon_button;
 use crate::ui_components::icons::Icon;
-use crate::util::link_detection::{add_link_detection_mouse_interactions, DetectedLinksState};
+use crate::util::link_detection::{
+    add_link_detection_mouse_interactions, DetectedLinksState, LinkActionConstructors,
+};
 use crate::util::truncation::truncate_from_end;
 use crate::view_components::action_button::ActionButton;
 use crate::view_components::compactible_action_button::{
@@ -1566,20 +1568,6 @@ fn render_search_codebase(
     };
     Some(requested_action)
 }
-
-pub struct LinkActionConstructors<A: Action> {
-    pub construct_open_link_action: fn(std::ops::Range<usize>, TextLocation) -> A,
-    pub construct_open_link_tooltip_action: fn(std::ops::Range<usize>, TextLocation) -> A,
-    pub construct_changed_hover_on_link_action: fn(std::ops::Range<usize>, TextLocation, bool) -> A,
-}
-
-impl<A: Action> Clone for LinkActionConstructors<A> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl<A: Action> Copy for LinkActionConstructors<A> {}
 
 impl<A: Action> LinkActionConstructors<A> {
     pub fn build_ai_block_action() -> LinkActionConstructors<AIBlockAction> {

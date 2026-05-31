@@ -20,8 +20,9 @@ use crate::ai::blocklist::action_model::AIActionStatus;
 use crate::ai::blocklist::block::find::FindState;
 use crate::ai::blocklist::block::secret_redaction::SecretRedactionState;
 use crate::ai::blocklist::block::view_impl::output::{
-    render_read_files_text, LinkActionConstructors, RenderContext, RenderReadFileArg,
+    render_read_files_text, RenderContext, RenderReadFileArg,
 };
+use crate::util::link_detection::LinkActionConstructors;
 use crate::ai::blocklist::block::view_impl::{FindContext, WithContentItemSpacing};
 use crate::ai::blocklist::inline_action::inline_action_header::{
     INLINE_ACTION_HEADER_VERTICAL_PADDING, INLINE_ACTION_HORIZONTAL_PADDING,
