@@ -295,6 +295,21 @@ Phase F AFTER: delete block.rs + model layers
 4. Remove AIBlock rendering branches (369 sites via cargo check oracle)
 5. Simultaneously fix `context_chips/display.rs` (ai_input_model/ai_context_model fields), `pane_group/mod.rs` (14+ BlocklistAIHistoryModel calls), `terminal/input/slash_commands/`, data sources in `terminal/input/`, `tab.rs`, `workspace/view.rs`, etc.
 
+**CRITICAL CASCADE LESSON (2026-05-31 failed attempt):** Do NOT remove `ai_input_model`, `ai_context_model`, `ai_action_model` from the `Input` struct in Phase G-preview. Those 3 fields are used by 50+ method bodies in `terminal/input.rs` and its submodule render files (`classic.rs`, `universal.rs`, `terminal.rs`, `decorations.rs`). Removing them causes 150+ errors that can only be fixed by editing/deleting those render methods — which is Phase F work. **Phase G-preview scope = remove `ai_controller` (and its direct dependents: passive_suggestions_models, cli_subagent_controller, ai_render_context, agent_todos_popup, get_relevant_files_controller). Leave `ai_input_model`/`ai_context_model`/`ai_action_model` in BOTH TerminalView and Input until Phase F.**
+
+**Recast query (verified working — 28 AI-only methods in terminal/view.rs):**
+```
+(function_item name: (identifier) @name (#match? @name "^(handle_ai_controller_event|handle_legacy_passive_suggestions_event|handle_ai_context_model_event|handle_ai_history_model_event|handle_cli_subagent_controller_event|handle_resume_conversation|handle_usage_footer_toggled|handle_ai_input_model_event|handle_ai_action_model_event|focus_ai_block_if_self_focused|handle_maa_passive_suggestions_event|handle_ai_block_event|active_ai_block|last_ai_block|handle_shell_command_executor_event|handle_start_agent_executor_event|get_ai_notification_summary|maybe_insert_tombstone_for_non_running_shared_ambient_task|on_next_conversation_finished|update_context_blocks_and_exchanges|drop_hidden_passive_ai_blocks|clear_prompt_suggestions|try_clear_prompt_suggestions_banner_code_state|remove_pending_cloud_mode_query_if_exchange_has_renderable_user_query|pending_user_query_conversation_id|remove_pending_user_query_block|stop_local_agent_conversation|apply_cli_agent_footer_visibility)$")) @fn
+```
+Also delete (second recast pass, 7 methods): `build_agent_todos_popup|handle_agent_todos_popup_event|ai_controller|ai_context_model|ai_input_model|active_conversation_id|active_conversation_task_id`
+
+**Input::new() — only remove these params (keep ai_input_model, ai_context_model in signature):**
+`ai_controller`, `ai_action_model`, `cli_subagent_controller`
+
+**TerminalView struct fields to remove (minimal set):**
+`ai_controller`, `passive_suggestions_models`, `get_relevant_files_controller`, `ai_render_context`, `conversation_ended_tombstone_view_id`, `conversation_completed_callbacks`, `cli_subagent_views`, `cli_subagent_controller`, `pending_user_query_view_id`, `pending_user_query_kind`, `queued_prompt_callback`, `is_todo_popup_visible`, `agent_todos_popup`, `usage_footer_view_ids`
+Keep: `ai_action_model`, `ai_input_model`, `ai_context_model`
+
 **Phase F deletions** (after G-preview, safe once callers gone):
 - `ai/blocklist/block.rs` + `block/` dir — AIBlock is Warp-only; vendor CLI agents use PTY, not AIBlock
 - Before deleting block/: relocate `secret_redaction` → `app/src/secret_redaction.rs`; relocate `keyboard_navigable_buttons`, `toggleable_items`, `numbered_button`, `compact_agent_input`, `inline_action_header`, `inline_action_icons`, `requested_action`, `WithContentItemSpacing` → `terminal/view/` (used by `init_project/`, `init_environment/`, `ssh_remote_server_choice_view`, `ambient_agent/`)
