@@ -8,7 +8,6 @@ use warpui::{EntityId, SingletonEntity, ViewContext, ViewHandle};
 use crate::ai::agent::conversation::{AIConversationId, ConversationStatus};
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::attachment_utils::attachments_download_dir;
-use crate::ai::blocklist::agent_view::AgentViewEntryOrigin;
 use crate::ai::blocklist::{BlocklistAIHistoryModel, StartAgentRequestId};
 use crate::ai::llms::LLMPreferences;
 use crate::pane_group::{PaneGroup, PaneId};
@@ -246,17 +245,6 @@ pub(crate) fn create_error_child_agent_conversation(
             );
         });
     }
-    if let Some(terminal_view) = terminal_view {
-        terminal_view.update(ctx, |terminal_view, ctx| {
-            terminal_view.enter_agent_view(
-                None,
-                Some(conversation_id),
-                AgentViewEntryOrigin::ChildAgent,
-                ctx,
-            );
-        });
-    }
-
     BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, ctx| {
         history_model.update_conversation_status_with_error_message(
             terminal_view_id,

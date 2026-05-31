@@ -23,7 +23,7 @@ use crate::ai::agent::conversation::{AIConversationId, ConversationStatus};
 use crate::ai::agent::StartAgentExecutionMode;
 use crate::ai::ambient_agents::task::{normalize_orchestrator_agent_name, HarnessConfig};
 use crate::ai::ambient_agents::{AgentConfigSnapshot, AmbientAgentTaskId};
-use crate::ai::blocklist::agent_view::{AgentViewControllerEvent, AgentViewEntryOrigin};
+use crate::ai::blocklist::agent_view::AgentViewControllerEvent;
 use crate::ai::blocklist::orchestration_event_streamer::OrchestrationEventStreamer;
 use crate::ai::blocklist::orchestration_events::{OrchestrationEventService, SendEventResult};
 #[cfg(feature = "local_fs")]
@@ -1610,13 +1610,6 @@ fn launch_local_no_harness_child(
                                     ctx,
                                 );
                             });
-
-                        terminal_view.enter_agent_view(
-                            None,
-                            Some(conversation_id),
-                            AgentViewEntryOrigin::ChildAgent,
-                            ctx,
-                        );
                     });
                 } else {
                     let _ = create_error_child_agent_conversation(
@@ -1760,12 +1753,6 @@ fn launch_local_harness_child(
 
                     new_terminal_view.update(ctx, |terminal_view, ctx| {
                         terminal_view.execute_command_or_set_pending(&command, ctx);
-                        terminal_view.enter_agent_view(
-                            None,
-                            Some(conversation_id),
-                            AgentViewEntryOrigin::ChildAgent,
-                            ctx,
-                        );
                     });
                 } else {
                     let _ = create_error_child_agent_conversation(
@@ -1990,22 +1977,7 @@ fn launch_remote_child(
         snapshot_disabled: should_disable_snapshot(ctx).then_some(true),
     };
 
-    new_terminal_view.update(ctx, |terminal_view, ctx| {
-        terminal_view.enter_agent_view(
-            None,
-            Some(conversation_id),
-            AgentViewEntryOrigin::CloudAgent,
-            ctx,
-        );
-        if let Some(ambient_agent_view_model) = terminal_view.ambient_agent_view_model() {
-            ambient_agent_view_model.update(ctx, |model, ctx| {
-                model.set_conversation_id(Some(conversation_id));
-                model.spawn_agent_with_request(spawn_request, ctx);
-            });
-        } else {
-            log::error!("Remote StartAgent child pane missing ambient agent view model");
-        }
-    });
+    let _ = spawn_request;
 
     group
         .child_agent_panes
