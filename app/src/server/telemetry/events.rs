@@ -123,7 +123,6 @@ pub enum PaletteSource {
     ConversationManager,
     ContextChip,
     PaneHeader,
-    AgentTip,
     TitleBarSearchBar,
 }
 

@@ -84,7 +84,7 @@ use crate::code::editor::view::CodeEditorView;
 use crate::code::editor_management::CodeSource;
 use crate::notebooks::editor::{markdown_table_appearance, rich_text_styles};
 use crate::search::slash_command_menu::static_commands::commands;
-use crate::settings::{FontSettings, InputSettings};
+use crate::settings::FontSettings;
 use crate::settings_view::SettingsSection;
 use crate::terminal::find::TerminalFindModel;
 use crate::terminal::grid_renderer::{FOCUSED_MATCH_COLOR, MATCH_COLOR};
@@ -592,8 +592,6 @@ pub fn render_warping_indicator_base(
         text_col = text_col
             .with_child(text_content)
             .with_child(Container::new(sub_element).with_margin_top(1.).finish());
-    } else if FeatureFlag::AgentTips.is_enabled() && *InputSettings::as_ref(app).show_agent_tips {
-        text_col = text_col.with_child(text_content);
     } else {
         text_col = text_col.with_child(
             Container::new(text_content)

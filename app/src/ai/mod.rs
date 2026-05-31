@@ -6,7 +6,6 @@ pub(crate) mod agent;
 pub(crate) mod agent_conversations_model;
 pub(crate) mod agent_events;
 pub(crate) mod agent_management;
-pub(crate) mod agent_tips;
 pub(crate) mod ai_document_view;
 pub mod ambient_agents;
 pub(crate) mod artifact_download;
@@ -36,7 +35,6 @@ pub mod request_usage_model;
 pub(crate) mod restored_conversations;
 pub(crate) mod skills;
 pub(crate) mod voice;
-pub use agent_tips::*;
 pub use request_usage_model::*;
 use warpui::AppContext;
 #[cfg(not(target_family = "wasm"))]

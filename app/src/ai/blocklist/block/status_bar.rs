@@ -33,7 +33,6 @@ use crate::ai::agent::{
     icons, AIAgentExchangeId, AIAgentOutput, AIAgentOutputMessageType, CancellationReason,
     SummarizationType,
 };
-use crate::ai::agent_tips::AITipModel;
 use crate::ai::blocklist::agent_view::child_agent_status_card::ChildAgentStatusCard;
 use crate::ai::blocklist::agent_view::shortcuts::AgentShortcutViewModel;
 use crate::ai::blocklist::agent_view::{
@@ -49,7 +48,6 @@ use crate::ai::blocklist::{
     BlocklistAIInputModel, ResponseStreamId,
 };
 use crate::ai::llms::LLMPreferences;
-use crate::ai::AgentTip;
 use crate::settings::{InputModeSettings, InputSettings};
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
 use crate::terminal::input::buffer_model::{InputBufferModel, InputBufferUpdateEvent};
@@ -117,9 +115,6 @@ pub struct BlocklistAIStatusBar {
     last_read_refresh_handle: Option<SpawnedFutureHandle>,
 
     latest_response_stream_id: Option<ResponseStreamId>,
-
-    /// Agent tip to display below the warping indicator.
-    current_tip: Option<AgentTip>,
 
     ephemeral_message_model: ModelHandle<EphemeralMessageModel>,
     agent_message_bar: ViewHandle<AgentMessageBar>,
@@ -279,11 +274,6 @@ impl BlocklistAIStatusBar {
             ctx.notify();
         });
 
-        ctx.observe(&AITipModel::handle(ctx), |me, tip_model, ctx| {
-            me.current_tip = tip_model.as_ref(ctx).current_tip().cloned();
-            ctx.notify();
-        });
-
         let summarization_cancel_dialog =
             ctx.add_typed_action_view(|_| SummarizationCancelDialog::default());
         ctx.subscribe_to_view(
@@ -351,7 +341,6 @@ impl BlocklistAIStatusBar {
             ctx.subscribe_to_model(ambient_agent_view_model, |me, _, event, ctx| match event {
                 AmbientAgentViewModelEvent::DispatchedAgent
                 | AmbientAgentViewModelEvent::ProgressUpdated => {
-                    me.update_agent_tip(ctx);
                     ctx.notify();
                 }
                 AmbientAgentViewModelEvent::SessionReady { .. }
@@ -387,7 +376,6 @@ impl BlocklistAIStatusBar {
             summarization_start_time: None,
             last_read_refresh_handle: None,
             ambient_agent_view_model,
-            current_tip: None,
             ephemeral_message_model,
             agent_message_bar,
             child_agent_status_card,
@@ -479,9 +467,6 @@ impl BlocklistAIStatusBar {
             self.is_summarization_cancel_dialog_open = false;
             self.stop_summarization_timer();
 
-            if FeatureFlag::AgentTips.is_enabled() {
-                self.update_agent_tip(ctx);
-            }
         }
     }
 
@@ -701,40 +686,6 @@ impl BlocklistAIStatusBar {
         }
     }
 
-    fn update_agent_tip(&mut self, ctx: &mut ViewContext<Self>) {
-        if FeatureFlag::AgentTips.is_enabled() && *InputSettings::as_ref(ctx).show_agent_tips {
-            let current_working_directory = self
-                .terminal_model
-                .lock()
-                .active_block_metadata()
-                .current_working_directory()
-                .map(|cwd| cwd.to_string());
-
-            // Update the tip using the model's cooldown-based API
-            let tip_model = AITipModel::<AgentTip>::handle(ctx);
-            tip_model.update(ctx, |model, model_ctx| {
-                model.maybe_refresh_tip(current_working_directory.as_deref(), model_ctx);
-            });
-
-            // Get the current tip from the model
-            self.current_tip = tip_model.as_ref(ctx).current_tip().cloned();
-
-            if let Some(_tip) = self.current_tip.as_ref() {}
-        } else {
-            self.current_tip = None;
-        }
-    }
-
-    fn render_tip(&self, app: &AppContext) -> Option<Box<dyn Element>> {
-        if FeatureFlag::AgentTips.is_enabled() && *InputSettings::as_ref(app).show_agent_tips {
-            self.current_tip
-                .as_ref()
-                .map(|tip| render_agent_tip(tip, app))
-        } else {
-            None
-        }
-    }
-
     fn render_warping_indicator_for_latest_exchange(
         &self,
         app: &AppContext,
@@ -803,7 +754,7 @@ impl BlocklistAIStatusBar {
         let secondary_element = if fallback_warping_text.is_some() {
             Some(render_fallback_explanation(model.as_ref(), app))
         } else {
-            self.render_tip(app)
+            None
         };
 
         Some(render_warping_indicator(
@@ -891,7 +842,7 @@ impl BlocklistAIStatusBar {
                 non_shimmering_suffix: None,
                 buttons: None,
                 is_passive_code_diff: false,
-                secondary_element: self.render_tip(app),
+                secondary_element: None,
             },
             app,
         ))
@@ -976,60 +927,6 @@ fn latest_model_used_before_exchange<V: View>(
                 is_fallback: model_info.is_fallback,
             })
         })
-}
-
-fn render_agent_tip(tip: &AgentTip, app: &AppContext) -> Box<dyn Element> {
-    use markdown_parser::{FormattedTextFragment, FormattedTextLine};
-    use warpui::text_layout::ClipConfig;
-
-    use crate::ai::agent_tips::AITip;
-
-    let appearance = Appearance::as_ref(app);
-    let theme = appearance.theme();
-
-    let _tip_description = tip.description.clone();
-    let action_text = tip.action.clone().and_then(|action| action.display_text());
-
-    let mut fragments = tip.to_formatted_text(app);
-
-    if let (Some(action), Some(text)) = (tip.action.clone(), action_text.clone()) {
-        fragments.push(FormattedTextFragment::plain_text(" "));
-        fragments.push(FormattedTextFragment::hyperlink_action(text, action));
-    } else if let Some(link_target) = tip.link.clone() {
-        fragments.push(FormattedTextFragment::plain_text(" "));
-        fragments.push(FormattedTextFragment::hyperlink("Learn more", link_target));
-    }
-
-    let formatted_text =
-        markdown_parser::FormattedText::new(vec![FormattedTextLine::Line(fragments)]);
-    warpui::elements::FormattedTextElement::new(
-        formatted_text,
-        appearance.monospace_font_size() - 3.,
-        appearance.ui_font_family(),
-        appearance.monospace_font_family(),
-        theme.disabled_ui_text_color().into_solid(),
-        Default::default(),
-    )
-    .with_hyperlink_font_color(theme.accent().into())
-    .set_selectable(true)
-    .with_clip(ClipConfig::ellipsis())
-    .register_default_click_handlers_with_action_support(move |link, evt, app| {
-        use warpui::elements::HyperlinkLens;
-        match link {
-            HyperlinkLens::Url(url) => {
-                app.open_url(url);
-            }
-            HyperlinkLens::Action(action_ref) => {
-                if let Some(action) = action_ref
-                    .as_any()
-                    .downcast_ref::<crate::workspace::WorkspaceAction>()
-                {
-                    evt.dispatch_typed_action(action.clone());
-                }
-            }
-        }
-    })
-    .finish()
 }
 
 fn render_fallback_explanation<V: View>(
@@ -1144,7 +1041,7 @@ impl View for BlocklistAIStatusBar {
                         non_shimmering_suffix: None,
                         buttons: None,
                         is_passive_code_diff: false,
-                        secondary_element: self.render_tip(app),
+                        secondary_element: None,
                     },
                     app,
                 )
@@ -1179,7 +1076,7 @@ impl View for BlocklistAIStatusBar {
                             appearance,
                         )),
                         is_passive_code_diff: false,
-                        secondary_element: self.render_tip(app),
+                        secondary_element: None,
                     },
                     app,
                 )

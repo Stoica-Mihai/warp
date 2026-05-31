@@ -1,10 +1,5 @@
 //! Tips for cloud mode loading screen.
 
-use warpui::keymap::Keystroke;
-use warpui::AppContext;
-
-use crate::ai::agent_tips::AITip;
-
 /// A cloud mode tip with text and optional link.
 #[derive(Clone, Debug)]
 pub struct CloudModeTip {
@@ -19,22 +14,6 @@ impl CloudModeTip {
             link: link.map(|l| l.into()),
         }
     }
-}
-
-impl AITip for CloudModeTip {
-    fn keystroke(&self, _app: &AppContext) -> Option<Keystroke> {
-        None
-    }
-
-    fn link(&self) -> Option<String> {
-        self.link.clone()
-    }
-
-    fn description(&self) -> &str {
-        &self.text
-    }
-
-    // Uses the default implementation which adds "Tip: " prefix and parses backticks as inline code
 }
 
 /// Returns a collection of tips for the cloud mode loading screen.
