@@ -41,7 +41,7 @@ fn render_number_badge(
     .finish()
 }
 
-pub(super) fn render_recommended_badge(appearance: &Appearance) -> Box<dyn Element> {
+pub(crate) fn render_recommended_badge(appearance: &Appearance) -> Box<dyn Element> {
     let theme = appearance.theme();
     Container::new(
         Text::new(

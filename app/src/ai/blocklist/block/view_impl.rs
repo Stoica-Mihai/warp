@@ -1247,55 +1247,11 @@ impl View for AIBlock {
 ///
 /// Each sub-component of the AI block (header, query, output) is responsible for implementing its
 /// own padding and margin using these values.
-pub(crate) const CONTENT_HORIZONTAL_PADDING: f32 = 20.;
+pub(crate) use crate::terminal::view::with_content_item_spacing::{
+    CONTENT_HORIZONTAL_PADDING, CONTENT_ITEM_VERTICAL_MARGIN, WithContentItemSpacing,
+};
 
-/// The vertical padding applied to the AIBlock's content.
-///
-/// When there is an expanded requested command block, the padding from the bottom of the block is
-/// removed; the UI attempts to make the requested command UX in the AIBlock appear visually
-/// connected to the actual shell block despite them existing in different branches of the view
-/// hierarchy.
-///
-/// Each sub-component of the AI block (header, query, output) is responsible for implementing its
-/// own padding and margin using these values.
 pub(crate) const CONTENT_VERTICAL_PADDING: f32 = 16.;
-
-/// The space in between each "item" in the AI block, e.g. between header, query, and each output
-/// "step".
-///
-/// Each sub-component of the AI block (header, query, output) is responsible for implementing its
-/// own padding and margin using these values.
-pub(crate) const CONTENT_ITEM_VERTICAL_MARGIN: f32 = 16.;
-
-pub(crate) trait WithContentItemSpacing {
-    /// Returns a [`Container`] with standard margin and padding values applied to be rendered as a
-    /// "content item" in an AI block.
-    ///
-    /// The returned element is fit to be directly rendered within the AI block as a direct child
-    /// of the top-level container.
-    fn with_content_item_spacing(self) -> Container;
-
-    /// Returns a [`Container`] "content item" spacing with additional left margin to be specifically
-    /// applied to agent output items, intended to vertically align the left margin of agent output
-    /// items (text, reasoning, actions) with the user query.
-    fn with_agent_output_item_spacing(self, app: &AppContext) -> Container;
-}
-
-impl WithContentItemSpacing for Box<dyn Element> {
-    fn with_content_item_spacing(self) -> Container {
-        Container::new(self)
-            .with_horizontal_margin(CONTENT_HORIZONTAL_PADDING)
-            .with_margin_bottom(CONTENT_ITEM_VERTICAL_MARGIN)
-    }
-
-    fn with_agent_output_item_spacing(self, app: &AppContext) -> Container {
-        let left_margin = CONTENT_HORIZONTAL_PADDING + icon_size(app) + 16.;
-        Container::new(self)
-            .with_margin_left(left_margin)
-            .with_margin_right(CONTENT_HORIZONTAL_PADDING)
-            .with_margin_bottom(CONTENT_ITEM_VERTICAL_MARGIN)
-    }
-}
 
 impl AIAgentInput {
     /// Returns whether this [`AIAgentInput`] type should render a custom element below the user
