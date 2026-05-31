@@ -18,7 +18,7 @@ use warp_multi_agent_api::response_event::stream_finished::{
 };
 use warpui::{AppContext, Entity, EntityId, ModelContext, SingletonEntity};
 
-use super::controller::response_stream::ResponseStreamId;
+use super::ResponseStreamId;
 use super::persistence::{PersistedAIInput, PersistedAIInputType};
 use super::RequestInput;
 use crate::ai::agent::api::ServerConversationToken;

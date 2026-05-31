@@ -72,7 +72,7 @@ use self::code_diff_view::FileDiff;
 use self::model::{AIBlockModel, AIBlockModelHelper};
 use super::action_model::{AIActionStatus, BlocklistAIActionEvent};
 use super::code_block::CodeSnippetButtonHandles;
-use super::controller::ClientIdentifiers;
+use super::ClientIdentifiers;
 use super::inline_action::code_diff_view::{
     CodeDiffState, CodeDiffView, CodeDiffViewAction, CodeDiffViewEvent,
 };
@@ -83,7 +83,7 @@ use super::suggested_agent_mode_workflow_modal::SuggestedAgentModeWorkflowAndId;
 use super::suggested_rule_modal::SuggestedRuleAndId;
 use super::telemetry_banner::should_collect_ai_ugc_telemetry;
 use super::{
-    BlocklistAIActionModel, BlocklistAIController, BlocklistAIHistoryEvent,
+    BlocklistAIActionModel, BlocklistAIHistoryEvent,
     BlocklistAIHistoryModel, BlocklistAIPermissions, ResponseStreamId,
 };
 use crate::ai::agent::conversation::AIConversationId;
@@ -771,7 +771,6 @@ pub struct AIBlock {
     /// so the terminal view can read the updated value when the selection ends in the copy-on-select case.
     selected_text: Arc<RwLock<Option<String>>>,
     state_handles: AIBlockStateHandles,
-    controller: ModelHandle<BlocklistAIController>,
     active_session: ModelHandle<ActiveSession>,
     terminal_view_id: EntityId,
 
@@ -942,7 +941,6 @@ impl AIBlock {
         model: Rc<dyn AIBlockModel<View = AIBlock>>,
         terminal_model: Arc<FairMutex<TerminalModel>>,
         client_ids: ClientIdentifiers,
-        controller: ModelHandle<BlocklistAIController>,
         get_relevant_files_controller: ModelHandle<GetRelevantFilesController>,
         current_working_directory: Option<String>,
         shell_launch_data: Option<ShellLaunchData>,
@@ -1302,7 +1300,6 @@ impl AIBlock {
             client_ids,
             profile_image_path: auth_state.user_photo_url(),
             user_display_name,
-            controller,
             action_model,
             context_model,
             current_working_directory,
@@ -4294,13 +4291,6 @@ impl AIBlock {
         if self.is_finished() {
             return;
         }
-        self.controller.update(ctx, |controller, ctx| {
-            controller.cancel_conversation_progress(
-                self.client_ids.conversation_id,
-                CancellationReason::ManuallyCancelled,
-                ctx,
-            )
-        });
         self.finish(FinishReason::Cancelled, ctx);
     }
 

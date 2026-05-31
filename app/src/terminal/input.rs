@@ -156,10 +156,9 @@ use crate::ai::blocklist::PendingAttachment;
 use crate::ai::blocklist::{
     ai_brand_color, ai_indicator_height, render_ai_agent_mode_icon, render_ai_follow_up_icon,
     AttachmentType, BlocklistAIActionModel, BlocklistAIContextEvent, BlocklistAIContextModel,
-    BlocklistAIController, BlocklistAIControllerEvent, BlocklistAIHistoryEvent,
+    BlocklistAIHistoryEvent,
     BlocklistAIHistoryModel, BlocklistAIInputEvent, BlocklistAIInputModel, InputConfig, InputType,
-    InputTypeAutoDetectionSource, SlashCommandRequest, BLOCK_CONTEXT_ATTACHMENT_REGEX,
-    DIFF_HUNK_ATTACHMENT_REGEX, DRIVE_OBJECT_ATTACHMENT_REGEX,
+    InputTypeAutoDetectionSource,
 };
 use crate::ai::cloud_agent_settings::CloudAgentSettings;
 use crate::ai::cloud_environments::CloudAmbientAgentEnvironment;
@@ -1409,7 +1408,6 @@ pub struct Input {
     has_pending_command: bool,
     last_word_insertion: LastWordInsertion,
 
-    ai_controller: ModelHandle<BlocklistAIController>,
     ai_context_model: ModelHandle<BlocklistAIContextModel>,
     ai_input_model: ModelHandle<BlocklistAIInputModel>,
     ai_action_model: ModelHandle<BlocklistAIActionModel>,
@@ -1905,7 +1903,6 @@ impl Input {
         size_info: SizeInfo,
         menu_positioning_provider: Arc<dyn MenuPositioningProvider>,
         current_prompt: ModelHandle<PromptType>,
-        ai_controller: ModelHandle<BlocklistAIController>,
         ai_context_model: ModelHandle<BlocklistAIContextModel>,
         ai_input_model: ModelHandle<BlocklistAIInputModel>,
         ai_action_model: ModelHandle<BlocklistAIActionModel>,
@@ -2667,36 +2664,7 @@ impl Input {
             Self::handle_input_settings_event,
         );
 
-        ctx.subscribe_to_model(&ai_controller, |me, _, event, ctx| match event {
-            BlocklistAIControllerEvent::SentRequest {
-                contains_user_query: is_user_initiated,
-                is_queued_prompt,
-                ..
-            } => {
-                // Skip the buffer clear for queued prompts. The user may have typed new
-                // input while the agent was busy and we don't want to wipe it on auto-send.
-                if *is_user_initiated && !*is_queued_prompt {
-                    me.editor.update(ctx, |editor, ctx| {
-                        editor.system_clear_buffer(true, ctx);
-                    });
-                    ctx.notify();
-                }
-            }
-            BlocklistAIControllerEvent::ExportConversationToFile {
-                #[cfg_attr(target_family = "wasm", allow(unused))]
-                filename,
-            } => {
-                #[cfg(not(target_family = "wasm"))]
-                {
-                    me.export_conversation_to_file(filename.clone(), ctx);
-                }
-                #[cfg(target_family = "wasm")]
-                {
-                    log::warn!("Export to file is not supported on WASM");
-                }
-            }
-            _ => {}
-        });
+
 
         ctx.subscribe_to_model(&suggestions_mode_model, |me, _, event, ctx| {
             let InputSuggestionsModeEvent::ModeChanged {
@@ -3086,7 +3054,6 @@ impl Input {
 
         let agent_status_view = ctx.add_typed_action_view(|ctx| {
             BlocklistAIStatusBar::new(
-                ai_controller.clone(),
                 cli_subagent_controller,
                 ai_action_model.clone(),
                 ai_context_model.clone(),
@@ -3141,7 +3108,6 @@ impl Input {
             terminal_input_message_bar,
             prompt_render_helper,
             prompt_type: current_prompt,
-            ai_controller,
             ai_context_model,
             ai_input_model,
             ai_action_model,
@@ -4573,16 +4539,6 @@ impl Input {
             });
         }
 
-        // Send the skill invocation request
-        let request = SlashCommandRequest::InvokeSkill { skill, user_query };
-        self.ai_controller.update(ctx, move |controller, ctx| {
-            if is_queued_prompt {
-                controller.send_queued_slash_command_request(request, ctx);
-            } else {
-                controller.send_slash_command_request(request, ctx);
-            }
-        });
-
         true
     }
 
@@ -4896,22 +4852,9 @@ impl Input {
 
     fn cancel_active_conversation(
         &mut self,
-        ctx: &mut ViewContext<Self>,
-        cancellation_reason: CancellationReason,
+        _ctx: &mut ViewContext<Self>,
+        _cancellation_reason: CancellationReason,
     ) {
-        self.ai_controller.update(ctx, |controller, ctx| {
-            let active_conversation_id = BlocklistAIHistoryModel::as_ref(ctx)
-                .active_conversation(self.terminal_view_id)
-                .filter(|conversation| conversation.status().is_in_progress())
-                .map(|conversation| conversation.id());
-            if let Some(active_conversation_id) = active_conversation_id {
-                controller.cancel_conversation_progress(
-                    active_conversation_id,
-                    cancellation_reason,
-                    ctx,
-                );
-            }
-        });
     }
 
     fn handle_prompt_event(&mut self, event: &PromptDisplayEvent, ctx: &mut ViewContext<Self>) {
@@ -4952,18 +4895,7 @@ impl Input {
                     source: PaletteSource::ContextChip,
                 });
             }
-            PromptDisplayEvent::RunAgentQuery(query) => {
-                self.cancel_active_conversation(ctx, CancellationReason::UserCommandExecuted);
-                let query = query.clone();
-                self.ai_controller.update(ctx, |controller, ctx| {
-                    controller.send_user_query_in_new_conversation(
-                        query,
-                        None,
-                        EntrypointType::UserInitiated,
-                        ctx,
-                    );
-                });
-            }
+            PromptDisplayEvent::RunAgentQuery(_query) => {}
             PromptDisplayEvent::TryExecuteCommand(command) => {
                 // Snapshot the current input so we can restore it after the command completes.
                 let current_input = self.buffer_text(ctx);
@@ -11172,21 +11104,12 @@ impl Input {
 
     pub(crate) fn initiate_create_new_project(
         &mut self,
-        ai_query: String,
-        ctx: &mut ViewContext<Self>,
+        _ai_query: String,
+        _ctx: &mut ViewContext<Self>,
     ) {
-        self.ai_controller.update(ctx, move |controller, ctx| {
-            controller.send_slash_command_request(
-                SlashCommandRequest::CreateNewProject { query: ai_query },
-                ctx,
-            )
-        });
     }
 
-    pub(crate) fn initiate_clone_repository(&mut self, url: String, ctx: &mut ViewContext<Self>) {
-        self.ai_controller.update(ctx, move |controller, ctx| {
-            controller.send_slash_command_request(SlashCommandRequest::CloneRepository { url }, ctx)
-        });
+    pub(crate) fn initiate_clone_repository(&mut self, _url: String, _ctx: &mut ViewContext<Self>) {
     }
 
     /// Handles the user's 'Enter' keypress.
@@ -11575,21 +11498,7 @@ impl Input {
                 });
             }
 
-            // Cancel actively streaming conversations if we're able to run the command.
-            // This is possible in persistent input mode.
-            self.ai_controller.update(ctx, |controller, ctx| {
-                let active_conversation_id = BlocklistAIHistoryModel::as_ref(ctx)
-                    .active_conversation(self.terminal_view_id)
-                    .filter(|conversation| conversation.status().is_in_progress())
-                    .map(|conversation| conversation.id());
-                if let Some(active_conversation_id) = active_conversation_id {
-                    controller.cancel_conversation_progress(
-                        active_conversation_id,
-                        CancellationReason::UserCommandExecuted,
-                        ctx,
-                    );
-                }
-            });
+
 
             self.ai_input_model.update(ctx, |model, ctx| {
                 model.handle_input_buffer_submitted(ctx);
@@ -11782,80 +11691,7 @@ impl Input {
     /// Cancels the in-flight stream first so slash/skill paths don't trip the in-flight assertion.
     /// `is_for_same_conversation: true` keeps the conversation status `InProgress` so the warping
     /// indicator stays visible.
-    pub(crate) fn submit_queued_prompt(&mut self, prompt: String, ctx: &mut ViewContext<Self>) {
-        if let Some(conversation_id) = self
-            .ai_context_model
-            .as_ref(ctx)
-            .selected_conversation_id(ctx)
-        {
-            self.ai_controller.update(ctx, |controller, ctx| {
-                controller.cancel_conversation_progress(
-                    conversation_id,
-                    CancellationReason::FollowUpSubmitted {
-                        is_for_same_conversation: true,
-                    },
-                    ctx,
-                );
-            });
-        }
-
-        let detected = self
-            .slash_command_model
-            .as_ref(ctx)
-            .detect_command(&prompt, ctx);
-
-        // Try slash command or skill command first. Some slash commands
-        // (e.g. /plan, /compact) return false to indicate the full text
-        // should be sent as a regular AI query — fall through in that case.
-        let handled = match detected {
-            SlashCommandEntryState::SlashCommand(detected_command) => {
-                self.execute_slash_command(
-                    &detected_command.command,
-                    detected_command.argument.as_ref(),
-                    SlashCommandTrigger::input(),
-                    /*is_queued_prompt*/ true,
-                    ctx,
-                )
-            }
-            SlashCommandEntryState::SkillCommand(detected_skill) => {
-                self.execute_skill_command(
-                    detected_skill.reference,
-                    detected_skill.argument,
-                    /*is_queued_prompt*/ true,
-                    ctx,
-                )
-            }
-            _ => false,
-        };
-
-        if handled {
-            return;
-        }
-
-        if let Some(conversation_id) = self
-            .ai_context_model
-            .as_ref(ctx)
-            .selected_conversation_id(ctx)
-        {
-            self.ai_controller.update(ctx, move |controller, ctx| {
-                controller.send_queued_user_query_in_conversation(
-                    prompt,
-                    conversation_id,
-                    ctx,
-                );
-            });
-        } else {
-            self.ai_controller.update(ctx, move |controller, ctx| {
-                controller.send_queued_user_query_in_new_conversation(
-                    prompt,
-                    None,
-                    EntrypointType::UserInitiated,
-                    ctx,
-                );
-            });
-        }
-
-        ctx.emit(Event::ExecuteAIQuery);
+    pub(crate) fn submit_queued_prompt(&mut self, _prompt: String, _ctx: &mut ViewContext<Self>) {
     }
 
     /// Checks whether the current input should be queued instead of executed.
@@ -11981,11 +11817,7 @@ impl Input {
             return;
         }
 
-        if let Some(zero_state_prompt_suggestion_type) = zero_state_prompt_suggestion_type {
-            return self.ai_controller.update(ctx, move |controller, ctx| {
-                controller.send_zero_state_prompt_suggestion(zero_state_prompt_suggestion_type, ctx)
-            });
-        }
+        let _ = zero_state_prompt_suggestion_type;
 
         let ai_query = self.editor.as_ref(ctx).buffer_text(ctx);
         // We don't send AI requests with empty queries, even if the context is non-empty. We
@@ -12004,24 +11836,7 @@ impl Input {
             model.handle_input_buffer_submitted(ctx);
         });
 
-        if let Some(conversation_id) = self
-            .ai_context_model
-            .as_ref(ctx)
-            .selected_conversation_id(ctx)
-        {
-            self.ai_controller.update(ctx, move |controller, ctx| {
-                controller.send_user_query_in_conversation(ai_query, conversation_id, ctx)
-            });
-        } else {
-            self.ai_controller.update(ctx, move |controller, ctx| {
-                controller.send_user_query_in_new_conversation(
-                    ai_query,
-                    None,
-                    EntrypointType::UserInitiated,
-                    ctx,
-                );
-            });
-        }
+
 
         ctx.emit(Event::ExecuteAIQuery);
 
@@ -12976,10 +12791,8 @@ impl Input {
 
     /// Returns whether the buffer contains any attachment patterns (blocks, drive objects, or diffs).
     /// These patterns indicate the user is referencing context that requires AI mode.
-    fn buffer_contains_attachment_patterns(buffer_text: &str) -> bool {
-        BLOCK_CONTEXT_ATTACHMENT_REGEX.is_match(buffer_text)
-            || DRIVE_OBJECT_ATTACHMENT_REGEX.is_match(buffer_text)
-            || DIFF_HUNK_ATTACHMENT_REGEX.is_match(buffer_text)
+    fn buffer_contains_attachment_patterns(_buffer_text: &str) -> bool {
+        false
     }
 
     /// Shows the AI command search panel.

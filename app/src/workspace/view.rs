@@ -163,7 +163,7 @@ use crate::ai::blocklist::suggested_rule_modal::{
     SuggestedRuleAndId, SuggestedRuleModal, SuggestedRuleModalEvent,
 };
 use crate::ai::blocklist::{
-    BlocklistAIHistoryEvent, PendingQueryState, SerializedBlockListItem, SlashCommandRequest,
+    BlocklistAIHistoryEvent, PendingQueryState, SerializedBlockListItem,
     FORK_PREFIX,
 };
 use crate::ai::cloud_agent_settings::CloudAgentSettings;

@@ -30,7 +30,7 @@ use crate::terminal::view::agent_view_state::AgentViewEntryOrigin;
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
 use crate::ai::blocklist::handoff::PendingCloudLaunch;
 use crate::ai::blocklist::{
-    BlocklistAIHistoryModel, InputTypeAutoDetectionSource, SlashCommandRequest,
+    BlocklistAIHistoryModel, InputTypeAutoDetectionSource,
 };
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::code_review::telemetry_event::CodeReviewPaneEntrypoint;
@@ -764,12 +764,7 @@ impl Input {
                     return false;
                 };
 
-                self.ai_controller.update(ctx, move |controller, ctx| {
-                    controller.send_slash_command_request(
-                        SlashCommandRequest::FetchReviewComments { repo_path },
-                        ctx,
-                    )
-                });
+                let _ = repo_path;
             }
             _usage if command.name == commands::USAGE.name => {
                 ctx.dispatch_typed_action(&TerminalAction::OpenBillingAndUsagePane);

@@ -23,7 +23,7 @@ use crate::ai::agent::{
     Shared, UserQueryMode,
 };
 use crate::ai::ambient_agents::AmbientAgentTaskId;
-use crate::ai::blocklist::controller::RequestInput;
+use crate::ai::blocklist::RequestInput;
 use crate::ai::blocklist::ResponseStreamId;
 use crate::ai::llms::LLMId;
 use crate::cloud_object::{Owner, Revision, ServerMetadata, ServerPermissions};

@@ -39,7 +39,7 @@ use crate::ai::blocklist::summarization_cancel_dialog::{
 };
 use crate::ai::blocklist::{
     ai_brand_color, BlocklistAIActionEvent, BlocklistAIActionModel, BlocklistAIContextEvent,
-    BlocklistAIContextModel, BlocklistAIController, BlocklistAIHistoryEvent, BlocklistAIInputEvent,
+    BlocklistAIContextModel, BlocklistAIHistoryEvent, BlocklistAIInputEvent,
     BlocklistAIInputModel, ResponseStreamId,
 };
 use crate::ai::llms::LLMPreferences;
@@ -82,7 +82,6 @@ struct StateHandles {
 pub struct BlocklistAIStatusBar {
     active_exchange_model: Option<Box<dyn AIBlockModel<View = BlocklistAIStatusBar>>>,
     action_model: ModelHandle<BlocklistAIActionModel>,
-    controller: ModelHandle<BlocklistAIController>,
     cli_subagent_controller: ModelHandle<CLISubagentController>,
     context_model: ModelHandle<BlocklistAIContextModel>,
     input_model: ModelHandle<BlocklistAIInputModel>,
@@ -114,7 +113,6 @@ pub struct BlocklistAIStatusBar {
 impl BlocklistAIStatusBar {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        controller: ModelHandle<BlocklistAIController>,
         cli_subagent_controller: ModelHandle<CLISubagentController>,
         action_model: ModelHandle<BlocklistAIActionModel>,
         context_model: ModelHandle<BlocklistAIContextModel>,
@@ -319,7 +317,6 @@ impl BlocklistAIStatusBar {
             context_model,
             input_model,
             terminal_model,
-            controller,
             cli_subagent_controller,
             state_handles: Default::default(),
             autoexecute_keystroke,
@@ -510,15 +507,6 @@ impl BlocklistAIStatusBar {
             return;
         };
         if model.status(ctx).is_streaming() {
-            if let Some(response_stream_id) = self.latest_response_stream_id.as_ref() {
-                self.controller.update(ctx, |controller, ctx| {
-                    controller.cancel_request(
-                        response_stream_id,
-                        CancellationReason::ManuallyCancelled,
-                        ctx,
-                    );
-                });
-            }
         } else {
             let Some(conversation_id) = model.conversation_id(ctx) else {
                 return;
@@ -553,13 +541,7 @@ impl BlocklistAIStatusBar {
                 // No streaming request or pending action, but conversation is still in progress.
                 // This happens when a subagent (e.g., computer use or advice) is running.
                 // Cancel the entire conversation's progress.
-                self.controller.update(ctx, |controller, ctx| {
-                    controller.cancel_conversation_progress(
-                        conversation_id,
-                        CancellationReason::ManuallyCancelled,
-                        ctx,
-                    );
-                });
+                let _ = conversation_id;
             }
         }
     }

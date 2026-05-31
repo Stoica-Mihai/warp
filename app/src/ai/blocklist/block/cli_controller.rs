@@ -15,7 +15,7 @@ use crate::ai::agent::{
 };
 use crate::ai::blocklist::context_model::block_context_from_terminal_model;
 use crate::ai::blocklist::{
-    BlocklistAIActionEvent, BlocklistAIActionModel, BlocklistAIController, BlocklistAIHistoryEvent,
+    BlocklistAIActionEvent, BlocklistAIActionModel, BlocklistAIHistoryEvent,
 };
 use crate::terminal::model::block::BlockId;
 use crate::terminal::model_events::{ModelEvent, ModelEventDispatcher};
@@ -117,7 +117,6 @@ impl LongRunningCommandControlState {
 /// but wrapping update APIs in this controller ensures consistent update semantics and makes
 /// control state updates subscribable.
 pub struct CLISubagentController {
-    controller: ModelHandle<BlocklistAIController>,
     action_model: ModelHandle<BlocklistAIActionModel>,
     terminal_model: Arc<FairMutex<TerminalModel>>,
     terminal_view_id: EntityId,
@@ -127,7 +126,6 @@ pub struct CLISubagentController {
 
 impl CLISubagentController {
     pub fn new(
-        controller: &ModelHandle<BlocklistAIController>,
         action_model: &ModelHandle<BlocklistAIActionModel>,
         terminal_model: Arc<FairMutex<TerminalModel>>,
         model_event_dispatcher: &ModelHandle<ModelEventDispatcher>,
@@ -228,7 +226,6 @@ impl CLISubagentController {
         });
 
         Self {
-            controller: controller.clone(),
             action_model: action_model.clone(),
             terminal_model,
             terminal_view_id,
@@ -295,18 +292,7 @@ impl CLISubagentController {
         // model lock before actually cancelling the conversation.
         drop(terminal_model);
 
-        // Only cancel conversation if user manually took control (not when agent transfers control).
-        if should_cancel_conversation {
-            if let Some(conversation_id) = conversation_id {
-                self.controller.update(ctx, |controller, ctx| {
-                    controller.cancel_conversation_progress(
-                        conversation_id,
-                        CancellationReason::ManuallyCancelled,
-                        ctx,
-                    );
-                });
-            }
-        }
+        let _ = should_cancel_conversation;
 
         ctx.emit(CLISubagentEvent::UpdatedControl {
             block_id: block_id.clone(),
@@ -342,31 +328,7 @@ impl CLISubagentController {
         let agent_has_control = active_block.is_agent_in_control();
         drop(terminal_model);
 
-        // Trigger an auto-resume of the conversation when handing control to the agent.
-        if let Some(conversation_id) = conversation_id {
-            let is_viewing_shared_session = BlocklistAIHistoryModel::as_ref(ctx)
-                .conversation(&conversation_id)
-                .is_some_and(|conversation| conversation.is_viewing_shared_session());
-            if !is_viewing_shared_session {
-                let resume_context = {
-                    let terminal_model = self.terminal_model.lock();
-                    block_context_from_terminal_model(&terminal_model, &block_id, false)
-                        .map(Box::new)
-                        .map(AIAgentContext::Block)
-                        .into_iter()
-                        .collect()
-                };
-                self.controller.update(ctx, |controller, ctx| {
-                    controller.resume_conversation(
-                        conversation_id,
-                        /*can_attempt_resume_on_error*/ true,
-                        /*is_auto_resume_after_error*/ false,
-                        resume_context,
-                        ctx,
-                    );
-                });
-            }
-        }
+        let _ = conversation_id;
 
         ctx.emit(CLISubagentEvent::UpdatedControl {
             block_id: block_id.clone(),

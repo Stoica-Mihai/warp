@@ -58,7 +58,6 @@ impl ProfileModelSelector {
         _input_model: ModelHandle<BlocklistAIInputModel>,
         _ambient_agent_view_model: Option<ModelHandle<AmbientAgentViewModel>>,
         _terminal_model: Arc<parking_lot::FairMutex<TerminalModel>>,
-        _controller: Option<ModelHandle<crate::ai::blocklist::BlocklistAIController>>,
         _ctx: &mut ViewContext<Self>,
     ) -> Self { Self }
 

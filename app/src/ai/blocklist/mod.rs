@@ -1,10 +1,9 @@
-//! This module contains model, controller, and view logic for Blocklist AI.
+//! This module contains model and view logic for Blocklist AI.
 mod action_model;
 pub(crate) mod avatar_disc;
 pub mod block;
 pub mod code_block;
 mod context_model;
-mod controller;
 pub(crate) mod handoff;
 
 pub(crate) mod local_shared_session_link_model;
@@ -12,9 +11,13 @@ pub(crate) mod orchestration_conversation_links;
 pub(crate) mod orchestration_event_streamer;
 pub(crate) mod orchestration_events;
 pub(crate) mod orchestration_topology;
-mod passive_suggestions;
+pub(crate) mod request_input;
+pub(crate) mod response_stream_id;
+pub(crate) mod session_context;
 pub(crate) mod task_status_sync_model;
-pub(super) use controller::RequestInput;
+pub(crate) use request_input::RequestInput;
+pub(crate) use response_stream_id::{ClientIdentifiers, ResponseStreamId};
+pub(crate) use session_context::SessionContext;
 pub mod history_model;
 pub mod inline_action;
 mod input_model;
@@ -48,14 +51,6 @@ pub(crate) use context_model::{
     block_context_from_terminal_model, AttachmentType, BlocklistAIContextEvent,
     BlocklistAIContextModel, PendingAttachment, PendingFile, PendingQueryState,
 };
-pub use controller::input_context::{
-    BLOCK_CONTEXT_ATTACHMENT_REGEX, DIFF_HUNK_ATTACHMENT_REGEX, DRIVE_OBJECT_ATTACHMENT_REGEX,
-};
-pub(crate) use controller::response_stream::ResponseStreamId;
-pub(crate) use controller::{
-    BlocklistAIController, BlocklistAIControllerEvent, ClientIdentifiers, SessionContext,
-    SlashCommandRequest,
-};
 pub(crate) use history_model::{
     AIQueryHistory, AIQueryHistoryOutputStatus, BlocklistAIHistoryEvent, BlocklistAIHistoryModel,
     ConversationStatusUpdate, FORK_PREFIX, PRE_REWIND_PREFIX,
@@ -63,10 +58,6 @@ pub(crate) use history_model::{
 pub(crate) use input_model::{
     BlocklistAIInputEvent, BlocklistAIInputModel, InputConfig, InputType,
     InputTypeAutoDetectionSource,
-};
-pub(crate) use passive_suggestions::{
-    LegacyPassiveSuggestionsEvent, LegacyPassiveSuggestionsModel, MaaPassiveSuggestionsEvent,
-    MaaPassiveSuggestionsModel, PassiveSuggestionsModels,
 };
 pub use permissions::BlocklistAIPermissions;
 #[cfg(test)]

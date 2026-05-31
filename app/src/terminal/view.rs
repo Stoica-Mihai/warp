@@ -217,7 +217,6 @@ use crate::ai::blocklist::block::cli::{CLISubagentView, CLISubagentViewEvent};
 use crate::ai::blocklist::block::cli_controller::{
     CLISubagentController, CLISubagentEvent, UserTakeOverReason,
 };
-use crate::ai::blocklist::block::status_bar::BlocklistAIStatusBarEvent;
 use crate::ai::blocklist::block::{AIBlockAction, FinishReason};
 use crate::ai::blocklist::codebase_index_speedbump_banner::{
     CodebaseIndexSpeedbumpBannerAction, CodebaseIndexSpeedbumpBannerState, VisibilityState,
@@ -237,13 +236,12 @@ use crate::ai::blocklist::{
     ai_brand_color, block_context_from_terminal_model,
     get_ai_block_overflow_menu_element_position_id, get_attached_blocks_chip_element_position_id,
     AIBlock, AIBlockEvent, BlocklistAIActionEvent, BlocklistAIActionModel, BlocklistAIContextEvent,
-    BlocklistAIContextModel, BlocklistAIController, BlocklistAIControllerEvent,
+    BlocklistAIContextModel,
     BlocklistAIHistoryEvent, BlocklistAIHistoryModel, BlocklistAIInputEvent, BlocklistAIInputModel,
-    ClientIdentifiers, ConversationStatusUpdate, InputConfig, InputType,
-    InputTypeAutoDetectionSource, LegacyPassiveSuggestionsEvent, LegacyPassiveSuggestionsModel,
-    MaaPassiveSuggestionsEvent, MaaPassiveSuggestionsModel, PassiveSuggestionsModels,
+    ConversationStatusUpdate, InputConfig, InputType,
+    InputTypeAutoDetectionSource,
     PendingAttachment, PendingQueryState, ShellCommandExecutor,
-    ShellCommandExecutorEvent, SlashCommandRequest, StartAgentExecutor, StartAgentExecutorEvent,
+    ShellCommandExecutorEvent, StartAgentExecutor, StartAgentExecutorEvent,
     StartAgentRequest, ATTACH_AS_AGENT_MODE_CONTEXT_TEXT, PRE_REWIND_PREFIX,
 };
 use crate::ai::conversation_utils;
@@ -3111,21 +3109,8 @@ impl TerminalView {
         let terminal_content_element_position_id =
             format!("terminal_content_element_{}", ctx.view_id());
 
-        // ai_controller and cli_subagent_controller: local only (not stored in TerminalView struct)
-        let ai_controller = ctx.add_model(|ctx| {
-            BlocklistAIController::new(
-                ai_input_model.clone(),
-                ai_context_model.clone(),
-                ai_action_model.clone(),
-                active_session.clone(),
-                model.clone(),
-                terminal_view_id,
-                ctx,
-            )
-        });
         let cli_subagent_controller = ctx.add_model(|ctx| {
             CLISubagentController::new(
-                &ai_controller,
                 &ai_action_model,
                 model.clone(),
                 &model_events_handle,
@@ -3143,7 +3128,6 @@ impl TerminalView {
                 size_info,
                 menu_positioning_provider,
                 current_prompt.clone(),
-                ai_controller.clone(),
                 ai_context_model.clone(),
                 ai_input_model.clone(),
                 ai_action_model.clone(),
