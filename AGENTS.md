@@ -19,9 +19,9 @@ Personal fork of [warpdotdev/warp](https://github.com/warpdotdev/warp), strippin
 
 Done so far — full per-commit log in `git log` and `plan.md`. Areas complete (all 3-gate green):
 
-telemetry · wasm-orphan crates · onboarding crate + flags · Sentry crash-reporting · Sublight rebrand · channel enum cascade · autoupdate pipeline · session-sharing (all vestiges incl. `SharedSessionStatus` + `is_shared_session_viewer` cascade) · Warp Drive server-sync + SyncQueue + ObjectClient · SharingDialog + permission-CRUD · login gate bypass · auth gate UI · AuthManager login stub · Firebase crate · server-driven A/B experiments · dead AuthClient privacy-sync · AuthView/AuthOverrideWarningModal cloud-gate UI · billing/teams/platform/referrals pages · AI assistant panel + Warp AI command search · AI settings pages + execution profile editor · execution profiles data model + inline profile selector · ScheduledAgentManager registration + AgentSource computation · **Phase C: `ai/agent_sdk/` STRIP COMPLETE** (`d3eb301d` + `889d83dd`)
+telemetry · wasm-orphan crates · onboarding crate + flags · Sentry crash-reporting · Sublight rebrand · channel enum cascade · autoupdate pipeline · session-sharing (all vestiges incl. `SharedSessionStatus` + `is_shared_session_viewer` cascade) · Warp Drive server-sync + SyncQueue + ObjectClient · SharingDialog + permission-CRUD · login gate bypass · auth gate UI · AuthManager login stub · Firebase crate · server-driven A/B experiments · dead AuthClient privacy-sync · AuthView/AuthOverrideWarningModal cloud-gate UI · billing/teams/platform/referrals pages · AI assistant panel + Warp AI command search · AI settings pages + execution profile editor · execution profiles data model + inline profile selector · ScheduledAgentManager registration + AgentSource computation · **Phase C: `ai/agent_sdk/` STRIP COMPLETE** (`d3eb301d` + `889d83dd`) · **Phase E partial: all `FeatureFlag::AgentView` guards collapsed + `enter_agent_view*` callers removed** (`dce395d8`…`94565da6`)
 
-**Current state:** Binary **821.9 MB** (−21.76 MB vs prior). **0 errors / ~180 warnings** (all AI territory, deferred, no `#[allow(dead_code)]` cheats). App always starts in Terminal.
+**Current state:** Binary **821.0 MB** (−23.2 MB total vs 844.2 MB baseline). **0 errors / ~211 warnings** (all AI territory, deferred, no `#[allow(dead_code)]` cheats). App always starts in Terminal.
 
 **Phase C done:** `ai/agent_sdk/` (73 files, 31,891 LoC) deleted. 10 external caller files fixed:
 - `ai/mod.rs`: drop `pub mod agent_sdk;`
@@ -35,11 +35,21 @@ telemetry · wasm-orphan crates · onboarding crate + flags · Sentry crash-repo
 - `terminal/view/ambient_agent/view_impl.rs`: remove `auth_check_command_for` block
 - `pane_group/pane/local_harness_launch.rs`: rewrite without agent_sdk; keep command builders; set `ANTHROPIC_MODEL` env var directly; remove agent_sdk platform validation/harness_kind/task_env_vars
 
-**Next — AI blocklist + agent strip (Phase D):** `ai/blocklist/`, `ai/agent/`, `ai/agent_management/`. Pre-existing cascade warnings clear naturally as construction sites disappear. `context_chips` NOT a target — core terminal prompt rendering (git branch, dir, virtualenv).
+**Phase E partial done** (`dce395d8`…`94565da6`, 22 commits, −2,600 net LoC, −0.84 MB):
+- `enter_agent_view_for_new_conversation`, `enter_agent_view`, `enter_agent_view_for_conversation`, `restore_conversation_after_view_creation`, `restore_conversation_and_directory_context`, `enter_agent_view_for_restored_cli_agent`, `send_user_query_after_next_conversation_finished` calls removed from `pane_group/mod.rs`, `workspace/view.rs`, `code_review/code_review_view.rs`, `pane_group/pane/terminal_pane.rs`, `pane_group/child_agent.rs`
+- Internal terminal/view.rs agent entry calls removed
+- All `FeatureFlag::AgentView` guards collapsed (83 sites: terminal/view.rs ×38, terminal/input.rs ×45, context_chips, settings, pane_group, ambient_agent, block_list_element, model/block, model/blocks, etc.)
+- `AgentViewController` removed from `context_chips/display.rs` + `display_chip.rs` + `terminal/input.rs` constructor
 
-**Deferred (Phase B ambient-agents):** `ai/ambient_agents/` directory, `terminal/view/ambient_agent/` directory, `LeafContents::AmbientAgent` variant, ambient agent pane management in `pane_group/mod.rs`, GitHub OAuth environment management, `workspace/auto_handoff.rs`, `pane_group/pane/environment_management_pane.rs`. These can now proceed since Phase C is done.
+**Remaining (Phase E+F — must do together):** `ai/blocklist/agent_view/` (7,846 LoC) still present. 47 files outside blocklist still import types from it. Correct deletion order:
+1. Delete pure-AI terminal/input files: `input/agent.rs`, `input/cloud_mode_v2_history_menu.rs`, `input/conversations/`, `input/inline_history/`, `input/inline_menu/`, `input/message_bar/`
+2. Remove agent_view uses from `terminal/model/block.rs`, `terminal/block_list_element.rs`, `terminal/block_list_viewport.rs`, `terminal/input.rs`, `lib.rs`, `auth/mod.rs`, `chip_configurator/mod.rs`, `ai/active_agent_views_model.rs`
+3. Delete `blocklist/agent_view/` directory + remove `pub mod agent_view;` from `blocklist/mod.rs`
+4. Delete remaining blocklist (Phase F): controller, action_model, history_model, orchestration, input_model, passive_suggestions
 
-**Also deferred:** `IsSharedSessionCreator` (used in child_agent.rs + pane_group + terminal_pane + terminal_manager + docker_sandbox via `SharedSessionSource`/`inherit_share_for_local_child`; remove with child_agent seam). `session_sharing_protocol` crate **KEEP** — `SharedSessionSource` + `SessionSourceType` load-bearing for ambient agents. `referral_theme_status.rs` **KEEP** — woven into theme_chooser + GlobalResourceHandles.
+**CRITICAL LESSON:** Never bulk-remove imports without simultaneously removing the type uses in those files. Removing imports alone causes more errors than having the directory missing.
+
+**Deferred:** `IsSharedSessionCreator` (used in child_agent.rs + pane_group + terminal_pane + terminal_manager + docker_sandbox via `SharedSessionSource`/`inherit_share_for_local_child`; remove with child_agent seam). `session_sharing_protocol` crate **KEEP** — `SharedSessionSource` + `SessionSourceType` load-bearing for ambient agents. `referral_theme_status.rs` **KEEP** — woven into theme_chooser + GlobalResourceHandles. `persisted_workspace.rs` **KEEP** — LSP workspace tracking, not cloud AI.
 
 **Key techniques:** Collapse flag-gated `if` branches first (flag still defined → green), drop flag def last when readers = 0. Trace dead UI subsystem to its event emitter — if gated on always-false predicate, whole chain removes cleanly. Telemetry: no-op send-macros first → event enums delete without touching ~819 call-sites; `recast` regex non-greedy `(?s)NAME!\(.*?\);`. `cargo fix` for bulk unused removal but re-verify all 3 gates (drops `#[cfg(test)]` imports). After large multi-file sweep, run one gate cold or `cargo run` to bust incremental cache before trusting exit 0.
 
