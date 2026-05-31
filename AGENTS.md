@@ -19,13 +19,25 @@ Personal fork of [warpdotdev/warp](https://github.com/warpdotdev/warp), strippin
 
 Done so far — full per-commit log in `git log` and `plan.md`. Areas complete (all 3-gate green):
 
-telemetry · wasm-orphan crates · onboarding crate + flags · Sentry crash-reporting · Sublight rebrand · channel enum cascade · autoupdate pipeline · session-sharing (all vestiges incl. `SharedSessionStatus` + `is_shared_session_viewer` cascade) · Warp Drive server-sync + SyncQueue + ObjectClient · SharingDialog + permission-CRUD · login gate bypass · auth gate UI · AuthManager login stub · Firebase crate · server-driven A/B experiments · dead AuthClient privacy-sync · AuthView/AuthOverrideWarningModal cloud-gate UI · billing/teams/platform/referrals pages · AI assistant panel + Warp AI command search · AI settings pages + execution profile editor · execution profiles data model + inline profile selector · **ScheduledAgentManager registration removed + AgentSource computation deleted** (`9b665573`)
+telemetry · wasm-orphan crates · onboarding crate + flags · Sentry crash-reporting · Sublight rebrand · channel enum cascade · autoupdate pipeline · session-sharing (all vestiges incl. `SharedSessionStatus` + `is_shared_session_viewer` cascade) · Warp Drive server-sync + SyncQueue + ObjectClient · SharingDialog + permission-CRUD · login gate bypass · auth gate UI · AuthManager login stub · Firebase crate · server-driven A/B experiments · dead AuthClient privacy-sync · AuthView/AuthOverrideWarningModal cloud-gate UI · billing/teams/platform/referrals pages · AI assistant panel + Warp AI command search · AI settings pages + execution profile editor · execution profiles data model + inline profile selector · ScheduledAgentManager registration + AgentSource computation · **Phase C: `ai/agent_sdk/` STRIP COMPLETE** (`d3eb301d` + `889d83dd`)
 
-**Current state:** Binary **843.6 MB**. **0 errors / ~46 warnings** (all AI territory + 1 new `ScheduledAgentManager::new` dead-code, deferred, no `#[allow(dead_code)]` cheats). App always starts in Terminal.
+**Current state:** Binary **821.9 MB** (−21.76 MB vs prior). **0 errors / ~180 warnings** (all AI territory, deferred, no `#[allow(dead_code)]` cheats). App always starts in Terminal.
 
-**Next (RECOMMENDED):** AI blocklist + agent strip — `ai/blocklist/`, `ai/agent/`, `ai/agent_sdk/`. This unlocks the deferred ambient-agents strip (Phase B was blocked by `agent_sdk/` and `blocklist/` having deep compile-time dependencies on `ai/ambient_agents/` and `terminal/view/ambient_agent/` types). `AIExecutionProfilesModel` stub + `profile_model_selector.rs` stub delete here too. Pre-existing cascade warnings clear naturally as construction sites disappear. `context_chips` NOT a target — core terminal prompt rendering (git branch, dir, virtualenv); removing it breaks prompt display.
+**Phase C done:** `ai/agent_sdk/` (73 files, 31,891 LoC) deleted. 10 external caller files fixed:
+- `ai/mod.rs`: drop `pub mod agent_sdk;`
+- `lib.rs`: collapse `LaunchMode::CommandLine` arm (agent_sdk::run removed, exits with error message now)
+- `ai/blocklist/controller.rs`: drop `ClaudeHarness` + `LocalClaudeWakeTrigger` + `pending_local_claude_wakes` + entire dormant-wake machinery; simplify `handle_pending_events_ready` to call inject directly; remove `DormantClaudeWakeReady` subscriber
+- `ai/blocklist/handoff/snapshot.rs`: stub Local upload target → `EmptyWorkspace`
+- `ai/blocklist/action_model/execute/upload_artifact.rs`: stub execute → `Error`
+- `remote_server/handoff_snapshot.rs`: stub gather_and_upload → `Ok(None)`
+- `server/server_api/harness_support.rs`: inline `with_bounded_retry` → direct calls
+- `terminal/view/docker_sandbox/mod.rs`: stub `initialize_docker_sandbox_environment` → no-op; drop all agent_sdk/cloud_environment driver imports
+- `terminal/view/ambient_agent/view_impl.rs`: remove `auth_check_command_for` block
+- `pane_group/pane/local_harness_launch.rs`: rewrite without agent_sdk; keep command builders; set `ANTHROPIC_MODEL` env var directly; remove agent_sdk platform validation/harness_kind/task_env_vars
 
-**Deferred (Phase B ambient-agents — cannot be cleanly done before Phase C):** `ai/ambient_agents/` directory full deletion, `terminal/view/ambient_agent/` directory deletion, `LeafContents::AmbientAgent` variant, ambient agent pane management in `pane_group/mod.rs`, ambient agent actions in `workspace/action.rs`, GitHub OAuth environment management (`environments_page`, `update_environment_form`, `handoff_environment_creation_modal`), `workspace/auto_handoff.rs` module, `pane_group/pane/environment_management_pane.rs`. All blocked by Phase C compile-time dependencies — Phase C removes the callers, Phase D removes the directories.
+**Next — AI blocklist + agent strip (Phase D):** `ai/blocklist/`, `ai/agent/`, `ai/agent_management/`. Pre-existing cascade warnings clear naturally as construction sites disappear. `context_chips` NOT a target — core terminal prompt rendering (git branch, dir, virtualenv).
+
+**Deferred (Phase B ambient-agents):** `ai/ambient_agents/` directory, `terminal/view/ambient_agent/` directory, `LeafContents::AmbientAgent` variant, ambient agent pane management in `pane_group/mod.rs`, GitHub OAuth environment management, `workspace/auto_handoff.rs`, `pane_group/pane/environment_management_pane.rs`. These can now proceed since Phase C is done.
 
 **Also deferred:** `IsSharedSessionCreator` (used in child_agent.rs + pane_group + terminal_pane + terminal_manager + docker_sandbox via `SharedSessionSource`/`inherit_share_for_local_child`; remove with child_agent seam). `session_sharing_protocol` crate **KEEP** — `SharedSessionSource` + `SessionSourceType` load-bearing for ambient agents. `referral_theme_status.rs` **KEEP** — woven into theme_chooser + GlobalResourceHandles.
 
