@@ -2476,7 +2476,6 @@ impl Input {
                 };
                 EditorView::new(options, ctx)
                     .with_next_command_model(next_command_model.clone())
-                    .with_context_model(ai_context_model.clone())
             })
         };
 

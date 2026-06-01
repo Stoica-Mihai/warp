@@ -93,7 +93,7 @@ use self::model::{LocalSelections, Selection, UpdateBufferOption};
 use super::soft_wrap::{ClampDirection, DisplayPointAndClampDirection};
 use super::Point;
 use crate::ai::agent::ImageContext;
-use crate::ai::blocklist::{BlocklistAIContextModel, InputType, PendingAttachment, PendingFile};
+use crate::ai::blocklist::InputType;
 use crate::ai::predict::next_command_model::{NextCommandModel, NextCommandSuggestionState};
 use crate::appearance::Appearance;
 use crate::editor::accept_autosuggestion_keybinding_view::AcceptAutosuggestionKeybinding;
@@ -128,7 +128,6 @@ use crate::view_components::DismissibleToast;
 use crate::view_components::FeaturePopup;
 use crate::vim_registers::{RegisterContent, VimRegisters};
 use crate::workspace::{ToastStack, Workspace};
-use crate::BlocklistAIHistoryModel;
 
 const CURSOR_BLINK_INTERVAL: Duration = Duration::from_millis(500);
 const DEFAULT_TAB_SIZE: usize = 4;
@@ -1839,8 +1838,6 @@ pub struct EditorView {
     #[cfg(feature = "voice_input")]
     voice_new_feature_popup: ViewHandle<FeaturePopup>,
 
-    context_model: Option<ModelHandle<BlocklistAIContextModel>>,
-
     /// Options for attaching image context.
     /// Made public to allow terminal input to access image attachment state and limits.
     pub image_context_options: ImageContextOptions,
@@ -2910,13 +2907,6 @@ impl EditorView {
         }
     }
 
-    pub fn with_context_model(self, context_model: ModelHandle<BlocklistAIContextModel>) -> Self {
-        Self {
-            context_model: Some(context_model),
-            ..self
-        }
-    }
-
     /// Creates an [`EditorView`] with the initial text
     /// equal to `base_text` and with behaviour specified by `options`.
     #[cfg(test)]
@@ -3120,7 +3110,6 @@ impl EditorView {
             voice_new_feature_popup: Self::create_voice_new_feature_popup(ctx),
             is_ai_input: false,
             convert_newline_to_space: options.convert_newline_to_space,
-            context_model: None,
             image_context_options: ImageContextOptions::Disabled,
             image_context_button_mouse_handle: Default::default(),
             ai_context_menu_state,
@@ -4263,15 +4252,7 @@ impl EditorView {
                     .active_session_view(ctx)
             });
 
-        // If an agent is responding, we don't want ctrl+c to clear the persistent input.
-        let is_agent_responding = terminal_view
-            .as_ref()
-            .and_then(|terminal_view| {
-                BlocklistAIHistoryModel::as_ref(ctx).active_conversation(terminal_view.id())
-            })
-            .is_some_and(|conversation| {
-                conversation.status().is_in_progress() && conversation.exchange_count() > 0
-            });
+        let is_agent_responding = false;
 
         // If there is a pending passive ai block, we don't want ctrl+c to clear the buffer.
         let is_pending_passive_ai_block = terminal_view.is_some_and(|terminal_view| {
@@ -5218,12 +5199,6 @@ impl EditorView {
                     });
                 }
 
-                if let Some(context_model) = &this.context_model {
-                    context_model.update(ctx, |context_model, ctx| {
-                        context_model.append_pending_images(pending_images, ctx);
-                    });
-                }
-
                 ctx.emit(Event::ProcessingAttachedImages(false));
             },
         ));
@@ -5232,29 +5207,8 @@ impl EditorView {
     }
 
     /// Stores non-image files selected via the file picker into the pending files context.
-    fn process_non_image_files(&mut self, file_paths: Vec<String>, ctx: &mut ViewContext<Self>) {
-        let attachments: Vec<PendingAttachment> = file_paths
-            .iter()
-            .filter_map(|path_str| {
-                let path = std::path::Path::new(path_str);
-                let file_name = path
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .map(|s| s.to_string())?;
-                let mime_type = from_path(path).first_or_octet_stream().to_string();
-                Some(PendingAttachment::File(PendingFile {
-                    file_name,
-                    file_path: path.to_path_buf(),
-                    mime_type,
-                }))
-            })
-            .collect();
-
-        if let Some(context_model) = &self.context_model {
-            context_model.update(ctx, |context_model, ctx| {
-                context_model.append_pending_attachments(attachments, ctx);
-            });
-        }
+    fn process_non_image_files(&mut self, file_paths: Vec<String>, _ctx: &mut ViewContext<Self>) {
+        let _ = file_paths;
     }
 
     /// Alternate path to Self::user_insert for when Vim mode is enabled. Forwards character
