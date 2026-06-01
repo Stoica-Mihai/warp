@@ -330,12 +330,19 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Step 5 (`97a134ef`): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType kept real. 3-gate 0/0/0.
 - Step 6 (`125c0f72`): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op; `#[path]` redirect keeps 72 external `::history_model::` imports unchanged. 3-gate 0/0/0.
 
-**CURRENT STATE (2026-06-01 session 9):**
-- 3-gate: **0/0/0**
+**CURRENT STATE (2026-06-01 session 9 final):**
+- 3-gate: **0/0/0** (commits `28c4ed8b`, `1f3f26b3`, `2640a60f`)
 - Binary: **772.9 MB** (stubs still live — no binary change until stubs deleted)
-- Session 9 commits: `28c4ed8b` (main session — 2541 deletions from spider files), `1f3f26b3` (permissions.rs fix)
 - Major progress: workspace/view.rs (~1300 LoC removed), terminal/view.rs (~600 LoC removed), many Group A/B/C files cleaned
-- Stubs still live; many files still import them (parallel agents caused conflicts/reversions)
+- Stubs still live; some files re-acquired stub imports due to parallel agent conflicts
+
+**Key remaining stub files for session 10:**
+- `pane_group/pane/terminal_pane.rs` — 52 stubs (reverted by agent)
+- `ai/agent/conversation.rs` — 50 stubs
+- `terminal/input.rs` — 31 stubs (partial, reverted)
+- `terminal/view.rs` — 26 stubs (`AIBlock` in rendering + `PendingQueryState` in public API)
+- `pane_group/mod.rs` — 19 stubs
+- `terminal/view/context_menu.rs` — 1 stub
 
 **SESSION 9 LESSON (critical): Parallel agents cause chaos.**
 Running 8+ concurrent agents that all write to overlapping files caused repeated reversions. Each agent's cleanup was undone by another. Use SERIAL agent approach in session 10.
