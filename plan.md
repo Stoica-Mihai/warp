@@ -334,24 +334,25 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - 3-gate: **0/0/0**
 - Binary: **772.9 MB** (`b2b2a41f`, −0.11 MB vs `e481e765`)
 - Step 8 PARTIAL: ~30 caller files excised (slash_commands AI handlers, tab.rs, undo_close, up_arrow, data sources, blocks, auth). Stubs still live.
-- Session 8 commits: `b2b2a41f` (Step 8 partial — ~30 caller excisions)
+- Session 8 commits: `b2b2a41f` (Step 8 partial — ~30 caller excisions); `d131433e` (docs)
 
-**NEXT: Step 8 cont — excise spider files (Step 8b)**:
-Stubs can only be deleted once the "spider files" no longer import stub types.
-Critical spider files to excise AI branches from:
-1. `terminal/view.rs` (~24k LoC, 7+ stub type imports)
-2. `workspace/view.rs` (~20k LoC, 8+ stub type imports)
-3. `terminal/input.rs` (~11k LoC, 4+ stub type imports)
-4. `pane_group/mod.rs` (~8k LoC, 2 stub type imports)
-5. `pane_group/pane/terminal_pane.rs` (~2k LoC, 5 stub imports)
-6. `context_chips/display.rs`, `context_chips/display_chip.rs` (AI context)
-7. `terminal/input/slash_command_model.rs`, `terminal/input/models/view.rs`
-8. `terminal/input/terminal_message_bar.rs`, `terminal/input/slash_commands/data_source/mod.rs`
-9. `terminal/view/context_menu.rs`, `terminal/view/rich_content.rs`
-10. `terminal/model/block/interaction_mode.rs`, `terminal/model/block/serialized_block.rs`
-Once all stub imports removed from the above → delete stubs → large binary reduction.
+**NEXT: Step 8b (session 9) — excise remaining 49 files, then delete stubs**
 
-**LESSON (session 8):** Full stub deletion requires ALL spider files clean first. Attempted all-at-once deletion produced 109+ errors. Correct approach: excise AI branches from each spider file before deleting stubs. Each spider file can be done in a dedicated sub-session.
+49 files still import stub-provided types. Full list via:
+```bash
+grep -rln "ai::blocklist::block::\|ai::blocklist::\(AIBlock\|AIBlockEvent\|BlocklistAIHistoryModel\|BlocklistAIHistoryEvent\|BlocklistAIContextModel\|BlocklistAIActionModel\|BlocklistAIInputModel\|OrchestrationEvent\|TaskStatusSync\|LocalSharedSession\|StartAgentRequest\|ShellCommandExecutor\|PendingAttachment\|PendingQueryState\|ConversationStatusUpdate\|block_context_from\|descendant_conversation\|history_model::\)" app/src/ --include="*.rs" | grep -v "blocklist/\(block_stubs\|action_stubs\|history_model_stubs\|context_model_stubs\|orchestration_stubs\|mod\)"
+```
+
+Order: Group A (pure AI, ~12 files) → Group B (tests, ~10 files) → Group C (smaller shared, ~19 files) → Group D (spider files one at a time):
+1. `terminal/input.rs` (~11k LoC) — CLISubagentController, BlocklistAIContextModel, BlocklistAIHistoryModel, etc.
+2. `workspace/view.rs` (~20k LoC) — history_model module, BlocklistAIHistoryEvent, PendingQueryState, FORK_PREFIX
+3. `terminal/view.rs` (~24k LoC) — largest; AIBlock, all AI model types, CLISubagentView/Controller
+
+After all 49 clean: delete stubs, remove lib.rs BlocklistAIHistoryModel lines, run 3-gate. Large binary reduction expected (~10-25 MB).
+
+Full caller map + excision patterns → `/tmp/phase-i-handoff.md`.
+
+**LESSON (session 8):** Full stub deletion requires ALL spider files clean first. Attempted all-at-once deletion produced 109+ errors. Correct approach: excise AI branches from each spider file before deleting stubs. Use Python batch scripts for Groups A/B/C; hand-edit spider files with full context.
 
 ### Sub-task A: Relocate shared non-AI modules — ✅ DONE
 
