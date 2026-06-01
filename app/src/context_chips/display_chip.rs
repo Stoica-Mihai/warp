@@ -31,7 +31,6 @@ use super::{
     agent_view_chip_color, github_pr_display_text_from_url, render_text_from_kind, ChipResult,
     ContextChipKind,
 };
-use crate::ai::blocklist::prompt::plan_and_todo_list::{PlanAndTodoListEvent, PlanAndTodoListView};
 use crate::ai::blocklist::BlocklistAIInputModel;
 use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentVersion};
 use crate::appearance::Appearance;
@@ -370,9 +369,6 @@ pub enum DisplayChipKind {
         popup_open: bool,
         popup: ViewHandle<crate::context_chips::node_version_popup::NodeVersionPopupView>,
     },
-    AgentPlanAndTodoList {
-        plan_and_todo_list: ViewHandle<PlanAndTodoListView>,
-    },
     GitBranch {
         menu_open: bool,
         menu: ViewHandle<DisplayChipMenu>,
@@ -395,8 +391,7 @@ impl DisplayChipKind {
             | DisplayChipKind::Ssh
             | DisplayChipKind::Subshell
             | DisplayChipKind::VirtualEnvironment
-            | DisplayChipKind::CondaEnvironment
-            | DisplayChipKind::AgentPlanAndTodoList { .. } => false,
+            | DisplayChipKind::CondaEnvironment => false,
         }
     }
 }
@@ -545,31 +540,6 @@ impl DisplayChip {
         ctx: &mut ViewContext<Self>,
     ) -> Self {
         let display_chip_kind = match chip_result.kind {
-            ContextChipKind::AgentPlanAndTodoList => {
-                let view_id = config.terminal_view_id;
-                let plan_and_todo_list = ctx.add_typed_action_view(|ctx| {
-                    PlanAndTodoListView::new(
-                        config.menu_positioning_provider.clone(),
-                        view_id,
-                        is_in_agent_view,
-                        ctx,
-                    )
-                });
-
-                ctx.subscribe_to_view(&plan_and_todo_list, |_me, _, event, ctx| match event {
-                    PlanAndTodoListEvent::OpenAIDocument {
-                        document_id,
-                        document_version,
-                    } => {
-                        ctx.emit(PromptDisplayChipEvent::OpenAIDocument {
-                            document_id: *document_id,
-                            document_version: *document_version,
-                        });
-                    }
-                });
-
-                DisplayChipKind::AgentPlanAndTodoList { plan_and_todo_list }
-            }
             ContextChipKind::ShellGitBranch => {
                 // Convert git branch strings to GitBranch items
                 let git_branch_items: Vec<GitBranch> = chip_result
@@ -938,7 +908,6 @@ impl DisplayChip {
             | DisplayChipKind::VirtualEnvironment
             | DisplayChipKind::CondaEnvironment
             | DisplayChipKind::NodeVersion { .. }
-            | DisplayChipKind::AgentPlanAndTodoList { .. }
             | DisplayChipKind::GithubPullRequest => {}
         }
         false
@@ -1037,9 +1006,6 @@ impl DisplayChip {
 
     pub fn should_render(&self, app: &AppContext) -> bool {
         match &self.display_chip_kind {
-            DisplayChipKind::AgentPlanAndTodoList { plan_and_todo_list } => {
-                plan_and_todo_list.as_ref(app).should_render(app)
-            }
             _ => true,
         }
     }
@@ -1525,9 +1491,6 @@ impl DisplayChip {
                 Some(self.node_version_chip(popup, *popup_open, app))
             }
             DisplayChipKind::CondaEnvironment => Some(self.conda_environment_chip(app)),
-            DisplayChipKind::AgentPlanAndTodoList { plan_and_todo_list } => {
-                Some(ChildView::new(plan_and_todo_list).finish())
-            }
             DisplayChipKind::GitBranch { menu_open, menu } => {
                 Some(self.git_branch_chip(*menu_open, menu, app))
             }
@@ -1622,7 +1585,6 @@ impl TypedActionView for DisplayChip {
                 | DisplayChipKind::Subshell
                 | DisplayChipKind::VirtualEnvironment
                 | DisplayChipKind::CondaEnvironment
-                | DisplayChipKind::AgentPlanAndTodoList { .. }
                 | DisplayChipKind::Text
                 | DisplayChipKind::GithubPullRequest
                 | DisplayChipKind::GitDiffStats { .. } => {}
