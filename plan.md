@@ -330,11 +330,18 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Step 5 (`97a134ef`): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType kept real. 3-gate 0/0/0.
 - Step 6 (`125c0f72`): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op; `#[path]` redirect keeps 72 external `::history_model::` imports unchanged. 3-gate 0/0/0.
 
-**CURRENT STATE (2026-06-01 session 13 complete):**
+**CURRENT STATE (2026-06-01 session 14 complete):**
 - 3-gate: **0/0/0**
-- Binary: **767.2 MB** (−1.32 MB vs session 12; 767,198,736 B measured)
-- Session 13 commits: `409db816`
-- Session 13 LoC removed: ~3,058 across 31 files
+- Binary: **766.6 MB** (−0.60 MB vs session 13; 766,601,248 B measured)
+- Session 14 commits: `bbd32781`
+- Session 14 LoC removed: ~2,795 across 13 files
+
+**Session 14 deletions done:**
+- `ai/conversation_details_panel.rs` (2086 LoC) — Warp cloud AI conversation details side panel
+- conversation_status_ui.rs + conversation_utils.rs KEPT — used by non-CDP code (tab.rs, vertical_tabs.rs, inline_history, terminal_pane)
+- Callers excised across 12 files: terminal/view.rs struct fields + render + handler, action.rs ToggleConversationDetailsPanel variant, init.rs keybinding + const, pane_impl.rs toggle button render, ambient_agent/view_impl.rs 3 CDP methods + call sites, pane_group/mod.rs suppress call, workspace/util.rs is_transcript_details_panel_open, workspace/view.rs transcript fields + render + handler + mobile overlay, workspace/view/wasm_view.rs CDP functions, agent_management/view.rs details_panel + selected_item_id; pane_group/mod_tests.rs CDP assertions removed
+- `ambient_agent_task_id_for_details_panel` KEPT — used by pane header indicator, workspace routing, agent_icon
+- Binary: −0.60 MB real shrink (ConversationDetailsPanel was live via ctx.add_typed_action_view in TerminalView::new() + Workspace::new())
 
 **Session 13 deletions done:**
 - `ai/predict/` entire directory: `next_command_model.rs` (835 LoC), `predict_am_queries.rs`, `generate_ai_input_suggestions.rs`+tests, `generate_am_query_suggestions.rs`, `prompt_suggestions/mod.rs` + all
@@ -342,20 +349,6 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - All callers excised: terminal/input.rs (struct fields, methods, action variants), terminal/view.rs (imports, resolve_prompt_suggestion→false, passive_code_diffs_enabled→false, banner methods deleted), editor/view/mod.rs, pane_group/mod.rs, workspace/action.rs+view.rs+mod.rs, ai/agent_management/view.rs
 - `generate_autosuggestion_async`: PartialNextCommandSuggestions+similar_history blocks deleted; `get_reverse_chronological_potential_autosuggestions` inlined; `is_command_valid` → unconditional
 - Binary: real shrink (NextCommandModel live via ctx.add_model; PromptSuggestionsView via ctx.add_typed_action_view)
-
-**NEXT (session 14): Delete `ai/conversation_details_panel.rs` (2086 LoC)**
-
-Live-linked via `ctx.add_typed_action_view` at `terminal/view.rs:3337` and `ai/agent_management/view.rs:335`.
-Fan-in: 12 files. 36 refs in terminal/view.rs.
-Key terminal/view.rs changes:
-- Remove 5 struct fields: `conversation_details_panel`, `is_conversation_details_panel_open`, `has_auto_opened_conversation_details_panel`, `conversation_details_panel_auto_open_policy`, `conversation_details_panel_toggle_mouse_state`
-- Remove `ConversationDetailsPanelAutoOpenPolicy` enum (line 2157)
-- Remove construction block at lines 3337–3351 + struct literal at 3472–3478
-- Make all `is_conversation_details_panel_open`-gated branches → always false (dead branch elim)
-- Delete/stub: `fetch_and_update_conversation_details_panel`, `toggle_conversation_details_panel`, `maybe_auto_open_conversation_details_panel`, `open_conversation_details_panel_to_conversation`, `suppress_initial_conversation_details_panel_auto_open`
-Also delete: `conversation_status_ui.rs` (50 LoC), `conversation_utils.rs` (24 LoC) — only used by panel.
-Also remove `TerminalAction::ToggleConversationDetailsPanel` variant + init.rs keybinding.
-Handoff at `/tmp/session14-handoff.md`.
 
 **Session 12 deletions done:**
 - `suggested_agent_mode_workflow_modal` + `suggested_rule_modal` + `summarization_cancel_dialog` (live-linked)
