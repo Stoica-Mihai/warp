@@ -21,7 +21,6 @@ use crate::terminal::model::block::{BlockId, SerializedBlock};
 use crate::ui_components::icons::Icon;
 
 use super::ResponseStreamId;
-use super::action_stubs::StartAgentRequestId;
 
 pub const FORK_PREFIX: &str = "(Fork) ";
 pub const PRE_REWIND_PREFIX: &str = "(Pre-Rewind) ";
@@ -297,7 +296,6 @@ pub enum BlocklistAIHistoryEvent {
         new_terminal_view_id: EntityId,
     },
     NewConversationRequestComplete {
-        request_id: StartAgentRequestId,
         conversation_id: AIConversationId,
     },
     OrchestrationConfigUpdated {
@@ -599,7 +597,5 @@ impl BlocklistAIHistoryModel {
 
     pub(crate) fn reset(&mut self) { *self = Self::default(); }
 
-    pub fn record_new_conversation_request_complete(&mut self, request_id: StartAgentRequestId, conversation_id: AIConversationId, ctx: &mut ModelContext<Self>) {
-        ctx.emit(BlocklistAIHistoryEvent::NewConversationRequestComplete { request_id, conversation_id });
-    }
+    pub fn record_new_conversation_request_complete(&mut self, _conversation_id: AIConversationId, _ctx: &mut ModelContext<Self>) {}
 }

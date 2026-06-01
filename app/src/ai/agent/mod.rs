@@ -40,7 +40,9 @@ use warp_multi_agent_api::{diff_hunk as diff_hunk_api, AgentEvent, AgentType};
 pub use self::api::{MaybeAIAgentOutputMessage, MessageToAIAgentOutputMessageError};
 use super::llms::LLMId;
 use crate::ai::block_context::BlockContext;
-use crate::ai::blocklist::block::view_impl::output::are_all_text_sections_empty;
+fn are_all_text_sections_empty(sections: &[AIAgentTextSection]) -> bool {
+    sections.iter().all(|s| matches!(s, AIAgentTextSection::PlainText { text } if text.text().is_empty()))
+}
 use crate::ai::skills::SkillDescriptor;
 use crate::ai::execution_context::WarpAiExecutionContext;
 use crate::code::editor_management::CodeSource;

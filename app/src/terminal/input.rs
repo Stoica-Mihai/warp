@@ -142,7 +142,6 @@ use crate::ai::ambient_agents::telemetry::HandoffEntryPoint;
 use crate::ai::attachment_utils::MAX_ATTACHMENT_SIZE_BYTES;
 use crate::ai::block_context::BlockContext;
 use crate::ai::blocklist::block::cli_controller::CLISubagentController;
-use crate::ai::blocklist::block::status_bar::BlocklistAIStatusBar;
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
 use crate::ai::blocklist::handoff::touched_repos::{
     pick_handoff_overlap_env, resolve_repo_for_path, sort_environments_by_recency, TouchedWorkspace,

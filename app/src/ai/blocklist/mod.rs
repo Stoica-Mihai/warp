@@ -1,26 +1,10 @@
 //! This module contains model and view logic for Blocklist AI.
-pub(crate) mod action_stubs;
-pub(crate) use action_stubs::{
-    AIActionStatus, BlocklistAIActionEvent, BlocklistAIActionModel, NewConversationDecision,
-    ReadFileContextResult, RunAgentsExecutor, RunAgentsExecutorEvent, RunAgentsSpawningSnapshot,
-    ShellCommandExecutor, ShellCommandExecutorEvent, StartAgentExecutor, StartAgentExecutorEvent,
-    StartAgentRequest, StartAgentRequestId, coerce_integer_args, compose_run_agents_child_prompt,
-    read_local_file_context, run_agents_to_start_agent_mode,
-};
 pub(crate) mod avatar_disc;
 #[path = "block_stubs.rs"]
 pub mod block;
 pub mod code_block;
-mod context_model_stubs;
 pub(crate) mod handoff;
 
-pub(crate) mod orchestration_stubs;
-pub(crate) use orchestration_stubs::{
-    LocalSharedSessionLinkModel, OrchestrationEventService, OrchestrationEventStreamer,
-    SendEventResult, TaskStatusSyncModel,
-    collect_descendant_conversation_ids_in_spawn_order, conversation_id_for_agent_id,
-    descendant_conversation_ids_in_spawn_order, dispatch_focus_or_open_child_agent_pane,
-};
 pub(crate) mod request_input;
 pub(crate) mod response_stream_id;
 pub(crate) mod session_context;
@@ -49,10 +33,6 @@ pub(super) mod view_util;
 pub(crate) use block::model::testing::FakeAIBlockModel;
 pub(crate) use block::{init, model, AIBlock, AIBlockEvent, RequestedEditResolution};
 pub use block::{keyboard_navigable_buttons, toggleable_items};
-pub(crate) use context_model_stubs::{
-    block_context_from_terminal_model, AttachmentType, BlocklistAIContextEvent,
-    BlocklistAIContextModel, PendingAttachment, PendingFile, PendingQueryState,
-};
 pub(crate) use history_model::{
     AIQueryHistory, AIQueryHistoryOutputStatus, BlocklistAIHistoryEvent, BlocklistAIHistoryModel,
     ConversationStatusUpdate, FORK_PREFIX, PRE_REWIND_PREFIX,

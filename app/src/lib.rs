@@ -133,7 +133,6 @@ use ::ai::index::DEFAULT_SYNC_REQUESTS_PER_MIN;
 use ::ai::project_context::model::ProjectContextModel;
 pub use ai::agent::todos::AIAgentTodoList;
 pub use ai::agent::{AIAgentActionResultType, FileEdit, TodoOperation};
-pub(crate) use ai::blocklist::BlocklistAIHistoryModel;
 use ai::agent_conversations_model::AgentConversationsModel;
 use ai::agent_management::AgentNotificationsModel;
 use ai::ambient_agents::github_auth_notifier::GitHubAuthNotifier;
@@ -1471,7 +1470,6 @@ pub(crate) fn initialize_app(
         )
     });
 
-    ctx.add_singleton_model(|_| BlocklistAIHistoryModel::new(vec![], &[]));
     ctx.add_singleton_model(move |_| RestoredAgentConversations::new(multi_agent_conversations));
     ctx.add_singleton_model(|_| CLIAgentSessionsModel::new());
     ctx.add_singleton_model(AgentNotificationsModel::new);

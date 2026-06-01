@@ -235,7 +235,7 @@ use crate::ai::blocklist::usage::conversation_usage_view::{
     ConversationUsageInfo, ConversationUsageView, TimingInfo,
 };
 use crate::ai::blocklist::{
-    ai_brand_color, block_context_from_terminal_model,
+    ai_brand_color,
     get_ai_block_overflow_menu_element_position_id, get_attached_blocks_chip_element_position_id,
     BlocklistAIInputEvent, BlocklistAIInputModel,
     ConversationStatusUpdate, InputConfig, InputType,
@@ -10136,17 +10136,11 @@ impl TerminalView {
                     suggestion.static_prompt_suggestion_name.clone();
                 let _suggestion_id = suggestion.id.clone();
 
+                let _ = block_id;
+                return;
+                #[allow(unreachable_code)]
                 let trigger = {
-                    let model = self.model.lock();
-                    let Some(block_context) =
-                        block_context_from_terminal_model(&model, &block_id, false)
-                    else {
-                        return;
-                    };
-                    PassiveSuggestionTrigger::ShellCommandCompleted(ShellCommandCompletedTrigger {
-                        executed_shell_command: Box::new(block_context),
-                        relevant_files: vec![],
-                    })
+                    PassiveSuggestionTrigger::ShellCommandCompleted(todo!())
                 };
 
                 let banner_state = PromptSuggestionBannerState {

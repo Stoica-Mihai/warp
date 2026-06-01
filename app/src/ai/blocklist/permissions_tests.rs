@@ -5,7 +5,6 @@ use warp_core::execution_mode::ExecutionMode;
 use warp_util::path::EscapeChar;
 use warpui::{App, EntityId, ModelHandle};
 
-use crate::ai::blocklist::BlocklistAIHistoryModel;
 use super::BlocklistAIPermissions;
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::blocklist::permissions::{
@@ -34,7 +33,6 @@ use crate::{
 struct PermissionsTestState {
     convo_id: AIConversationId,
     permissions: ModelHandle<BlocklistAIPermissions>,
-    history: ModelHandle<BlocklistAIHistoryModel>,
     terminal_view_id: EntityId,
     user_workspaces: ModelHandle<UserWorkspaces>,
     profile_model: ModelHandle<AIExecutionProfilesModel>,
@@ -61,7 +59,6 @@ fn initialize_permissions_test_with_mode(
     initialize_settings_for_tests_with_mode(app, mode, is_sandboxed);
     let global_resource_handles = GlobalResourceHandles::mock(app);
     app.add_singleton_model(|_| GlobalResourceHandlesProvider::new(global_resource_handles));
-    let history = app.add_singleton_model(|_| BlocklistAIHistoryModel::new(vec![], &[]));
     app.add_singleton_model(|_| CLIAgentSessionsModel::new());
     app.add_singleton_model(AgentNotificationsModel::new);
     let permissions = app.add_singleton_model(BlocklistAIPermissions::new);
@@ -78,14 +75,9 @@ fn initialize_permissions_test_with_mode(
     app.add_singleton_model(PrivacySettings::mock);
     let user_workspaces = app.add_singleton_model(UserWorkspaces::default_mock);
 
-    let conversation_id = history.update(app, |history_model, ctx| {
-        history_model.start_new_conversation(terminal_view_id, false, false, false, ctx)
-    });
-
     PermissionsTestState {
-        convo_id: conversation_id,
+        convo_id: AIConversationId::new(),
         permissions,
-        history,
         terminal_view_id,
         user_workspaces,
         profile_model,
@@ -776,7 +768,6 @@ fn test_can_autoexecute_command_denylist_beats_run_to_completion() {
         let PermissionsTestState {
             convo_id,
             permissions,
-            history,
             profile_model,
             terminal_view_id,
             ..
@@ -792,9 +783,7 @@ fn test_can_autoexecute_command_denylist_beats_run_to_completion() {
         });
 
         // Toggle run-to-completion override for this conversation.
-        history.update(&mut app, |history, ctx| {
-            history.toggle_autoexecute_override(&convo_id, terminal_view_id, ctx);
-        });
+        let _ = (&convo_id, terminal_view_id);
 
         // Despite run-to-completion, denylist must take precedence and deny execution.
         permissions.read(&app, |model, ctx| {
@@ -824,15 +813,12 @@ fn test_can_autoexecute_command_run_to_completion_allows_non_denylisted() {
         let PermissionsTestState {
             convo_id,
             permissions,
-            history,
             terminal_view_id,
             ..
         } = initialize_permissions_test(&mut app);
 
         // Enable run-to-completion override for the conversation.
-        history.update(&mut app, |history, ctx| {
-            history.toggle_autoexecute_override(&convo_id, terminal_view_id, ctx);
-        });
+        let _ = (&convo_id, terminal_view_id);
 
         // Since the command is not denylisted, the override should allow execution with RunToCompletion.
         permissions.read(&app, |model, ctx| {

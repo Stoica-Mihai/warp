@@ -46,7 +46,7 @@ pub mod status_bar {
     use warpui::elements::Empty;
     use warpui::{AppContext, Element, Entity, EntityId, ModelHandle, TypedActionView, View, ViewContext, ViewHandle};
 
-    use crate::ai::blocklist::{BlocklistAIActionModel, BlocklistAIContextModel, BlocklistAIInputModel};
+    use crate::ai::blocklist::BlocklistAIInputModel;
     use super::cli_controller::CLISubagentController;
     use crate::ai::blocklist::summarization_cancel_dialog::SummarizationCancelDialog;
     use crate::terminal::input::buffer_model::InputBufferModel;
@@ -71,8 +71,6 @@ pub mod status_bar {
         #[allow(clippy::too_many_arguments)]
         pub fn new(
             _cli_subagent_controller: ModelHandle<CLISubagentController>,
-            _action_model: ModelHandle<BlocklistAIActionModel>,
-            _context_model: ModelHandle<BlocklistAIContextModel>,
             _input_model: ModelHandle<BlocklistAIInputModel>,
             _input_buffer_model: ModelHandle<InputBufferModel>,
             _model_event_dispatcher: &ModelHandle<ModelEventDispatcher>,
@@ -161,8 +159,7 @@ pub mod cli_controller {
     use crate::ai::agent::conversation::AIConversationId;
     use crate::ai::agent::task::TaskId;
     use crate::ai::agent::AIAgentActionId;
-    use crate::ai::blocklist::BlocklistAIActionModel;
-    use crate::terminal::model::block::BlockId;
+        use crate::terminal::model::block::BlockId;
     use crate::terminal::model_events::ModelEventDispatcher;
     use crate::terminal::TerminalModel;
 
@@ -748,8 +745,6 @@ pub mod view_impl {
 
         pub fn action_icon(
             _action_id: &crate::ai::agent::AIAgentActionId,
-            _action_model: &warpui::ModelHandle<crate::ai::blocklist::BlocklistAIActionModel>,
-            _block_model: &dyn crate::ai::blocklist::block::model::AIBlockModel<View = crate::ai::blocklist::AIBlock>,
             _app: &AppContext,
         ) -> warpui::elements::Icon {
             warpui::elements::Icon::new("", pathfinder_color::ColorU::black())
