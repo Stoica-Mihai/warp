@@ -23,10 +23,7 @@ pub(crate) mod persistence;
 pub mod prompt;
 mod suggestion_chip_view;
 pub(crate) mod telemetry;
-pub mod usage;
-
 pub(crate) mod codebase_index_speedbump_banner;
-pub(crate) mod telemetry_banner;
 pub(super) mod view_util;
 
 pub use input_config::{InputConfig, InputType, InputTypeAutoDetectionSource};

@@ -149,7 +149,6 @@ use crate::ai::blocklist::handoff::touched_repos::{
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
 use crate::ai::blocklist::handoff::{HandoffLaunchAttachments, PendingCloudLaunch};
 use crate::ai::blocklist::prompt::prompt_alert::{PromptAlertEvent, PromptAlertView};
-use crate::ai::blocklist::telemetry_banner::should_collect_ai_ugc_telemetry;
 use crate::ai::blocklist::{
     ai_indicator_height, render_ai_agent_mode_icon,
     BlocklistAIInputEvent, BlocklistAIInputModel, InputConfig, InputType,
@@ -5186,10 +5185,6 @@ impl Input {
                             predicted_command: response.most_likely_action.clone(),
                         });
 
-                    let _should_collect_ugc = should_collect_ai_ugc_telemetry(
-                        ctx,
-                        PrivacySettings::as_ref(ctx).is_telemetry_enabled,
-                    );
                 }
             }
             // Reset state for whether the user accepted the intelligent autosuggestion.
