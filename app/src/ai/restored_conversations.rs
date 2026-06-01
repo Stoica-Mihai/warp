@@ -6,7 +6,6 @@ use warpui::{Entity, SingletonEntity};
 
 use crate::ai::agent::conversation::{AIConversation, AIConversationId};
 use crate::persistence::model::AgentConversation;
-use crate::ai::blocklist::history_model::convert_persisted_conversation_to_ai_conversation_with_metadata;
 
 /// Singleton model that holds restored agent conversations on app startup.
 ///
@@ -20,23 +19,9 @@ pub struct RestoredAgentConversations {
 }
 
 impl RestoredAgentConversations {
-    pub fn new(conversations: Vec<AgentConversation>) -> Self {
-        let mut conversations_by_id = HashMap::new();
-        for conversation in conversations.into_iter() {
-            let conversation_id = conversation.conversation.conversation_id.clone();
-            let Some(conversation) =
-                convert_persisted_conversation_to_ai_conversation_with_metadata(conversation)
-            else {
-                log::warn!(
-                    "Failed to convert persisted conversation {conversation_id} to AIConversation"
-                );
-                continue;
-            };
-            conversations_by_id.insert(conversation.id(), conversation);
-        }
-
+    pub fn new(_conversations: Vec<AgentConversation>) -> Self {
         Self {
-            conversations: conversations_by_id,
+            conversations: HashMap::new(),
         }
     }
 

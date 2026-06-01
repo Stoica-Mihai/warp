@@ -11,12 +11,11 @@ pub(crate) mod session_context;
 pub(crate) use request_input::RequestInput;
 pub(crate) use response_stream_id::{ClientIdentifiers, ResponseStreamId};
 pub(crate) use session_context::SessionContext;
-#[path = "history_model_stubs.rs"]
-pub mod history_model;
+pub mod history_model {}
 mod input_config;
 pub(crate) mod keystroke_render;
 mod permissions;
-mod persistence;
+pub(crate) mod persistence;
 pub mod prompt;
 pub mod suggested_agent_mode_workflow_modal;
 pub mod suggested_rule_modal;
@@ -33,10 +32,6 @@ pub(super) mod view_util;
 pub(crate) use block::model::testing::FakeAIBlockModel;
 pub(crate) use block::{init, model, AIBlock, AIBlockEvent, RequestedEditResolution};
 pub use block::{keyboard_navigable_buttons, toggleable_items};
-pub(crate) use history_model::{
-    AIQueryHistory, AIQueryHistoryOutputStatus, BlocklistAIHistoryEvent, BlocklistAIHistoryModel,
-    ConversationStatusUpdate, FORK_PREFIX, PRE_REWIND_PREFIX,
-};
 pub use input_config::{InputConfig, InputType, InputTypeAutoDetectionSource};
 // BlocklistAIInputModel/Event still needed by some callers; provide minimal stubs inline
 pub(crate) use self::input_stubs::{BlocklistAIInputEvent, BlocklistAIInputModel};

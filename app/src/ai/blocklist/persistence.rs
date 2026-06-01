@@ -9,7 +9,19 @@ use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::AIQueryHistoryOutputStatus;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
+pub enum AIQueryHistoryOutputStatus {
+    #[default]
+    Unknown,
+    Success,
+    Failure,
+    Partial,
+}
+
+impl AIQueryHistoryOutputStatus {
+    pub fn icon(self) -> &'static str { "" }
+    pub fn display_text(self) -> &'static str { "" }
+}
 
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::{

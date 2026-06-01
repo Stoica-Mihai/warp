@@ -197,7 +197,6 @@ use super::warpify::WarpificationSource;
 use super::{cli_agent, CLIAgent, GridType};
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::conversation::{AIConversation, AIConversationId, ConversationStatus};
-use crate::ai::blocklist::history_model::CLIAgentConversation;
 use crate::ai::agent::redaction::redact_secrets;
 use crate::ai::agent::todos::popup::{AgentTodosPopupEvent, AgentTodosPopupView};
 #[cfg(any(test, feature = "integration_tests"))]
@@ -238,7 +237,7 @@ use crate::ai::blocklist::{
     ai_brand_color,
     get_ai_block_overflow_menu_element_position_id, get_attached_blocks_chip_element_position_id,
     BlocklistAIInputEvent, BlocklistAIInputModel,
-    ConversationStatusUpdate, InputConfig, InputType,
+    InputConfig, InputType,
     InputTypeAutoDetectionSource,
     ATTACH_AS_AGENT_MODE_CONTEXT_TEXT,
 };
@@ -2270,11 +2269,6 @@ pub enum ConversationRestorationInNewPaneType {
         conversation: AIConversation,
         has_initial_query: bool,
     },
-    /// Load a CLI agent conversation from its downloaded snapshot.
-    HistoricalCLIAgent {
-        conversation: CLIAgentConversation,
-        should_use_live_appearance: bool,
-    },
 }
 
 impl ConversationRestorationInNewPaneType {
@@ -2292,7 +2286,7 @@ impl ConversationRestorationInNewPaneType {
             Self::Forked {
                 has_initial_query, ..
             } => !has_initial_query,
-            Self::Historical { .. } | Self::HistoricalCLIAgent { .. } => true,
+            Self::Historical { .. } => true,
         }
     }
 
@@ -2300,10 +2294,6 @@ impl ConversationRestorationInNewPaneType {
         match self {
             Self::Forked { .. } => true,
             Self::Historical {
-                should_use_live_appearance,
-                ..
-            }
-            | Self::HistoricalCLIAgent {
                 should_use_live_appearance,
                 ..
             } => *should_use_live_appearance,
@@ -2315,9 +2305,6 @@ impl ConversationRestorationInNewPaneType {
         match self {
             Self::Historical { conversation, .. } | Self::Forked { conversation, .. } => {
                 conversation.initial_working_directory()
-            }
-            Self::HistoricalCLIAgent { conversation, .. } => {
-                conversation.metadata.working_directory.clone()
             }
             Self::Startup { .. } => None,
         }
