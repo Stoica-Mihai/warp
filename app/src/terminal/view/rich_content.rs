@@ -5,9 +5,7 @@ use super::{InitStepBlock, InitStepKind};
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::AIAgentExchangeId;
 use crate::terminal::view::agent_view_state::AgentViewEntryOrigin;
-use crate::ai::blocklist::block::PendingUserQueryBlock;
 use crate::ai::blocklist::telemetry_banner::TelemetryBanner;
-use crate::ai::blocklist::AIBlock;
 use crate::env_vars::env_var_collection_block::EnvVarCollectionBlock;
 use crate::terminal::block_list_viewport::ScrollPositionUpdate;
 use crate::terminal::model::blocks::RichContentItem;
@@ -42,12 +40,8 @@ pub enum RichContentInsertionPosition {
 /// Metadata for an AI block rich content.
 #[derive(Clone, Debug)]
 pub struct AIBlockMetadata {
-    /// The ID corresponding to the `AIAgentExchange` represented in this block.
     pub exchange_id: AIAgentExchangeId,
-    /// The ID of the conversation to which this block belongs.
     pub conversation_id: AIConversationId,
-    /// The ViewHandle for the AI block.
-    pub ai_block_handle: ViewHandle<AIBlock>,
 }
 
 /// Metadata for an agent view entry rich content.
@@ -175,10 +169,7 @@ impl RichContent {
     }
 
     pub fn is_pending_user_query(&self) -> bool {
-        matches!(
-            self.metadata,
-            Some(RichContentMetadata::PendingUserQuery { .. })
-        )
+        false
     }
 
     pub fn is_init_step(&self) -> bool {
@@ -268,9 +259,6 @@ pub enum RichContentMetadata {
     AgentViewZeroState,
     TerminalViewZeroState,
     PluginInstructionsBlock,
-    PendingUserQuery {
-        pending_user_query_block_handle: ViewHandle<PendingUserQueryBlock>,
-    },
     HarnessSessionHeader,
 }
 

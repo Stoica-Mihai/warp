@@ -63,17 +63,8 @@ impl TerminalView {
             }
         }
 
-        let num_requested_commands = self
-            .rich_content_views
-            .iter()
-            .find_map(|rich_content| {
-                let ai_metadata = rich_content.ai_block_metadata()?;
-                if ai_metadata.ai_block_handle.id() == ai_block_view_id {
-                    return Some(ai_metadata.ai_block_handle.as_ref(ctx));
-                }
-                None
-            })
-            .map_or_else(|| 0, |ai_block| ai_block.num_requested_commands());
+        let num_requested_commands = 0;
+        let _ = (ai_block_view_id, ctx);
 
         if num_requested_commands > 0 {
             items.push(
@@ -85,23 +76,7 @@ impl TerminalView {
             );
         }
 
-        let action_ids: Vec<_> = self
-            .rich_content_views
-            .iter()
-            .find_map(|rich_content| {
-                let ai_metadata = rich_content.ai_block_metadata()?;
-                if ai_metadata.ai_block_handle.id() == ai_block_view_id {
-                    return Some(ai_metadata.ai_block_handle.as_ref(ctx));
-                }
-                None
-            })
-            .map(|ai_block| {
-                ai_block
-                    .requested_commands_iter()
-                    .map(|(action_id, _)| action_id)
-                    .collect()
-            })
-            .unwrap_or_default();
+        let action_ids: Vec<_> = Vec::new();
 
         let has_git_branch = action_ids.iter().any(|action_id| {
             model
@@ -318,20 +293,7 @@ impl TerminalView {
         };
 
         if !cfg!(target_family = "wasm") {
-            let fork_label = fork_label_for_query(
-                &self
-                    .rich_content_views
-                    .iter()
-                    .find_map(|rc| {
-                        let meta = rc.ai_block_metadata()?;
-                        (meta.ai_block_handle.id() == ai_block_view_id).then(|| {
-                            meta.ai_block_handle
-                                .as_ref(ctx)
-                                .get_preceding_user_query(ctx)
-                        })
-                    })
-                    .unwrap_or_default(),
-            );
+            let fork_label = fork_label_for_query(&String::new());
             menu_items.push(
                 MenuItemFields::new(fork_label)
                     .with_on_select_action(TerminalAction::ContextMenu(

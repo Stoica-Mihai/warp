@@ -16,7 +16,6 @@ use super::{
 };
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
-use crate::ai::blocklist::{OrchestrationEventService, OrchestrationEventStreamer, SendEventResult};
 use crate::ai::conversation_utils;
 use crate::ai::llms::LLMPreferences;
 use crate::ai::skills::SkillManager;
@@ -594,27 +593,6 @@ fn kill_agent_conversation(
     ctx: &mut ViewContext<PaneGroup>,
 ) {
     let state = agent_conversation_action_state(conversation_id, ctx);
-    if FeatureFlag::OrchestrationV2.is_enabled() {
-        OrchestrationEventService::handle(ctx).update(ctx, |service, ctx| {
-            match service.emit_child_killed(conversation_id, ctx) {
-                SendEventResult::LifecycleSent => {}
-                SendEventResult::LifecycleDropped => {
-                    log::info!(
-                        "KillAgentConversation: killed lifecycle event not emitted for {conversation_id:?}"
-                    );
-                }
-                SendEventResult::Error(error) => {
-                    log::warn!(
-                        "KillAgentConversation: failed to emit killed lifecycle event for {conversation_id:?}: {error}"
-                    );
-                }
-            }
-        });
-        // Tombstone every Kill so late events cannot restore a removed child.
-        OrchestrationEventStreamer::handle(ctx).update(ctx, |streamer, ctx| {
-            streamer.mark_conversation_killed(conversation_id, ctx);
-        });
-    }
 
     if let Some(state) = state {
         if state.is_in_progress {
