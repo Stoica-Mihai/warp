@@ -195,7 +195,6 @@ impl Input {
                         } else {
                             None
                         },
-                        Some(ChildView::new(&self.agent_status_view).finish()),
                         Some(input),
                     ]
                     .into_iter()
@@ -206,7 +205,6 @@ impl Input {
                 column.add_children(
                     [
                         Some(input),
-                        Some(ChildView::new(&self.agent_status_view).finish()),
                         if hide_menu {
                             None
                         } else if is_slash_commands {
@@ -250,7 +248,7 @@ impl Input {
                     }
                 }
 
-                column.add_children([ChildView::new(&self.agent_status_view).finish(), input]);
+                column.add_child(input);
 
                 if !hide_menu {
                     if is_slash_commands && should_render_below {

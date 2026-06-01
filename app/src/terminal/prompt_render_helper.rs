@@ -103,12 +103,10 @@ pub fn should_render_prompt_on_same_line(
 /// The AI prompt is unconditionally rendered above the input.
 pub fn should_render_prompt_using_editor_decorator_elements(
     is_universal_developer_input: bool,
-    ai_input_model: &ModelHandle<BlocklistAIInputModel>,
     model: &TerminalModel,
     app: &AppContext,
 ) -> bool {
     should_render_prompt_on_same_line(is_universal_developer_input, model, app)
-        && !ai_input_model.as_ref(app).is_ai_input_enabled()
 }
 
 pub(in crate::terminal) struct PromptAndPadding {
@@ -407,7 +405,6 @@ impl PromptRenderHelper {
             should_render_prompt_on_same_line(is_universal_input, model, app);
         let padding_right = if should_render_prompt_using_editor_decorator_elements(
             is_universal_input,
-            &self.ai_input_model,
             model,
             app,
         ) {
@@ -590,7 +587,6 @@ impl PromptRenderHelper {
         let should_render_prompt_using_editor_decorator_elements =
             should_render_prompt_using_editor_decorator_elements(
                 is_universal_input,
-                &self.ai_input_model,
                 terminal_model,
                 app,
             );

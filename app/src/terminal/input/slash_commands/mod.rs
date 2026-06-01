@@ -379,14 +379,6 @@ impl Input {
             _agent_or_new
                 if command.name == commands::NEW.name || command.name == commands::AGENT.name =>
             {
-                if !self
-                    .ai_context_model
-                    .as_ref(ctx)
-                    .can_start_new_conversation()
-                {
-                    return true;
-                }
-
                 let prompt = argument.and_then(|argument| {
                     let trimmed = argument.trim();
                     if trimmed.is_empty() {
@@ -618,8 +610,7 @@ impl Input {
                     return true;
                 };
 
-                let action_model = self.ai_action_model.as_ref(ctx);
-                let conversation_text = conversation.export_to_markdown(Some(action_model));
+                let conversation_text = conversation.export_to_markdown(None);
 
                 ctx.clipboard()
                     .write(ClipboardContent::plain_text(conversation_text));
@@ -825,10 +816,9 @@ impl Input {
                 }
             }
             _fork if command.name == commands::FORK.name => {
-                let Some(conversation_id) = self
-                    .ai_context_model
+                let Some(conversation_id) = BlocklistAIHistoryModel::handle(ctx)
                     .as_ref(ctx)
-                    .selected_conversation_id(ctx)
+                    .active_conversation_id(self.terminal_view_id)
                 else {
                     show_error_toast("/fork requires an active conversation".to_owned(), ctx);
                     return true;
@@ -855,10 +845,9 @@ impl Input {
             }
             #[cfg(not(target_family = "wasm"))]
             _continue_locally if command.name == commands::CONTINUE_LOCALLY.name => {
-                let Some(conversation_id) = self
-                    .ai_context_model
+                let Some(conversation_id) = BlocklistAIHistoryModel::handle(ctx)
                     .as_ref(ctx)
-                    .selected_conversation_id(ctx)
+                    .active_conversation_id(self.terminal_view_id)
                 else {
                     show_error_toast(
                         "/continue-locally requires an active conversation".to_owned(),
@@ -891,10 +880,9 @@ impl Input {
                 });
             }
             _fork_and_compact if command.name == commands::FORK_AND_COMPACT.name => {
-                let Some(conversation_id) = self
-                    .ai_context_model
+                let Some(conversation_id) = BlocklistAIHistoryModel::handle(ctx)
                     .as_ref(ctx)
-                    .selected_conversation_id(ctx)
+                    .active_conversation_id(self.terminal_view_id)
                 else {
                     show_error_toast(
                         "/fork-and-compact requires an active conversation".to_owned(),
@@ -919,10 +907,9 @@ impl Input {
                 });
             }
             _compact_and if command.name == commands::COMPACT_AND.name => {
-                if self
-                    .ai_context_model
+                if BlocklistAIHistoryModel::handle(ctx)
                     .as_ref(ctx)
-                    .selected_conversation_id(ctx)
+                    .active_conversation_id(self.terminal_view_id)
                     .is_none()
                 {
                     show_error_toast(
@@ -938,10 +925,9 @@ impl Input {
                 });
             }
             _queue if command.name == commands::QUEUE.name => {
-                let Some(conversation_id) = self
-                    .ai_context_model
+                let Some(conversation_id) = BlocklistAIHistoryModel::handle(ctx)
                     .as_ref(ctx)
-                    .selected_conversation_id(ctx)
+                    .active_conversation_id(self.terminal_view_id)
                 else {
                     show_error_toast("/queue requires an active conversation".to_owned(), ctx);
                     return true;

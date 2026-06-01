@@ -11,7 +11,6 @@ use super::common::{
     wrap_input_with_terminal_padding_and_focus_handler,
 };
 use super::Input;
-use crate::ai::blocklist::InputType;
 use crate::appearance::Appearance;
 use crate::context_chips::spacing;
 use crate::features::FeatureFlag;
@@ -65,20 +64,6 @@ impl Input {
         }
 
         column.add_child(prompt_row.finish());
-
-        let ai_input_model = self.ai_input_model.as_ref(app);
-
-        if FeatureFlag::ImageAsContext.is_enabled()
-            && matches!(ai_input_model.input_type(), InputType::AI)
-        {
-            if let Some(images) = self.render_attachment_chips(appearance) {
-                column.add_child(
-                    Container::new(images)
-                        .with_margin_top(spacing::UDI_CHIP_MARGIN)
-                        .finish(),
-                );
-            }
-        }
 
         let terminal_spacing = TerminalSettings::as_ref(app)
             .terminal_input_spacing(appearance.line_height_ratio(), app);
@@ -205,13 +190,7 @@ impl Input {
 
         let mut column = Flex::column();
 
-        if input_mode.is_pinned_to_top() {
-            column.add_child(input);
-            column.add_child(ChildView::new(&self.agent_status_view).finish());
-        } else {
-            column.add_child(ChildView::new(&self.agent_status_view).finish());
-            column.add_child(input);
-        }
+        column.add_child(input);
 
         SavePosition::new(column.finish(), &self.save_position_id()).finish()
     }

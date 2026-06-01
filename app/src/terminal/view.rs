@@ -2899,7 +2899,7 @@ impl TerminalView {
         colors: List,
         model_event_sender: Option<SyncSender<persistence::ModelEvent>>,
         current_prompt: ModelHandle<PromptType>,
-        initial_input_config: Option<InputConfig>,
+        _initial_input_config: Option<InputConfig>,
         _conversation_restoration: Option<ConversationRestorationInNewPaneType>,
         inactive_pty_reads_rx: Option<async_broadcast::InactiveReceiver<Arc<Vec<u8>>>>,
         is_cloud_mode: bool,
@@ -5071,13 +5071,7 @@ impl TerminalView {
         }
     }
 
-    /// Cancels the active agent conversation via the status bar's Ctrl+C handler.
-    fn cancel_active_conversation_via_status_bar(&mut self, ctx: &mut ViewContext<Self>) {
-        let status_bar = self.input.as_ref(ctx).agent_status_bar().clone();
-        status_bar.update(ctx, |status_bar, ctx| {
-            status_bar.handle_ctrl_c(ctx);
-        });
-    }
+    fn cancel_active_conversation_via_status_bar(&mut self, _ctx: &mut ViewContext<Self>) {}
 
     /// If there is an active rich content block that is set up to handle ctrl-c
     /// events, allow it to handle the event.
@@ -16209,16 +16203,9 @@ impl TerminalView {
 
     pub fn summarization_cancel_dialog_handle(
         &self,
-        ctx: &AppContext,
+        _ctx: &AppContext,
     ) -> Option<ViewHandle<SummarizationCancelDialog>> {
-        let agent_status_bar = self.input.as_ref(ctx).agent_status_bar().as_ref(ctx);
-        agent_status_bar
-            .should_show_summarization_cancel_dialog(ctx)
-            .then(|| {
-                agent_status_bar
-                    .summarization_cancel_dialog_handle()
-                    .clone()
-            })
+        None
     }
 
     pub fn send_inline_review(

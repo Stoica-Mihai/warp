@@ -8,7 +8,6 @@ use warpui::elements::{
 use warpui::{AppContext, SingletonEntity};
 
 use super::{should_render_prompt_using_editor_decorator_elements, Input, SubshellRenderState};
-use crate::ai::blocklist::InputType;
 use crate::appearance::Appearance;
 use crate::context_chips::spacing;
 use crate::features::FeatureFlag;
@@ -36,12 +35,7 @@ impl Input {
 
         let model = self.model.lock();
         let should_render_prompt_using_editor_decorator_elements =
-            should_render_prompt_using_editor_decorator_elements(
-                false,
-                &self.ai_input_model,
-                &model,
-                app,
-            );
+            should_render_prompt_using_editor_decorator_elements(false, &model, app);
 
         // We should likely rework this stack to not need to use `with_constrain_absolute_children`,
         // by reworking the positioning of the children to not depend on this.
@@ -111,20 +105,6 @@ impl Input {
         }
 
         column.add_children([prompt_top_padding_row.finish(), prompt_row.finish()]);
-
-        let ai_input_model = self.ai_input_model.as_ref(app);
-
-        if FeatureFlag::ImageAsContext.is_enabled()
-            && matches!(ai_input_model.input_type(), InputType::AI)
-        {
-            if let Some(images) = self.render_attachment_chips(appearance) {
-                column.add_child(
-                    Container::new(images)
-                        .with_padding_bottom(spacing::CLASSIC_PROMPT_ATTACH_IMAGES_BOTTOM_PADDING)
-                        .finish(),
-                );
-            }
-        }
 
         column.add_child(self.render_input_box(show_vim_status, appearance, app));
 
@@ -310,7 +290,6 @@ impl Input {
                         } else {
                             None
                         },
-                        Some(ChildView::new(&self.agent_status_view).finish()),
                         Some(input),
                     ]
                     .into_iter()
@@ -321,7 +300,6 @@ impl Input {
                 column.add_children(
                     [
                         Some(input),
-                        Some(ChildView::new(&self.agent_status_view).finish()),
                         if is_model_selector {
                             Some(ChildView::new(&self.inline_model_selector_view).finish())
                         } else if is_slash_commands {
@@ -363,7 +341,7 @@ impl Input {
                     column.add_child(ChildView::new(&self.inline_repos_menu_view).finish());
                 }
 
-                column.add_children([ChildView::new(&self.agent_status_view).finish(), input]);
+                column.add_child(input);
 
                 if is_model_selector && should_render_below {
                     column.add_child(ChildView::new(&self.inline_model_selector_view).finish());

@@ -22,7 +22,7 @@ use crate::ai::agent::{
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::blocklist::block::cli_controller::UserTakeOverReason;
 use crate::ai::blocklist::{
-    BlocklistAIHistoryEvent, BlocklistAIHistoryModel, InputConfig, InputType, ResponseStreamId,
+    BlocklistAIHistoryEvent, BlocklistAIHistoryModel, ResponseStreamId,
 };
 use crate::ai::cloud_environments::{
     AmbientAgentEnvironment, CloudAmbientAgentEnvironment, CloudAmbientAgentEnvironmentModel,
@@ -423,17 +423,6 @@ fn cloud_mode_v1_agent_prefixed_query_spawns_cloud_agent() {
         let input = terminal.read(&app, |view, _| view.input.clone());
 
         input.update(&mut app, |input, ctx| {
-            input.ai_input_model().update(ctx, |ai_input, ctx| {
-                ai_input.set_input_config(
-                    InputConfig {
-                        input_type: InputType::AI,
-                        is_locked: false,
-                    },
-                    true,
-                    None,
-                    ctx,
-                );
-            });
             assert!(!false);
             input.replace_buffer_content("/agent fix the tests", ctx);
             input.input_enter(ctx);

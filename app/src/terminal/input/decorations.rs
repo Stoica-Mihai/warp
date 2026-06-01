@@ -102,20 +102,9 @@ impl Input {
 
     fn run_input_mode_detection(
         &self,
-        completion_context: SessionContext,
-        ctx: &mut ViewContext<Self>,
+        _completion_context: SessionContext,
+        _ctx: &mut ViewContext<Self>,
     ) {
-        if let Some(parsed_token) = self.last_parsed_tokens.clone() {
-            let session_id = completion_context.session.id();
-            self.ai_input_model.update(ctx, |ai_input_model, ctx| {
-                ai_input_model.detect_and_set_input_type(
-                    parsed_token,
-                    completion_context,
-                    Some(session_id),
-                    ctx,
-                )
-            })
-        }
     }
 
     /// Applies background highlighting to slash command and skill command prefixes that should be
@@ -161,19 +150,6 @@ impl Input {
         }
 
         let mut mode = mode;
-
-        // We don't show input command decorations in AI mode, but we keep slash command prefix highlighting.
-        let buffer_text = self.editor.as_ref(ctx).buffer_text(ctx);
-        if self.ai_input_model.as_ref(ctx).is_ai_input_enabled() {
-            self.clear_decorations(ctx);
-            self.apply_slash_command_prefix_highlighting(&buffer_text, ctx);
-            mode.command_decoration = false;
-
-            // Return early because there are no input background jobs to run.
-            if mode.no_jobs_to_run() {
-                return;
-            }
-        }
 
         match self.completion_session_context_or_empty_context(ctx) {
             CompletionSessionContext::Session(completion_context) => {
@@ -223,29 +199,7 @@ impl Input {
                     },
                 ));
             }
-            CompletionSessionContext::Empty(detection_ctx) => {
-                if mode.ai_input_detection {
-                    // No session context available (e.g., shared session viewer).
-                    // Use a dedicated detection context that does not expose top-level commands.
-                    let buffer_text = self.editor.as_ref(ctx).buffer_text(ctx);
-                    let ai_input_model = self.ai_input_model.clone();
-                    ctx.spawn(
-                        async move {
-                            parse_current_commands_and_tokens(buffer_text, &detection_ctx).await
-                        },
-                        move |_input, parsed_tokens, ctx| {
-                            ai_input_model.update(ctx, |model, ctx| {
-                                model.detect_and_set_input_type(
-                                    parsed_tokens,
-                                    EmptyCompletionContext::new(),
-                                    None,
-                                    ctx,
-                                );
-                            });
-                        },
-                    );
-                }
-            }
+            CompletionSessionContext::Empty(_detection_ctx) => {}
         }
     }
 

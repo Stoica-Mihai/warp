@@ -11743,9 +11743,6 @@ impl Workspace {
                         input.editor().update(ctx, |editor, ctx| {
                             editor.clear_buffer(ctx);
                         });
-                        input.ai_context_model().update(ctx, |model, ctx| {
-                            model.clear_pending_attachments(ctx);
-                        });
                         Some((prompt, attachments))
                     })
                 });
