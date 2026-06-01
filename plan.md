@@ -330,11 +330,18 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Step 5 (`97a134ef`): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType kept real. 3-gate 0/0/0.
 - Step 6 (`125c0f72`): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op; `#[path]` redirect keeps 72 external `::history_model::` imports unchanged. 3-gate 0/0/0.
 
-**CURRENT STATE (2026-06-01 session 12 complete):**
+**CURRENT STATE (2026-06-01 session 13 complete):**
 - 3-gate: **0/0/0**
-- Binary: **768.5 MB** (−1.13 MB from session 11; 768,516,552 B measured after final build)
-- Session 12 total commits (10 strip commits): `9a02a0c9`…`3d2e0e0b`
-- Session 12 total LoC removed: ~9,600 across 30+ files
+- Binary: **767.2 MB** (−1.32 MB vs session 12; 767,198,736 B measured)
+- Session 13 commits: `409db816`
+- Session 13 LoC removed: ~3,058 across 31 files
+
+**Session 13 deletions done:**
+- `ai/predict/` entire directory: `next_command_model.rs` (835 LoC), `predict_am_queries.rs`, `generate_ai_input_suggestions.rs`+tests, `generate_am_query_suggestions.rs`, `prompt_suggestions/mod.rs` + all
+- `terminal/view/inline_banner/prompt_suggestions.rs` (381 LoC) — AI-only inline banner
+- All callers excised: terminal/input.rs (struct fields, methods, action variants), terminal/view.rs (imports, resolve_prompt_suggestion→false, passive_code_diffs_enabled→false, banner methods deleted), editor/view/mod.rs, pane_group/mod.rs, workspace/action.rs+view.rs+mod.rs, ai/agent_management/view.rs
+- `generate_autosuggestion_async`: PartialNextCommandSuggestions+similar_history blocks deleted; `get_reverse_chronological_potential_autosuggestions` inlined; `is_command_valid` → unconditional
+- Binary: real shrink (NextCommandModel live via ctx.add_model; PromptSuggestionsView via ctx.add_typed_action_view)
 
 **Session 12 deletions done:**
 - `suggested_agent_mode_workflow_modal` + `suggested_rule_modal` + `summarization_cancel_dialog` (live-linked)
