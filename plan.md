@@ -336,12 +336,35 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Session 14 commits: `bbd32781`
 - Session 14 LoC removed: ~2,795 across 13 files
 
+**NEXT (session 15): Delete `ai/agent_management/` entire directory (~5900 LoC)**
+
+Live-linked via `ctx.add_typed_action_view(|ctx| AgentManagementView::new(...))` at `workspace/view.rs:2264`.
+Also: `AgentNotificationsModel` singleton registered at `lib.rs:1475`.
+
+Files to delete: `ai/agent_management/mod.rs` + `view.rs` (2162) + `cloud_setup_guide_view.rs` (700) + `agent_type_selector.rs` (475) + `agent_management_model.rs` (357) + `details_action_buttons.rs` (285) + `notifications/` (1922 LoC).
+
+External callers:
+- `ai/mod.rs` — remove mod + init call
+- `lib.rs:137,1475` — remove AgentNotificationsModel import + singleton registration
+- `app_state.rs` — remove `PersistedAgentManagementFilters` struct + `WindowSnapshot.agent_management_filters` field
+- `workspace/view.rs` (~82 refs) — imports, 3 struct fields, construction block, 2 handler methods, render paths
+- `workspace/view/right_panel.rs` — `is_agent_management_view_open` field + `set_agent_management_view_open` method
+- `workspace/header_toolbar_item.rs` — `AgentManagement` variant + 7 match arms
+- `workspace/view/launch_modal/oz_launch.rs` — `OzLaunchSlide::AgentManagement` variant + ~15 match arms
+- `persistence/sqlite.rs` — 2 `agent_management_filters` field entries in struct literals
+- `persistence/sqlite_tests.rs` — 3 `agent_management_filters: None` entries
+
+**KEEP `AgentManagementFilters` in `agent_conversations_model.rs`** — used by `entry.rs` which is live non-management code.
+
+Handoff at `/tmp/session15-handoff.md`.
+
 **Session 14 deletions done:**
 - `ai/conversation_details_panel.rs` (2086 LoC) — Warp cloud AI conversation details side panel
 - conversation_status_ui.rs + conversation_utils.rs KEPT — used by non-CDP code (tab.rs, vertical_tabs.rs, inline_history, terminal_pane)
 - Callers excised across 12 files: terminal/view.rs struct fields + render + handler, action.rs ToggleConversationDetailsPanel variant, init.rs keybinding + const, pane_impl.rs toggle button render, ambient_agent/view_impl.rs 3 CDP methods + call sites, pane_group/mod.rs suppress call, workspace/util.rs is_transcript_details_panel_open, workspace/view.rs transcript fields + render + handler + mobile overlay, workspace/view/wasm_view.rs CDP functions, agent_management/view.rs details_panel + selected_item_id; pane_group/mod_tests.rs CDP assertions removed
 - `ambient_agent_task_id_for_details_panel` KEPT — used by pane header indicator, workspace routing, agent_icon
 - Binary: −0.60 MB real shrink (ConversationDetailsPanel was live via ctx.add_typed_action_view in TerminalView::new() + Workspace::new())
+- **KEY LESSON:** handoff's "only used by CDP" claim was wrong for conversation_status_ui + conversation_utils. Always grep before deleting.
 
 **Session 13 deletions done:**
 - `ai/predict/` entire directory: `next_command_model.rs` (835 LoC), `predict_am_queries.rs`, `generate_ai_input_suggestions.rs`+tests, `generate_am_query_suggestions.rs`, `prompt_suggestions/mod.rs` + all
