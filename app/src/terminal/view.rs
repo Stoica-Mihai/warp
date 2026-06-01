@@ -239,11 +239,6 @@ use crate::ai::llms::{LLMId, LLMModelHost, LLMPreferences};
 use crate::ai::loading::shimmering_warp_loading_text;
 #[cfg(feature = "local_fs")]
 use crate::ai::persisted_workspace::PersistedWorkspace;
-use crate::ai::predict::prompt_suggestions::{
-    has_pending_code_or_unit_test_prompt_suggestion,
-    is_accept_prompt_suggestion_bound_to_cmd_enter,
-    is_accept_prompt_suggestion_bound_to_ctrl_enter,
-};
 use crate::antivirus::AntivirusInfo;
 use crate::appearance::{Appearance, AppearanceEvent};
 use crate::auth::auth_state::AuthState;
@@ -415,7 +410,7 @@ use crate::terminal::view::init_environment::{InitEnvironmentBlock, InitEnvironm
 use crate::terminal::view::inline_banner::{
     render_agent_mode_setup_banner, AgentModeSetupSpeedbumpBannerAction,
     AgentModeSetupSpeedbumpBannerState, AliasExpansionBannerState,
-    NotificationsDiscoveryBannerState, NotificationsErrorBannerState, PromptSuggestionBannerState,
+    NotificationsDiscoveryBannerState, NotificationsErrorBannerState,
     VimModeBannerState,
 };
 use crate::terminal::view::passive_suggestions::PromptSuggestionResolution;
@@ -986,8 +981,6 @@ struct InlineBannersState {
     /// A mapping from banner ID to state information for all SSH banners in
     /// this view.
     ssh_banners: HashMap<InlineBannerId, SSHBannerState>,
-
-    prompt_suggestions_banner: Option<PromptSuggestionBannerState>,
 
     alias_expansion_banner: AliasExpansionBanner,
 
@@ -2203,9 +2196,8 @@ enum SecretTooltip {
     },
 }
 
-pub fn is_prompt_suggestions_enabled(app: &AppContext) -> bool {
-    AISettings::as_ref(app).is_prompt_suggestions_enabled(app)
-        && UserWorkspaces::as_ref(app).is_prompt_suggestions_toggleable()
+pub fn is_prompt_suggestions_enabled(_app: &AppContext) -> bool {
+    false
 }
 
 type TerminalViewCallback = Box<dyn FnOnce(&mut TerminalView, &mut ViewContext<TerminalView>)>;
@@ -6373,56 +6365,14 @@ impl TerminalView {
 
     fn resolve_prompt_suggestion(
         &mut self,
-        resolution: PromptSuggestionResolution,
-        ctx: &mut ViewContext<Self>,
+        _resolution: PromptSuggestionResolution,
+        _ctx: &mut ViewContext<Self>,
     ) -> bool {
-        let _interaction_source = match resolution {
-            PromptSuggestionResolution::Accept { interaction_source } => interaction_source,
-            PromptSuggestionResolution::Reject { ctrl_c } => {
-                // ctrl-c shouldn't clear prompt suggestions, but all other rejections should.
-                return false;
-            }
-        };
-
-        // Return early if we've run out of AI usage.
-        if !AIRequestUsageModel::as_ref(ctx).has_any_ai_remaining(ctx) {
-            return false;
-        }
-
-        let Some(banner_state) = &self.inline_banners_state.prompt_suggestions_banner else {
-            return false;
-        };
-
-        // Return early if the banner is not visible to the user.
-        if banner_state.should_hide {
-            return false;
-        }
-
-        let _view = self.prompt_suggestion_view_type(ctx);
-        let suggestion = &banner_state.prompt_suggestion;
-        let prompt = suggestion.prompt.clone();
-        let _suggestion_id = suggestion.id.clone();
-        let is_static_suggestion = suggestion.static_prompt_suggestion_name.is_some();
-        let trigger = banner_state.trigger.clone();
-        let should_start_new_conversation = suggestion.should_start_new_conversation;
-        let conversation_id = banner_state.conversation_id;
-        let trigger_block_id = trigger.as_ref().and_then(|t| t.block_id());
-        log::debug!(
-            "[passive-suggestions] accepting prompt suggestion: trigger={}, trigger_block_id={}",
-            if trigger.is_some() { "Some" } else { "None" },
-            if trigger_block_id.is_some() {
-                "Some"
-            } else {
-                "None"
-            },
-        );
-
-        // Agent view removed; prompt suggestion acceptance is a no-op.
-        let _ = (prompt, trigger, conversation_id, should_start_new_conversation, is_static_suggestion);
         false
     }
 
-    
+
+
 
     fn associate_and_promote_block_for_conversation(
         &mut self,
@@ -6458,14 +6408,8 @@ impl TerminalView {
         }
     }
 
-    fn passive_code_diffs_enabled(ctx: &mut ViewContext<Self>) -> bool {
-        // Prompt suggestions must be enabled since the current implementation of passive code diffs
-        // depends on generating a prompt suggestion.
-        let ai_settings = AISettings::as_ref(ctx);
-        let is_prompt_suggestions_enabled = ai_settings.is_prompt_suggestions_enabled(ctx);
-        let is_setting_enabled = ai_settings.is_code_suggestions_enabled(ctx);
-        let is_setting_toggleable = UserWorkspaces::as_ref(ctx).is_code_suggestions_toggleable();
-        is_prompt_suggestions_enabled && is_setting_enabled && is_setting_toggleable
+    fn passive_code_diffs_enabled(_ctx: &mut ViewContext<Self>) -> bool {
+        false
     }
 
     fn insert_alias_expansion_banner(
@@ -9779,109 +9723,6 @@ impl TerminalView {
         ctx.notify();
     }
 
-
-    #[allow(clippy::too_many_arguments)]
-    fn on_maa_prompt_suggestion_generated(
-        &mut self,
-        prompt: &str,
-        label: &Option<String>,
-        _request_duration_ms: u64,
-        trigger: Option<PassiveSuggestionTrigger>,
-        conversation_id: Option<AIConversationId>,
-        server_request_token: Option<String>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if prompt.is_empty() {
-            return;
-        }
-
-        let _block_id = trigger.as_ref().and_then(|t| t.block_id());
-        let suggestion_id = Uuid::new_v4().to_string();
-        let banner_id = self.inline_banners_state.next_banner_id();
-        let banner_state = PromptSuggestionBannerState {
-            banner_id,
-            prompt_suggestion: PromptSuggestion {
-                id: suggestion_id.clone(),
-                label: label.clone(),
-                prompt: prompt.to_string(),
-                coding_query_context: None,
-                static_prompt_suggestion_name: None,
-                should_start_new_conversation: false,
-            },
-            accept_button_mouse_state: Default::default(),
-            llm_warning_learn_more_hyperlink: Default::default(),
-            should_hide: false,
-            trigger,
-            conversation_id,
-            server_request_token: server_request_token.clone(),
-        };
-
-        self.inline_banners_state.prompt_suggestions_banner = Some(banner_state.clone());
-        self.input.update(ctx, |input, ctx| {
-            input.set_prompt_suggestions_banner_state(Some(banner_state), ctx);
-            input.notify_and_notify_children(ctx);
-        });
-
-        ctx.notify();
-    }
-
-    fn on_legacy_prompt_suggestion_generated(
-        &mut self,
-        prompt_suggestion: AgentModePromptSuggestion,
-        block_id: BlockId,
-        command: String,
-        _request_duration_ms: u64,
-        ctx: &mut ViewContext<TerminalView>,
-    ) {
-        match prompt_suggestion {
-            AgentModePromptSuggestion::Success(suggestion) => {
-                if suggestion.prompt.is_empty() {
-                    return;
-                }
-
-                let banner_id = self.inline_banners_state.next_banner_id();
-
-                // Don't show banner if is coding query
-                let is_coding_query =
-                    suggestion.is_coding_query() && Self::passive_code_diffs_enabled(ctx);
-                let static_prompt_suggestion_name =
-                    suggestion.static_prompt_suggestion_name.clone();
-                let _suggestion_id = suggestion.id.clone();
-
-                let _ = block_id;
-                return;
-                #[allow(unreachable_code)]
-                let trigger = {
-                    PassiveSuggestionTrigger::ShellCommandCompleted(todo!())
-                };
-
-                let banner_state = PromptSuggestionBannerState {
-                    banner_id,
-                    prompt_suggestion: suggestion,
-                    accept_button_mouse_state: Default::default(),
-                    llm_warning_learn_more_hyperlink: Default::default(),
-                    should_hide: is_coding_query,
-                    trigger: Some(trigger),
-                    conversation_id: None,
-                    server_request_token: None,
-                };
-
-                self.inline_banners_state.prompt_suggestions_banner = Some(banner_state.clone());
-
-                self.input.update(ctx, |input, ctx| {
-                    input.set_prompt_suggestions_banner_state(Some(banner_state), ctx);
-                    input.notify_and_notify_children(ctx);
-                });
-
-                if let Some(_static_name) = static_prompt_suggestion_name {
-                } else {
-                }
-
-                ctx.notify();
-            }
-            AgentModePromptSuggestion::None | AgentModePromptSuggestion::Error => {}
-        }
-    }
 
     /// Generates command corrections, if applicable.
     fn maybe_generate_command_suggestions(
@@ -14039,26 +13880,8 @@ impl TerminalView {
                 // blocks we need to render the border for.
                 ctx.notify()
             }
-            InputEvent::UnhandledCmdEnter => {
-                if is_accept_prompt_suggestion_bound_to_cmd_enter(ctx) {
-                    self.resolve_passive_suggestion(
-                        PromptSuggestionResolution::Accept {
-                            interaction_source: InteractionSource::Keybinding,
-                        },
-                        ctx,
-                    );
-                }
-            }
-            InputEvent::CtrlEnter => {
-                if is_accept_prompt_suggestion_bound_to_ctrl_enter(ctx) {
-                    self.resolve_passive_suggestion(
-                        PromptSuggestionResolution::Accept {
-                            interaction_source: InteractionSource::Keybinding,
-                        },
-                        ctx,
-                    );
-                }
-            }
+            InputEvent::UnhandledCmdEnter => {}
+            InputEvent::CtrlEnter => {}
             InputEvent::EnterAgentView { .. } => {}
             InputEvent::EnterCloudAgentView { initial_prompt } => {
                 self.enter_cloud_agent_view(initial_prompt.clone(), ctx);
@@ -19285,12 +19108,7 @@ impl View for TerminalView {
             context.set.insert(SSH_ERROR_BLOCK_VISIBLE_KEY);
         }
 
-        if self
-            .inline_banners_state
-            .prompt_suggestions_banner
-            .is_some()
-            || has_pending_code_or_unit_test_prompt_suggestion(&model_lock, app)
-        {
+        if false {
             context.set.insert(flags::HAS_PENDING_PROMPT_SUGGESTION);
         }
 

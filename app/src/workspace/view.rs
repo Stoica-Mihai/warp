@@ -331,7 +331,6 @@ use crate::terminal::view::ambient_agent::{
 };
 #[cfg(feature = "local_tty")]
 use crate::terminal::view::docker_sandbox::DEFAULT_DOCKER_SANDBOX_BASE_IMAGE;
-use crate::terminal::view::inline_banner::ZeroStatePromptSuggestionType;
 use crate::terminal::view::ssh_file_upload::FileUploadId;
 use crate::terminal::view::{
     ConversationRestorationInNewPaneType, LeftPanelTargetView, SyncEvent, SyncInputType,
@@ -2987,7 +2986,7 @@ impl Workspace {
                 );
                 // Enter agent mode with the environment creation query.
                 self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
-                    pane_group.start_agent_mode_in_new_pane(initial_query.as_deref(), None, ctx);
+                    pane_group.start_agent_mode_in_new_pane(initial_query.as_deref(), ctx);
                 });
             }
             NewWorkspaceSource::NotebookFromFilePath { file_path } => {
@@ -3330,12 +3329,7 @@ impl Workspace {
         });
     }
 
-    /// Add and focus a new terminal pane in AI mode in a new tab.
-    fn add_terminal_tab_in_ai_mode(
-        &mut self,
-        zero_state_prompt_suggestion_type: Option<ZeroStatePromptSuggestionType>,
-        ctx: &mut ViewContext<Self>,
-    ) {
+    fn add_terminal_tab_in_ai_mode(&mut self, ctx: &mut ViewContext<Self>) {
         self.add_new_session_tab_internal_with_default_session_mode_behavior(
             NewSessionSource::Tab,
             Some(ctx.window_id()),
@@ -3345,23 +3339,13 @@ impl Workspace {
             ctx,
         );
         self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
-            pane_group.start_agent_mode_in_new_pane(None, zero_state_prompt_suggestion_type, ctx);
+            pane_group.start_agent_mode_in_new_pane(None, ctx);
         });
     }
 
-    /// Add and focus a new terminal pane in AI mode. Add the terminal pane to the right of
-    /// all other panes, as a split on the root node.
-    fn add_terminal_pane_in_ai_mode(
-        &mut self,
-        zero_state_prompt_suggestion_type: Option<ZeroStatePromptSuggestionType>,
-        ctx: &mut ViewContext<Self>,
-    ) {
+    fn add_terminal_pane_in_ai_mode(&mut self, ctx: &mut ViewContext<Self>) {
         self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
-            pane_group.add_terminal_pane_in_agent_mode(
-                None,
-                zero_state_prompt_suggestion_type,
-                ctx,
-            );
+            pane_group.add_terminal_pane_in_agent_mode(None, ctx);
         });
     }
 
@@ -4947,7 +4931,7 @@ impl Workspace {
         }
 
         self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
-            pane_group.add_terminal_pane_in_agent_mode(Some("/feedback "), None, ctx);
+            pane_group.add_terminal_pane_in_agent_mode(Some("/feedback "), ctx);
             if let Some(terminal_view) = pane_group.focused_session_view(ctx) {
                 terminal_view.update(ctx, |terminal_view, terminal_view_ctx| {
                     terminal_view
@@ -17559,7 +17543,7 @@ impl TypedActionView for Workspace {
                     "My settings.toml file has an error: {error_description}. Please fix it."
                 );
                 self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
-                    pane_group.add_terminal_pane_in_agent_mode(None, None, ctx);
+                    pane_group.add_terminal_pane_in_agent_mode(None, ctx);
                 });
             }
             OpenWorktreeInRepo { repo_path } => {
@@ -18031,17 +18015,11 @@ impl TypedActionView for Workspace {
             OpenFilePath { path } => {
                 ctx.open_file_path(path);
             }
-            NewTabInAgentMode {
-                entrypoint: _,
-                zero_state_prompt_suggestion_type,
-            } => {
-                self.add_terminal_tab_in_ai_mode(*zero_state_prompt_suggestion_type, ctx);
+            NewTabInAgentMode { entrypoint: _ } => {
+                self.add_terminal_tab_in_ai_mode(ctx);
             }
-            NewPaneInAgentMode {
-                entrypoint: _,
-                zero_state_prompt_suggestion_type,
-            } => {
-                self.add_terminal_pane_in_ai_mode(*zero_state_prompt_suggestion_type, ctx);
+            NewPaneInAgentMode { entrypoint: _ } => {
+                self.add_terminal_pane_in_ai_mode(ctx);
             }
             OpenCloudAgentSetupGuide => {
                 if AISettings::as_ref(ctx).is_any_ai_enabled(ctx)

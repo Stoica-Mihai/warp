@@ -6,7 +6,6 @@ use warpui::units::IntoLines;
 use warpui::AppContext;
 
 use super::{AskAISource, ContextMenuAction, TerminalAction};
-use crate::ai::predict::prompt_suggestions::ACCEPT_PROMPT_SUGGESTION_KEYBINDING;
 use crate::channel::ChannelState;
 use crate::features::FeatureFlag;
 use crate::server::telemetry::{InteractionSource, ToggleBlockFilterSource};
@@ -294,7 +293,7 @@ pub fn init(app: &mut AppContext) {
                 & id!("SshWarpificationBanner"),
         ),
         EditableBinding::new(
-            ACCEPT_PROMPT_SUGGESTION_KEYBINDING,
+            "terminal:accept_prompt_suggestions",
             "Accept Prompt Suggestion",
             TerminalAction::ResolvePromptSuggestion(PromptSuggestionResolution::Accept {
                 interaction_source: InteractionSource::Keybinding,

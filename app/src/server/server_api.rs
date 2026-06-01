@@ -42,10 +42,6 @@ use workspace::WorkspaceClient;
 use super::graphql::GraphQLError;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::get_relevant_files::api::{GetRelevantFiles, GetRelevantFilesResponse};
-use crate::ai::predict::generate_ai_input_suggestions::GenerateAIInputSuggestionsRequest;
-use crate::ai::predict::generate_am_query_suggestions::GenerateAMQuerySuggestionsRequest;
-use crate::ai::predict::predict_am_queries::{PredictAMQueriesRequest, PredictAMQueriesResponse};
-use crate::ai::predict::{generate_ai_input_suggestions, generate_am_query_suggestions};
 use crate::ai::voice::transcribe::{TranscribeRequest, TranscribeResponse};
 use crate::auth::auth_state::AuthState;
 use crate::server::graphql::default_request_options;
@@ -1027,33 +1023,6 @@ impl ServerApi {
         }
     }
 
-    /// Hits the /ai/generate_input_suggestions endpoint to get the predicted next action, based on past context.
-    pub async fn generate_ai_input_suggestions(
-        &self,
-        request: &GenerateAIInputSuggestionsRequest,
-    ) -> Result<generate_ai_input_suggestions::GenerateAIInputSuggestionsResponseV2, AIApiError>
-    {
-        let auth_token = self.get_or_refresh_access_token().await?;
-
-        let request_builder = self.client.post(format!(
-            "{}/ai/generate_input_suggestions",
-            ChannelState::server_root_url()
-        ));
-        let response = if let Some(token) = auth_token.as_bearer_token() {
-            request_builder.bearer_auth(token)
-        } else {
-            request_builder
-        }
-        .json(request)
-        .send()
-        .await?
-        .error_for_status_with_body()
-        .await?
-        .json()
-        .await?;
-        Ok(response)
-    }
-
     pub async fn get_relevant_files(
         &self,
         request: &GetRelevantFiles,
@@ -1077,67 +1046,6 @@ impl ServerApi {
         .json()
         .await?;
 
-        Ok(response)
-    }
-
-    /// Hits the /ai/generate_am_query_suggestions endpoint to get the predicted next query.
-    pub async fn generate_am_query_suggestions(
-        &self,
-        request: &GenerateAMQuerySuggestionsRequest,
-    ) -> Result<generate_am_query_suggestions::GenerateAMQuerySuggestionsResponse, AIApiError> {
-        let auth_token = self.get_or_refresh_access_token().await?;
-
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "agent_mode_evals")] {
-                let url = format!(
-                    "{}/agent-mode-evals/generate_am_query_suggestions",
-                    ChannelState::server_root_url()
-                );
-            } else {
-                let url = format!(
-                    "{}/ai/generate_am_query_suggestions",
-                    ChannelState::server_root_url()
-                );
-            }
-        }
-
-        let request_builder = self.client.post(url);
-        let response = if let Some(token) = auth_token.as_bearer_token() {
-            request_builder.bearer_auth(token)
-        } else {
-            request_builder
-        }
-        .json(request)
-        .send()
-        .await?
-        .error_for_status_with_body()
-        .await?
-        .json()
-        .await?;
-        Ok(response)
-    }
-
-    pub async fn predict_am_queries(
-        &self,
-        request: &PredictAMQueriesRequest,
-    ) -> Result<PredictAMQueriesResponse, AIApiError> {
-        let auth_token = self.get_or_refresh_access_token().await?;
-        let request_builder = self.client.post(format!(
-            "{}/ai/predict_am_queries",
-            ChannelState::server_root_url()
-        ));
-        let response = if let Some(token) = auth_token.as_bearer_token() {
-            request_builder.bearer_auth(token)
-        } else {
-            request_builder
-        }
-        .json(request)
-        .send()
-        .await?
-        .error_for_status_with_body()
-        .await?
-        .json()
-        .await?;
         Ok(response)
     }
 

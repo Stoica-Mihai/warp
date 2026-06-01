@@ -9,7 +9,6 @@ mod aws_cli_not_installed;
 mod notifications_discovery;
 mod notifications_error;
 mod open_in_warp;
-pub(crate) mod prompt_suggestions;
 mod session_state;
 mod shell_process_terminated;
 mod ssh;
@@ -38,7 +37,6 @@ use warpui::ui_components::button::ButtonVariant;
 use warpui::ui_components::components::{Coords, UiComponent, UiComponentStyles};
 use warpui::Element;
 
-pub use self::prompt_suggestions::*;
 use crate::appearance::Appearance;
 use crate::terminal::view::TerminalAction;
 use crate::themes::theme::Blend;
