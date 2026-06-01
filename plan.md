@@ -330,13 +330,32 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Step 5 (`97a134ef`): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType kept real. 3-gate 0/0/0.
 - Step 6 (`125c0f72`): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op; `#[path]` redirect keeps 72 external `::history_model::` imports unchanged. 3-gate 0/0/0.
 
-**CURRENT STATE (2026-06-01 session 8):**
+**CURRENT STATE (2026-06-01 session 9):**
 - 3-gate: **0/0/0**
-- Binary: **772.9 MB** (`b2b2a41f`, −0.11 MB vs `e481e765`)
-- Step 8 PARTIAL: ~30 caller files excised (slash_commands AI handlers, tab.rs, undo_close, up_arrow, data sources, blocks, auth). Stubs still live.
-- Session 8 commits: `b2b2a41f` (Step 8 partial — ~30 caller excisions); `d131433e` (docs)
+- Binary: **772.9 MB** (stubs still live — no binary change until stubs deleted)
+- Session 9 commits: `28c4ed8b` (main session — 2541 deletions from spider files), `1f3f26b3` (permissions.rs fix)
+- Major progress: workspace/view.rs (~1300 LoC removed), terminal/view.rs (~600 LoC removed), many Group A/B/C files cleaned
+- Stubs still live; many files still import them (parallel agents caused conflicts/reversions)
 
-**NEXT: Step 8b (session 9) — excise remaining 49 files, then delete stubs**
+**SESSION 9 LESSON (critical): Parallel agents cause chaos.**
+Running 8+ concurrent agents that all write to overlapping files caused repeated reversions. Each agent's cleanup was undone by another. Use SERIAL agent approach in session 10.
+
+**NEXT: Step 8c (session 10) — serial stub caller excision + delete stubs**
+
+Remaining files with stub imports (use serial approach, one file at a time):
+- `pane_group/pane/terminal_pane.rs` — 52 stubs (pane-fixer-agent reverted)
+- `ai/agent/conversation.rs` — 50 stubs (complex, implement ai-files-agent stopped)
+- `terminal/input.rs` — 31 stubs (some reverted after input-spider-agent)
+- `terminal/view.rs` — 30 stubs (view-code-cleaner partial)
+- `pane_group/mod.rs` — 19 stubs
+- `ai/agent_management/agent_management_model.rs`, `ai/conversation_navigation/mod.rs`, etc.
+
+Strategy for session 10:
+1. Use ONE agent per file, wait for completion before starting next
+2. For spider files (terminal_pane.rs, conversation.rs): hand-edit + cargo check oracle loop
+3. After ALL callers clean → delete 5 stub files → remove lib.rs lines → 3-gate → binary reduction
+
+**LESSON (session 9):** Full stub deletion requires ALL spider files clean first. Attempted all-at-once deletion produced 109+ errors. Correct approach: excise AI branches from each spider file before deleting stubs. Use Python batch scripts for Groups A/B/C; hand-edit spider files with full context.
 
 49 files still import stub-provided types. Full list via:
 ```bash
