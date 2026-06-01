@@ -9,7 +9,6 @@ use crate::ai::agent::conversation::{AIConversation, AIConversationId};
 use crate::terminal::view::blocklist_filter;
 use crate::undo_close::UndoCloseStack;
 use crate::workspace::{PaneViewLocator, WorkspaceRegistry};
-use crate::ai::blocklist::history_model::AIConversationMetadata;
 
 /// Result from matching a conversation.
 /// terminal_view_id and window_id are optional because, when we add restored conversations,
@@ -97,23 +96,6 @@ impl ConversationNavigationData {
         }
     }
 
-    pub fn from_historical_conversation_metadata(metadata: &AIConversationMetadata) -> Self {
-        Self {
-            id: metadata.id,
-            title: metadata.title.clone(),
-            initial_query: Some(metadata.initial_query.clone()),
-            last_updated: chrono::Local.from_utc_datetime(&metadata.last_modified_at),
-            terminal_view_id: None,
-            window_id: None,
-            pane_view_locator: None,
-            initial_working_directory: metadata.initial_working_directory.clone(),
-            latest_working_directory: None,
-            is_selected: false,
-            is_in_active_pane: false,
-            is_closed: false,
-            server_conversation_token: metadata.server_conversation_token.clone(),
-        }
-    }
 
     pub fn id(&self) -> AIConversationId {
         self.id

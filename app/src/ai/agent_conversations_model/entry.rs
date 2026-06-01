@@ -13,7 +13,6 @@ use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::ambient_agents::{AgentSource, AmbientAgentTask, AmbientAgentTaskId};
 use crate::ai::artifacts::Artifact;
-use crate::ai::blocklist::history_model::AIConversationMetadata;
 use crate::ai::conversation_navigation::ConversationNavigationData;
 use crate::auth::{AuthStateProvider, UserUid};
 use crate::workspace::RestoreConversationLayout;
@@ -445,27 +444,18 @@ pub(super) fn entry_for_conversation(
     entry_for_conversation_parts(metadata.nav_data.clone(), None, app)
 }
 
-pub(super) fn entry_for_historical_metadata(
-    metadata: &AIConversationMetadata,
-    nav_data: ConversationNavigationData,
-    app: &AppContext,
-) -> AgentConversationEntry {
-    entry_for_conversation_parts(nav_data, Some(metadata), app)
-}
-
 fn entry_for_conversation_parts(
     nav_data: ConversationNavigationData,
-    conversation_metadata: Option<&AIConversationMetadata>,
+    conversation_metadata: Option<()>,
     app: &AppContext,
 ) -> AgentConversationEntry {
     let metadata = ConversationMetadata { nav_data };
     let conversation_id = metadata.nav_data.id;
     let status = conversation_display_status(&metadata);
-    let has_local_persisted_data =
-        conversation_metadata.is_some_and(|metadata| metadata.has_local_data);
+    let _ = conversation_metadata;
+    let has_local_persisted_data = false;
     let server_token = server_conversation_token_for_conversation(Some(&metadata.nav_data));
-    let has_cloud_data = conversation_metadata.is_some_and(|metadata| metadata.has_cloud_data)
-        || server_token.is_some();
+    let has_cloud_data = server_token.is_some();
     let provenance = if has_cloud_data {
         AgentConversationProvenance::CloudSyncedConversation
     } else {
@@ -476,9 +466,7 @@ fn entry_for_conversation_parts(
         id: AgentConversationEntryId::Conversation(conversation_id),
         identity: AgentConversationIdentity {
             local_conversation_id: Some(conversation_id),
-            ambient_agent_task_id: conversation_metadata
-                .and_then(|metadata| metadata.server_conversation_metadata.as_ref())
-                .and_then(|metadata| metadata.ambient_agent_task_id),
+            ambient_agent_task_id: None,
             server_conversation_token: server_token.clone(),
             session_id: None,
         },
@@ -505,18 +493,14 @@ fn entry_for_conversation_parts(
                 .clone()
                 .or_else(|| metadata.nav_data.initial_working_directory.clone()),
             environment_id: None,
-            harness: conversation_metadata
-                .and_then(|metadata| metadata.server_conversation_metadata.as_ref())
-                .map(|metadata| Harness::from(metadata.harness))
-                .or(Some(Harness::Oz)),
+            harness: Some(Harness::Oz),
             artifacts: conversation_artifacts(&metadata),
         },
         backing: AgentConversationBackingData {
             has_loaded_conversation: false,
             has_local_persisted_data,
             has_cloud_data,
-            has_ambient_run: conversation_metadata
-                .is_some_and(AIConversationMetadata::is_ambient_agent_conversation),
+            has_ambient_run: false,
         },
         capabilities: AgentConversationCapabilities {
             can_open: has_local_persisted_data || has_cloud_data,
