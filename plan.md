@@ -343,6 +343,20 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - `generate_autosuggestion_async`: PartialNextCommandSuggestions+similar_history blocks deleted; `get_reverse_chronological_potential_autosuggestions` inlined; `is_command_valid` → unconditional
 - Binary: real shrink (NextCommandModel live via ctx.add_model; PromptSuggestionsView via ctx.add_typed_action_view)
 
+**NEXT (session 14): Delete `ai/conversation_details_panel.rs` (2086 LoC)**
+
+Live-linked via `ctx.add_typed_action_view` at `terminal/view.rs:3337` and `ai/agent_management/view.rs:335`.
+Fan-in: 12 files. 36 refs in terminal/view.rs.
+Key terminal/view.rs changes:
+- Remove 5 struct fields: `conversation_details_panel`, `is_conversation_details_panel_open`, `has_auto_opened_conversation_details_panel`, `conversation_details_panel_auto_open_policy`, `conversation_details_panel_toggle_mouse_state`
+- Remove `ConversationDetailsPanelAutoOpenPolicy` enum (line 2157)
+- Remove construction block at lines 3337–3351 + struct literal at 3472–3478
+- Make all `is_conversation_details_panel_open`-gated branches → always false (dead branch elim)
+- Delete/stub: `fetch_and_update_conversation_details_panel`, `toggle_conversation_details_panel`, `maybe_auto_open_conversation_details_panel`, `open_conversation_details_panel_to_conversation`, `suppress_initial_conversation_details_panel_auto_open`
+Also delete: `conversation_status_ui.rs` (50 LoC), `conversation_utils.rs` (24 LoC) — only used by panel.
+Also remove `TerminalAction::ToggleConversationDetailsPanel` variant + init.rs keybinding.
+Handoff at `/tmp/session14-handoff.md`.
+
 **Session 12 deletions done:**
 - `suggested_agent_mode_workflow_modal` + `suggested_rule_modal` + `summarization_cancel_dialog` (live-linked)
 - `telemetry_banner` + HideTelemetryBannerPermanently action + should_collect_ai_ugc_telemetry cascade
