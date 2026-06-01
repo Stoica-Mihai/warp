@@ -153,7 +153,6 @@ use crate::ai::blocklist::prompt::prompt_alert::{PromptAlertEvent, PromptAlertVi
 use crate::ai::blocklist::telemetry_banner::should_collect_ai_ugc_telemetry;
 use crate::ai::blocklist::{
     ai_indicator_height, render_ai_agent_mode_icon,
-    BlocklistAIActionModel, BlocklistAIContextModel,
     BlocklistAIInputEvent, BlocklistAIInputModel, InputConfig, InputType,
     InputTypeAutoDetectionSource,
 };
@@ -1906,17 +1905,11 @@ impl Input {
             completer_data.completion_session_context(ctx)
         };
 
-        let ai_context_model = ctx.add_model(|ctx| {
-            BlocklistAIContextModel::new(sessions.clone(), &model_events, model.clone(), terminal_view_id, ctx)
-        });
         let ai_input_model = ctx.add_model(|ctx| {
-            BlocklistAIInputModel::new(model.clone(), ai_context_model.clone(), terminal_view_id, ctx)
-        });
-        let ai_action_model = ctx.add_model(|ctx| {
-            BlocklistAIActionModel::new(model.clone(), active_session.clone(), &model_events, terminal_view_id, ctx)
+            BlocklistAIInputModel::new(model.clone(), terminal_view_id, ctx)
         });
         let cli_subagent_controller = ctx.add_model(|ctx| {
-            CLISubagentController::new(&ai_action_model, model.clone(), &model_events, terminal_view_id, ctx)
+            CLISubagentController::new(model.clone(), &model_events, terminal_view_id, ctx)
         });
 
         let handoff_compose_state = ctx.add_model(|_ctx| HandoffComposeState::default());
@@ -1927,7 +1920,6 @@ impl Input {
 
         let footer_display_chip_config = DisplayChipConfig {
             ai_input_model: ai_input_model.clone(),
-            ai_context_model: ai_context_model.clone(),
             terminal_view_id,
             menu_positioning_provider: menu_positioning_provider.clone(),
             session_context: initial_session_context.clone(),
@@ -1940,7 +1932,6 @@ impl Input {
             PromptDisplay::new(
                 current_prompt.clone(),
                 ai_input_model.clone(),
-                ai_context_model.clone(),
                 terminal_view_id,
                 menu_positioning_provider.clone(),
                 initial_session_context.clone(),
@@ -2546,7 +2537,6 @@ impl Input {
                 model.clone(),
                 ai_input_model.clone(),
                 buffer_model.clone(),
-                ai_context_model.clone(),
                 suggestions_mode_model.clone(),
                 inline_history_model,
                 ctx,

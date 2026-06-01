@@ -247,7 +247,6 @@ pub mod cli_controller {
 
     impl CLISubagentController {
         pub fn new(
-            _action_model: &ModelHandle<BlocklistAIActionModel>,
             _terminal_model: Arc<FairMutex<TerminalModel>>,
             _model_event_dispatcher: &ModelHandle<ModelEventDispatcher>,
             _terminal_view_id: EntityId,

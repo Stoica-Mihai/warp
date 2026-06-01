@@ -32,7 +32,7 @@ use super::{
     ContextChipKind,
 };
 use crate::ai::blocklist::prompt::plan_and_todo_list::{PlanAndTodoListEvent, PlanAndTodoListView};
-use crate::ai::blocklist::{BlocklistAIContextModel, BlocklistAIInputModel};
+use crate::ai::blocklist::BlocklistAIInputModel;
 use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentVersion};
 use crate::appearance::Appearance;
 use crate::code::editor::{add_color, remove_color};
@@ -426,7 +426,6 @@ pub struct MenuItem {
 #[derive(Clone)]
 pub struct DisplayChipConfig {
     pub ai_input_model: ModelHandle<BlocklistAIInputModel>,
-    pub ai_context_model: ModelHandle<BlocklistAIContextModel>,
     pub terminal_view_id: EntityId,
     pub menu_positioning_provider: Arc<dyn MenuPositioningProvider>,
     pub session_context: Option<SessionContext>,
