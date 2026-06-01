@@ -305,9 +305,10 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Step 5 (`97a134ef`): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType kept real. 3-gate 0/0/0.
 - Step 6 (`125c0f72`): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op; `#[path]` redirect keeps 72 external `::history_model::` imports unchanged. 3-gate 0/0/0.
 
-**CURRENT STATE (2026-05-31 session 2):**
-- 3-gate error counts: 71/92/71 (ALL pre-existing AI territory — NOT zero as AGENTS.md claimed; pre-dates this session)
-- Commits this session: `4bc84447` + `386ccd84` + `f3bae3a1`
+**CURRENT STATE (2026-06-01 session 3):**
+- 3-gate error counts: **72/87/72** (pre-existing was 71/92/71 — tests improved, others ±1; all AI territory)
+- Binary: 794.3 MB (flat — block_stubs.rs is linker-invisible; shrink deferred until inline_action/ + spider-file AI branches deleted)
+- Commits this session: `f048a967`
 
 ### Sub-task A: Relocate shared non-AI modules — ✅ DONE
 
@@ -341,20 +342,15 @@ Blocker: `code_diff_view` is the sole remaining non-AI dependency in inline_acti
 
 **Plan:** In Phase G pass (when cleaning terminal/view.rs of AI refs), delete `passive_code_diff.rs` + `code_diff_pane.rs` + `code_diff_pane_model.rs` (all AI-specific views), remove CodeDiffView from workspace/view.rs, pane_group/, code/inline_diff.rs. THEN inline_action/ can be deleted.
 
-### Sub-task C: Delete block/ directory and block.rs
+### Sub-task C: Delete block/ directory and block.rs — ✅ DONE (`f048a967`)
 
-**CAN be done BEFORE sub-task B** via block_stubs.rs:
-1. Relocate `numbered_button::render_recommended_badge` → terminal/view (or inline in keyboard_navigable_buttons.rs)
-2. Handle `secret_redaction.rs` — split pure fns to `app/src/secret_redaction.rs`, keep AI-rendering fns; OR stub them
-3. Create `blocklist/block_stubs.rs` with stubs for: `AIBlock`, `AIBlockEvent`, `RequestedEditResolution`, `AIBlockResponseRating`, `TextLocation` (already in util), `init`, `model`, `FakeAIBlockModel`
-4. Delete `block.rs` (6481 lines) + `block/` dir
-5. Cargo check oracle → fix until 3-gate green
-6. Expected binary shrink: LARGE (block rendering was live-linked)
+Deleted `ai/blocklist/block.rs` (6481 LoC) + `block/` dir (32 files, ~16k LoC). Added:
+- `app/src/secret_redaction.rs` — pure fns (find_secrets_in_text*, SECRET_REDACTION_REPLACEMENT_CHARACTER) extracted so non-AI callers survive
+- `ai/blocklist/block_stubs.rs` (~800 LoC) providing AIBlock, AIBlockEvent, AIBlockAction, AIBlockResponseRating, CLISubagentView, CLISubagentController, BlocklistAIStatusBar, view_impl, compact_agent_input, number_shortcut_buttons, find, status_bar, cli, model sub-modules — all via `#[path = "block_stubs.rs"] pub mod block;` redirect
+- Inlined `render_recommended_badge` into `terminal/view/keyboard_navigable_buttons.rs`
+- Updated 6 non-AI callers of secret_redaction to `crate::secret_redaction::*`
 
-**Non-AI callers of block.rs types to stub for:**
-- `terminal/block_list_element.rs`, `terminal/view.rs` — `AIBlock`, `AIBlockEvent`
-- `pane_group/`, `workspace/view.rs` — `AIBlock`
-- `lib.rs` — `init`, `model`, `FakeAIBlockModel` (cfg-test)
+**Lesson:** stub approach required ~25 oracle iterations and 800 LoC of stub code. Binary stays flat because `inline_action/` callers are still alive. **Next session should use delete-and-fix instead of delete-and-stub — delete inline_action/ simultaneously and fix errors by removing call sites.**
 
 ### Sub-task D: Delete all stub files
 
@@ -412,19 +408,27 @@ Keep: `ai_action_model`, `ai_input_model`, `ai_context_model`
 - ~~`ai/blocklist/context_model.rs`~~ ✅ `b3ae3d79` (stubbed → context_model_stubs.rs)
 - ~~`ai/blocklist/input_model.rs`~~ ✅ `97a134ef` (stubbed → input_model_stubs.rs)
 - ~~`ai/blocklist/history_model.rs` + `history_model/`~~ ✅ `125c0f72` (stubbed → history_model_stubs.rs, #[path] redirect)
-- **`ai/blocklist/permissions.rs`** — all AI callers; safe to stub + delete with block.rs in sub-task C.
-- `persistence.rs` DEFERRED — `SerializedBlockListItem` load-bearing for session restore. Relocate it before delete.
-- **NEXT: `ai/blocklist/block.rs` + `block/`** (sub-task C) — prerequisites:
-  - ~~`keyboard_navigable_buttons`~~ ✅ relocated to `terminal/view/`
-  - ~~`toggleable_items`~~ ✅ relocated to `terminal/view/`
-  - ~~`inline_action_header`~~ ✅ relocated to `terminal/view/`
-  - ~~`inline_action_icons`~~ ✅ relocated to `terminal/view/`
-  - ~~`requested_action`~~ ✅ relocated to `terminal/view/`
-  - ~~`requested_script`~~ ✅ relocated to `terminal/view/`
-  - ~~`WithContentItemSpacing`~~ ✅ relocated to `terminal/view/with_content_item_spacing.rs`
-  - **`numbered_button::render_recommended_badge`** — needed by `terminal/view/keyboard_navigable_buttons.rs`; widen to `pub` in terminal/view copy (DONE `pub(crate)` in original, must inline or move `numbered_button.rs` before block/ deleted)
-  - **`secret_redaction`** — 717 LoC, has AI-type deps; split pure fns (find_secrets_in_text*) to `app/src/secret_redaction.rs`; AI-rendering part deleted with block/
-- lib.rs: remove `BlocklistAIHistoryModel`, `BlocklistAIPermissions` registrations (OrchestrationEventService/TaskStatusSyncModel/OrchestrationEventStreamer/LocalSharedSessionLinkModel already updated to stubs)
+- **`ai/blocklist/permissions.rs`** — still alive; all callers are AI territory. Delete with Phase G pass.
+- `persistence.rs` DEFERRED — `SerializedBlockListItem` load-bearing for session restore. Relocate before delete.
+- ~~`ai/blocklist/block.rs` + `block/`~~ ✅ `f048a967` — deleted, replaced by `block_stubs.rs`
+
+**Phase F sub-task C lessons (2026-06-01):**
+- **Stub approach cost**: block/ deletion required ~25 oracle passes and ~800 LoC of stubs because `inline_action/` (still alive) imported deeply from block/. Binary stays flat.
+- **Delete-and-fix beats delete-and-stub**: if only consumers of a deleted module are themselves AI-only and scheduled for deletion, delete them simultaneously. Fix errors by removing call sites, not by adding stubs.
+- **#[path] redirect** works well for single-module swap: `#[path = "block_stubs.rs"] pub mod block;` preserved all `crate::ai::blocklist::block::*` import paths without touching callers.
+- **Empty::new().finish() in sub-modules**: each inline `mod {}` block needs its own `use warpui::Element;` — parent imports don't scope in.
+- **Generic ctx params** avoid type mismatch: `pub fn method<C>(&self, _: &mut C)` accepts ModelContext/ViewContext interchangeably.
+
+**NEXT SESSION — Phase G: delete-and-fix pass on remaining AI code**
+
+Recommended order:
+1. `rm -rf app/src/ai/blocklist/inline_action/` (40+ files, all AI rendering)
+2. Delete `block_stubs.rs` + all `*_stubs.rs` in `ai/blocklist/` (action_stubs, orchestration_stubs, context_model_stubs, input_model_stubs, history_model_stubs)
+3. Remove AI import blocks from `terminal/view.rs`, `workspace/view.rs`, `terminal/input.rs`, `pane_group/mod.rs`
+4. Run cargo check → fix each error by **deleting the call site**, not stubbing
+5. Keep non-AI code; strip AI branches from mixed files
+
+This one pass produces real LoC reduction + binary shrink instead of deferring both.
 
 **KEEP in blocklist/:** `prompt/`, `view_util.rs`, `keystroke_render.rs`, `code_block.rs`. KEEP `ai/mcp/`.
 

@@ -19,31 +19,27 @@ Personal fork of [warpdotdev/warp](https://github.com/warpdotdev/warp), strippin
 
 Done so far — full per-commit log in `git log` and `plan.md`. Areas complete (all 3-gate green):
 
-telemetry · wasm-orphan crates · onboarding crate + flags · Sentry crash-reporting · Sublight rebrand · channel enum cascade · autoupdate pipeline · session-sharing (all vestiges incl. `SharedSessionStatus` + `is_shared_session_viewer` cascade) · Warp Drive server-sync + SyncQueue + ObjectClient · SharingDialog + permission-CRUD · login gate bypass · auth gate UI · AuthManager login stub · Firebase crate · server-driven A/B experiments · dead AuthClient privacy-sync · AuthView/AuthOverrideWarningModal cloud-gate UI · billing/teams/platform/referrals pages · AI assistant panel + Warp AI command search · AI settings pages + execution profile editor · execution profiles data model + inline profile selector · ScheduledAgentManager registration + AgentSource computation · **Phase C: `ai/agent_sdk/` STRIP COMPLETE** (`d3eb301d` + `889d83dd`) · **Phase E+F complete: `ai/blocklist/agent_view/` deleted + AI view files** (`94c6be3f`) · `TextLocation` relocated to `util/text_location` + `LinkActionConstructors` to `util/link_detection` (`73dd201c`) · **Phase G-preview COMPLETE: `ai_controller` removed from TerminalView struct** (`1f600e66`, −10.97 MB)
+telemetry · wasm-orphan crates · onboarding crate + flags · Sentry crash-reporting · Sublight rebrand · channel enum cascade · autoupdate pipeline · session-sharing (all vestiges incl. `SharedSessionStatus` + `is_shared_session_viewer` cascade) · Warp Drive server-sync + SyncQueue + ObjectClient · SharingDialog + permission-CRUD · login gate bypass · auth gate UI · AuthManager login stub · Firebase crate · server-driven A/B experiments · dead AuthClient privacy-sync · AuthView/AuthOverrideWarningModal cloud-gate UI · billing/teams/platform/referrals pages · AI assistant panel + Warp AI command search · AI settings pages + execution profile editor · execution profiles data model + inline profile selector · ScheduledAgentManager registration + AgentSource computation · **Phase C: `ai/agent_sdk/` STRIP COMPLETE** (`d3eb301d` + `889d83dd`) · **Phase E+F complete: `ai/blocklist/agent_view/` deleted + AI view files** (`94c6be3f`) · `TextLocation` relocated to `util/text_location` + `LinkActionConstructors` to `util/link_detection` (`73dd201c`) · **Phase G-preview COMPLETE: `ai_controller` removed from TerminalView struct** (`1f600e66`, −10.97 MB) · **Phase F sub-task C: `block.rs` + `block/` deleted** (`f048a967`, −25k LoC, binary flat until callers deleted)
 
-**Current state:** Binary **794.3 MB** (−49.9 MB total vs 844.2 MB baseline). **0 errors / ~400 warnings** (all AI territory, deferred, no `#[allow(dead_code)]` cheats). App always starts in Terminal.
+**Current state:** Binary **794.3 MB** (−49.9 MB total vs 844.2 MB baseline). **~72 errors** (all pre-existing AI territory, no regressions). App always starts in Terminal.
 
 **Phase F steps 1–6 DONE** (2026-05-31):
 - **Step 1** (`202b79e0`, −7.96 MB): `controller/` + `passive_suggestions/` deleted. −6,081 LoC.
 - **Step 2** (`c42b65cb`, 0 MB): `action_model/` deleted → `action_stubs.rs`. −13,421 LoC.
 - **Step 3** (`0576df88`, 0 MB): orchestration cluster deleted → `orchestration_stubs.rs`. −6,369 LoC.
-- **Step 4** (`b3ae3d79`, 0 MB): `context_model.rs` (924 LoC) + tests deleted → `context_model_stubs.rs`. block_context_from_terminal_model kept intact. 3-gate 0/0/0.
-- **Step 5** (`97a134ef`, 0 MB): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType/InputTypeAutoDetectionSource kept real. 3-gate 0/0/0.
-- **Step 6** (`125c0f72`, 0 MB): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op. `#[path]` redirect keeps 72 external `::history_model::` imports working. 3-gate 0/0/0.
+- **Step 4** (`b3ae3d79`, 0 MB): `context_model.rs` (924 LoC) + tests deleted → `context_model_stubs.rs`. 3-gate 0/0/0.
+- **Step 5** (`97a134ef`, 0 MB): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. 3-gate 0/0/0.
+- **Step 6** (`125c0f72`, 0 MB): `history_model.rs` (2858 LoC) + tests + `conversation_loader.rs` deleted → `history_model_stubs.rs`. 3-gate 0/0/0.
 
 **Phase F sub-task A DONE** (session 2, `4bc84447` + `386ccd84` + `f3bae3a1`):
-Relocated to `terminal/view/`: inline_action_icons, inline_action_header, requested_action, requested_script, keyboard_navigable_buttons, toggleable_items, with_content_item_spacing. Old files = pub use re-exports. All non-AI callers updated. Inlined ORCHESTRATION_WARP_WORKER_HOST + VIEWING_COMMAND_DETAIL_MESSAGE.
+Relocated to `terminal/view/`: inline_action_icons, inline_action_header, requested_action, requested_script, keyboard_navigable_buttons, toggleable_items, with_content_item_spacing.
 
-**Next: Phase F sub-task C — delete `ai/blocklist/block.rs` + `block/`** (big binary win). See plan.md. Sub-task B (inline_action/) blocked by code_diff_view — Phase G.
+**Phase F sub-task C DONE** (session 3, `f048a967`):
+Deleted `ai/blocklist/block.rs` (6481 LoC) + `block/` dir (32 files, ~16k LoC). Created `block_stubs.rs` (~800 LoC) via `#[path]` redirect. Also: pure secret-detection fns extracted to `app/src/secret_redaction.rs`; render_recommended_badge inlined into keyboard_navigable_buttons.rs. 3-gate: **72/87/72** (pre-existing was 71/92/71).
 
-Remaining prerequisites for block/ deletion:
-- Relocate `numbered_button::render_recommended_badge` (needed by `terminal/view/keyboard_navigable_buttons.rs`)
-- Split `secret_redaction.rs` (pure fns → `app/src/secret_redaction.rs`; AI-rendering deleted with block/)
-- Create `blocklist/block_stubs.rs` for AIBlock, AIBlockEvent, AIBlockResponseRating, init, model
-- Delete `permissions.rs` alongside block/ (all AI callers)
-- Relocate `SerializedBlockListItem` from `persistence.rs` before delete
+**NEXT: Phase G — delete `inline_action/` + excise AI branches from spider files.** See plan.md.
 
-9. **lib.rs:** remove `BlocklistAIHistoryModel`, `BlocklistAIPermissions` registrations (OrchestrationEventService/TaskStatusSyncModel/OrchestrationEventStreamer/LocalSharedSessionLinkModel already updated to stubs)
+**STRATEGY CHANGE (session 3 lesson):** Use **delete-and-fix** not **delete-and-stub** for remaining AI code. The stub approach for block/ required ~25 oracle iterations and produced 800 LoC of stub code that yields zero binary reduction until callers are deleted anyway. For the next big deletion (inline_action/, terminal/view.rs AI branches, terminal/input.rs AI branches), delete the callers at the same time — fix errors by removing call sites, not adding stubs.
 
 **STUB PATTERN (established this session):**
 - Delete the module files, create `ai/blocklist/<name>_stubs.rs`, stub all types with no-op implementations, re-export from `mod.rs`.
