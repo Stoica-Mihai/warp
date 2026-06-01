@@ -332,10 +332,24 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 **CURRENT STATE (2026-06-01 session 10 complete):**
 - 3-gate: **0/0/0**
-- Binary: **~770 MB** (4 of 5 stub files deleted; `block_stubs.rs` deferred — see below)
+- Binary: **769.6 MB** (−3.3 MB from session 9; 4/5 stub files deleted)
 - **4 stub files DELETED**: `action_stubs.rs`, `context_model_stubs.rs`, `orchestration_stubs.rs`, `history_model_stubs.rs`
-- **`block_stubs.rs` DEFERRED**: still needed for `CLISubagentController`, `CLISubagentEvent`, `CLISubagentView`, `LongRunningCommandControlState` — actively used in terminal input pipeline. Must move these to a real module before block_stubs.rs can be deleted.
+- **`block_stubs.rs` DEFERRED**: still needed for `CLISubagentController`, `CLISubagentEvent`, `CLISubagentView`, `LongRunningCommandControlState`, `UserTakeOverReason`. Must move to real module before deletion.
 - ~80 files cleaned of stub type refs (serial approach, 3-gate checked frequently)
+- Full session 11 handoff at `/tmp/session11-handoff.md`
+
+**NEXT (session 11): Delete block_stubs.rs**
+
+Steps (SERIAL, 3-gate between each):
+1. Create `app/src/ai/blocklist/cli_controller.rs` — copy content from `block_stubs.rs`'s `pub mod cli_controller { ... }` block (lines ~155–287). Make it a top-level module (no wrapping `pub mod cli_controller`).
+2. Create `app/src/ai/blocklist/cli.rs` — copy `CLISubagentView` + `CLISubagentViewEvent` from `block_stubs.rs` lines ~120–152.
+3. Update `app/src/ai/blocklist/mod.rs`: add `pub(crate) mod cli_controller; pub(crate) mod cli;`; remove `#[path = "block_stubs.rs"] pub mod block;`.
+4. Update 8 caller import paths (all change `block::cli_controller` → `cli_controller`, `block::cli` → `cli`). Files: `terminal/input.rs:144`, `terminal/input/models/view.rs:15`, `terminal/input/slash_commands/data_source/mod.rs:22`, `terminal/model/block/interaction_mode.rs:9`, `terminal/model/block/serialized_block.rs:12`, `terminal/universal_developer_input.rs:30`, `terminal/view.rs:222+223`.
+5. Remove mod.rs line 98: `pub use crate::ai::blocklist::block::{secret_redaction, AIBlockResponseRating, TextLocation};` (no external callers).
+6. Run 3-gate → all 0 → delete `app/src/ai/blocklist/block_stubs.rs`.
+7. Build binary → measure → add build-size-log row.
+
+Expected: **large binary reduction** (~5–20 MB) from AIBlock/AIBlockModel/view_impl dead-code elimination.
 
 **PREVIOUS STATE (2026-06-01 session 9 final):**
 - 3-gate: **0/0/0** (commits `28c4ed8b`, `1f3f26b3`, `2640a60f`)
