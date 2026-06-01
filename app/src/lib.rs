@@ -1471,6 +1471,7 @@ pub(crate) fn initialize_app(
         )
     });
 
+    ctx.add_singleton_model(|_| BlocklistAIHistoryModel::new(vec![], &[]));
     ctx.add_singleton_model(move |_| RestoredAgentConversations::new(multi_agent_conversations));
     ctx.add_singleton_model(|_| CLIAgentSessionsModel::new());
     ctx.add_singleton_model(AgentNotificationsModel::new);
