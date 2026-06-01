@@ -46,8 +46,6 @@ use crate::ai::agent_conversations_model::{
 };
 use crate::ai::ai_document_view::AIDocumentView;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
-use crate::ai::blocklist::suggested_agent_mode_workflow_modal::SuggestedAgentModeWorkflowAndId;
-use crate::ai::blocklist::suggested_rule_modal::SuggestedRuleAndId;
 use crate::ai::blocklist::{InputConfig, SerializedBlockListItem};
 use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentModel, AIDocumentVersion};
 use crate::ai::execution_profiles::profiles::ClientProfileId;
@@ -560,12 +558,6 @@ pub enum Event {
     OpenChildAgentInNewTab {
         conversation_id: AIConversationId,
     },
-    OpenSuggestedAgentModeWorkflowModal {
-        workflow_and_id: SuggestedAgentModeWorkflowAndId,
-    },
-    OpenSuggestedRuleModal {
-        rule_and_id: SuggestedRuleAndId,
-    },
     OpenAIFactCollection {
         /// If set, open the fact collection to the specific rule.
         sync_id: Option<SyncId>,
@@ -812,10 +804,7 @@ pub struct PaneGroup {
 
     /// Model that tracks the currently active file.
     active_file_model: ModelHandle<ActiveFileModel>,
-    /// If there is an open summarization cancel dialog, the terminal pane ID where summarization is active.
-    terminal_with_open_summarization_dialog: Option<TerminalPaneId>,
-
-    /// Pane with an open environment setup mode selector modal (rendered at tab level).
+/// Pane with an open environment setup mode selector modal (rendered at tab level).
     pane_with_open_environment_setup_mode_selector: Option<PaneId>,
     /// Pane with an open agent-assisted environment modal (rendered at tab level).
     pane_with_open_agent_assisted_environment_modal: Option<PaneId>,
@@ -2497,7 +2486,6 @@ impl PaneGroup {
             user_default_shell_changed_banner,
             terminal_with_open_share_session_modal: None,
             active_file_model,
-            terminal_with_open_summarization_dialog: None,
             pane_with_open_environment_setup_mode_selector: None,
             pane_with_open_agent_assisted_environment_modal: None,
             right_panel_open: false,
@@ -6900,17 +6888,6 @@ impl View for PaneGroup {
         if self.terminal_with_open_share_block_modal.is_some() {
             stack
                 .add_child(Clipped::new(ChildView::new(&self.share_block_modal).finish()).finish());
-        }
-
-        // Render the summarization cancel dialog at tab level when open.
-        if let Some(terminal_pane_id) = self.terminal_with_open_summarization_dialog {
-            if let Some(terminal_view) = self.terminal_view_from_pane_id(terminal_pane_id, app) {
-                if let Some(dialog_handle) = terminal_view.read(app, |view, ctx| {
-                    view.summarization_cancel_dialog_handle(ctx)
-                }) {
-                    stack.add_child(ChildView::new(&dialog_handle).finish());
-                }
-            }
         }
 
         // Render environment setup mode selector at tab level when open.

@@ -21,10 +21,7 @@ pub(crate) mod keystroke_render;
 mod permissions;
 pub(crate) mod persistence;
 pub mod prompt;
-pub mod suggested_agent_mode_workflow_modal;
-pub mod suggested_rule_modal;
 mod suggestion_chip_view;
-pub mod summarization_cancel_dialog;
 pub(crate) mod telemetry;
 pub mod usage;
 

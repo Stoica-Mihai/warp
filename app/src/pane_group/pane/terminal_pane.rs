@@ -882,22 +882,8 @@ fn handle_terminal_view_event(
             Event::OpenWarpDriveObjectInPane(uid) => {
                 ctx.emit(pane_group::Event::OpenWarpDriveObjectInPane(uid.clone()));
             }
-            Event::OpenSuggestedAgentModeWorkflowModal { workflow_and_id } => {
-                ctx.emit(pane_group::Event::OpenSuggestedAgentModeWorkflowModal {
-                    workflow_and_id: workflow_and_id.clone(),
-                });
-            }
-            Event::OpenSuggestedRuleDialog { rule_and_id } => {
-                ctx.emit(pane_group::Event::OpenSuggestedRuleModal {
-                    rule_and_id: rule_and_id.clone(),
-                });
-            }
             Event::OpenAIFactCollection { sync_id } => {
                 ctx.emit(pane_group::Event::OpenAIFactCollection { sync_id: *sync_id });
-            }
-            Event::SummarizationCancelDialogToggled { is_open } => {
-                group.terminal_with_open_summarization_dialog = is_open.then_some(terminal_pane_id);
-                ctx.notify();
             }
             Event::EnvironmentSetupModeSelectorToggled { is_open } => {
                 group.pane_with_open_environment_setup_mode_selector = is_open.then_some(pane_id);

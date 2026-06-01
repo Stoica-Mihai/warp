@@ -226,9 +226,6 @@ use crate::ai::blocklist::cli_controller::{
 use crate::ai::blocklist::codebase_index_speedbump_banner::{
     CodebaseIndexSpeedbumpBannerAction, CodebaseIndexSpeedbumpBannerState, VisibilityState,
 };
-use crate::ai::blocklist::suggested_agent_mode_workflow_modal::SuggestedAgentModeWorkflowAndId;
-use crate::ai::blocklist::suggested_rule_modal::SuggestedRuleAndId;
-use crate::ai::blocklist::summarization_cancel_dialog::SummarizationCancelDialog;
 use crate::ai::blocklist::telemetry_banner::{should_collect_ai_ugc_telemetry, TelemetryBanner};
 use crate::ai::blocklist::usage::conversation_usage_view::{
     ConversationUsageInfo, ConversationUsageView, TimingInfo,
@@ -1533,12 +1530,6 @@ pub enum Event {
     // Tell the pane group to open the workflow modal with an unsaved workflow.
     OpenWorkflowModalWithTemporary(Box<Workflow>),
     OpenWarpDriveObjectInPane(ObjectUid),
-    OpenSuggestedAgentModeWorkflowModal {
-        workflow_and_id: SuggestedAgentModeWorkflowAndId,
-    },
-    OpenSuggestedRuleDialog {
-        rule_and_id: SuggestedRuleAndId,
-    },
     OpenAIFactCollection {
         /// If set, open the fact collection to the specific rule.
         sync_id: Option<SyncId>,
@@ -1560,9 +1551,6 @@ pub enum Event {
     OpenPromptEditor,
     OpenAgentToolbarEditor,
     OpenCLIAgentToolbarEditor,
-    SummarizationCancelDialogToggled {
-        is_open: bool,
-    },
     EnvironmentSetupModeSelectorToggled {
         is_open: bool,
     },
@@ -15299,13 +15287,6 @@ impl TerminalView {
     ) -> Option<&ViewHandle<EnvironmentSetupModeSelector>> {
         self.is_environment_setup_mode_selector_open
             .then_some(&self.environment_setup_mode_selector)
-    }
-
-    pub fn summarization_cancel_dialog_handle(
-        &self,
-        _ctx: &AppContext,
-    ) -> Option<ViewHandle<SummarizationCancelDialog>> {
-        None
     }
 
     pub fn send_inline_review(
