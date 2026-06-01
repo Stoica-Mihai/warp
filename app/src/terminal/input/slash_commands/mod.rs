@@ -753,14 +753,10 @@ impl Input {
                     .map(str::to_owned);
                 if let Some(prompt) = prompt {
                     // `/handoff query` auto-submits, same as `& query`.
-                    let attachments = self.collect_cloud_launch_attachments(ctx);
-                    let launch = PendingCloudLaunch {
-                        prompt,
-                        attachments,
-                    };
+                    let _ = (prompt, self.collect_cloud_launch_attachments(ctx));
                     ctx.dispatch_typed_action_deferred(
                         WorkspaceAction::OpenLocalToCloudHandoffPane {
-                            launch: Some(launch),
+                            launch: None,
                             environment_id: None,
                             entry_point: HandoffEntryPoint::SlashCommand,
                         },

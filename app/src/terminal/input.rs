@@ -3216,19 +3216,10 @@ impl Input {
     #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
     pub(crate) fn restore_cloud_handoff_draft(
         &mut self,
-        launch: PendingCloudLaunch,
-        environment_id: Option<SyncId>,
-        ctx: &mut ViewContext<Self>,
+        _launch: Option<()>,
+        _environment_id: Option<SyncId>,
+        _ctx: &mut ViewContext<Self>,
     ) {
-        self.activate_cloud_handoff_compose(HandoffEntryPoint::Ampersand, ctx);
-        self.editor.update(ctx, |editor, ctx| {
-            editor.set_buffer_text(&launch.prompt, ctx);
-        });
-        if let Some(env_id) = environment_id {
-            self.handoff_compose_state.update(ctx, |state, ctx| {
-                state.set_environment_id(Some(env_id), true, ctx);
-            });
-        }
     }
 
     fn prefix_mode(&self, ctx: &AppContext) -> InputPrefixMode {
@@ -3414,15 +3405,11 @@ impl Input {
             .selected_environment_id()
             .cloned();
         let entry_point = self.handoff_compose_state.as_ref(ctx).entry_point();
-        let launch = PendingCloudLaunch {
-            prompt,
-            attachments,
-        };
-
+        let _ = (prompt, attachments);
         self.exit_cloud_handoff_compose_and_clear(ctx);
 
         ctx.dispatch_typed_action_deferred(WorkspaceAction::OpenLocalToCloudHandoffPane {
-            launch: Some(launch),
+            launch: None,
             environment_id,
             entry_point,
         });

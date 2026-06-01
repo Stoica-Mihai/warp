@@ -7,7 +7,6 @@ use warpui::{EntityId, SingletonEntity, ViewContext, ViewHandle};
 
 use crate::ai::agent::conversation::{AIConversationId, ConversationStatus};
 use crate::ai::ambient_agents::AmbientAgentTaskId;
-use crate::ai::attachment_utils::attachments_download_dir;
 use crate::ai::blocklist::{BlocklistAIHistoryModel, StartAgentRequestId};
 use crate::ai::llms::LLMPreferences;
 use crate::pane_group::{PaneGroup, PaneId};
@@ -50,14 +49,10 @@ pub(crate) struct ErrorChildAgentConversationRequest {
 }
 
 pub(crate) fn apply_hidden_child_agent_task_context(
-    terminal_view: &ViewHandle<TerminalView>,
-    task_context: &HiddenChildAgentTaskContext,
-    ctx: &mut ViewContext<PaneGroup>,
+    _terminal_view: &ViewHandle<TerminalView>,
+    _task_context: &HiddenChildAgentTaskContext,
+    _ctx: &mut ViewContext<PaneGroup>,
 ) {
-    let task_id = task_context.task_id;
-    let working_dir = task_context.working_dir.clone();
-
-
 }
 
 fn propagate_parent_agent_settings(

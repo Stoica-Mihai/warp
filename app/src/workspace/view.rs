@@ -149,11 +149,6 @@ use crate::ai::ambient_agents::telemetry::HandoffEntryPoint;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
 use crate::ai::blocklist::handoff;
-#[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-use crate::ai::blocklist::handoff::touched_repos::extract_paths_from_conversation;
-#[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-use crate::ai::blocklist::handoff::{HandoffLaunchAttachments, PendingCloudLaunch};
-use crate::ai::blocklist::history_model::{load_conversation_from_server, CloudConversationData};
 use crate::ai::blocklist::suggested_agent_mode_workflow_modal::{
     SuggestedAgentModeWorkflowAndId, SuggestedAgentModeWorkflowModal,
     SuggestedAgentModeWorkflowModalEvent,
@@ -161,10 +156,7 @@ use crate::ai::blocklist::suggested_agent_mode_workflow_modal::{
 use crate::ai::blocklist::suggested_rule_modal::{
     SuggestedRuleAndId, SuggestedRuleModal, SuggestedRuleModalEvent,
 };
-use crate::ai::blocklist::{
-    BlocklistAIHistoryEvent, PendingQueryState, SerializedBlockListItem,
-    FORK_PREFIX,
-};
+use crate::ai::blocklist::SerializedBlockListItem;
 use crate::ai::cloud_agent_settings::CloudAgentSettings;
 #[cfg(target_family = "wasm")]
 use crate::ai::conversation_details_panel::ConversationDetailsPanel;
@@ -444,10 +436,7 @@ use crate::workspace::view::orchestration_launch_modal::{
 use crate::workspace::view::right_panel::{RightPanelEvent, RightPanelView};
 use crate::workspace::{ForkFromExchange, ForkedConversationDestination};
 use crate::workspaces::user_workspaces::UserWorkspaces;
-use crate::{
-    report_if_error, AgentNotificationsModel, BlocklistAIHistoryModel,
-    GlobalResourceHandles,
-};
+use crate::{report_if_error, AgentNotificationsModel, GlobalResourceHandles};
 
 /// The padding that should be applied to the workspace as a whole.
 pub const WORKSPACE_PADDING: f32 = 1.0;
@@ -662,7 +651,6 @@ enum LocalToCloudHandoffIntent {
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
 struct LocalToCloudHandoffOpenParams {
     forked_conversation_id: String,
-    launch: Option<PendingCloudLaunch>,
     environment_id: Option<SyncId>,
     intent: LocalToCloudHandoffIntent,
 }
@@ -2386,11 +2374,6 @@ impl Workspace {
         };
 
         ctx.observe(&tips_completed, Workspace::on_tips_model_changed);
-
-        ctx.subscribe_to_model(
-            &BlocklistAIHistoryModel::handle(ctx),
-            Self::handle_history_model_event,
-        );
         ctx.subscribe_to_model(&CLIAgentSessionsModel::handle(ctx), |me, _, event, ctx| {
             me.handle_cli_agent_sessions_event(event, ctx);
         });
@@ -2765,93 +2748,13 @@ impl Workspace {
                 tab_index,
                 terminal_view_id,
                 conversation_id,
-            } => {
-                if FeatureFlag::HOANotifications.is_enabled() {
-                    return;
-                }
-
-                let history_model = BlocklistAIHistoryModel::as_ref(ctx);
-                let Some(conversation) = history_model.conversation(conversation_id) else {
-                    return;
-                };
-
-                let Some(latest_query) = conversation
-                    .latest_user_query()
-                    .map(|latest_query| latest_query.to_owned())
-                else {
-                    return;
-                };
-                let icon = conversation.status().render_icon(Appearance::as_ref(ctx));
-
-                self.agent_toast_stack
-                    .update(ctx, |agent_toast_stack, ctx| {
-                        let toast = AgentToast::new(
-                            latest_query,
-                            icon,
-                            *source_window_id,
-                            *tab_index,
-                            *terminal_view_id,
-                        );
-                        agent_toast_stack.add_toast(toast.clone(), ctx)
-                    });
-                ctx.notify();
-            }
+            } => {}
             AgentManagementEvent::NotificationAdded { .. }
             | AgentManagementEvent::NotificationUpdated
             | AgentManagementEvent::AllNotificationsMarkedRead => {
                 // Re-render so the vertical tabs panel can update unread-activity dots.
                 ctx.notify();
             }
-        }
-    }
-
-    /// Handles updating the tab status when an agent task status changes.
-    fn handle_history_model_event(
-        &mut self,
-        _: ModelHandle<BlocklistAIHistoryModel>,
-        event: &BlocklistAIHistoryEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        #[cfg(target_family = "wasm")]
-        if self
-            .current_workspace_state
-            .is_transcript_details_panel_open
-        {
-            let focused_terminal_view_id = self
-                .active_tab_pane_group()
-                .as_ref(ctx)
-                .focused_session_view(ctx)
-                .map(|view| view.id());
-
-            let is_relevant_update = matches!(
-                event,
-                BlocklistAIHistoryEvent::SetActiveConversation { .. }
-                    | BlocklistAIHistoryEvent::UpdatedConversationMetadata { .. }
-                    | BlocklistAIHistoryEvent::RestoredConversations { .. }
-                    | BlocklistAIHistoryEvent::UpdatedConversationArtifacts { .. }
-                    | BlocklistAIHistoryEvent::UpdatedConversationStatus { .. }
-                    | BlocklistAIHistoryEvent::UpdatedStreamingExchange { .. }
-            );
-
-            if is_relevant_update
-                && event.terminal_view_id().is_some_and(|event_id| {
-                    focused_terminal_view_id.is_some_and(|id| id == event_id)
-                })
-            {
-                self.update_transcript_details_panel_data(ctx);
-                ctx.notify();
-            }
-        }
-
-        if matches!(
-            event,
-            BlocklistAIHistoryEvent::UpdatedConversationStatus { .. }
-        ) {
-            ctx.notify();
-        }
-
-        if self.agent_conversation_event_affects_vertical_tabs(event, ctx) {
-            ctx.notify();
         }
     }
 
@@ -2864,27 +2767,6 @@ impl Workspace {
             tab.pane_group
                 .as_ref(ctx)
                 .contains_terminal_view(terminal_view_id, ctx)
-        })
-    }
-
-    fn agent_conversation_event_affects_vertical_tabs(
-        &self,
-        event: &BlocklistAIHistoryEvent,
-        ctx: &AppContext,
-    ) -> bool {
-        matches!(
-            event,
-            BlocklistAIHistoryEvent::StartedNewConversation { .. }
-                | BlocklistAIHistoryEvent::AppendedExchange { .. }
-                | BlocklistAIHistoryEvent::UpdatedStreamingExchange { .. }
-                | BlocklistAIHistoryEvent::SetActiveConversation { .. }
-                | BlocklistAIHistoryEvent::ClearedActiveConversation { .. }
-                | BlocklistAIHistoryEvent::ClearedConversationsInTerminalView { .. }
-                | BlocklistAIHistoryEvent::SplitConversation { .. }
-                | BlocklistAIHistoryEvent::RestoredConversations { .. }
-                | BlocklistAIHistoryEvent::UpdatedConversationMetadata { .. }
-        ) && event.terminal_view_id().is_some_and(|terminal_view_id| {
-            self.workspace_contains_terminal_view(terminal_view_id, ctx)
         })
     }
 
@@ -3441,43 +3323,7 @@ impl Workspace {
         server_token: ServerConversationToken,
         ctx: &mut ViewContext<Self>,
     ) {
-        let history = BlocklistAIHistoryModel::as_ref(ctx);
-        let Some(conversation_id) = history.find_conversation_id_by_server_token(&server_token)
-        else {
-            self.load_cloud_conversation_into_new_transcript_viewer(server_token, None, ctx);
-            return;
-        };
-
-        // Check whether the conversation was started/is owned by by the current user.
-        let user_id = AuthStateProvider::as_ref(ctx).get().user_id();
-        let server_metadata = history.get_server_conversation_metadata(&conversation_id);
-        let conversation_is_owned_by_current_user = match (user_id, server_metadata) {
-            (Some(user_uid), Some(metadata)) => {
-                let is_creator =
-                    metadata.metadata.creator_uid.as_deref() == Some(&*user_uid.to_string());
-                let is_owner = matches!(
-                    metadata.permissions.space,
-                    Owner::User { user_uid: ref owner } if *owner == user_uid
-                );
-                is_creator || is_owner
-            }
-            _ => false,
-        };
-
-        if !conversation_is_owned_by_current_user {
-            self.load_cloud_conversation_into_new_transcript_viewer(server_token, None, ctx);
-            return;
-        }
-
-        if let Some(action) = AgentConversationsModel::resolve_open_action(
-            AgentConversationNavigationSubject::ServerToken(server_token.clone()),
-            Some(RestoreConversationLayout::NewTab),
-            ctx,
-        ) {
-            ctx.dispatch_typed_action_deferred(action);
-        } else {
-            self.load_cloud_conversation_into_new_transcript_viewer(server_token, None, ctx);
-        }
+        self.load_cloud_conversation_into_new_transcript_viewer(server_token, None, ctx);
     }
 
     /// Load the conversation into a transcript viewer in a new tab (with no input/backing shell)
@@ -3487,95 +3333,7 @@ impl Workspace {
         ambient_agent_task_id: Option<AmbientAgentTaskId>,
         ctx: &mut ViewContext<Self>,
     ) {
-        // Create the tab immediately with a loading state
-        let new_pane_group = ctx.add_typed_action_view(|ctx| {
-            PaneGroup::new_for_conversation_transcript_viewer_loading(
-                self.tips_completed.clone(),
-                self.user_default_shell_unsupported_banner_model_handle
-                    .clone(),
-                self.server_api.clone(),
-                self.model_event_sender.clone(),
-                ctx,
-            )
-        });
-
-        ctx.subscribe_to_view(&new_pane_group, move |me, pane_group, event, ctx| {
-            me.handle_file_tree_event(pane_group, event, ctx)
-        });
-
-        self.tabs.push(TabData::new(new_pane_group.clone()));
-        let new_tab_index = self.tab_count() - 1;
-        self.tab_mru_order
-            .push(self.tabs[new_tab_index].pane_group.id());
-        self.activate_tab_internal(new_tab_index, ctx);
-
-        let ai_client = ServerApiProvider::as_ref(ctx).get_ai_client();
-        let server_token = conversation_id;
-        let local_conversation_id =
-            BlocklistAIHistoryModel::handle(ctx).update(ctx, |history, _| {
-                history.get_or_set_canonical_conversation_id_for_server_token(&server_token)
-            });
-
-        ctx.spawn(
-            async move {
-                load_conversation_from_server(local_conversation_id, server_token, ai_client).await
-            },
-            move |me, cloud_conversation, ctx| {
-                let Some(cloud_conversation) = cloud_conversation else {
-                    log::error!("Failed to load conversation from server");
-                    me.toast_stack.update(ctx, |view, ctx| {
-                        let new_toast = DismissibleToast::error(
-                            "Failed to load conversation data.".to_string(),
-                        );
-                        view.add_ephemeral_toast(new_toast, ctx);
-                    });
-                    return;
-                };
-
-                // Update the pane group with the loaded conversation
-                new_pane_group.update(ctx, |pane_group, ctx| {
-                    pane_group.load_data_into_conversation_transcript_viewer(
-                        cloud_conversation,
-                        ambient_agent_task_id,
-                        ctx,
-                    );
-                });
-
-                // Open the transcript details panel by default on WASM (unless on mobile)
-                #[cfg(target_family = "wasm")]
-                {
-                    if !warpui::platform::wasm::is_mobile_device() {
-                        me.current_workspace_state.is_transcript_details_panel_open = true;
-                        me.transcript_info_button.update(ctx, |button, ctx| {
-                            button.set_active(true, ctx);
-                        });
-                    }
-                    me.update_transcript_details_panel_data(ctx);
-                }
-
-                // Refresh the focused conversation state.
-                if me.active_tab_pane_group().id() == new_pane_group.id() {
-                    let focused_terminal_view_id = me
-                        .active_tab_pane_group()
-                        .as_ref(ctx)
-                        .active_session_view(ctx)
-                        .map(|view| view.id());
-                    let ambient_agent_task_id =
-                        me.ambient_agent_task_id_for_focused_terminal_view(ctx);
-                    me.notify_terminal_focus_change(
-                        focused_terminal_view_id,
-                        ambient_agent_task_id,
-                        ctx,
-                    );
-                }
-            },
-        );
     }
-
-
-
-
-
 
 
     pub fn is_conversation_transcript_viewer_focused(&self, app: &AppContext) -> bool {
@@ -5908,23 +5666,8 @@ impl Workspace {
         {
             return;
         }
-
-        if let Some(terminal_view_handle) = self.active_session_view(ctx) {
-            let terminal_view_id = terminal_view_handle.id();
-
-            // Don't show onboarding block while agent is actively streaming
-            let is_agent_in_progress = BlocklistAIHistoryModel::handle(ctx)
-                .as_ref(ctx)
-                .active_conversation(terminal_view_id)
-                .is_some_and(|conversation| conversation.status().is_in_progress());
-
-            if is_agent_in_progress {
-                return;
-            }
-
-            let _ = (terminal_view_handle, object_id);
+        let _ = object_id;
         }
-    }
 
     fn open_suggested_agent_mode_workflow_modal(
         &mut self,
@@ -7067,17 +6810,6 @@ impl Workspace {
             panel_context.cli_agent,
             ctx,
         );
-
-        let active_conversation_id = panel_context
-            .terminal_view
-            .upgrade(ctx)
-            .and_then(|tv| BlocklistAIHistoryModel::as_ref(ctx).active_conversation_id(tv.id()));
-
-        if let Some(conversation_id) = active_conversation_id {
-            BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, _| {
-                history_model.set_has_code_review_opened_to_true(conversation_id);
-            });
-        }
     }
 
     fn update_right_panel_open_state(
@@ -9909,20 +9641,6 @@ impl Workspace {
             } else if has_blocking_long_running_command {
                 // Don't open in this pane and use the existing restore layout.
             } else {
-                BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, ctx| {
-                    history_model.set_active_conversation_id(
-                        conversation_id,
-                        terminal_view_id,
-                        ctx,
-                    );
-                });
-
-                Self::set_pending_query_state_for_terminal_view(
-                    terminal_view_id,
-                    PendingQueryState::Existing { conversation_id },
-                    ctx,
-                );
-
                 // If the conversation is in the current window, focus the pane directly.
                 // Otherwise, dispatch an action to the appropriate window.
                 if window_id == ctx.window_id() {
@@ -9973,85 +9691,7 @@ impl Workspace {
         conversation_id: AIConversationId,
         ctx: &mut ViewContext<Self>,
     ) {
-        let terminal_view_for_active_pane: Option<ViewHandle<TerminalView>> = None;
-
-        // If we can't restore in the active pane, fall back to restoring in new tab.
-        let Some(terminal_view) = &terminal_view_for_active_pane else {
-            self.restore_conversation_in_new_tab(conversation_id, ctx);
-            return;
-        };
-
-        let already_exists_in_active_pane = {
-            let terminal_view_id = terminal_view.as_ref(ctx).view_id();
-            let history_model = BlocklistAIHistoryModel::as_ref(ctx);
-            history_model.conversation(&conversation_id).is_some()
-                && history_model
-                    .all_live_conversations_for_terminal_view(terminal_view_id)
-                    .any(|conversation| conversation.id() == conversation_id)
-        };
-        if already_exists_in_active_pane {
-            return;
-        }
-        // Check if there's an active long-running command in the active terminal.
-        // If not, set the active terminal view to loading since we're going to restore in the active pane.
-        // We do these operations together to hold the model lock across them.
-        let active_pane_has_long_running_command =
-            terminal_view.update(ctx, |terminal_view, ctx| {
-                let mut model_lock = terminal_view.model.lock();
-                if model_lock
-                    .block_list()
-                    .active_block()
-                    .is_active_and_long_running()
-                {
-                    return true;
-                }
-                // Active pane does not have a long running command. We're going to restore in the active pane
-                // so set the loading status atomically.
-                model_lock.set_conversation_transcript_viewer_status(Some(
-                    ConversationTranscriptViewerStatus::Loading,
-                ));
-                ctx.notify();
-                false
-            });
-        // If there's an active long-running command in the active terminal, fall back to restoring in new tab.
-        if active_pane_has_long_running_command {
-            self.restore_conversation_in_new_tab(conversation_id, ctx);
-            return;
-        }
-
-        let history_model = BlocklistAIHistoryModel::handle(ctx);
-        let future = history_model
-            .as_ref(ctx)
-            .load_conversation_data(conversation_id);
-        let terminal_view_for_closure = terminal_view.clone();
-        let window_id = ctx.window_id();
-        ctx.spawn(future, move |_workspace, conversation, ctx| {
-            let Some(conversation) = conversation else {
-                log::warn!("Failed to load conversation {conversation_id}");
-                // Unset the loading status
-                terminal_view_for_closure.update(ctx, |terminal_view, ctx| {
-                    terminal_view
-                        .model
-                        .lock()
-                        .set_conversation_transcript_viewer_status(None);
-                    ctx.notify();
-                });
-                WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                    let toast = DismissibleToast::error("Failed to load conversation.".to_owned());
-                    toast_stack.add_ephemeral_toast(toast, window_id, ctx);
-                });
-                return;
-            };
-
-            terminal_view_for_closure.update(ctx, |terminal_view, ctx| {
-                terminal_view
-                    .model
-                    .lock()
-                    .set_conversation_transcript_viewer_status(None);
-                let _ = conversation;
-                terminal_view.redetermine_global_focus(ctx);
-            });
-        });
+        self.restore_conversation_in_new_tab(conversation_id, ctx);
     }
 
     /// Restores a conversation in a new split pane.
@@ -10063,49 +9703,7 @@ impl Workspace {
         conversation_id: AIConversationId,
         ctx: &mut ViewContext<Self>,
     ) {
-        let window_id = ctx.window_id();
-        let tab_pane_group = self.active_tab_pane_group().clone();
-        let pane_group_id = tab_pane_group.id();
-        let loading_pane_id = tab_pane_group.update(ctx, |pane_group, ctx| {
-            let base_pane_id = pane_group.focused_pane_id(ctx);
-            pane_group.add_loading_conversation_pane(
-                PaneGroupDirection::Right,
-                Some(base_pane_id),
-                ctx,
-            )
-        });
-
-        let history_model = BlocklistAIHistoryModel::handle(ctx);
-        let future = history_model
-            .as_ref(ctx)
-            .load_conversation_data(conversation_id);
-        ctx.spawn(future, move |_workspace, conversation, ctx| {
-            let Some(conversation) = conversation else {
-                log::warn!("Failed to load conversation {conversation_id}");
-                WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                    let toast = DismissibleToast::error("Failed to load conversation.".to_owned());
-                    toast_stack.add_ephemeral_toast(toast, window_id, ctx);
-                });
-                // Close the loading pane
-                if let Some(pane_group) = ctx.view_with_id::<PaneGroup>(window_id, pane_group_id) {
-                    pane_group.update(ctx, |pane_group, ctx| {
-                        pane_group.close_pane(loading_pane_id, ctx);
-                    });
-                }
-                return;
-            };
-
-            // Replace the loading pane with real terminal
-            if let Some(pane_group) = ctx.view_with_id::<PaneGroup>(window_id, pane_group_id) {
-                pane_group.update(ctx, |pane_group, ctx| {
-                    pane_group.replace_loading_pane_with_terminal(
-                        loading_pane_id,
-                        conversation,
-                        ctx,
-                    );
-                });
-            }
-        });
+        self.restore_conversation_in_new_tab(conversation_id, ctx);
     }
 
     /// Restores a conversation in a new tab.
@@ -10143,76 +9741,10 @@ impl Workspace {
         let pane_group_id = new_pane_group.id();
         let loading_pane_id = new_pane_group.as_ref(ctx).focused_pane_id(ctx);
 
-        let history_model = BlocklistAIHistoryModel::handle(ctx);
-        let future = history_model
-            .as_ref(ctx)
-            .load_conversation_data(conversation_id);
-
-        ctx.spawn(future, move |workspace, conversation, ctx| {
-            let Some(conversation) = conversation else {
-                log::warn!("Failed to load conversation {conversation_id}");
-                WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                    let toast = DismissibleToast::error("Failed to load conversation.".to_owned());
-                    toast_stack.add_ephemeral_toast(toast, window_id, ctx);
-                });
-                // Close the loading tab
-                if let Some(tab_index) = workspace
-                    .tabs
-                    .iter()
-                    .position(|tab| tab.pane_group.id() == pane_group_id)
-                {
-                    workspace.close_tab(tab_index, true, false, ctx);
-                }
-                return;
-            };
-
-            // Find the tab with this pane_group_id and replace its loading pane
-            if let Some(tab_pane_group) = workspace
-                .tabs
-                .iter()
-                .find(|tab| tab.pane_group.id() == pane_group_id)
-                .map(|tab| tab.pane_group.clone())
-            {
-                tab_pane_group.update(ctx, |pane_group, ctx| {
-                    pane_group.replace_loading_pane_with_terminal(
-                        loading_pane_id,
-                        conversation,
-                        ctx,
-                    );
-                });
-            }
-        });
+        let _ = (window_id, pane_group_id, loading_pane_id, conversation_id);
     }
 
-    fn set_pending_query_state_for_terminal_view(
-        terminal_view_id: EntityId,
-        pending_query_state: PendingQueryState,
-        ctx: &mut AppContext,
-    ) {
-        let terminal_view = ctx.window_ids().find_map(|window_id| {
-            ctx.views_of_type::<TerminalView>(window_id)
-                .and_then(|terminal_views| {
-                    terminal_views.iter().find_map(|terminal_view| {
-                        if terminal_view.as_ref(ctx).view_id() == terminal_view_id {
-                            Some(terminal_view.clone())
-                        } else {
-                            None
-                        }
-                    })
-                })
-        });
 
-        if let Some(terminal_view) = terminal_view {
-            terminal_view.update(ctx, |terminal_view, ctx| {
-                terminal_view.set_pending_query_state(pending_query_state, ctx);
-                ctx.notify();
-            });
-        } else {
-            log::warn!(
-                "Failed to find terminal view with id {terminal_view_id} to set pending query state"
-            );
-        }
-    }
 
     /// Fork an existing AI conversation.
     /// Optionally summarizes the conversation after forking and/or sends an initial prompt.
@@ -10230,119 +9762,8 @@ impl Workspace {
         destination: ForkedConversationDestination,
         ctx: &mut ViewContext<Self>,
     ) {
-        let history_model = BlocklistAIHistoryModel::handle(ctx);
-        let window_id = ctx.window_id();
-
-        let source_terminal_view_id = history_model
-            .as_ref(ctx)
-            .all_live_conversations()
-            .into_iter()
-            .find(|(_, convo)| convo.id() == conversation_id)
-            .map(|(terminal_view_id, _)| terminal_view_id);
-
-        // An empty prompt should not be provided as a query for the new forked conversation.
-        let initial_prompt = initial_prompt.and_then(|prompt| {
-            if prompt.trim().is_empty() {
-                None
-            } else {
-                Some(prompt)
-            }
-        });
-
-        // True when the fork is paired with a follow-up that fires immediately after restore
-        // (a prompt to send, or a `/summarize` triggered by `summarize_after_fork`).
-        // Used to suppress the `couldn't find original conversation directory` ephemeral hint
-        // for cloud-to-local forks, which would otherwise mask the warping indicator while the
-        // agent processes the follow-up. See `BlocklistAIStatusBar::render`'s
-        // `ephemeral_message_model.current_message().is_none()` gate.
-        let has_initial_query = summarize_after_fork || initial_prompt.is_some();
-
-        let cloud_storage_enabled =
-            PrivacySettings::as_ref(ctx).is_cloud_conversation_storage_enabled;
-
-        // Load the conversation data asynchronously
-        let future = history_model
-            .as_ref(ctx)
-            .load_conversation_data(conversation_id);
-
-        ctx.spawn(future, move |workspace, source_conversation, ctx| {
-            let Some(CloudConversationData::Oz(source_conversation)) = source_conversation else {
-                log::error!("Failed to load Oz conversation {conversation_id} for forking.");
-                WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                    let toast = DismissibleToast::error(
-                        "Failed to load conversation for forking.".to_owned(),
-                    );
-                    toast_stack.add_ephemeral_toast(toast, window_id, ctx);
-                });
-                return;
-            };
-
-            let source_server_token = source_conversation
-                .server_conversation_token()
-                .map(|t| t.as_str().to_string());
-            let title_for_fork = source_conversation.title();
-
-            // Skip the server-side fork when forking from a specific exchange.
-            // The server's ForkConversation copies the entire GCS conversation
-            // data, which includes exchanges after the fork point. This creates
-            // a mismatch with the locally-truncated fork and causes TaskNotFound
-            // errors during cloud-to-cloud handoff replay.
-            let should_server_fork =
-                cloud_storage_enabled && fork_from_exchange.is_none();
-            if let Some(source_token) = source_server_token.filter(|_| should_server_fork) {
-                let ai_client = ServerApiProvider::as_ref(ctx).get_ai_client();
-                ctx.spawn(
-                    async move {
-                        ai_client
-                            .fork_conversation(source_token, title_for_fork)
-                            .await
-                    },
-                    move |workspace, result, ctx| {
-                        let server_forked_id = match result {
-                            Ok(response) => Some(response.forked_conversation_id),
-                            Err(err) => {
-                                log::warn!("Server-side fork failed, proceeding with local-only fork: {err:#}");
-                                None
-                            }
-                        };
-                        workspace.create_local_fork(
-                            source_conversation,
-                            conversation_id,
-                            fork_from_exchange,
-                            summarize_after_fork,
-                            summarization_prompt,
-                            initial_prompt,
-                            destination,
-                            has_initial_query,
-                            source_terminal_view_id,
-                            server_forked_id,
-                            window_id,
-                            ctx,
-                        );
-                    },
-                );
-            } else {
-                workspace.create_local_fork(
-                    source_conversation,
-                    conversation_id,
-                    fork_from_exchange,
-                    summarize_after_fork,
-                    summarization_prompt,
-                    initial_prompt,
-                    destination,
-                    has_initial_query,
-                    source_terminal_view_id,
-                    None,
-                    window_id,
-                    ctx,
-                );
-            }
-        });
     }
 
-    /// Completes the fork by creating the local conversation and restoring it into a pane.
-    /// If `server_forked_conversation_id` is provided, the local fork is bound to the
-    /// server-side fork so it immediately has cloud storage and a server identity.
     #[allow(clippy::too_many_arguments)]
     fn create_local_fork(
         &mut self,
@@ -10359,171 +9780,6 @@ impl Workspace {
         window_id: WindowId,
         ctx: &mut ViewContext<Self>,
     ) {
-        let history_model = BlocklistAIHistoryModel::handle(ctx);
-        let fork_result = history_model.update(ctx, |history_model, ctx| {
-            if let Some(fork_from) = fork_from_exchange {
-                history_model.fork_conversation_at_exchange(
-                    &source_conversation,
-                    fork_from.exchange_id,
-                    fork_from.fork_from_exact_exchange,
-                    FORK_PREFIX,
-                    None,
-                    ctx,
-                )
-            } else {
-                history_model.fork_conversation(
-                    &source_conversation,
-                    FORK_PREFIX,
-                    true, /* preserve_task_ids */
-                    None,
-                    ctx,
-                )
-            }
-        });
-
-        let mut forked_conversation = match fork_result {
-            Ok(forked_conversation) => forked_conversation,
-            Err(e) => {
-                log::error!("Conversation forking failed. {e}.");
-                WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                    let toast = DismissibleToast::error("Conversation forking failed.".to_owned());
-                    toast_stack.add_ephemeral_toast(toast, window_id, ctx);
-                });
-                return;
-            }
-        };
-
-        if let Some(server_id) = server_forked_conversation_id {
-            let forked_id = forked_conversation.id();
-            forked_conversation.set_server_conversation_token(server_id.clone());
-            history_model.update(ctx, |history_model, ctx| {
-                history_model.set_server_conversation_token_for_conversation_and_persist(
-                    forked_id, server_id, ctx,
-                );
-            });
-        }
-
-        // Handle forking into the current pane
-        if destination.is_current_pane() {
-            if let Some(terminal_view) = self.active_session_view(ctx) {
-                let forked_conversation_id = forked_conversation.id();
-                terminal_view.update(ctx, move |terminal_view, ctx| {
-                    let _ = forked_conversation;
-                    terminal_view.redetermine_global_focus(ctx);
-                });
-
-                Self::handle_forked_conversation_prompts(
-                    terminal_view,
-                    summarize_after_fork,
-                    summarization_prompt,
-                    initial_prompt,
-                    forked_conversation_id,
-                    ctx,
-                );
-
-                Self::show_fork_toast(conversation_id, window_id, ctx);
-                return;
-            }
-            // If no active session view, fall through to create a new pane
-            log::warn!("CurrentPane fork requested with no active session view");
-        }
-
-        // Respect the explicit destination: SplitPane opens a split pane, NewTab opens a
-        // new tab. `open_conversation_layout_preference` is only consulted as a fallback by
-        // `restore_or_navigate_to_conversation`; fork callers always pass an explicit
-        // destination, so overriding SplitPane with NewTab here would silently defeat the
-        // user's choice (e.g. `/fork` with Enter explicitly picks SplitPane).
-        let should_open_in_new_tab = destination.is_new_tab();
-
-        if should_open_in_new_tab {
-            let forked_conversation_id = forked_conversation.id();
-            self.add_new_session_tab_with_default_mode(
-                NewSessionSource::Tab,
-                Some(window_id),
-                None,
-                Some(ConversationRestorationInNewPaneType::Forked {
-                    conversation: forked_conversation,
-                    has_initial_query,
-                }),
-                false,
-                ctx,
-            );
-
-            // Handle sending summarize and/or initial prompt to the forked conversation
-            if let Some(terminal_view) = self
-                .active_tab_pane_group()
-                .as_ref(ctx)
-                .active_session_view(ctx)
-            {
-                // Copy model selection and execution profile from source to new terminal view
-                if let Some(source_id) = source_terminal_view_id {
-                    Self::copy_model_and_profile_to_terminal_view(
-                        source_id,
-                        terminal_view.id(),
-                        ctx,
-                    );
-                }
-
-                Self::handle_forked_conversation_prompts(
-                    terminal_view,
-                    summarize_after_fork,
-                    summarization_prompt,
-                    initial_prompt,
-                    forked_conversation_id,
-                    ctx,
-                );
-            }
-
-            Self::show_fork_toast(conversation_id, window_id, ctx);
-            return;
-        }
-
-        let active_pane_group = self.active_tab_pane_group();
-        let active_pane_group_id = active_pane_group.id();
-        let created_pane_id: PaneId = active_pane_group.update(ctx, |pane_group, ctx| {
-            let active_pane_id = pane_group.focused_pane_id(ctx);
-
-            let new_pane_id = pane_group.add_session(
-                PaneGroupDirection::Right,
-                Some(active_pane_id),
-                active_pane_id.as_terminal_pane_id(),
-                None, /* chosen_shell */
-                Some(ConversationRestorationInNewPaneType::Forked {
-                    conversation: forked_conversation.clone(),
-                    has_initial_query,
-                }),
-                ctx,
-            );
-
-            new_pane_id.into()
-        });
-
-        // Handle sending summarize and/or initial prompt to the forked conversation
-        let forked_conversation_id = forked_conversation.id();
-        let tab_pane_group_handle = active_pane_group.clone();
-        if let Some(terminal_view) = tab_pane_group_handle.as_ref(ctx).focused_session_view(ctx) {
-            // Copy model selection and execution profile from source to new terminal view
-            if let Some(source_id) = source_terminal_view_id {
-                Self::copy_model_and_profile_to_terminal_view(source_id, terminal_view.id(), ctx);
-            }
-
-            Self::handle_forked_conversation_prompts(
-                terminal_view,
-                summarize_after_fork,
-                summarization_prompt,
-                initial_prompt,
-                forked_conversation_id,
-                ctx,
-            );
-        }
-        // After splitting, focus the newly created pane
-        let locator = PaneViewLocator {
-            pane_group_id: active_pane_group_id,
-            pane_id: created_pane_id,
-        };
-        self.focus_pane(locator, ctx);
-
-        Self::show_fork_toast(conversation_id, window_id, ctx);
     }
 
     /// Handle sending summarize and/or initial prompt to a forked conversation.
@@ -10564,28 +9820,6 @@ impl Workspace {
         window_id: WindowId,
         ctx: &mut ViewContext<Self>,
     ) {
-        let history_model = BlocklistAIHistoryModel::handle(ctx);
-        let source_title = history_model
-            .as_ref(ctx)
-            .conversation(&conversation_id)
-            .and_then(|c| c.title())
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| "Conversation".to_string());
-
-        let title = if source_title.chars().count() > MAX_FORK_TOAST_TITLE_LENGTH {
-            let truncated: String = source_title
-                .chars()
-                .take(MAX_FORK_TOAST_TITLE_LENGTH)
-                .collect();
-            format!("{truncated}...")
-        } else {
-            source_title
-        };
-
-        WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-            let toast = DismissibleToast::default(format!("Forked \"{title}\""));
-            toast_stack.add_ephemeral_toast(toast, window_id, ctx);
-        });
     }
 
     fn summarize_active_ai_conversation(
@@ -11550,32 +10784,17 @@ impl Workspace {
                 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
                 {
                     if let Some(source_view) = source_view.as_ref() {
-                        let (launch, entry_point) = source_view.update(ctx, |view, ctx| {
+                        let entry_point = source_view.update(ctx, |view, ctx| {
                             let input = view.input().clone();
                             input.update(ctx, |input, ctx| {
-                                let prompt = input
-                                    .editor()
-                                    .as_ref(ctx)
-                                    .buffer_text(ctx)
-                                    .trim()
-                                    .to_owned();
-                                let attachments = input.collect_cloud_launch_attachments(ctx);
                                 let entry_point = input.handoff_entry_point(ctx);
                                 input.exit_cloud_handoff_compose_and_clear(ctx);
-                                let launch = if prompt.is_empty() {
-                                    None
-                                } else {
-                                    Some(PendingCloudLaunch {
-                                        prompt,
-                                        attachments,
-                                    })
-                                };
-                                (launch, entry_point)
+                                entry_point
                             })
                         });
                         ctx.dispatch_typed_action_deferred(
                             WorkspaceAction::OpenLocalToCloudHandoffPane {
-                                launch,
+                                launch: None,
                                 environment_id: Some(env_id),
                                 entry_point,
                             },
@@ -11738,21 +10957,13 @@ impl Workspace {
     #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
     fn restore_source_handoff_draft(
         source_view: &ViewHandle<TerminalView>,
-        launch: Option<PendingCloudLaunch>,
+        
         environment_id: Option<SyncId>,
         ctx: &mut ViewContext<Self>,
     ) {
-        let Some(launch) = launch else {
-            return;
-        };
-        source_view.update(ctx, |view, ctx| {
-            let input = view.input().clone();
-            input.update(ctx, |input, ctx| {
-                input.restore_cloud_handoff_draft(launch, environment_id, ctx);
-            });
-        });
     }
 
+    #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
     #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
     fn show_handoff_success_toast(ctx: &mut ViewContext<Self>) {
         let window_id = ctx.window_id();
@@ -11815,67 +11026,10 @@ impl Workspace {
     fn start_fresh_cloud_launch(
         &mut self,
         source_view: ViewHandle<TerminalView>,
-        launch: Option<PendingCloudLaunch>,
+        
         environment_id: Option<SyncId>,
         ctx: &mut ViewContext<Self>,
     ) {
-        let handoff_target = self.prepare_handoff_target(&source_view, ctx);
-        let Some((_new_pane_view, model_handle)) =
-            handoff_target.update(ctx, |view, view_ctx| view.start_cloud_mode(None, view_ctx))
-        else {
-            log::warn!(
-                "start_local_to_cloud_handoff: failed to push fresh cloud-mode pane over the active session"
-            );
-            Self::restore_source_handoff_draft(&source_view, launch, environment_id, ctx);
-            let window_id = ctx.window_id();
-            WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                toast_stack.add_ephemeral_toast(
-                    DismissibleToast::error(
-                        "Couldn't open a cloud pane for handoff. Try again, or restart Warp if this keeps happening."
-                            .to_owned(),
-                    ),
-                    window_id,
-                    ctx,
-                );
-            });
-            return;
-        };
-
-        if let Some(environment_id) = environment_id {
-            model_handle.update(ctx, |model, ctx| {
-                model.set_environment_id(Some(environment_id), ctx);
-            });
-        }
-        Self::show_handoff_success_toast(ctx);
-
-        let pending = PendingHandoff {
-            forked_conversation_id: None,
-            title: None,
-            touched_workspace: None,
-            snapshot_upload: SnapshotUploadStatus::Pending,
-            submission_state: HandoffSubmissionState::Idle,
-            auto_submit: launch,
-        };
-        model_handle.update(ctx, |model, model_ctx| {
-            model.set_pending_handoff(Some(pending), model_ctx);
-        });
-        model_handle.update(ctx, |model, ctx| {
-            model.queue_handoff_auto_submit(ctx);
-        });
-
-        let source_pwd = source_view.as_ref(ctx).pwd();
-        let session_id = source_view
-            .as_ref(ctx)
-            .active_block_session_id()
-            .unwrap_or_default();
-        let mut paths: Vec<StandardizedPath> = Vec::new();
-        if let Some(ref pwd) = source_pwd {
-            if let Ok(sp) = StandardizedPath::try_new(pwd) {
-                paths.push(sp);
-            }
-        }
-        let upload_target = handoff::snapshot::resolve_upload_target(session_id, ctx);
-        handoff::snapshot::spawn_handoff_snapshot_upload(paths, upload_target, model_handle, ctx);
     }
 
     /// Opens a local-to-cloud handoff pane in place over the active local pane.
@@ -11883,40 +11037,11 @@ impl Workspace {
     #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
     fn start_local_to_cloud_handoff(
         &mut self,
-        launch: Option<PendingCloudLaunch>,
+        
         environment_id: Option<SyncId>,
         entry_point: HandoffEntryPoint,
         ctx: &mut ViewContext<Self>,
     ) {
-        let Some(source_view) = self
-            .active_tab_pane_group()
-            .as_ref(ctx)
-            .active_session_view(ctx)
-        else {
-            log::warn!(
-                "start_local_to_cloud_handoff: no active session view in the active tab to hand off"
-            );
-            let window_id = ctx.window_id();
-            WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                toast_stack.add_ephemeral_toast(
-                    DismissibleToast::error(
-                        "No active terminal session to hand off. Focus a pane and try again."
-                            .to_owned(),
-                    ),
-                    window_id,
-                    ctx,
-                );
-            });
-            return;
-        };
-
-        self.start_local_to_cloud_handoff_from_source(
-            source_view,
-            launch,
-            environment_id,
-            LocalToCloudHandoffIntent::UserInitiated(entry_point),
-            ctx,
-        );
     }
 
     #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
@@ -11946,194 +11071,12 @@ impl Workspace {
     fn start_local_to_cloud_handoff_from_source(
         &mut self,
         source_view: ViewHandle<TerminalView>,
-        launch: Option<PendingCloudLaunch>,
+        
         environment_id: Option<SyncId>,
         intent: LocalToCloudHandoffIntent,
         ctx: &mut ViewContext<Self>,
     ) {
-        let show_user_feedback = intent.shows_user_feedback();
-
-        if !AISettings::as_ref(ctx).is_cloud_handoff_enabled(ctx) {
-            Self::record_automatic_handoff_failed(intent, ctx);
-            return;
-        }
-
-        let terminal_view_id = source_view.id();
-        let source_conversation = {
-            let history_model = BlocklistAIHistoryModel::as_ref(ctx);
-            match intent.expected_conversation_id() {
-                Some(expected_conversation_id) => {
-                    let Some(active_conversation) =
-                        history_model.active_conversation(terminal_view_id)
-                    else {
-                        Self::record_automatic_handoff_failed(intent, ctx);
-                        return;
-                    };
-
-                    if active_conversation.id() != expected_conversation_id {
-                        Self::record_automatic_handoff_failed(intent, ctx);
-                        return;
-                    }
-
-                    Some(active_conversation.clone())
-                }
-                None => history_model.active_conversation(terminal_view_id).cloned(),
-            }
-        };
-
-        if !AISettings::as_ref(ctx)
-            .is_cloud_handoff_enabled_for_conversation(source_conversation.as_ref(), ctx)
-        {
-            if show_user_feedback {
-                Self::restore_source_handoff_draft(&source_view, launch, environment_id, ctx);
-                let window_id = ctx.window_id();
-                WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                    toast_stack.add_ephemeral_toast(
-                        DismissibleToast::error(
-                            "Cloud handoff isn't available for orchestrated agent conversations."
-                                .to_owned(),
-                        ),
-                        window_id,
-                        ctx,
-                    );
-                });
-            } else {
-                Self::record_automatic_handoff_failed(intent, ctx);
-            }
-            return;
-        }
-
-        let _has_existing_conversation =
-            source_conversation.as_ref().is_some_and(|c| !c.is_empty());
-
-        let Some(source_conversation) =
-            source_conversation.filter(|conversation| !conversation.is_empty())
-        else {
-            if show_user_feedback {
-                log::warn!(
-                    "start_local_to_cloud_handoff: no non-empty source conversation found; starting a fresh cloud launch"
-                );
-                self.start_fresh_cloud_launch(source_view, launch, environment_id, ctx);
-            } else {
-                Self::record_automatic_handoff_failed(intent, ctx);
-            }
-            return;
-        };
-
-        if intent.expected_conversation_id().is_some()
-            && !source_conversation.status().is_in_progress()
-        {
-            Self::record_automatic_handoff_failed(intent, ctx);
-            return;
-        }
-
-        if source_conversation.status().is_in_progress()
-            || source_conversation.status().is_blocked()
-        {
-            let has_long_running_command =
-                source_view.as_ref(ctx).has_active_long_running_command();
-
-            if has_long_running_command {
-                if show_user_feedback {
-                    Self::restore_source_handoff_draft(&source_view, launch, environment_id, ctx);
-                    let window_id = ctx.window_id();
-                    WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                        toast_stack.add_ephemeral_toast(
-                            DismissibleToast::error(
-                                "Can't hand off while a command is running. Cancel the command or wait for it to finish."
-                                    .to_owned(),
-                            ),
-                            window_id,
-                            ctx,
-                        );
-                    });
-                } else {
-                    Self::record_automatic_handoff_failed(intent, ctx);
-                }
-                return;
-            }
-
-            let conversation_id = source_conversation.id();
-            let cancellation_reason = if intent.expected_conversation_id().is_some() {
-                CancellationReason::AutomaticCloudHandoff
-            } else {
-                CancellationReason::ManuallyCancelled
-            };
-
-        }
-
-        let Some(source_token) = source_conversation.server_conversation_token().cloned() else {
-            if show_user_feedback {
-                Self::restore_source_handoff_draft(&source_view, launch, environment_id, ctx);
-                let window_id = ctx.window_id();
-                WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                    toast_stack.add_ephemeral_toast(
-                        DismissibleToast::error(
-                            "Your conversation hasn't synced to the cloud yet. Try sending another message, then hand off again."
-                                .to_owned(),
-                        ),
-                        window_id,
-                        ctx,
-                    );
-                });
-            } else {
-                Self::record_automatic_handoff_failed(intent, ctx);
-            }
-            return;
-        };
-
-        let ai_client = ServerApiProvider::as_ref(ctx).get_ai_client();
-        let source_conversation_id = source_token.as_str().to_string();
-        let title_for_fork = source_conversation
-            .title()
-            .map(|t| format!("{t} (Moved to cloud)"));
-        ctx.spawn(
-            async move {
-                ai_client
-                    .fork_conversation(source_conversation_id, title_for_fork)
-                    .await
-            },
-            move |me, result, ctx| match result {
-                Ok(response) => {
-                    me.complete_local_to_cloud_handoff_open(
-                        source_view,
-                        source_conversation,
-                        LocalToCloudHandoffOpenParams {
-                            forked_conversation_id: response.forked_conversation_id,
-                            launch,
-                            environment_id,
-                            intent,
-                        },
-                        ctx,
-                    );
-                }
-                Err(err) => {
-                    log::warn!(
-                        "start_local_to_cloud_handoff: fork_conversation RPC failed: {err:#}"
-                    );
-                    if show_user_feedback {
-                        Self::restore_source_handoff_draft(
-                            &source_view,
-                            launch,
-                            environment_id,
-                            ctx,
-                        );
-                        let window_id = ctx.window_id();
-                        WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                            toast_stack.add_ephemeral_toast(
-                                DismissibleToast::error(
-                                    "Couldn't start the handoff. Check your network connection and try again."
-                                        .to_owned(),
-                                ),
-                                window_id,
-                                ctx,
-                            );
-                        });
-                    }
-                    Self::record_automatic_handoff_failed(intent, ctx);
-                }
-            },
-        );
+        Self::record_automatic_handoff_failed(intent, ctx);
     }
 
     /// Finishes the handoff after the fork RPC returns by restoring the forked
@@ -12146,127 +11089,8 @@ impl Workspace {
         params: LocalToCloudHandoffOpenParams,
         ctx: &mut ViewContext<Self>,
     ) {
-        let LocalToCloudHandoffOpenParams {
-            forked_conversation_id,
-            launch,
-            environment_id,
-            intent,
-        } = params;
-        let show_user_feedback = intent.shows_user_feedback();
-        let history_model = BlocklistAIHistoryModel::handle(ctx);
-        // Materialize the fork locally so the new pane can restore it.
-        let title_override = source_conversation
-            .title()
-            .map(|t| format!("{t} (Moved to cloud)"));
-        let local_fork = match history_model.update(ctx, |history_model, ctx| {
-            history_model.fork_conversation(
-                &source_conversation,
-                FORK_PREFIX,
-                true,
-                title_override.as_deref(),
-                ctx,
-            )
-        }) {
-            Ok(forked) => forked,
-            Err(err) => {
-                log::warn!(
-                    "complete_local_to_cloud_handoff_open: failed to materialize local fork of conversation {:?} for handoff: {err:#}",
-                    source_conversation.id()
-                );
-                if show_user_feedback {
-                    let window_id = ctx.window_id();
-                    WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                        toast_stack.add_ephemeral_toast(
-                            DismissibleToast::error(
-                                "Couldn't save your conversation locally. Try sending another message, then hand off again."
-                                    .to_owned(),
-                            ),
-                            window_id,
-                            ctx,
-                        );
-                    });
-                }
-                Self::record_automatic_handoff_failed(intent, ctx);
-                return;
-            }
-        };
-        let local_fork_id = local_fork.id();
-
-        let handoff_target = self.prepare_handoff_target(&source_view, ctx);
-        let Some((_new_pane_view, model_handle)) =
-            handoff_target.update(ctx, |view, view_ctx| view.start_cloud_mode(None, view_ctx))
-        else {
-            log::warn!(
-                "complete_local_to_cloud_handoff_open: failed to push cloud-mode pane after forking conversation"
-            );
-            if show_user_feedback {
-                let window_id = ctx.window_id();
-                WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                    toast_stack.add_ephemeral_toast(
-                        DismissibleToast::error(
-                            "Couldn't open a cloud pane for handoff. Try again, or restart Warp if this keeps happening."
-                                .to_owned(),
-                        ),
-                        window_id,
-                        ctx,
-                    );
-                });
-            }
-            Self::record_automatic_handoff_failed(intent, ctx);
-            return;
-        };
-        let _ = local_fork;
-
-        // Bind the local fork to the server fork token.
-        history_model.update(ctx, |history_model, ctx| {
-            history_model.set_server_conversation_token_for_conversation_and_persist(
-                local_fork_id,
-                forked_conversation_id.clone(),
-                ctx,
-            );
-            history_model.set_viewing_shared_session_for_conversation(local_fork_id, true);
-        });
-
-        if let Some(env_id) = environment_id {
-            model_handle.update(ctx, |model, ctx| {
-                model.set_environment_id(Some(env_id), ctx);
-            });
-        }
-
-        // Keep handoff state on the cloud model until snapshot prep and submit finish.
-        let pending = PendingHandoff {
-            forked_conversation_id: Some(forked_conversation_id.clone()),
-            title: title_override,
-            touched_workspace: None,
-            snapshot_upload: SnapshotUploadStatus::Pending,
-            submission_state: HandoffSubmissionState::Idle,
-            auto_submit: launch,
-        };
-        model_handle.update(ctx, |model, model_ctx| {
-            model.set_pending_handoff(Some(pending), model_ctx);
-        });
-        Self::record_automatic_handoff_succeeded(intent, ctx);
-
-        if show_user_feedback {
-            Self::show_handoff_success_toast(ctx);
-        }
-        model_handle.update(ctx, |model, ctx| {
-            model.queue_handoff_auto_submit(ctx);
-        });
-
-        let source_pwd = source_view.as_ref(ctx).pwd();
-        let session_id = source_view
-            .as_ref(ctx)
-            .active_block_session_id()
-            .unwrap_or_default();
-        let mut paths = extract_paths_from_conversation(&source_conversation);
-        if let Some(ref pwd) = source_pwd {
-            if let Ok(sp) = StandardizedPath::try_new(pwd) {
-                paths.push(sp);
-            }
-        }
-        let upload_target = handoff::snapshot::resolve_upload_target(session_id, ctx);
-        handoff::snapshot::spawn_handoff_snapshot_upload(paths, upload_target, model_handle, ctx);
+        let LocalToCloudHandoffOpenParams { forked_conversation_id: _, environment_id: _, intent } = params;
+        Self::record_automatic_handoff_failed(intent, ctx);
     }
 
     pub(crate) fn handle_file_tree_event(
@@ -12543,14 +11367,6 @@ impl Workspace {
             }
             pane_group::Event::ToggleCodeReviewPane(arg) => {
                 self.toggle_right_panel(&pane_group, ctx);
-                let active_conversation_id = arg.terminal_view.upgrade(ctx).and_then(|tv| {
-                    BlocklistAIHistoryModel::as_ref(ctx).active_conversation_id(tv.id())
-                });
-                if let Some(conversation_id) = active_conversation_id {
-                    BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, _| {
-                        history_model.set_has_code_review_opened_to_true(conversation_id);
-                    });
-                }
             }
             pane_group::Event::RunWorkflow {
                 workflow,
@@ -18801,20 +17617,19 @@ impl TypedActionView for Workspace {
                 self.add_tab_for_code_file(path, None, ctx);
             }
             OpenLocalToCloudHandoffPane {
-                launch,
+                launch: _,
                 environment_id,
                 entry_point,
             } => {
                 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
                 self.start_local_to_cloud_handoff(
-                    launch.clone(),
                     *environment_id,
                     *entry_point,
                     ctx,
                 );
                 #[cfg(not(all(feature = "local_fs", not(target_family = "wasm"))))]
                 {
-                    let _ = (launch, environment_id, entry_point);
+                    let _ = (environment_id, entry_point);
                 }
             }
             AutoHandoffActiveAgentToCloud {
@@ -18828,14 +17643,9 @@ impl TypedActionView for Workspace {
                         trigger: *trigger,
                         conversation_id: *conversation_id,
                     };
-                    let launch = Some(PendingCloudLaunch {
-                        prompt: AUTO_CLOUD_HANDOFF_PROMPT.to_owned(),
-                        attachments: HandoffLaunchAttachments::default(),
-                    });
                     if let Some(source_view) = self.terminal_view(*terminal_view_id, ctx) {
                         self.start_local_to_cloud_handoff_from_source(
                             source_view,
-                            launch,
                             None,
                             intent,
                             ctx,
@@ -19685,12 +18495,6 @@ impl TypedActionView for Workspace {
                 self.focus_pane(*locator, ctx);
             }
             StartNewConversation { terminal_view_id } => {
-                Self::set_pending_query_state_for_terminal_view(
-                    *terminal_view_id,
-                    PendingQueryState::default(),
-                    ctx,
-                );
-
                 self.handle_action(
                     &WorkspaceAction::FocusTerminalViewInWorkspace {
                         terminal_view_id: *terminal_view_id,
@@ -20231,16 +19035,7 @@ impl TypedActionView for Workspace {
                 exchange_id,
                 conversation_id,
             } => {
-                // Extract the user query before the rewind to prefill the input
-                let user_query = BlocklistAIHistoryModel::as_ref(ctx)
-                    .conversation(conversation_id)
-                    .and_then(|c| c.root_task_exchanges().find(|e| e.id == *exchange_id))
-                    .and_then(|e| {
-                        e.input
-                            .iter()
-                            .find(|i| i.is_user_query())
-                            .and_then(|i| i.user_query())
-                    });
+                let user_query: Option<String> = None;
 
                 // Dispatch to the active terminal to execute the rewind
                 if let Some(terminal_view) = self

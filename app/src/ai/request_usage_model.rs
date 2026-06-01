@@ -1,4 +1,3 @@
-use crate::ai::blocklist::BlocklistAIHistoryModel;
 use std::sync::Arc;
 
 use ai::api_keys::ApiKeyManager;
@@ -262,92 +261,11 @@ impl AIRequestUsageModel {
 
     pub fn provide_negative_feedback_response_for_ai_conversation(
         &mut self,
-        client_conversation_id: AIConversationId,
-        request_id: String,
-        client_exchange_id: AIAgentExchangeId,
-        ctx: &mut ModelContext<Self>,
+        _client_conversation_id: AIConversationId,
+        _request_id: String,
+        _client_exchange_id: AIAgentExchangeId,
+        _ctx: &mut ModelContext<Self>,
     ) {
-        let server_conversation_id = BlocklistAIHistoryModel::as_ref(ctx)
-            .conversation(&client_conversation_id)
-            .and_then(|conversation| conversation.server_conversation_token());
-
-        let Some(server_conversation_id) = server_conversation_id else {
-            return;
-        };
-        let server_conversation_id_string = server_conversation_id.as_str().to_string();
-        let server_conversation_id_string_clone = server_conversation_id_string.clone();
-
-        let request_ids = BlocklistAIHistoryModel::as_ref(ctx)
-            .conversation(&client_conversation_id)
-            .map(|conversation| {
-                let mut request_ids = vec![];
-
-                let target_exchange = conversation
-                    .root_task_exchanges()
-                    .find(|exchange| exchange.id == client_exchange_id);
-
-                let mut found_target = false;
-
-                for exchange in conversation.exchanges_reversed() {
-                    if let Some(target_exchange) = target_exchange {
-                        if exchange.id == target_exchange.id {
-                            found_target = true;
-                        }
-                    } else {
-                        break;
-                    }
-
-                    if found_target {
-                        if let Some(server_output_id) = exchange.output_status.server_output_id() {
-                            request_ids.push(server_output_id.to_string());
-                        }
-
-                        if exchange
-                            .input
-                            .iter()
-                            .any(|input| input.user_query().is_some())
-                        {
-                            break;
-                        }
-                    }
-                }
-
-                request_ids
-            })
-            .unwrap_or_default();
-
-        // No reason to refund if there are no request ids.
-        if request_ids.is_empty() {
-            return;
-        }
-
-        let ai_client = self.ai_client.clone();
-        ctx.spawn(
-            async move {
-                ai_client
-                    .provide_negative_feedback_response_for_ai_conversation(
-                        server_conversation_id_string_clone,
-                        request_ids,
-                    )
-                    .await
-            },
-            |_, result, ctx| match result {
-                Ok(requests_refunded) => {
-                    if requests_refunded > 0 {
-                        ctx.emit(AIRequestUsageModelEvent::RequestBonusRefunded {
-                            requests_refunded,
-                            server_conversation_id: server_conversation_id_string,
-                            request_id,
-                        });
-                    }
-                }
-                Err(e) => {
-                    log::error!(
-                        "Failed to provide negative feedback response for ai conversation: {e:?}"
-                    );
-                }
-            },
-        );
     }
 
     /// Returns the number of remaining requests the user has based on their latest rate limit info.

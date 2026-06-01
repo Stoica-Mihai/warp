@@ -2,7 +2,7 @@ use warpui::{SingletonEntity, UpdateView};
 
 use super::{
     fork_label_for_query, mark_feature_used_and_write_to_user_defaults, AIAgentExchangeId,
-    AIConversationId, AgentModeRewindEntrypoint, AppContext, BlocklistAIHistoryModel, ChannelState,
+    AIConversationId, AgentModeRewindEntrypoint, AppContext, ChannelState,
     ClipboardContent, ContextMenuAction, ContextMenuState, ContextMenuType, EntityId, FeatureFlag,
     ForkAIConversationParams, ForkFromExchange, ForkedConversationDestination, MenuItem,
     MenuItemFields, RichContentLink, ServerConversationToken, ServerOutputId,
@@ -142,31 +142,10 @@ impl TerminalView {
 
     fn conversation_text(
         &self,
-        conversation_id: AIConversationId,
-        ctx: &AppContext,
+        _conversation_id: AIConversationId,
+        _ctx: &AppContext,
     ) -> Option<String> {
-        let Some(conversation) =
-            BlocklistAIHistoryModel::as_ref(ctx).conversation(&conversation_id)
-        else {
-            log::warn!("No conversation found for conversation ID {conversation_id}");
-            return None;
-        };
-
-        let mut result = Vec::new();
-        for exchange in conversation.root_task_exchanges() {
-            let formatted_exchange =
-                exchange.format_for_copy(None);
-            if !formatted_exchange.is_empty() {
-                result.push(formatted_exchange);
-            }
-        }
-
-        if result.is_empty() {
-            log::warn!("No copyable conversation text found for conversation ID {conversation_id}");
-            return None;
-        }
-
-        Some(result.join("\n\n"))
+        None
     }
 
     pub(super) fn copy_conversation_text(
@@ -201,36 +180,18 @@ impl TerminalView {
 
     fn conversation_server_token(
         &self,
-        conversation_id: AIConversationId,
-        ctx: &AppContext,
+        _conversation_id: AIConversationId,
+        _ctx: &AppContext,
     ) -> Option<ServerConversationToken> {
-        let history_model = BlocklistAIHistoryModel::as_ref(ctx);
-        // Prefer loaded conversation data when available.
-        history_model
-            .conversation(&conversation_id)
-            .and_then(|conversation| {
-                conversation
-                    .server_conversation_token()
-                    .or_else(|| conversation.forked_from_server_conversation_token())
-                    .cloned()
-            })
-            .or_else(|| {
-                // Restored entries may only have server metadata loaded.
-                history_model
-                    .get_server_conversation_metadata(&conversation_id)
-                    .map(|metadata| metadata.server_conversation_token.clone())
-            })
+        None
     }
 
     fn conversation_debug_request_id(
         &self,
-        conversation_id: AIConversationId,
-        ctx: &AppContext,
+        _conversation_id: AIConversationId,
+        _ctx: &AppContext,
     ) -> Option<ServerOutputId> {
-        BlocklistAIHistoryModel::as_ref(ctx)
-            .conversation(&conversation_id)
-            .and_then(|conversation| conversation.root_task_exchanges().last())
-            .and_then(|exchange| exchange.output_status.server_output_id())
+        None
     }
 
     fn copy_debugging_menu_items(
@@ -267,26 +228,11 @@ impl TerminalView {
 
     pub(super) fn create_copy_debugging_menu_item(
         &self,
-        ai_exchange_id: AIAgentExchangeId,
-        ai_conversation_id: AIConversationId,
-        ctx: &mut ViewContext<Self>,
+        _ai_exchange_id: AIAgentExchangeId,
+        _ai_conversation_id: AIConversationId,
+        _ctx: &mut ViewContext<Self>,
     ) -> Vec<(String, ContextMenuAction)> {
-        let conversation_token = BlocklistAIHistoryModel::as_ref(ctx)
-            .conversation(&ai_conversation_id)
-            .and_then(|convo| {
-                convo
-                    .server_conversation_token()
-                    .or_else(|| convo.forked_from_server_conversation_token())
-            });
-
-        let Some(conversation_token) = conversation_token else {
-            return Vec::new();
-        };
-
-        let server_output_id = self
-            .ai_block_for_exchange(&ai_exchange_id)
-            .and_then(|ai_block_handle| ai_block_handle.as_ref(ctx).server_output_id(ctx));
-        self.copy_debugging_menu_items(conversation_token.clone(), server_output_id)
+        Vec::new()
     }
 
     fn conversation_menu_items(

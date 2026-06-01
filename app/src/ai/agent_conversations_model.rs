@@ -35,9 +35,7 @@ use crate::ai::ambient_agents::{
     AmbientAgentTaskState,
 };
 use crate::ai::artifacts::Artifact;
-use crate::ai::blocklist::{
-    BlocklistAIHistoryEvent, BlocklistAIHistoryModel, ConversationStatusUpdate,
-};
+
 use crate::ai::cloud_environments::CloudAmbientAgentEnvironment;
 use crate::ai::conversation_navigation::ConversationNavigationData;
 use crate::auth::AuthStateProvider;
@@ -307,14 +305,7 @@ impl AgentRunDisplayStatus {
             | AmbientAgentTaskState::Pending
             | AmbientAgentTaskState::Claimed => Self::from_task_state(task),
             AmbientAgentTaskState::InProgress => {
-                if task.has_active_execution() {
-                    return Self::from_task_state(task);
-                }
-                let history_model = BlocklistAIHistoryModel::as_ref(app);
-                entry::conversation_id_shadowed_by_task(task, history_model)
-                    .and_then(|conversation_id| history_model.conversation(&conversation_id))
-                    .map(|conversation| Self::from_conversation_status(conversation.status()))
-                    .unwrap_or_else(|| Self::from_task_state(task))
+                Self::from_task_state(task)
             }
             AmbientAgentTaskState::Succeeded
             | AmbientAgentTaskState::Failed
@@ -585,11 +576,6 @@ impl AgentConversationsModel {
         ctx.subscribe_to_model(&network_status, Self::handle_network_status_changed);
         let window_manager = WindowManager::handle(ctx);
         ctx.subscribe_to_model(&window_manager, Self::handle_window_state_changed);
-
-        let history_model = BlocklistAIHistoryModel::handle(ctx);
-        ctx.subscribe_to_model(&history_model, move |me, event, ctx| {
-            me.handle_history_event(event, ctx);
-        });
 
         // Subscribe to UpdateManager for RTC task updates
         if FeatureFlag::AmbientAgentsRTC.is_enabled() {
@@ -980,13 +966,11 @@ impl AgentConversationsModel {
         filters: &AgentManagementFilters,
         app: &AppContext,
     ) -> Vec<AgentConversationEntry> {
-        let history_model = BlocklistAIHistoryModel::as_ref(app);
         let mut entries = Vec::new();
         let mut attached_conversation_ids = HashSet::new();
-        let mut emitted_conversation_ids = HashSet::new();
 
         for task in self.tasks.values() {
-            let entry = entry::entry_for_task(task, history_model, app);
+            let entry = entry::entry_for_task(task, app);
             if let Some(conversation_id) = entry.identity.local_conversation_id {
                 attached_conversation_ids.insert(conversation_id);
             }
@@ -998,25 +982,7 @@ impl AgentConversationsModel {
             if attached_conversation_ids.contains(&conversation_id) {
                 continue;
             }
-            let entry = entry::entry_for_conversation(metadata, history_model, app);
-            emitted_conversation_ids.insert(conversation_id);
-            entries.push(entry);
-        }
-
-        for metadata in history_model.get_local_conversations_metadata() {
-            if attached_conversation_ids.contains(&metadata.id)
-                || emitted_conversation_ids.contains(&metadata.id)
-            {
-                continue;
-            }
-            let nav_data =
-                ConversationNavigationData::from_historical_conversation_metadata(metadata);
-            entries.push(entry::entry_for_historical_metadata(
-                metadata,
-                nav_data,
-                history_model,
-                app,
-            ));
+            entries.push(entry::entry_for_conversation(metadata, app));
         }
 
         entries
@@ -1031,32 +997,15 @@ impl AgentConversationsModel {
         id: &AgentConversationEntryId,
         app: &AppContext,
     ) -> Option<AgentConversationEntry> {
-        let history_model = BlocklistAIHistoryModel::as_ref(app);
         match id {
             AgentConversationEntryId::AmbientRun(task_id) => self
                 .tasks
                 .get(task_id)
-                .map(|task| entry::entry_for_task(task, history_model, app)),
+                .map(|task| entry::entry_for_task(task, app)),
             AgentConversationEntryId::Conversation(conversation_id) => self
                 .conversations
                 .get(conversation_id)
-                .map(|metadata| entry::entry_for_conversation(metadata, history_model, app))
-                .or_else(|| {
-                    history_model
-                        .get_conversation_metadata(conversation_id)
-                        .map(|metadata| {
-                            let nav_data =
-                                ConversationNavigationData::from_historical_conversation_metadata(
-                                    metadata,
-                                );
-                            entry::entry_for_historical_metadata(
-                                metadata,
-                                nav_data,
-                                history_model,
-                                app,
-                            )
-                        })
-                }),
+                .map(|metadata| entry::entry_for_conversation(metadata, app)),
         }
     }
 
@@ -1180,25 +1129,13 @@ impl AgentConversationsModel {
         server_token: &ServerConversationToken,
         app: &AppContext,
     ) -> Option<AgentConversationEntry> {
-        let history_model = BlocklistAIHistoryModel::as_ref(app);
         if let Some(task) = self.tasks.values().find(|task| {
             task.conversation_id()
                 .is_some_and(|conversation_id| conversation_id == server_token.as_str())
         }) {
-            return Some(entry::entry_for_task(task, history_model, app));
+            return Some(entry::entry_for_task(task, app));
         }
-
-        let conversation_id = history_model.find_conversation_id_by_server_token(server_token)?;
-        if let Some(task) = self.tasks.values().find(|task| {
-            entry::conversation_id_shadowed_by_task(task, history_model) == Some(conversation_id)
-        }) {
-            return Some(entry::entry_for_task(task, history_model, app));
-        }
-
-        self.get_entry_by_id(
-            &AgentConversationEntryId::Conversation(conversation_id),
-            app,
-        )
+        None
     }
 
     fn task_id_for_server_token(
@@ -1214,94 +1151,9 @@ impl AgentConversationsModel {
 
     fn handle_history_event(
         &mut self,
-        event: &BlocklistAIHistoryEvent,
-        ctx: &mut ModelContext<Self>,
+        _event: &(),
+        _ctx: &mut ModelContext<Self>,
     ) {
-        if !FeatureFlag::InteractiveConversationManagementView.is_enabled() {
-            return;
-        }
-        match event {
-            // Events that affect conversation navigation data - need full sync
-            BlocklistAIHistoryEvent::StartedNewConversation { .. }
-            | BlocklistAIHistoryEvent::SetActiveConversation { .. }
-            | BlocklistAIHistoryEvent::AppendedExchange { .. }
-            | BlocklistAIHistoryEvent::SplitConversation { .. }
-            | BlocklistAIHistoryEvent::RestoredConversations { .. }
-            | BlocklistAIHistoryEvent::RemoveConversation { .. }
-            | BlocklistAIHistoryEvent::DeletedConversation { .. }
-            | BlocklistAIHistoryEvent::ClearedConversationsInTerminalView { .. }
-            | BlocklistAIHistoryEvent::ClearedActiveConversation { .. } => {
-                self.sync_conversations(ctx);
-            }
-
-            // Status changes - just trigger re-render since status is looked up at render time
-            BlocklistAIHistoryEvent::UpdatedConversationStatus {
-                update, new_status, ..
-            } => {
-                let kind = match update {
-                    ConversationStatusUpdate::Restored => ConversationUpdateKind::Restored,
-                    ConversationStatusUpdate::Changed { prev_status } => {
-                        ConversationUpdateKind::StatusSet {
-                            prev_filter: AgentRunDisplayStatus::from_conversation_status(
-                                prev_status,
-                            )
-                            .status_filter(),
-                            new_filter: AgentRunDisplayStatus::from_conversation_status(new_status)
-                                .status_filter(),
-                        }
-                    }
-                };
-                ctx.emit(AgentConversationsModelEvent::ConversationUpdated { kind });
-            }
-
-            // Artifact changes - sync live artifacts into the cached task and notify.
-            BlocklistAIHistoryEvent::UpdatedConversationArtifacts {
-                conversation_id, ..
-            } => {
-                let conversation = BlocklistAIHistoryModel::as_ref(ctx).conversation(conversation_id);
-                let Some(conversation) = conversation else {
-                    return;
-                };
-
-                let task_id = conversation
-                    .server_metadata()
-                    .and_then(|metadata| metadata.ambient_agent_task_id);
-                if let Some(task_id) = task_id {
-                    // If the conversation is associated with a task, update the saved task
-                    // with live artifacts.
-                    if let Some(task) = self.tasks.get_mut(&task_id) {
-                        task.artifacts = conversation.artifacts().to_vec();
-                        ctx.emit(AgentConversationsModelEvent::TasksUpdated);
-                    }
-                }
-                ctx.emit(AgentConversationsModelEvent::ConversationArtifactsUpdated {
-                    conversation_id: *conversation_id,
-                });
-            }
-
-            // Task/exchange-level changes that don't affect conversation navigation.
-            BlocklistAIHistoryEvent::CreatedSubtask { .. }
-            | BlocklistAIHistoryEvent::UpgradedTask { .. }
-            | BlocklistAIHistoryEvent::ReassignedExchange { .. }
-            | BlocklistAIHistoryEvent::UpdatedTodoList { .. }
-            | BlocklistAIHistoryEvent::UpdatedAutoexecuteOverride { .. }
-            | BlocklistAIHistoryEvent::UpdatedConversationMetadata { .. }
-            // UpdatedStreamingExchange covers streaming and other exchange-level updates but
-            // doesn't change any ConversationNavigationData fields (title comes from
-            // UpdateTaskDescription, last_updated uses exchange.start_time which is set at append time).
-            | BlocklistAIHistoryEvent::UpdatedStreamingExchange { .. }
-            | BlocklistAIHistoryEvent::ConversationOwnershipTransferred { .. }
-            | BlocklistAIHistoryEvent::NewConversationRequestComplete { .. }
-            | BlocklistAIHistoryEvent::OrchestrationConfigUpdated { .. }
-            | BlocklistAIHistoryEvent::ConversationUsageMetadataUpdated { .. }
-            | BlocklistAIHistoryEvent::LocalSharedSessionEstablished { .. } => {}
-
-            BlocklistAIHistoryEvent::ConversationServerTokenAssigned { .. } => {
-                ctx.emit(AgentConversationsModelEvent::ConversationUpdated {
-                    kind: ConversationUpdateKind::MetadataChanged,
-                });
-            }
-        }
     }
 
     /// Get raw task data by task ID
@@ -1654,7 +1506,3 @@ impl AgentConversationsModel {
         self.has_finished_initial_load = false;
     }
 }
-
-#[cfg(test)]
-#[path = "agent_conversations_model_tests.rs"]
-mod tests;

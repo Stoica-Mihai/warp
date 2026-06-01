@@ -1,7 +1,7 @@
 //! Utility functions for working with skills.
 
 use std::collections::hash_map::Entry;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 
@@ -17,7 +17,6 @@ use warpui::prelude::MouseStateHandle;
 use warpui::{AppContext, Element, EventContext, SingletonEntity};
 
 use super::{SkillDescriptor, SkillManager};
-use crate::ai::blocklist::BlocklistAIHistoryModel;
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::blocklist::view_util::render_provider_icon_button;
 use crate::warp_managed_paths_watcher::warp_managed_skill_dirs;
@@ -89,37 +88,13 @@ pub(crate) fn unique_skills(
 /// Skills are always included except when the current list matches the last list sent.
 pub fn list_skills_if_changed(
     working_directory: Option<&Path>,
-    conversation_id: Option<AIConversationId>,
+    _conversation_id: Option<AIConversationId>,
     app: &AppContext,
 ) -> Option<Vec<SkillDescriptor>> {
     let current_skills =
         SkillManager::as_ref(app).get_skills_for_working_directory(working_directory, app);
 
-    let previous_skills: Option<Vec<SkillDescriptor>> =
-        conversation_id.and_then(|conversation_id| {
-            let history_model = BlocklistAIHistoryModel::as_ref(app);
-            history_model
-                .conversation(&conversation_id)
-                .and_then(|conversation| conversation.latest_skills())
-        });
-
-    // If there are no previous skills, we consider the skills changed and push the current skills to the context
-    let skills_changed = previous_skills
-        .map(|previous_skills| {
-            let previous_skills_set: HashSet<SkillDescriptor> =
-                HashSet::from_iter(previous_skills.iter().cloned());
-            let current_skills_set: HashSet<SkillDescriptor> =
-                HashSet::from_iter(current_skills.iter().cloned());
-
-            previous_skills_set != current_skills_set
-        })
-        .unwrap_or(true);
-
-    if skills_changed {
-        Some(current_skills)
-    } else {
-        None
-    }
+    Some(current_skills)
 }
 
 /// Renders an 'open skill' button for blocklist AI actions and the code diff view.

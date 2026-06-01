@@ -55,7 +55,6 @@ use crate::view_components::action_button::{
 };
 use crate::view_components::DismissibleToast;
 use crate::workspace::ToastStack;
-use crate::BlocklistAIHistoryModel;
 
 pub fn init(app: &mut AppContext) {
     app.register_editable_bindings([EditableBinding::new(
@@ -189,14 +188,7 @@ impl AIDocumentView {
                             // Restoration is used for both persisted restore and
                             // shared-session viewer mirroring.
                             AIDocumentUpdateSource::Restoration => {
-                                let is_shared_session_view = AIDocumentModel::as_ref(ctx)
-                                    .get_conversation_id_for_document_id(document_id)
-                                    .and_then(|conv_id| {
-                                        BlocklistAIHistoryModel::as_ref(ctx)
-                                            .conversation(&conv_id)
-                                            .map(|c| c.is_viewing_shared_session())
-                                    })
-                                    .unwrap_or(false);
+                                let is_shared_session_view = false;
 
                                 if is_shared_session_view {
                                     // For shared-session viewers mirrored updates represent the live truth,
@@ -237,43 +229,7 @@ impl AIDocumentView {
             },
         );
 
-        // Subscribe to conversation status changes to update buttons
-        ctx.subscribe_to_model(
-            &BlocklistAIHistoryModel::handle(ctx),
-            move |me, _, event, ctx| {
-                use crate::ai::blocklist::BlocklistAIHistoryEvent;
-                match event {
-                    BlocklistAIHistoryEvent::UpdatedConversationStatus {
-                        terminal_view_id, ..
-                    } => {
-                        // Check if this is our terminal view
-                        if let Some(tv) = &me.original_terminal_view {
-                            if tv.id() == *terminal_view_id {
-                                me.update_header_buttons(ctx);
-                            }
-                        }
-                    }
-                    BlocklistAIHistoryEvent::RestoredConversations {
-                        terminal_view_id,
-                        conversation_ids,
-                    } => {
-                        // Try to populate terminal view if conversations were restored
-                        me.maybe_populate_terminal_view(*terminal_view_id, conversation_ids, ctx);
-                    }
-                    BlocklistAIHistoryEvent::OrchestrationConfigUpdated {
-                        conversation_id: cid,
-                        from_restore,
-                    } => {
-                        let our_conv = AIDocumentModel::as_ref(ctx)
-                            .get_conversation_id_for_document_id(&document_id);
-                        if our_conv.as_ref() == Some(cid) {
-                            ctx.notify();
-                        }
-                    }
-                    _ => {}
-                }
-            },
-        );
+
 
         let view_position_id = format!("ai_document_view_{}", ctx.view_id());
 
@@ -392,15 +348,7 @@ impl AIDocumentView {
         // for this document's conversation.
         let doc_conversation_id =
             AIDocumentModel::as_ref(ctx).get_conversation_id_for_document_id(&document_id);
-        let has_orchestration_config = doc_conversation_id.and_then(|cid| {
-            BlocklistAIHistoryModel::as_ref(ctx)
-                .conversation(&cid)
-                .and_then(|conv| {
-                    let plan_id_str = document_id.to_string();
-                    conv.orchestration_config_for_plan(&plan_id_str)
-                        .map(|_| cid)
-                })
-        });
+        let has_orchestration_config: Option<crate::ai::agent::conversation::AIConversationId> = None;
         let mut me = Self {
             document_id,
             document_version,
@@ -508,12 +456,7 @@ impl AIDocumentView {
             return false;
         };
 
-        let history_model = BlocklistAIHistoryModel::as_ref(ctx);
-        let Some(conversation) = history_model.conversation(&conversation_id) else {
-            return false;
-        };
-
-        conversation.status().is_in_progress()
+        false
     }
 
     /// Refresh the view to match the current state of the document model
@@ -1006,15 +949,7 @@ impl View for AIDocumentView {
     }
 
     fn render(&self, app: &AppContext) -> Box<dyn warpui::Element> {
-        let has_orchestration_config = AIDocumentModel::as_ref(app)
-            .get_conversation_id_for_document_id(&self.document_id)
-            .and_then(|cid| {
-                let plan_id_str = self.document_id.to_string();
-                BlocklistAIHistoryModel::as_ref(app)
-                    .conversation(&cid)
-                    .and_then(|conv| conv.orchestration_config_for_plan(&plan_id_str).map(|_| ()))
-            })
-            .is_some();
+        let has_orchestration_config = false;
 
         let mut content_column =
             Flex::column().with_cross_axis_alignment(CrossAxisAlignment::Stretch);
@@ -1121,26 +1056,7 @@ impl TypedActionView for AIDocumentView {
                     return;
                 };
 
-                terminal_view.update(ctx, |terminal_view, ctx| {
-                    let history_model = BlocklistAIHistoryModel::handle(ctx);
-                    let history_model_ref = history_model.as_ref(ctx);
-
-                    // Get the conversation by ID
-                    let Some(conversation) = history_model_ref.conversation(&conversation_id)
-                    else {
-                        log::warn!("Cannot send updated plan: conversation not found");
-                        return;
-                    };
-
-                    // Only proceed if conversation is actually streaming
-                    if !conversation.status().is_in_progress() {
-                        log::warn!(
-                            "Skipping sending updated plan: conversation is not in progress"
-                        );
-                        return;
-                    }
-
-                });
+                let _ = (terminal_view, conversation_id);
 
                 // Update UI to reflect the new query
                 self.update_header_buttons(ctx);

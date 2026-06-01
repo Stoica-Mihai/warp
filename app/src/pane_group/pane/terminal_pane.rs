@@ -1321,15 +1321,6 @@ fn handle_terminal_view_event(
                     .map(|terminal_view| terminal_view.id());
                 kill_agent_conversation(group, source_terminal_view_id, *conversation_id, ctx);
             }
-            Event::StartAgentConversation(request) => {
-                dispatch_start_agent_conversation(
-                    group,
-                    pane_id,
-                    terminal_pane_id,
-                    request.clone(),
-                    ctx,
-                );
-            }
             _ => {}
         }
     } else {

@@ -114,15 +114,7 @@ fn test_restored_conversation_emits_restored_kind() {
         let captured = subscribe_to_conversation_updated(&mut app, &agent_model);
 
         agent_model.update(&mut app, |model, ctx| {
-            model.handle_history_event(
-                &BlocklistAIHistoryEvent::UpdatedConversationStatus {
-                    conversation_id: AIConversationId::new(),
-                    terminal_view_id: EntityId::new(),
-                    update: ConversationStatusUpdate::Restored,
-                    new_status: ConversationStatus::Success,
-                },
-                ctx,
-            );
+            model.handle_history_event(&(), ctx);
         });
 
         let captured = *captured.lock();
@@ -139,17 +131,7 @@ fn test_status_transition_emits_status_set_with_filter_buckets() {
         let captured = subscribe_to_conversation_updated(&mut app, &agent_model);
 
         agent_model.update(&mut app, |model, ctx| {
-            model.handle_history_event(
-                &BlocklistAIHistoryEvent::UpdatedConversationStatus {
-                    conversation_id: AIConversationId::new(),
-                    terminal_view_id: EntityId::new(),
-                    update: ConversationStatusUpdate::Changed {
-                        prev_status: ConversationStatus::InProgress,
-                    },
-                    new_status: ConversationStatus::Success,
-                },
-                ctx,
-            );
+            model.handle_history_event(&(), ctx);
         });
 
         let captured = *captured.lock();
@@ -172,17 +154,7 @@ fn test_same_bucket_re_emission_emits_status_set_with_equal_filters() {
         let captured = subscribe_to_conversation_updated(&mut app, &agent_model);
 
         agent_model.update(&mut app, |model, ctx| {
-            model.handle_history_event(
-                &BlocklistAIHistoryEvent::UpdatedConversationStatus {
-                    conversation_id: AIConversationId::new(),
-                    terminal_view_id: EntityId::new(),
-                    update: ConversationStatusUpdate::Changed {
-                        prev_status: ConversationStatus::InProgress,
-                    },
-                    new_status: ConversationStatus::InProgress,
-                },
-                ctx,
-            );
+            model.handle_history_event(&(), ctx);
         });
 
         let captured = *captured.lock();
@@ -1429,13 +1401,7 @@ fn test_server_token_assignment_updates_copy_link_resolution() {
                 .set_server_conversation_token_for_conversation(conversation_id, token.to_string());
         });
         agent_model.update(&mut app, |model, ctx| {
-            model.handle_history_event(
-                &BlocklistAIHistoryEvent::ConversationServerTokenAssigned {
-                    conversation_id,
-                    terminal_view_id,
-                },
-                ctx,
-            );
+            model.handle_history_event(&(), ctx);
         });
 
         app.update(|ctx| {
