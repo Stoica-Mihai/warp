@@ -28,7 +28,6 @@ use warpui::{
 };
 
 use crate::ai::blocklist::cli_controller::CLISubagentController;
-use crate::ai::blocklist::prompt::prompt_alert::{PromptAlertEvent, PromptAlertView};
 use crate::ai::blocklist::prompt::PromptIconButtonTheme;
 use crate::ai::blocklist::{BlocklistAIInputModel, InputConfig, InputType};
 use crate::ai::AIRequestUsageModel;
@@ -238,8 +237,6 @@ pub struct UniversalDeveloperInputButtonBar {
     file_button: ViewHandle<ActionButton>,
     slash_command_button: ViewHandle<ActionButton>,
     segmented_control: ViewHandle<SegmentedControl<InputToggleMode>>,
-    prompt_alert: ViewHandle<PromptAlertView>,
-
     cached_ui_state: Rc<RefCell<CachedUIState>>,
     terminal_model: std::sync::Arc<parking_lot::FairMutex<crate::terminal::TerminalModel>>,
 }
@@ -260,7 +257,6 @@ pub enum UniversalDeveloperInputButtonBarEvent {
     EnableAutoDetection,
     SelectFile,
     SetAIContextMenuOpen(bool),
-    PromptAlert(PromptAlertEvent),
     ModelSelectorOpened,
     ModelSelectorClosed,
     OpenSettings(SettingsSection),
@@ -430,13 +426,6 @@ impl UniversalDeveloperInputButtonBar {
             ctx.notify();
         });
 
-        let prompt_alert = ctx.add_typed_action_view(PromptAlertView::new);
-        ctx.subscribe_to_view(&prompt_alert, |_, _, event, ctx| {
-            ctx.emit(UniversalDeveloperInputButtonBarEvent::PromptAlert(
-                event.clone(),
-            ));
-        });
-
         ctx.subscribe_to_model(&NetworkStatus::handle(ctx), |_, _, _, ctx| {
             ctx.notify();
         });
@@ -478,7 +467,6 @@ impl UniversalDeveloperInputButtonBar {
             file_button: file_button_view,
             slash_command_button: slash_command_menu_view,
             segmented_control: segmented_control_view,
-            prompt_alert,
             cached_ui_state,
             terminal_model,
         };
@@ -675,16 +663,6 @@ impl View for UniversalDeveloperInputButtonBar {
                 buttons = buttons
                     .with_child(create_divider())
                     .with_child(model_selector_element);
-            }
-
-            if !self.prompt_alert.as_ref(app).is_no_alert() {
-                buttons = buttons.with_child(
-                    Shrinkable::new(
-                        1.,
-                        Clipped::new(ChildView::new(&self.prompt_alert).finish()).finish(),
-                    )
-                    .finish(),
-                );
             }
 
             buttons.finish()
