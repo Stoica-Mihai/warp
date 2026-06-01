@@ -10,7 +10,6 @@ use crate::ai::agent::conversation::{AIConversation, AIConversationId};
 use crate::settings::AISettings;
 use crate::system::{SystemStats, SystemStatsEvent};
 use crate::terminal::view::TerminalView;
-use crate::ai::blocklist::BlocklistAIHistoryModel;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum AutoCloudHandoffSkipReason {
@@ -169,23 +168,7 @@ impl AutoCloudHandoffController {
             return None;
         }
 
-        let skip_reason = {
-            let history = BlocklistAIHistoryModel::as_ref(ctx);
-            let conversation = history.conversation(&conversation_id)?;
-            let can_handoff_to_cloud = AISettings::as_ref(ctx)
-                .is_cloud_handoff_enabled_for_conversation(Some(conversation), ctx);
-            AutoCloudHandoffEligibility::from_conversation(
-                conversation,
-                can_handoff_to_cloud,
-                self.attempted_conversation_ids
-                    .contains_key(&conversation_id),
-            )
-            .skip_reason()
-        };
-
-        if skip_reason.is_some() {
-            return None;
-        }
+        return None;
 
         self.attempted_conversation_ids
             .insert(conversation_id, AutoCloudHandoffAttemptState::InFlight);

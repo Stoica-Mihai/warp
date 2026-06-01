@@ -43,7 +43,6 @@ use crate::terminal::view::ambient_agent::{SetupCommandGroupId, SetupCommandStat
 use crate::terminal::CLIAgent;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::workspaces::workspace::AdminEnablementSetting;
-use crate::ai::blocklist::BlocklistAIHistoryModel;
 
 /// Tracks progress timestamps for each step during ambient agent spawning.
 #[derive(Debug, Clone)]
@@ -1241,19 +1240,6 @@ impl AmbientAgentViewModel {
                     return;
                 }
 
-                if let Some(conversation_id) = self.conversation_id {
-                    let terminal_view_id = self.terminal_view_id;
-                    let spawned_task_id = Some(task_id);
-                    BlocklistAIHistoryModel::handle(ctx).update(ctx, |history, ctx| {
-                        history.assign_run_id_for_conversation(
-                            conversation_id,
-                            run_id,
-                            spawned_task_id,
-                            terminal_view_id,
-                            ctx,
-                        );
-                    });
-                }
 
                 ctx.emit(AmbientAgentViewModelEvent::ProgressUpdated);
             }

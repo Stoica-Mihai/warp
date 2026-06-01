@@ -13,7 +13,6 @@ use crate::search::data_source::{Query, QueryResult};
 use crate::search::mixer::DataSourceRunErrorWrapper;
 use crate::search::SyncDataSource;
 use crate::terminal::input::rewind::search_item::RewindSearchItem;
-use crate::ai::blocklist::BlocklistAIHistoryModel;
 
 /// Action emitted when a rewind point is selected.
 #[derive(Clone, Debug)]
@@ -92,73 +91,8 @@ impl SyncDataSource for RewindDataSource {
         query: &Query,
         app: &AppContext,
     ) -> Result<Vec<QueryResult<Self::Action>>, DataSourceRunErrorWrapper> {
-        let history_model = BlocklistAIHistoryModel::as_ref(app);
-        let Some(conversation) = history_model.conversation(&self.conversation_id) else {
-            return Ok(vec![]);
-        };
-
-        let all_exchanges = conversation.root_task_exchanges().collect_vec();
-
-        // Find indices of exchanges with user queries
-        let user_query_indices: Vec<usize> = all_exchanges
-            .iter()
-            .enumerate()
-            .filter_map(|(idx, ex)| ex.has_user_query().then_some(idx))
-            .collect();
-
-        let search_query = query.text.trim().to_lowercase();
-
-        // Build rewind points in chronological order (oldest first)
-        let mut results = Vec::new();
-
-        for &exchange_idx in user_query_indices.iter() {
-            let exchange = &all_exchanges[exchange_idx];
-            let query_text = exchange
-                .input
-                .iter()
-                .find_map(AIAgentInput::user_query)
-                .unwrap_or_default();
-
-            // Find the end of this "block" - either the next user query or end of exchanges
-            let next_user_query_idx = user_query_indices
-                .iter()
-                .find(|&&idx| idx > exchange_idx)
-                .copied()
-                .unwrap_or(all_exchanges.len());
-
-            // Get file changes for all exchanges in this block
-            let exchanges_in_block = &all_exchanges[exchange_idx..next_user_query_idx];
-            let file_changes = Self::get_file_changes_for_block(exchanges_in_block);
-
-            // Filter by search query if present
-            if !search_query.is_empty() {
-                let match_result =
-                    fuzzy_match::match_indices_case_insensitive(&query_text, &search_query);
-                if let Some(match_result) = match_result {
-                    results.push(QueryResult::from(
-                        RewindSearchItem::new_rewind_point(exchange.id, query_text, file_changes)
-                            .with_query_match_result(Some(match_result.clone()))
-                            .with_score(OrderedFloat(match_result.score as f64)),
-                    ));
-                }
-            } else {
-                results.push(QueryResult::from(RewindSearchItem::new_rewind_point(
-                    exchange.id,
-                    query_text,
-                    file_changes,
-                )));
-            }
-        }
-
-        // Sort by score if filtering
-        if !search_query.is_empty() {
-            results.sort_by_key(|b| std::cmp::Reverse(b.score()));
-        } else {
-            // Add "Current" as the last item (appears at bottom, closest to input)
-            results.push(QueryResult::from(RewindSearchItem::new_current()));
-        }
-
-        Ok(results)
+        let _ = (query, app);
+        Ok(vec![])
     }
 }
 

@@ -18,7 +18,6 @@ use crate::view_components::action_button::{
 use crate::wasm_nux_dialog::{WasmNUXDialog, WasmNUXDialogEvent};
 use crate::workspace::action::WorkspaceAction;
 use crate::workspace::view::{NotebookSource, OpenWarpDriveObjectSettings, Workspace};
-use crate::BlocklistAIHistoryModel;
 
 const TRANSCRIPT_PANEL_WIDTH: f32 = 280.0;
 
@@ -202,12 +201,6 @@ impl Workspace {
                 }
             }
 
-            // Otherwise, populate from conversation
-            let history_model = BlocklistAIHistoryModel::handle(ctx).as_ref(ctx);
-            if let Some(conversation) = history_model.active_conversation(terminal_view_id) {
-                let details = ConversationDetailsData::from_conversation(conversation, ctx);
-                panel.set_conversation_details(details, ctx);
-            }
             ctx.notify();
         });
     }

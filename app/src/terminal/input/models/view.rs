@@ -13,7 +13,6 @@ use warpui::{
 };
 
 use crate::ai::blocklist::block::cli_controller::{CLISubagentController, CLISubagentEvent};
-use crate::ai::blocklist::{BlocklistAIHistoryEvent, BlocklistAIHistoryModel};
 use crate::ai::llms::{LLMId, LLMPreferences, LLMPreferencesEvent};
 use crate::features::FeatureFlag;
 use crate::search::data_source::{Query, QueryFilter};
@@ -175,11 +174,7 @@ impl InlineModelSelectorView {
                         .as_ref(app)
                         .active_tab_id()
                         .unwrap_or(InlineModelSelectorTab::BaseAgent);
-                    let history = BlocklistAIHistoryModel::as_ref(app);
-
-                    let main_agent_in_progress = history
-                        .active_conversation(terminal_view_id)
-                        .is_some_and(|c| !c.is_empty() && c.status().is_in_progress());
+                    let main_agent_in_progress = false;
                     let is_cli_agent_in_control_or_tagged_in =
                         cli_ctrl.as_ref(app).is_agent_in_control_or_tagged_in();
                     let message = match active_tab {
@@ -323,20 +318,6 @@ impl InlineModelSelectorView {
             | CLISubagentEvent::ControlHandedBackAfterTransfer => {}
         });
 
-        ctx.subscribe_to_model(
-            &BlocklistAIHistoryModel::handle(ctx),
-            move |me, _, event, ctx| {
-                if let BlocklistAIHistoryEvent::UpdatedConversationStatus {
-                    terminal_view_id: event_terminal_view_id,
-                    ..
-                } = event
-                {
-                    if *event_terminal_view_id == terminal_view_id {
-                        me.menu_view.update(ctx, |_, ctx| ctx.notify());
-                    }
-                }
-            },
-        );
 
         ctx.subscribe_to_model(&mixer, |me, _, event, ctx| {
             let SearchMixerEvent::ResultsChanged = event;

@@ -30,7 +30,6 @@ use crate::terminal::view::{
 use crate::terminal::CLIAgent;
 use crate::workspace::view::cloud_agent_capacity_modal::CloudAgentCapacityModalVariant;
 use crate::workspaces::user_workspaces::UserWorkspaces;
-use crate::ai::blocklist::BlocklistAIHistoryModel;
 
 const CHILD_AGENT_GITHUB_AUTH_REQUIRED_BLOCKED_ACTION: &str =
     "GitHub authentication required before starting the child agent.";
@@ -45,9 +44,7 @@ impl TerminalView {
             return false;
         };
 
-        BlocklistAIHistoryModel::as_ref(ctx)
-            .conversation(&conversation_id)
-            .is_some_and(|conversation| conversation.is_child_agent_conversation())
+        false
     }
 
     fn update_active_ambient_agent_conversation_status(
@@ -60,15 +57,7 @@ impl TerminalView {
             return;
         };
 
-        BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, ctx| {
-            history_model.update_conversation_status_with_error_message(
-                self.id(),
-                conversation_id,
-                status,
-                error_message,
-                ctx,
-            );
-        });
+        let _ = (status, error_message, ctx);
     }
 
     pub(in crate::terminal::view) fn show_out_of_credits_modal(&self, ctx: &mut ViewContext<Self>) {
@@ -781,19 +770,6 @@ impl TerminalView {
             return;
         }
 
-        // No backing cloud task — populate from the active local conversation, if any.
-        let view_id = self.id();
-        let history_model = BlocklistAIHistoryModel::handle(ctx);
-        let data = history_model
-            .as_ref(ctx)
-            .active_conversation(view_id)
-            .map(|conversation| ConversationDetailsData::from_conversation(conversation, ctx));
-
-        if let Some(data) = data {
-            self.conversation_details_panel.update(ctx, |panel, ctx| {
-                panel.set_conversation_details(data, ctx);
-            });
-        }
     }
 
     pub(in crate::terminal::view) fn refresh_conversation_details_panel_if_open(

@@ -29,7 +29,6 @@ use warp_util::local_or_remote_path::LocalOrRemotePath;
 use warpui::windowing::WindowManager;
 use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 
-use crate::ai::blocklist::{BlocklistAIHistoryEvent, BlocklistAIHistoryModel};
 #[cfg(feature = "local_fs")]
 use crate::ai::codebase_auto_indexing::{
     auto_index_candidate_roots, should_auto_index_codebase, CodebaseAutoIndexingSurface,
@@ -251,19 +250,6 @@ impl PersistedWorkspace {
                     _ => {}
                 },
             );
-
-            // Subscribe to AI conversation events to trigger incremental sync
-            ctx.subscribe_to_model(&BlocklistAIHistoryModel::handle(ctx), |me, event, ctx| {
-                if let BlocklistAIHistoryEvent::StartedNewConversation {
-                    terminal_view_id, ..
-                } = event
-                {
-                    #[cfg(feature = "local_fs")]
-                    me.clean_up_deleted_indices(ctx);
-
-                    me.trigger_incremental_sync_for_conversation(*terminal_view_id, ctx);
-                }
-            });
 
             // Subscribe to changes in workspace settings.
             ctx.subscribe_to_model(
