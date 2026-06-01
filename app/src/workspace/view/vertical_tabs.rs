@@ -35,7 +35,6 @@ use warpui::ui_components::text_input::TextInput;
 use warpui::{AppContext, EntityId, SingletonEntity, ViewHandle, WindowId};
 
 use crate::ai::agent::conversation::{ConversationStatus, StatusColorStyle};
-use crate::ai::agent_management::AgentNotificationsModel;
 use crate::ai::cloud_environments::CloudAmbientAgentEnvironment;
 use crate::ai::conversation_status_ui::render_status_element;
 use crate::appearance::Appearance;
@@ -1840,10 +1839,7 @@ fn render_tab_group_internal(
             (*pane_id, ms)
         })
         .collect();
-    let is_active = tab_index == workspace.active_tab_index
-        && !workspace
-            .current_workspace_state
-            .is_agent_management_view_open;
+    let is_active = tab_index == workspace.active_tab_index;
     let has_top_border = tab_index > 0;
     let is_first_tab = tab_index == 0;
     let is_last_tab = tab_index + 1 == workspace.tabs.len();
@@ -2429,10 +2425,8 @@ fn has_unread_activity(typed: &TypedPane<'_>, app: &AppContext) -> bool {
     has_unread_activity_for_terminal_view(terminal_view.as_ref(app).id(), app)
 }
 
-fn has_unread_activity_for_terminal_view(terminal_view_id: EntityId, app: &AppContext) -> bool {
-    AgentNotificationsModel::as_ref(app)
-        .notifications()
-        .has_unread_for_terminal_view(terminal_view_id)
+fn has_unread_activity_for_terminal_view(_terminal_view_id: EntityId, _app: &AppContext) -> bool {
+    false
 }
 
 const INDICATOR_DOT_SIZE: f32 = 8.;

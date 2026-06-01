@@ -85,7 +85,7 @@ use crate::workspaces::update_manager::TeamUpdateManager;
 use crate::workspaces::user_profiles::UserProfiles;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::{
-    experiments, AgentNotificationsModel, GlobalResourceHandles, GlobalResourceHandlesProvider,
+    experiments, GlobalResourceHandles, GlobalResourceHandlesProvider,
 };
 
 fn initialize_app(app: &mut App) {
@@ -129,8 +129,7 @@ fn initialize_app(app: &mut App) {
     app.add_singleton_model(TerminalKeybindings::new);
     app.add_singleton_model(|_| CLIAgentSessionsModel::new());
     app.add_singleton_model(crate::ai::blocklist::BlocklistAIPermissions::new);
-    app.add_singleton_model(AgentNotificationsModel::new);
-    app.add_singleton_model(|ctx| {
+        app.add_singleton_model(|ctx| {
         AIExecutionProfilesModel::new(&crate::LaunchMode::new_for_unit_test(), ctx)
     });
     app.add_singleton_model(|ctx| {

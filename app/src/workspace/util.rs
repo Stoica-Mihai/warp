@@ -25,7 +25,6 @@ pub(super) struct WorkspaceMouseStates {
     pub(super) banner_secondary_button: MouseStateHandle,
     pub(super) more_info_banner_button: MouseStateHandle,
     pub(super) resource_center_icon: MouseStateHandle,
-    pub(super) agent_management_view_button: MouseStateHandle,
     pub(super) left_panel_icon: MouseStateHandle,
     pub(super) settings_icon: MouseStateHandle,
     pub(super) dismiss_banner_button: MouseStateHandle,
@@ -96,7 +95,6 @@ pub struct WorkspaceState {
     pub is_resource_center_open: bool,
     pub is_command_search_open: bool,
     pub is_warp_drive_open: bool,
-    pub is_agent_management_popup_open: bool,
     pub is_workflow_modal_open: bool,
     pub is_prompt_editor_open: bool,
     pub is_agent_toolbar_editor_open: bool,
@@ -106,8 +104,6 @@ pub struct WorkspaceState {
     pub is_native_quit_modal_open: bool,
     pub is_shared_objects_creation_denied_modal_open: bool,
     pub is_enable_auto_reload_modal_open: bool,
-    pub is_notification_mailbox_open: bool,
-    pub is_agent_management_view_open: bool,
     pub is_codex_modal_open: bool,
     pub is_cloud_agent_capacity_modal_open: bool,
     pub is_free_tier_limit_hit_modal_open: bool,
@@ -139,7 +135,6 @@ impl WorkspaceState {
             || self.is_prompt_editor_open
             || self.is_agent_toolbar_editor_open
             || self.is_header_toolbar_editor_open
-            || self.is_agent_management_popup_open
             || self.is_shared_objects_creation_denied_modal_open
             || self.is_enable_auto_reload_modal_open
             || self.is_codex_modal_open

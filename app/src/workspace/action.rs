@@ -569,7 +569,6 @@ pub enum WorkspaceAction {
     ToggleNotificationMailbox {
         select_first: bool,
     },
-    ToggleAgentManagementView,
     ViewAgentRunsForEnvironment {
         environment_id: String,
     },
@@ -861,7 +860,6 @@ impl WorkspaceAction {
             | OpenGlobalSearch
             | ToggleConversationListView
             | ToggleNotificationMailbox { .. }
-            | ToggleAgentManagementView
             | ViewAgentRunsForEnvironment { .. }
             | ToggleAIDocumentPane { .. }
             | HideAIDocumentPanes

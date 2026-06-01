@@ -85,7 +85,7 @@ use crate::workspaces::team_tester::TeamTesterStatus;
 use crate::workspaces::update_manager::TeamUpdateManager;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::{
-    experiments, AgentNotificationsModel, GlobalResourceHandles, GlobalResourceHandlesProvider,
+    experiments, GlobalResourceHandles, GlobalResourceHandlesProvider,
     ReferralThemeStatus,
 };
 
@@ -121,8 +121,7 @@ pub fn initialize_app(app: &mut App) {
         AIRequestUsageModel::new_for_test(ServerApiProvider::as_ref(ctx).get_ai_client(), ctx)
     });
     app.add_singleton_model(|_| CLIAgentSessionsModel::new());
-    app.add_singleton_model(AgentNotificationsModel::new);
-    app.add_singleton_model(BlocklistAIPermissions::new);
+        app.add_singleton_model(BlocklistAIPermissions::new);
     app.add_singleton_model(|_| AuthStateProvider::new_for_test());
     app.add_singleton_model(AuthManager::new_for_test);
     app.add_singleton_model(LLMPreferences::new);

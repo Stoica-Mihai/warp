@@ -337,7 +337,6 @@ pub struct NewWindow {
     pub voltron_width: Option<f32>,
     pub warp_drive_index_width: Option<f32>,
     pub fullscreen_state: i32,
-    pub agent_management_filters: Option<String>,
     pub left_panel_open: Option<bool>,
     pub vertical_tabs_panel_open: Option<bool>,
 }

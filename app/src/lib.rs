@@ -134,7 +134,6 @@ use ::ai::project_context::model::ProjectContextModel;
 pub use ai::agent::todos::AIAgentTodoList;
 pub use ai::agent::{AIAgentActionResultType, FileEdit, TodoOperation};
 use ai::agent_conversations_model::AgentConversationsModel;
-use ai::agent_management::AgentNotificationsModel;
 use ai::ambient_agents::github_auth_notifier::GitHubAuthNotifier;
 use ai::persisted_workspace::PersistedWorkspace;
 use auth::auth_manager::AuthManager;
@@ -1472,7 +1471,6 @@ pub(crate) fn initialize_app(
 
     ctx.add_singleton_model(move |_| RestoredAgentConversations::new(multi_agent_conversations));
     ctx.add_singleton_model(|_| CLIAgentSessionsModel::new());
-    ctx.add_singleton_model(AgentNotificationsModel::new);
 
     if launch_mode.supports_indexing() {
         ctx.add_singleton_model(RepoOutlines::new);

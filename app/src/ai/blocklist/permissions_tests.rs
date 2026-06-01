@@ -27,7 +27,7 @@ use crate::workspaces::team_tester::TeamTesterStatus;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::workspaces::workspace::SandboxedAgentSettings;
 use crate::{
-    AgentNotificationsModel, GlobalResourceHandles, GlobalResourceHandlesProvider, LaunchMode,
+    GlobalResourceHandles, GlobalResourceHandlesProvider, LaunchMode,
 };
 
 struct PermissionsTestState {
@@ -60,8 +60,7 @@ fn initialize_permissions_test_with_mode(
     let global_resource_handles = GlobalResourceHandles::mock(app);
     app.add_singleton_model(|_| GlobalResourceHandlesProvider::new(global_resource_handles));
     app.add_singleton_model(|_| CLIAgentSessionsModel::new());
-    app.add_singleton_model(AgentNotificationsModel::new);
-    let permissions = app.add_singleton_model(BlocklistAIPermissions::new);
+        let permissions = app.add_singleton_model(BlocklistAIPermissions::new);
     let terminal_view_id = EntityId::new();
     app.add_singleton_model(|_| AuthStateProvider::new_for_test());
     app.add_singleton_model(|_| NetworkStatus::new());

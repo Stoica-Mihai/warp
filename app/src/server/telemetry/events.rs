@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use crate::ai::agent_management::notifications::NotificationSourceAgent;
 use crate::cloud_object::model::generic_string_model::GenericStringObjectId;
 use crate::cloud_object::{GenericStringObjectFormat, ObjectType, Space};
 use crate::drive::CloudObjectTypeAndId;
@@ -163,14 +162,6 @@ pub enum NotificationAgentVariant {
     CLIAgent(CLIAgentType),
 }
 
-impl From<NotificationSourceAgent> for NotificationAgentVariant {
-    fn from(agent: NotificationSourceAgent) -> Self {
-        match agent {
-            NotificationSourceAgent::Oz { .. } => Self::Oz,
-            NotificationSourceAgent::CLI { agent, .. } => Self::CLIAgent(agent.into()),
-        }
-    }
-}
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub enum PtySpawnMode {
