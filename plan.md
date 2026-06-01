@@ -265,9 +265,9 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 **Method that worked:** collapse dead `if flag.is_enabled() {…}` branches first (compiles fine with flag still defined — it's just fewer readers), bank green; remove flag def LAST once its readers hit zero. Cascades (banner module, dialog subsystem, URI route, REMOTE_CONTROL, close-session widget) surface as dead-code/unused-import warnings after the readers drop — use `cargo check --features gui` as the worklist oracle. For a subsystem that's reachable only through a now-permanently-false gate (close-confirm dialog, share banners), trace it to its event emitter — if the emitter is itself gated on `shared_session_status().is_sharer()` (always false), the whole chain is dead and removes cleanly. When a UI chip lives in kept agent code, re-gate it on the OTHER (off-by-default) flag rather than ripping the agent subsystem — defers cleanly, preserves default behavior.
 
-### AI strip — current state (`0576df88`, 2026-05-31)
+### AI strip — current state (`0d24336f`, 2026-06-01 session 4)
 
-**Binary**: 794.3 MB (−7.96 MB vs `1f600e66`). 3-gate 0/0/0. 0 errors, ~400 warnings (AI territory, deferred).
+**Binary**: 794.3 MB (unchanged — handler bodies were already dead-stripped). 3-gate **71/86/71** (better than pre-existing 72/87/72; `is_conversation_selected` stub added for workspace caller at `7a710de6`). Commits `0d24336f` + `7a710de6`.
 
 **Phase G-preview DONE (`1f600e66`):**
 - `ai_controller: ModelHandle<BlocklistAIController>` removed from TerminalView struct (Phase G-preview goal achieved).
@@ -278,6 +278,31 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Stub getters `ai_context_model()`, `ai_input_model()`, `active_conversation_id()`, `stop_local_agent_conversation()`, `remove_pending_user_query_block()` added for external callers.
 - All `ai_controller.update(...)` call sites in workspace/view.rs, code_review, pane_group, ai_document_view, etc. removed or no-op'd.
 - `controller_tests.rs` test disabled with `#[ignore]` (Phase F work).
+
+**Phase G handler-body removal DONE (`0d24336f`, session 4):**
+- Deleted 20+ handler method bodies in `terminal/view.rs` that called `.update()` on `ai_context_model`, `ai_input_model`.
+- Removed `CLISubagentController` creation + `cli_subagent_views` HashMap from TerminalView struct.
+- Replaced all `is_ai_input_enabled()` branches with unconditional shell-mode behavior.
+- `ai/agent/api.rs`: removed `BlocklistAIPermissions::as_ref` checks → always true.
+- `ai/agent/todos/popup.rs`: stripped AI context/history deps, renders `Empty` now.
+- `lib.rs`: removed dead singleton registrations (`BlocklistAIHistoryModel`, `BlocklistAIPermissions`, `OrchestrationEventService/Streamer`, `TaskStatusSyncModel`, `LocalSharedSessionLinkModel`, `block::status_bar::init`).
+- `ai/mod.rs`: fixed init() paths. `ai/agent/redaction.rs`: fixed `secret_redaction` import.
+- `ai/blocklist/input_model_stubs.rs`: deleted; real types (`InputConfig`, `InputType`, `InputTypeAutoDetectionSource`) now live in new `input_config.rs`.
+
+**Phase G struct-field removal BLOCKED — `ai_context_model`/`ai_input_model`/`ai_action_model` still in TerminalView + Input:**
+- These fields CANNOT be removed yet: direct struct-field access occurs in submodules:
+  - `terminal/view/pane_impl.rs:210,644` — direct `self.ai_context_model.as_ref(app)...` access
+  - `terminal/view/context_menu.rs:158` — direct `self.ai_action_model` access
+  - `workspace/view.rs`, `code_review_view.rs`, `ai_document_view.rs` — call `terminal_view.ai_context_model()` getter
+  - `terminal/input/` data sources — call `Input.ai_context_model()`
+- Fix required before field deletion:
+  1. `pane_impl.rs:210,644` — switch from direct field access to singleton pattern on `BlocklistAIContextModel`
+  2. `context_menu.rs:158` — replace `self.ai_action_model` direct field with no-op / singleton call
+  3. `workspace/view.rs`, `code_review_view.rs`, `ai_document_view.rs` callers of `terminal_view.ai_context_model()`
+  4. `terminal/input/` data sources calling `Input.ai_context_model()`
+  THEN delete fields + constructors from `terminal/view.rs` and `terminal/input.rs`.
+
+**CRITICAL LESSON (session 4):** "Delete-and-fix all at once" fails for `inline_action/` + stubs cascade — 65+ files with errors, 228 errors total when attempted. Some callers use DIRECT FIELD ACCESS (not method calls, not getters) to `TerminalView.ai_context_model`. Those must be fixed to singleton-pattern calls BEFORE the field can be removed.
 
 **CRITICAL PHASE G-PREVIEW LESSON (from this session):**
 - `ai_render_context` and `cli_subagent_views` are deeply woven into rendering code (block_list_element.rs). Do NOT remove them from the struct — keep as static-default fields. Only the event handlers that UPDATED them need to be deleted.
@@ -305,10 +330,10 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Step 5 (`97a134ef`): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType kept real. 3-gate 0/0/0.
 - Step 6 (`125c0f72`): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op; `#[path]` redirect keeps 72 external `::history_model::` imports unchanged. 3-gate 0/0/0.
 
-**CURRENT STATE (2026-06-01 session 3):**
-- 3-gate error counts: **72/87/72** (pre-existing was 71/92/71 — tests improved, others ±1; all AI territory)
-- Binary: 794.3 MB (flat — block_stubs.rs is linker-invisible; shrink deferred until inline_action/ + spider-file AI branches deleted)
-- Commits this session: `f048a967`
+**CURRENT STATE (2026-06-01 session 4):**
+- 3-gate error counts: **71/86/71** (improvement over pre-existing 72/87/72)
+- Binary: 794.3 MB (flat — handler bodies were already dead-stripped; real shrink deferred until struct fields + inline_action/ deleted)
+- Commits this session: `f048a967` (session 3) + `0d24336f` + `7a710de6` (session 4; restores `is_conversation_selected` stub for `workspace/view.rs:13893`)
 
 ### Sub-task A: Relocate shared non-AI modules — ✅ DONE
 
@@ -419,16 +444,22 @@ Keep: `ai_action_model`, `ai_input_model`, `ai_context_model`
 - **Empty::new().finish() in sub-modules**: each inline `mod {}` block needs its own `use warpui::Element;` — parent imports don't scope in.
 - **Generic ctx params** avoid type mismatch: `pub fn method<C>(&self, _: &mut C)` accepts ModelContext/ViewContext interchangeably.
 
-**NEXT SESSION — Phase G: delete-and-fix pass on remaining AI code**
+**NEXT SESSION — Phase G continued: fix direct field access, then delete struct fields**
 
-Recommended order:
-1. `rm -rf app/src/ai/blocklist/inline_action/` (40+ files, all AI rendering)
-2. Delete `block_stubs.rs` + all `*_stubs.rs` in `ai/blocklist/` (action_stubs, orchestration_stubs, context_model_stubs, input_model_stubs, history_model_stubs)
-3. Remove AI import blocks from `terminal/view.rs`, `workspace/view.rs`, `terminal/input.rs`, `pane_group/mod.rs`
-4. Run cargo check → fix each error by **deleting the call site**, not stubbing
-5. Keep non-AI code; strip AI branches from mixed files
+Before deleting `ai_context_model`/`ai_input_model`/`ai_action_model` from `TerminalView` + `Input`, fix these direct field accesses:
+1. `terminal/view/pane_impl.rs:210,644` — `self.ai_context_model.as_ref(app)` → singleton call on `BlocklistAIContextModel`
+2. `terminal/view/context_menu.rs:158` — `self.ai_action_model` direct access → no-op / singleton
+3. `workspace/view.rs`, `code_review_view.rs`, `ai_document_view.rs` callers of `terminal_view.ai_context_model()` getter
+4. `terminal/input/` data sources calling `Input.ai_context_model()`
 
-This one pass produces real LoC reduction + binary shrink instead of deferring both.
+After those are fixed:
+5. Remove `ai_context_model`, `ai_input_model`, `ai_action_model` fields from `TerminalView` + `Input` structs
+6. `rm -rf app/src/ai/blocklist/inline_action/` (40+ files, all AI rendering)
+7. Delete `block_stubs.rs` + all `*_stubs.rs` in `ai/blocklist/`
+8. Remove AI import blocks from `terminal/view.rs`, `workspace/view.rs`, `terminal/input.rs`, `pane_group/mod.rs`
+9. Run cargo check → fix each error by **deleting the call site**, not stubbing
+
+This sequence unblocks the real LoC reduction + binary shrink.
 
 **KEEP in blocklist/:** `prompt/`, `view_util.rs`, `keystroke_render.rs`, `code_block.rs`. KEEP `ai/mcp/`.
 
