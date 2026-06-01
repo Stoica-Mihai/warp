@@ -330,17 +330,28 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Step 5 (`97a134ef`): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType kept real. 3-gate 0/0/0.
 - Step 6 (`125c0f72`): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op; `#[path]` redirect keeps 72 external `::history_model::` imports unchanged. 3-gate 0/0/0.
 
-**CURRENT STATE (2026-06-01 session 7):**
+**CURRENT STATE (2026-06-01 session 8):**
 - 3-gate: **0/0/0**
-- Binary: **773.0 MB** (`e481e765`, −3.74 MB vs `92742608`)
-- Step 7 DONE: inline_action/ (27 files, ~14k LoC) deleted. CodeDiffView callers cleaned (passive_code_diff.rs, code_diff_pane.rs, code_diff_pane_model.rs, on_maa_code_diff_generated, open_code_diff, vertical_tabs, orchestration_config_block.rs). Stub files RESTORED (block_stubs/action_stubs/history_model_stubs/context_model_stubs/orchestration_stubs). Oracle loop: fixed block_stubs.rs CodeDiffView references, code_block.rs inline_action imports → terminal/view/ canonical.
-- Session 7 commits: `e481e765` (Step 7 — inline_action/ deleted, CodeDiffView callers removed)
+- Binary: **772.9 MB** (`b2b2a41f`, −0.11 MB vs `e481e765`)
+- Step 8 PARTIAL: ~30 caller files excised (slash_commands AI handlers, tab.rs, undo_close, up_arrow, data sources, blocks, auth). Stubs still live.
+- Session 8 commits: `b2b2a41f` (Step 8 partial — ~30 caller excisions)
 
-**NEXT: Delete all stub files + oracle loop (Step 8)**:
-Stubs must be deleted with simultaneous excision of all caller files. Pre-map callers before deleting.
-Key files to excise: slash_command_model.rs, models/view.rs, terminal_message_bar.rs, context_chips/display.rs, workspace/view.rs, pane_group/mod.rs, terminal/input.rs, terminal/model/blocks.rs.
+**NEXT: Step 8 cont — excise spider files (Step 8b)**:
+Stubs can only be deleted once the "spider files" no longer import stub types.
+Critical spider files to excise AI branches from:
+1. `terminal/view.rs` (~24k LoC, 7+ stub type imports)
+2. `workspace/view.rs` (~20k LoC, 8+ stub type imports)
+3. `terminal/input.rs` (~11k LoC, 4+ stub type imports)
+4. `pane_group/mod.rs` (~8k LoC, 2 stub type imports)
+5. `pane_group/pane/terminal_pane.rs` (~2k LoC, 5 stub imports)
+6. `context_chips/display.rs`, `context_chips/display_chip.rs` (AI context)
+7. `terminal/input/slash_command_model.rs`, `terminal/input/models/view.rs`
+8. `terminal/input/terminal_message_bar.rs`, `terminal/input/slash_commands/data_source/mod.rs`
+9. `terminal/view/context_menu.rs`, `terminal/view/rich_content.rs`
+10. `terminal/model/block/interaction_mode.rs`, `terminal/model/block/serialized_block.rs`
+Once all stub imports removed from the above → delete stubs → large binary reduction.
 
-**LESSON (session 7):** Deleting all 5 stubs at once caused 92 errors across ~60 files. Either delete stubs one at a time (per-stub oracle loop) or pre-map ALL callers before deleting. The 60-file cascade is manageable but requires a dedicated session with full pre-analysis.
+**LESSON (session 8):** Full stub deletion requires ALL spider files clean first. Attempted all-at-once deletion produced 109+ errors. Correct approach: excise AI branches from each spider file before deleting stubs. Each spider file can be done in a dedicated sub-session.
 
 ### Sub-task A: Relocate shared non-AI modules — ✅ DONE
 
