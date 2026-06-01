@@ -16,7 +16,6 @@ use warpui::ui_components::components::{UiComponent, UiComponentStyles};
 use warpui::{AppContext, Element, Gradient, SingletonEntity};
 
 use crate::ai::agent::conversation::AIConversationId;
-use crate::ai::blocklist::history_model::BlocklistAIHistoryModel;
 use crate::appearance::Appearance;
 use crate::search::command_palette::conversations::search::MatchedConversation;
 use crate::search::command_palette::mixer::CommandPaletteItemAction;
@@ -27,6 +26,7 @@ use crate::search::result_renderer::ItemHighlightState;
 use crate::search::SearchItem;
 use crate::ui_components::buttons::icon_button;
 use crate::util::time_format::format_approx_duration_from_now;
+use crate::ai::blocklist::BlocklistAIHistoryModel;
 
 /// Information about which action to take once the conversation item is accepted.
 #[derive(Debug)]

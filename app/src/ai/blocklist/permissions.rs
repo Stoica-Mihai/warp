@@ -11,7 +11,6 @@ use warp_core::user_preferences::GetUserPreferences;
 use warp_util::path::EscapeChar;
 use warpui::{AppContext, Entity, EntityId, ModelContext, SingletonEntity};
 
-use super::BlocklistAIHistoryModel;
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::execution_profiles::profiles::{AIExecutionProfilesModel, ClientProfileId};
 use crate::ai::execution_profiles::{
@@ -473,9 +472,7 @@ impl BlocklistAIPermissions {
         terminal_view_id: Option<EntityId>,
         ctx: &AppContext,
     ) -> WriteToPtyPermission {
-        if BlocklistAIHistoryModel::as_ref(ctx)
-            .conversation(conversation_id)
-            .is_some_and(|convo| convo.autoexecute_any_action())
+        if false
         {
             return WriteToPtyPermission::AlwaysAllow;
         }
@@ -664,9 +661,7 @@ impl BlocklistAIPermissions {
         terminal_view_id: Option<EntityId>,
         ctx: &AppContext,
     ) -> FileReadPermission {
-        if BlocklistAIHistoryModel::as_ref(ctx)
-            .conversation(conversation_id)
-            .is_some_and(|convo| convo.autoexecute_any_action())
+        if false
         {
             return FileReadPermission::Allowed(FileReadPermissionAllowedReason::RunToCompletion);
         }
@@ -741,9 +736,7 @@ impl BlocklistAIPermissions {
             return denied;
         }
 
-        if BlocklistAIHistoryModel::as_ref(ctx)
-            .conversation(conversation_id)
-            .is_some_and(|convo| convo.autoexecute_any_action())
+        if false
         {
             return FileWritePermission::Allowed(FileWritePermissionAllowedReason::RunToCompletion);
         }
@@ -825,9 +818,7 @@ impl BlocklistAIPermissions {
         terminal_view_id: Option<EntityId>,
         ctx: &AppContext,
     ) -> bool {
-        if BlocklistAIHistoryModel::as_ref(ctx)
-            .conversation(conversation_id)
-            .is_some_and(|convo| convo.autoexecute_any_action())
+        if false
         {
             return true;
         }
@@ -899,9 +890,7 @@ impl BlocklistAIPermissions {
             );
         }
 
-        if BlocklistAIHistoryModel::as_ref(ctx)
-            .conversation(conversation_id)
-            .is_some_and(|convo| convo.autoexecute_any_action())
+        if false
         {
             return CommandExecutionPermission::Allowed(
                 CommandExecutionPermissionAllowedReason::RunToCompletion,
@@ -1189,9 +1178,7 @@ impl BlocklistAIPermissions {
         match self.get_ask_user_question_setting(ctx, terminal_view_id) {
             AskUserQuestionPermission::Never => false,
             AskUserQuestionPermission::AskExceptInAutoApprove
-            | AskUserQuestionPermission::Unknown => !BlocklistAIHistoryModel::as_ref(ctx)
-                .conversation(conversation_id)
-                .is_some_and(|convo| convo.autoexecute_any_action()),
+            | AskUserQuestionPermission::Unknown => true,
             AskUserQuestionPermission::AlwaysAsk => true,
         }
     }

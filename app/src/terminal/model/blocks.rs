@@ -32,7 +32,7 @@ use super::terminal_model::RangeInModel;
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::AIAgentActionId;
 use crate::terminal::view::agent_view_state::AgentViewState;
-use crate::ai::blocklist::{AIBlock, SerializedBlockListItem};
+use crate::ai::blocklist::SerializedBlockListItem;
 use crate::terminal::block_filter::BlockFilterQuery;
 use crate::terminal::block_list_element::GridType;
 use crate::terminal::event::Event::{AfterBlockCompleted, TerminalClear};
@@ -1639,8 +1639,7 @@ impl BlockList {
                     if rich_content.content_type.is_some_and(|content_type| {
                         matches!(
                             content_type,
-                            RichContentType::AIBlock
-                                | RichContentType::EnterAgentView
+                            RichContentType::EnterAgentView
                                 | RichContentType::InlineAgentViewHeader
                         )
                     }) {
@@ -3311,18 +3310,12 @@ impl BlockList {
         active_block.clear_marked_text();
     }
 
-    pub fn last_non_hidden_ai_block_handle(&self, app: &AppContext) -> Option<ViewHandle<AIBlock>> {
-        let rich_content_view_id = self
-            .last_non_hidden_rich_content_block_after_block(None)?
-            .1
-            .view_id;
-        let active_window_id = app.windows().active_window()?;
-        app.view_with_id::<AIBlock>(active_window_id, rich_content_view_id)
+    pub fn last_non_hidden_ai_block_handle(&self, _app: &AppContext) -> Option<()> {
+        None
     }
 
-    pub fn has_active_ai_block(&self, app: &AppContext) -> bool {
-        self.last_non_hidden_ai_block_handle(app)
-            .is_some_and(|handle| !handle.as_ref(app).is_finished())
+    pub fn has_active_ai_block(&self, _app: &AppContext) -> bool {
+        false
     }
 
     /// Returns the contents of all blocks associated with bootstrap.

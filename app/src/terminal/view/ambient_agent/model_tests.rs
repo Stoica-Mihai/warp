@@ -19,7 +19,6 @@ fn pending_launch() -> PendingCloudLaunch {
         prompt: "fix tests".to_owned(),
         attachments: HandoffLaunchAttachments {
             request_attachments: vec![attachment()],
-            display_attachments: vec![],
         },
     }
 }

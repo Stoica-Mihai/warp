@@ -1,3 +1,4 @@
+use crate::ai::blocklist::BlocklistAIHistoryModel;
 use std::sync::Arc;
 
 use ai::api_keys::ApiKeyManager;
@@ -17,7 +18,6 @@ use crate::server::server_api::ai::AIClient;
 use crate::settings::AISettings;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::workspaces::workspace::WorkspaceUid;
-use crate::BlocklistAIHistoryModel;
 
 /// Threshold of ambient-only credits at which we surface upgrade/CTA UI.
 pub const AMBIENT_AGENT_TRIAL_CREDIT_THRESHOLD: i32 = 20;

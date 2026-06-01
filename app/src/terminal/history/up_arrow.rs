@@ -4,7 +4,7 @@ use warp_core::features::FeatureFlag;
 use warpui::{AppContext, EntityId, SingletonEntity};
 
 use super::History;
-use crate::ai::blocklist::{BlocklistAIHistoryModel, InputConfig};
+use crate::ai::blocklist::InputConfig;
 use crate::input_suggestions::HistoryInputSuggestion;
 use crate::settings::AISettings;
 use crate::suggestions::ignored_suggestions_model::{IgnoredSuggestionsModel, SuggestionType};
@@ -109,21 +109,7 @@ impl History {
             );
         }
 
-        let ai_queries = BlocklistAIHistoryModel::handle(app)
-            .as_ref(app)
-            .all_ai_queries(Some(terminal_view_id))
-            .filter(|query| {
-                !ignored_suggestions.is_ignored(&query.query_text, SuggestionType::AIQuery)
-            })
-            .map(|entry| HistoryInputSuggestion::AIQuery { entry });
-
-        let suggestions: Vec<HistoryInputSuggestion<'a>> =
-            match (config.include_commands, config.include_prompts) {
-                (true, true) => commands.chain(ai_queries).collect(),
-                (true, false) => commands.collect(),
-                (false, true) => ai_queries.collect(),
-                (false, false) => vec![],
-            };
+        let suggestions: Vec<HistoryInputSuggestion<'a>> = commands.collect();
 
         sort_and_dedupe_suggestions(suggestions, session_id, &all_live_session_ids)
     }

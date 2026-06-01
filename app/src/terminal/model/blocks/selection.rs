@@ -14,8 +14,6 @@ use warpui::{AppContext, EntityId, ViewAsRef as _};
 use super::{
     BlockHeight, BlockHeightItem, BlockHeightSummary, BlockList, BlockListPoint, RichContentItem,
 };
-use crate::ai::blocklist::block::PendingUserQueryBlock;
-use crate::ai::blocklist::AIBlock;
 use crate::env_vars::env_var_collection_block::EnvVarCollectionBlock;
 use crate::terminal::event::Event as TerminalEvent;
 use crate::terminal::model::block::BlockSection;
@@ -1528,25 +1526,16 @@ impl BlockList {
 }
 
 /// Given the view id of an AI block, return the active selected text in that block.
-fn read_selected_text_from_ai_block(view_id: EntityId, app: &AppContext) -> Option<String> {
-    let active_window_id = app.windows().active_window()?;
-
-    let ai_block = app.view_with_id::<AIBlock>(active_window_id, view_id)?;
-    let ai_block_view = app.view(&ai_block);
-    ai_block_view.selected_text(app)
+fn read_selected_text_from_ai_block(_view_id: EntityId, _app: &AppContext) -> Option<String> {
+    None
 }
 
 /// Given the view id of a pending user query block, return the active selected text in that block.
 fn read_selected_text_from_pending_user_query_block(
-    view_id: EntityId,
-    app: &AppContext,
+    _view_id: EntityId,
+    _app: &AppContext,
 ) -> Option<String> {
-    let active_window_id = app.windows().active_window()?;
-
-    let pending_user_query_block =
-        app.view_with_id::<PendingUserQueryBlock>(active_window_id, view_id)?;
-    let pending_user_query_block_view = app.view(&pending_user_query_block);
-    pending_user_query_block_view.selected_text(app)
+    None
 }
 
 #[cfg(test)]

@@ -20,6 +20,7 @@ use crate::ai::agent::{
 };
 use crate::ai::llms::LLMId;
 use crate::terminal::model::block::{BlockId, SerializedBlock};
+
 /// Data we persist for each [`AIAgentExchange`] for use in history. Does not contain output data.
 #[derive(Debug, Deserialize, Clone)]
 pub struct PersistedAIInput {

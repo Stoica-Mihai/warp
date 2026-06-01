@@ -28,7 +28,6 @@ use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent_conversations_model::{
     AgentConversationEntryId, AgentConversationNavigationSubject, AgentConversationsModel,
 };
-use crate::ai::blocklist::history_model::BlocklistAIHistoryModel;
 use crate::appearance::Appearance;
 use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys,
@@ -45,6 +44,7 @@ use crate::workspace::view::conversation_list::item::{
     STATIC_ITEM_MIN_HEIGHT,
 };
 use crate::workspace::{ToastStack, WorkspaceAction};
+use crate::ai::blocklist::BlocklistAIHistoryModel;
 
 const VIEW_ALL_LABEL: &str = "View all";
 /// Maximum number of past items to show before the user toggles "view all".

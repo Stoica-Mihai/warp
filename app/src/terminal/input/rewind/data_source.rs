@@ -9,11 +9,11 @@ use warpui::{AppContext, Entity, SingletonEntity};
 
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::{AIAgentActionResultType, AIAgentExchangeId, AIAgentInput};
-use crate::ai::blocklist::BlocklistAIHistoryModel;
 use crate::search::data_source::{Query, QueryResult};
 use crate::search::mixer::DataSourceRunErrorWrapper;
 use crate::search::SyncDataSource;
 use crate::terminal::input::rewind::search_item::RewindSearchItem;
+use crate::ai::blocklist::BlocklistAIHistoryModel;
 
 /// Action emitted when a rewind point is selected.
 #[derive(Clone, Debug)]

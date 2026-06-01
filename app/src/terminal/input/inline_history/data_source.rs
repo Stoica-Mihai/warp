@@ -11,8 +11,6 @@ use fuzzy_match::FuzzyMatchResult;
 use ordered_float::OrderedFloat;
 use warpui::{AppContext, Entity, EntityId, ModelHandle, SingletonEntity};
 
-use crate::ai::agent::conversation::{AIConversationId, ConversationStatus};
-use crate::ai::blocklist::BlocklistAIHistoryModel;
 use crate::input_suggestions::{HistoryInputSuggestion, HistoryOrder};
 use crate::search::data_source::{Query, QueryFilter, QueryResult};
 use crate::search::mixer::DataSourceRunErrorWrapper;
@@ -24,6 +22,8 @@ use crate::terminal::input::inline_menu::{
 };
 use crate::terminal::model::session::active_session::ActiveSession;
 use crate::terminal::model::session::SessionId;
+use crate::ai::agent::conversation::{AIConversationId, ConversationStatus};
+use crate::ai::blocklist::BlocklistAIHistoryModel;
 
 #[derive(Clone, Debug)]
 pub enum AcceptHistoryItem {

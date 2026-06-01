@@ -17,9 +17,9 @@ use warpui::prelude::MouseStateHandle;
 use warpui::{AppContext, Element, EventContext, SingletonEntity};
 
 use super::{SkillDescriptor, SkillManager};
+use crate::ai::blocklist::BlocklistAIHistoryModel;
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::blocklist::view_util::render_provider_icon_button;
-use crate::ai::blocklist::BlocklistAIHistoryModel;
 use crate::warp_managed_paths_watcher::warp_managed_skill_dirs;
 
 lazy_static! {

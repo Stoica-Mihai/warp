@@ -5,8 +5,8 @@ use std::collections::HashMap;
 use warpui::{Entity, SingletonEntity};
 
 use crate::ai::agent::conversation::{AIConversation, AIConversationId};
-use crate::ai::blocklist::history_model::convert_persisted_conversation_to_ai_conversation_with_metadata;
 use crate::persistence::model::AgentConversation;
+use crate::ai::blocklist::history_model::convert_persisted_conversation_to_ai_conversation_with_metadata;
 
 /// Singleton model that holds restored agent conversations on app startup.
 ///

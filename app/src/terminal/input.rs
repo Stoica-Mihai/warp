@@ -12102,14 +12102,7 @@ impl View for Input {
         // blocklist that is undismissed (i.e. keybindings are shown in the banner/block).
         // This is to prevent any keybinding conflicts (with actions such as split pane
         // down on non-Macs).
-        let has_undismissed_passive_code_diff = model_lock
-            .block_list()
-            .last_non_hidden_ai_block_handle(app)
-            .is_some_and(|ai_block| {
-                let block = ai_block.as_ref(app);
-                block.is_passive_conversation(app)
-                    && block.find_undismissed_code_diff(app).is_some()
-            });
+        let has_undismissed_passive_code_diff = false;
         if has_undismissed_passive_code_diff {
             ctx.set.insert(flags::PASSIVE_CODE_DIFF_KEYBINDINGS_ENABLED);
         }

@@ -29,9 +29,7 @@ use crate::ai::ambient_agents::telemetry::HandoffEntryPoint;
 use crate::terminal::view::agent_view_state::AgentViewEntryOrigin;
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
 use crate::ai::blocklist::handoff::PendingCloudLaunch;
-use crate::ai::blocklist::{
-    BlocklistAIHistoryModel, InputTypeAutoDetectionSource,
-};
+use crate::ai::blocklist::InputTypeAutoDetectionSource;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::code_review::telemetry_event::CodeReviewPaneEntrypoint;
 use crate::search::slash_command_menu::static_commands::commands::{self, COMMAND_REGISTRY};
@@ -601,28 +599,7 @@ impl Input {
                 }
             }
             _export_to_clipboard if command.name == commands::EXPORT_TO_CLIPBOARD.name => {
-                let history = BlocklistAIHistoryModel::handle(ctx);
-                let Some(conversation) = history
-                    .as_ref(ctx)
-                    .active_conversation(self.terminal_view_id)
-                else {
-                    show_error_toast("No active conversation to export".to_owned(), ctx);
-                    return true;
-                };
-
-                let conversation_text = conversation.export_to_markdown(None);
-
-                ctx.clipboard()
-                    .write(ClipboardContent::plain_text(conversation_text));
-
-                // Show a toast to confirm the export
-                let window_id = ctx.window_id();
-                ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                    let toast = DismissibleToast::default(String::from(
-                        "Conversation exported to clipboard",
-                    ));
-                    toast_stack.add_ephemeral_toast(toast, window_id, ctx);
-                });
+                show_error_toast("AI not available".to_owned(), ctx);
             }
             _export_to_file if command.name == commands::EXPORT_TO_FILE.name => {
                 #[cfg(not(target_family = "wasm"))]
@@ -761,28 +738,7 @@ impl Input {
                 ctx.dispatch_typed_action(&TerminalAction::OpenBillingAndUsagePane);
             }
             _cost if command.name == commands::COST.name => {
-                let history = BlocklistAIHistoryModel::handle(ctx);
-                let conversation = history
-                    .as_ref(ctx)
-                    .active_conversation(self.terminal_view_id);
-                if conversation.is_none() {
-                    show_error_toast(
-                        "Cannot show conversation cost: no active conversation".to_owned(),
-                        ctx,
-                    );
-                } else if conversation.is_some_and(|c| c.is_empty()) {
-                    show_error_toast(
-                        "Cannot show conversation cost: conversation is empty".to_owned(),
-                        ctx,
-                    );
-                } else if conversation.is_some_and(|c| !c.status().is_done()) {
-                    show_error_toast(
-                        "Cannot show conversation cost: conversation is in progress".to_owned(),
-                        ctx,
-                    );
-                } else {
-                    ctx.dispatch_typed_action(&TerminalAction::ToggleUsageFooter);
-                }
+                show_error_toast("AI not available".to_owned(), ctx);
             }
             #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
             _move_to_cloud if command.name == commands::MOVE_TO_CLOUD.name => {
@@ -816,28 +772,7 @@ impl Input {
                 }
             }
             _fork if command.name == commands::FORK.name => {
-                let Some(conversation_id) = BlocklistAIHistoryModel::handle(ctx)
-                    .as_ref(ctx)
-                    .active_conversation_id(self.terminal_view_id)
-                else {
-                    show_error_toast("/fork requires an active conversation".to_owned(), ctx);
-                    return true;
-                };
-
-                let destination = if trigger.is_cmd_or_ctrl_enter() {
-                    ForkedConversationDestination::NewTab
-                } else {
-                    ForkedConversationDestination::SplitPane
-                };
-
-                ctx.dispatch_typed_action(&WorkspaceAction::ForkAIConversation {
-                    conversation_id,
-                    fork_from_exchange: None,
-                    summarize_after_fork: false,
-                    summarization_prompt: None,
-                    initial_prompt: argument.cloned(),
-                    destination,
-                });
+                show_error_toast("AI not available".to_owned(), ctx);
             }
             _fork_from if command.name == commands::FORK_FROM.name => {
                 self.open_user_query_menu(UserQueryMenuAction::ForkFrom, ctx);
@@ -845,112 +780,16 @@ impl Input {
             }
             #[cfg(not(target_family = "wasm"))]
             _continue_locally if command.name == commands::CONTINUE_LOCALLY.name => {
-                let Some(conversation_id) = BlocklistAIHistoryModel::handle(ctx)
-                    .as_ref(ctx)
-                    .active_conversation_id(self.terminal_view_id)
-                else {
-                    show_error_toast(
-                        "/continue-locally requires an active conversation".to_owned(),
-                        ctx,
-                    );
-                    return true;
-                };
-
-                if !conversation_is_cloud_oz_for_slash_command(conversation_id, ctx) {
-                    show_error_toast(
-                        "/continue-locally is only available for cloud Oz conversations".to_owned(),
-                        ctx,
-                    );
-                    return true;
-                }
-
-                let destination = if trigger.is_cmd_or_ctrl_enter() {
-                    ForkedConversationDestination::NewTab
-                } else {
-                    ForkedConversationDestination::SplitPane
-                };
-
-                ctx.dispatch_typed_action(&WorkspaceAction::ForkAIConversation {
-                    conversation_id,
-                    fork_from_exchange: None,
-                    summarize_after_fork: false,
-                    summarization_prompt: None,
-                    initial_prompt: argument.cloned(),
-                    destination,
-                });
+                show_error_toast("AI not available".to_owned(), ctx);
             }
             _fork_and_compact if command.name == commands::FORK_AND_COMPACT.name => {
-                let Some(conversation_id) = BlocklistAIHistoryModel::handle(ctx)
-                    .as_ref(ctx)
-                    .active_conversation_id(self.terminal_view_id)
-                else {
-                    show_error_toast(
-                        "/fork-and-compact requires an active conversation".to_owned(),
-                        ctx,
-                    );
-                    return true;
-                };
-
-                let destination = if trigger.is_cmd_or_ctrl_enter() {
-                    ForkedConversationDestination::SplitPane
-                } else {
-                    ForkedConversationDestination::CurrentPane
-                };
-
-                ctx.dispatch_typed_action(&WorkspaceAction::ForkAIConversation {
-                    conversation_id,
-                    fork_from_exchange: None,
-                    summarize_after_fork: true,
-                    summarization_prompt: None,
-                    initial_prompt: argument.cloned(),
-                    destination,
-                });
+                show_error_toast("AI not available".to_owned(), ctx);
             }
             _compact_and if command.name == commands::COMPACT_AND.name => {
-                if BlocklistAIHistoryModel::handle(ctx)
-                    .as_ref(ctx)
-                    .active_conversation_id(self.terminal_view_id)
-                    .is_none()
-                {
-                    show_error_toast(
-                        "/compact-and requires an active conversation".to_owned(),
-                        ctx,
-                    );
-                    return true;
-                };
-
-                ctx.dispatch_typed_action(&WorkspaceAction::SummarizeAIConversation {
-                    prompt: None,
-                    initial_prompt: argument.cloned(),
-                });
+                show_error_toast("AI not available".to_owned(), ctx);
             }
             _queue if command.name == commands::QUEUE.name => {
-                let Some(conversation_id) = BlocklistAIHistoryModel::handle(ctx)
-                    .as_ref(ctx)
-                    .active_conversation_id(self.terminal_view_id)
-                else {
-                    show_error_toast("/queue requires an active conversation".to_owned(), ctx);
-                    return true;
-                };
-
-                let Some(prompt) = argument.filter(|a| !a.is_empty()).cloned() else {
-                    show_error_toast("/queue requires a prompt argument".to_owned(), ctx);
-                    return true;
-                };
-
-                let history = BlocklistAIHistoryModel::handle(ctx);
-                let is_in_progress = history
-                    .as_ref(ctx)
-                    .conversation(&conversation_id)
-                    .is_some_and(|c| c.status().is_in_progress() || c.status().is_blocked());
-
-                if is_in_progress {
-                    ctx.dispatch_typed_action(&WorkspaceAction::QueuePromptForConversation {
-                        prompt,
-                    });
-                } else {
-                    self.submit_queued_prompt(prompt, ctx);
-                }
+                show_error_toast("AI not available".to_owned(), ctx);
             }
             _open_repo if command.name == commands::OPEN_REPO.name => {
                 if !FeatureFlag::InlineRepoMenu.is_enabled() {
@@ -1161,28 +1000,7 @@ fn conversation_is_cloud_oz_for_slash_command(
     conversation_id: AIConversationId,
     ctx: &AppContext,
 ) -> bool {
-    let history = BlocklistAIHistoryModel::as_ref(ctx);
-    let Some(conversation) = history.conversation(&conversation_id) else {
-        return false;
-    };
-    let Some(task_id) = conversation.task_id() else {
-        return false;
-    };
-
-    let Some(task) = AgentConversationsModel::as_ref(ctx).get_task_data(&task_id) else {
-        // Permissive: not yet fetched. Matches the data-source default so the command isn't
-        // wrongly blocked while the task fetch is in flight.
-        return true;
-    };
-
-    match task
-        .agent_config_snapshot
-        .as_ref()
-        .and_then(|s| s.harness.as_ref())
-    {
-        Some(config) => config.harness_type == Harness::Oz,
-        None => true,
-    }
+    false
 }
 
 #[cfg(test)]

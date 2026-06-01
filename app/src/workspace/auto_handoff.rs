@@ -10,7 +10,7 @@ use crate::ai::agent::conversation::{AIConversation, AIConversationId};
 use crate::settings::AISettings;
 use crate::system::{SystemStats, SystemStatsEvent};
 use crate::terminal::view::TerminalView;
-use crate::BlocklistAIHistoryModel;
+use crate::ai::blocklist::BlocklistAIHistoryModel;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum AutoCloudHandoffSkipReason {
