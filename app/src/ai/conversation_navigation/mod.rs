@@ -191,11 +191,7 @@ impl ConversationNavigationData {
                         continue;
                     }
 
-                    // Get the context model to determine selected conversation for this terminal view
-                    let selected_conversation_id = terminal_view_ref
-                        .ai_context_model()
-                        .as_ref(app)
-                        .selected_conversation_id(app);
+                    let selected_conversation_id: Option<_> = None;
 
                     // Get all continuable conversations for this terminal view
                     for conversation in

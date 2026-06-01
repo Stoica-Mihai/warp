@@ -9928,13 +9928,7 @@ impl Workspace {
                         .block_list()
                         .active_block()
                         .is_active_and_long_running();
-                    let selected_conversation_id = view
-                        .as_ref(ctx)
-                        .ai_context_model()
-                        .as_ref(ctx)
-                        .selected_conversation_id(ctx);
-
-                    is_long_running && selected_conversation_id != Some(conversation_id)
+                    is_long_running
                 })
                 .unwrap_or(false);
             // If the pane group is in the undo stack, we want to make sure its tab/pane parent

@@ -205,12 +205,6 @@ impl TerminalView {
             // renders the same brand-color circle + cloud lobe + status as the vertical tab.
             terminal_view_agent_icon_variant(self, app).map(render_agent_circle)
         } else if self.is_using_conversation_for_pane_header_title
-            || (self.is_long_running()
-                && self
-                    .ai_context_model
-                    .as_ref(app)
-                    .selected_conversation(app)
-                    .is_some())
         {
             // Conversation-bound terminal: same shared helper — produces an OzAgent variant for
             // local conversations and a CLIAgent variant for the (rare) CLI-backed terminal.
@@ -639,15 +633,9 @@ impl TerminalView {
 
     fn selected_conversation_for_user_facing_chrome<'a>(
         &'a self,
-        ctx: &'a AppContext,
+        _ctx: &'a AppContext,
     ) -> Option<&'a AIConversation> {
-        self.ai_context_model
-            .as_ref(ctx)
-            .selected_conversation(ctx)
-            .filter(|conversation| {
-                !conversation.is_entirely_passive()
-                    && conversation.title().is_some_and(|title| !title.is_empty())
-            })
+        None
     }
 
     fn selected_conversation_display_title_for_chrome(

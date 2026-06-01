@@ -96,26 +96,3 @@ pub fn create_attachment_reference_and_key(
     }
 }
 
-/// Registers a DiffSet attachment with the AI controller
-/// This encapsulates the common logic for creating and registering diff attachments
-#[cfg(feature = "local_fs")]
-pub fn register_diffset_attachment(
-    ai_context_model: &ModelHandle<BlocklistAIContextModel>,
-    attachment_key: String,
-    file_diffs: HashMap<String, Vec<DiffSetHunk>>,
-    current: Option<CurrentHead>,
-    base: DiffBase,
-    ctx: &mut AppContext,
-) {
-    // Create the DiffSet attachment
-    let attachment = AIAgentAttachment::DiffSet {
-        file_diffs,
-        current,
-        base,
-    };
-
-    // Register the attachment with the AI controller
-    ai_context_model.update(ctx, |context_model, _| {
-        context_model.register_diff_hunk_attachment(attachment_key, attachment);
-    });
-}

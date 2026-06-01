@@ -153,14 +153,7 @@ impl AmbientAgentEntryBlock {
             .or_else(|| Self::meaningful_title(&request.prompt))
     }
     fn get_title(&self, app: &AppContext) -> String {
-        let terminal_view = self.terminal_view.as_ref(app);
-        let ai_context_model = terminal_view.ai_context_model().as_ref(app);
-
-        ai_context_model
-            .selected_conversation(app)
-            .and_then(|conversation| conversation.title())
-            .and_then(|title| Self::meaningful_title(&title))
-            .or_else(|| self.title_from_task_data(app))
+        self.title_from_task_data(app)
             .or_else(|| self.title_from_spawn_request(app))
             .unwrap_or_else(|| DEFAULT_CLOUD_AGENT_TITLE.to_owned())
     }

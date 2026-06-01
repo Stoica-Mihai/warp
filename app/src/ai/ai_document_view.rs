@@ -230,20 +230,6 @@ impl AIDocumentView {
                         return;
                     }
 
-                    // Auto-set pending document ID when document becomes dirty
-                    if status.is_dirty() {
-                        if let Some(terminal_view) = &me.original_terminal_view {
-                            terminal_view.update(ctx, |terminal_view, ctx| {
-                                terminal_view.ai_context_model().update(
-                                    ctx,
-                                    |context_model, ctx| {
-                                        context_model.set_pending_document(Some(document_id), ctx);
-                                    },
-                                );
-                            });
-                        }
-                    }
-
                     me.update_header_buttons(ctx);
                 }
                 AIDocumentModelEvent::StreamingDocumentsCleared(_) => {
@@ -1203,18 +1189,6 @@ impl TypedActionView for AIDocumentView {
                         );
                         return;
                     }
-
-                    // Select the conversation in the context model before sending the query
-                    terminal_view
-                        .ai_context_model()
-                        .update(ctx, |context_model, ctx| {
-                            context_model.set_pending_query_state_for_existing_conversation(
-                                conversation_id,
-                                AgentViewEntryOrigin::AIDocument,
-                                ctx,
-                            );
-                        });
-
 
                 });
 

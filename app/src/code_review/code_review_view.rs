@@ -87,9 +87,7 @@ use crate::code_review::comments::{
 };
 use crate::code_review::context::convert_file_diffs_to_diffset_hunks;
 #[cfg(feature = "local_fs")]
-use crate::code_review::context::{
-    create_attachment_reference_and_key, register_diffset_attachment,
-};
+use crate::code_review::context::create_attachment_reference_and_key;
 use crate::code_review::diff_selector::{DiffSelector, DiffSelectorEvent, DiffTarget};
 use crate::code_review::diff_state::{
     DiffHunk, DiffLineType, DiffMode, DiffState, DiffStateModel, DiffStateModelEvent, DiffStats,
@@ -5705,19 +5703,6 @@ impl CodeReviewView {
                     });
                 });
 
-                // Register the DiffSet attachment in the terminal view's AI context model.
-                let current = self.get_current_head(ctx);
-                terminal_view.update(ctx, |terminal_view, ctx| {
-                    register_diffset_attachment(
-                        terminal_view.ai_context_model(),
-                        attachment_key,
-                        file_diffs,
-                        current,
-                        base,
-                        ctx,
-                    );
-
-                });
             }
         }
     }
@@ -5882,15 +5867,6 @@ impl CodeReviewView {
                     base: diff_base,
                 };
 
-                // Register the attachment with the terminal's AI controller using the new key format
-                terminal_view.update(ctx, |terminal_view, ctx| {
-                    terminal_view
-                        .ai_context_model()
-                        .update(ctx, |context_model, _| {
-                            context_model.register_diff_hunk_attachment(diff_hunk_key, attachment);
-                        });
-
-                });
             }
         }
     }

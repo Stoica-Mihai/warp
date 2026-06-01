@@ -781,18 +781,7 @@ impl View {
                 conversation_id,
                 terminal_view_id,
             } => {
-                let should_block = {
-                    window_id
-                        .and_then(|window_id| {
-                            active_terminal_in_window(window_id, ctx, |terminal_view, ctx| {
-                                !terminal_view
-                                    .ai_context_model()
-                                    .as_ref(ctx)
-                                    .can_start_new_conversation()
-                            })
-                        })
-                        .unwrap_or(false)
-                };
+                let should_block = false;
 
                 if should_block {
                     if let Some(window_id) = window_id {
@@ -923,14 +912,7 @@ impl View {
                             terminal_view.id()
                         });
 
-                    let should_block =
-                        active_terminal_in_window(window_id, ctx, |terminal_view, ctx| {
-                            !terminal_view
-                                .ai_context_model()
-                                .as_ref(ctx)
-                                .can_start_new_conversation()
-                        })
-                        .unwrap_or(false);
+                    let should_block = false;
 
                     (terminal_view_id, should_block)
                 };

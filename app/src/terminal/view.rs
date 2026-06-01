@@ -283,7 +283,6 @@ use crate::code_review::comments::{
 #[cfg(feature = "local_fs")]
 use crate::code_review::context::{
     convert_file_diffs_to_diffset_hunks, create_attachment_reference_and_key,
-    register_diffset_attachment,
 };
 #[cfg(feature = "local_fs")]
 use crate::code_review::diff_state::LocalDiffStateModel;
@@ -2546,10 +2545,6 @@ pub struct TerminalView {
     show_snackbar: bool,
     hover_near_snackbar_area: bool,
 
-    ai_action_model: ModelHandle<BlocklistAIActionModel>,
-    ai_input_model: ModelHandle<BlocklistAIInputModel>,
-    ai_context_model: ModelHandle<BlocklistAIContextModel>,
-
     pending_env_var_collection: Option<CloudEnvVarCollection>,
     ai_render_context: Rc<RefCell<BlocklistAIRenderContext>>,
     conversation_ended_tombstone_view_id: Option<EntityId>,
@@ -3568,9 +3563,6 @@ impl TerminalView {
             rich_content_views: Vec::new(),
             usage_footer_view_ids: Default::default(),
             pending_auto_bootstrap_shell_type: None,
-            ai_action_model,
-            ai_input_model,
-            ai_context_model,
             pending_env_var_collection: None,
             env_vars: Vec::new(),
             show_snackbar: true,
@@ -4572,15 +4564,7 @@ impl TerminalView {
     }
 
     pub fn input_config(&self, app: &AppContext) -> InputConfig {
-        self.ai_input_model.as_ref(app).input_config()
-    }
-
-    pub fn ai_context_model(&self) -> &ModelHandle<BlocklistAIContextModel> {
-        &self.ai_context_model
-    }
-
-    pub fn ai_input_model(&self) -> &ModelHandle<BlocklistAIInputModel> {
-        &self.ai_input_model
+        InputConfig::new(app)
     }
 
     /// Applies an input mode update from an external source (e.g., session sharing).

@@ -119,30 +119,8 @@ impl DataSource {
     }
 }
 
-/// Get the selected conversation in the focused pane.
-fn selected_conversation_in_focused_pane(app: &AppContext) -> Option<&AIConversation> {
-    app.windows().active_window().and_then(|window_id| {
-        app.views_of_type::<Workspace>(window_id)
-            .and_then(|views| views.first().cloned())
-            .and_then(|workspace| {
-                workspace.read(app, |workspace, workspace_ctx| {
-                    workspace.active_tab_pane_group().read(
-                        workspace_ctx,
-                        |pane_group, pane_group_ctx| {
-                            pane_group.focused_session_view(pane_group_ctx).and_then(
-                                |terminal_view| {
-                                    terminal_view
-                                        .as_ref(pane_group_ctx)
-                                        .ai_context_model()
-                                        .as_ref(pane_group_ctx)
-                                        .selected_conversation(app)
-                                },
-                            )
-                        },
-                    )
-                })
-            })
-    })
+fn selected_conversation_in_focused_pane(_app: &AppContext) -> Option<&AIConversation> {
+    None
 }
 
 impl SyncDataSource for DataSource {
