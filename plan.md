@@ -330,11 +330,16 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Step 5 (`97a134ef`): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType kept real. 3-gate 0/0/0.
 - Step 6 (`125c0f72`): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op; `#[path]` redirect keeps 72 external `::history_model::` imports unchanged. 3-gate 0/0/0.
 
-**CURRENT STATE (2026-06-02 session 16 in progress):**
+**CURRENT STATE (2026-06-02 session 16 complete):**
 - 3-gate: **0/0/0**
-- Binary: **761.4 MB** (−1.17 MB vs session 15 after conversation_list strip; launch_modal strip binary pending)
-- Session 16 commits so far: `7d02ab62` (conversation_list), `15a601f6` (launch_modals)
-- Session 16 LoC removed: ~4,325 (−1,992 conversation_list + −2,333 launch_modals)
+- Binary: **759.6 MB** (−2.97 MB total this session: −1.17 MB conversation_list + −1.02 MB launch_modals + −0.81 MB build_plan_migration_modal; 759,553,848 B measured)
+- Session 16 commits: `7d02ab62` (conversation_list), `15a601f6` (launch_modals), `b5d15bc3` (build_plan_migration_modal)
+- Session 16 LoC removed: ~5,449 net (−1,992 + −2,333 + −1,124)
+
+**DONE session 16: Delete conversation_list + launch_modals + build_plan_migration_modal:**
+- `workspace/view/conversation_list/` (4 files −1,775 LoC + callers): ConversationListView AI inbox panel
+- `launch_modal/` + `openwarp_launch_modal/` + `orchestration_launch_modal/` (3 dirs −2,042 LoC + callers): 3 one-time AI launch modals
+- `build_plan_migration_modal.rs` (870 LoC + callers): cloud billing migration modal; OneTimeModalModel collapsed to 25 LoC no-op stub
 
 **DONE session 15: Delete `ai/agent_management/` entire directory (~5900 LoC)**
 
