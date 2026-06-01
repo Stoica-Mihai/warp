@@ -330,13 +330,13 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Step 5 (`97a134ef`): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType kept real. 3-gate 0/0/0.
 - Step 6 (`125c0f72`): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op; `#[path]` redirect keeps 72 external `::history_model::` imports unchanged. 3-gate 0/0/0.
 
-**CURRENT STATE (2026-06-01 session 14 complete):**
+**CURRENT STATE (2026-06-02 session 16 in progress):**
 - 3-gate: **0/0/0**
-- Binary: **766.6 MB** (−0.60 MB vs session 13; 766,601,248 B measured)
-- Session 14 commits: `bbd32781`
-- Session 14 LoC removed: ~2,795 across 13 files
+- Binary: **761.4 MB** (−1.17 MB vs session 15 after conversation_list strip; launch_modal strip binary pending)
+- Session 16 commits so far: `7d02ab62` (conversation_list), `15a601f6` (launch_modals)
+- Session 16 LoC removed: ~4,325 (−1,992 conversation_list + −2,333 launch_modals)
 
-**NEXT (session 15): Delete `ai/agent_management/` entire directory (~5900 LoC)**
+**DONE session 15: Delete `ai/agent_management/` entire directory (~5900 LoC)**
 
 Live-linked via `ctx.add_typed_action_view(|ctx| AgentManagementView::new(...))` at `workspace/view.rs:2264`.
 Also: `AgentNotificationsModel` singleton registered at `lib.rs:1475`.

@@ -133,13 +133,6 @@ define_settings_group!(GeneralSettings, settings: [
         sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
         private: true,
     },
-    build_plan_migration_modal_dismissed: BuildPlanMigrationModalDismissed {
-        type: bool,
-        default: false,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: true,
-    },
     anonymous_user_ai_sign_up_banner_shown: AnonymousUserAISignUpBannerShown {
         type: bool,
         default: false,
