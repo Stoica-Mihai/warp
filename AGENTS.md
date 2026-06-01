@@ -89,7 +89,8 @@ Deleted `ai/blocklist/block.rs` (6481 LoC) + `block/` dir (32 files, ~16k LoC). 
 
 ## 4. Build / verify
 
-- Build + launch GUI: `cargo run --bin sublight --features gui`. Do **not** run `./script/bootstrap` (Debian/apt-only; on this CachyOS box the deps are already present). First `--features gui` build is long. Binary lands at `target/debug/sublight`.
+- Build + launch GUI: `cargo build --bin sublight --features gui` (builds fresh, no launch). Launch separately: `./target/debug/sublight`. Do **not** run `./script/bootstrap` (Debian/apt-only; on this CachyOS box the deps are already present). First `--features gui` build is long. Binary lands at `target/debug/sublight`.
+- **IMPORTANT: always do a fresh `cargo build` before claiming the app compiles or runs.** `cargo run` with a pre-existing binary reuses the cached binary even when the source has errors — it will appear to succeed but is running stale code. Only trust a build that actually recompiles (`cargo build` output shows "Compiling warp" lines, not just "Finished"). If the binary is already up-to-date, touch a source file first or use `cargo build --offline` to force re-evaluation.
 - Verify green: 3-gate matrix — `cargo check -p warp` + `--tests` + `--features local_fs,gui`. **Run all 3 in parallel, each in its OWN target dir** — they share the same `target/` otherwise and cargo's build lock serializes them (one waits for the others, defeating the point). Give each its own `CARGO_TARGET_DIR` and launch them as background tasks in a single message:
   ```bash
   CARGO_TARGET_DIR=target/gate-default cargo check -p warp
