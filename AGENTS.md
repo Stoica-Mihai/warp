@@ -21,7 +21,20 @@ Done so far — full per-commit log in `git log` and `plan.md`. Areas complete (
 
 telemetry · wasm-orphan crates · onboarding crate + flags · Sentry crash-reporting · Sublight rebrand · channel enum cascade · autoupdate pipeline · session-sharing (all vestiges incl. `SharedSessionStatus` + `is_shared_session_viewer` cascade) · Warp Drive server-sync + SyncQueue + ObjectClient · SharingDialog + permission-CRUD · login gate bypass · auth gate UI · AuthManager login stub · Firebase crate · server-driven A/B experiments · dead AuthClient privacy-sync · AuthView/AuthOverrideWarningModal cloud-gate UI · billing/teams/platform/referrals pages · AI assistant panel + Warp AI command search · AI settings pages + execution profile editor · execution profiles data model + inline profile selector · ScheduledAgentManager registration + AgentSource computation · **Phase C: `ai/agent_sdk/` STRIP COMPLETE** (`d3eb301d` + `889d83dd`) · **Phase E+F complete: `ai/blocklist/agent_view/` deleted + AI view files** (`94c6be3f`) · `TextLocation` relocated to `util/text_location` + `LinkActionConstructors` to `util/link_detection` (`73dd201c`) · **Phase G-preview COMPLETE: `ai_controller` removed from TerminalView struct** (`1f600e66`, −10.97 MB) · **Phase F sub-task C: `block.rs` + `block/` deleted** (`f048a967`, −25k LoC, binary flat until callers deleted) · **Phase G handler-body removal: 20+ AI handler methods + `CLISubagentController` removed from terminal/view.rs** (`0d24336f`, binary flat — struct fields still needed by direct field access in pane_impl.rs/context_menu.rs)
 
-**Current state:** Binary **777.5 MB** (`34867dcb`, −66.7 MB total vs 844.2 MB baseline). **0/0/0 errors.** App verified running (Wayland, terminal opens, no crash). Input struct still has 4 AI model params (~300 refs across input.rs + subdirs + context_chips/).
+**Current state:** Binary **776.7 MB** (`92742608`, −0.71 MB vs 34867dcb). **0/0/0 errors.** Input struct AI fields fully removed (−2,515 LoC total). Next: delete inline_action/ + all stubs simultaneously for large reduction.
+
+**Phase G Input-struct cleanup DONE** (this session):
+- `b2ba5b4a`: moved AI model creation into Input::new() — removed 4 params from public API
+- `92742608`: removed ai_context_model/ai_input_model/ai_action_model/agent_status_view from Input struct + all ~300 refs. −2,515 LoC. 3-gate 0/0/0.
+
+**NEXT: Delete inline_action/ + all stubs simultaneously** (Step 7):
+- `ai/blocklist/block_stubs.rs`
+- `ai/blocklist/action_stubs.rs`
+- `ai/blocklist/history_model_stubs.rs`
+- `ai/blocklist/context_model_stubs.rs`
+- `ai/blocklist/orchestration_stubs.rs`
+- `ai/blocklist/inline_action/` entire directory
+Expected: large errors cascade, fix by excision. Large binary reduction expected.
 
 **Phase F steps 1–6 DONE** (2026-05-31):
 - **Step 1** (`202b79e0`, −7.96 MB): `controller/` + `passive_suggestions/` deleted. −6,081 LoC.
