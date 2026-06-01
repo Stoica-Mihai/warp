@@ -31,7 +31,6 @@ use crate::report_if_error;
 use crate::settings::PrivacySettings;
 use crate::terminal::CLIAgent;
 use crate::workspaces::user_workspaces::UserWorkspaces;
-use crate::ai::blocklist::BlocklistAIHistoryModel;
 
 pub enum FocusedTerminalInfoEvent {
     TerminalInfoUpdated,
@@ -1730,9 +1729,8 @@ impl AISettings {
         terminal_view_id: EntityId,
         app: &warpui::AppContext,
     ) -> bool {
-        let active_conversation =
-            BlocklistAIHistoryModel::as_ref(app).active_conversation(terminal_view_id);
-        self.is_cloud_handoff_enabled_for_conversation(active_conversation, app)
+        let _ = (terminal_view_id, app);
+        false
     }
 
     pub fn is_ampersand_handoff_enabled(&self, app: &warpui::AppContext) -> bool {
@@ -2050,11 +2048,8 @@ impl AISettings {
     }
 }
 
-fn is_orchestration_conversation(conversation: &AIConversation, app: &AppContext) -> bool {
+fn is_orchestration_conversation(conversation: &AIConversation, _app: &AppContext) -> bool {
     conversation.has_parent_agent()
-        || !BlocklistAIHistoryModel::as_ref(app)
-            .child_conversation_ids_of(&conversation.id())
-            .is_empty()
 }
 /// Singleton model that caches compiled regexes for the `cli_agent_footer_enabled_commands`
 /// setting. Each entry pairs a compiled regex with the CLI agent it maps to.

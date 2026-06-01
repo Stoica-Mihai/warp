@@ -26,7 +26,6 @@ use crate::search::result_renderer::ItemHighlightState;
 use crate::search::SearchItem;
 use crate::ui_components::buttons::icon_button;
 use crate::util::time_format::format_approx_duration_from_now;
-use crate::ai::blocklist::BlocklistAIHistoryModel;
 
 /// Information about which action to take once the conversation item is accepted.
 #[derive(Debug)]
@@ -205,10 +204,7 @@ impl ConversationSearchItem {
 
         // We only want to show the fork button if the conversation is completed
         // (i.e. the agent has finished responding and there are no blocked commands).
-        let conversation_is_done = BlocklistAIHistoryModel::as_ref(app)
-            .conversation(&conversation.id())
-            .map(|c| c.status().is_done())
-            .unwrap_or(true);
+        let conversation_is_done = true;
 
         if highlight_state.is_hovered() && conversation_is_done && !cfg!(target_family = "wasm") {
             // Base row content (unchanged layout for existing children)

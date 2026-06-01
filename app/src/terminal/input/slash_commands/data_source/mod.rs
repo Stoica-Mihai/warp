@@ -20,7 +20,6 @@ pub use zero_state::*;
 use super::AcceptSlashCommandOrSavedPrompt;
 use crate::ai::agent_conversations_model::{AgentConversationsModel, AgentConversationsModelEvent};
 use crate::ai::blocklist::block::cli_controller::{CLISubagentController, CLISubagentEvent};
-use crate::ai::blocklist::{BlocklistAIHistoryEvent, BlocklistAIHistoryModel};
 use crate::ai::skills::{SkillDescriptor, SkillManager};
 use crate::search::data_source::{Query, QueryResult};
 use crate::search::mixer::DataSourceRunErrorWrapper;
@@ -147,17 +146,6 @@ impl SlashCommandDataSource {
                 }
             },
         );
-        // Recompute when the active conversation switches so commands gated on the active
-        // conversation's task (e.g. /continue-locally) update on navigation.
-        ctx.subscribe_to_model(&BlocklistAIHistoryModel::handle(ctx), |me, event, ctx| {
-            if matches!(
-                event,
-                BlocklistAIHistoryEvent::SetActiveConversation { .. }
-                    | BlocklistAIHistoryEvent::ClearedActiveConversation { .. }
-            ) {
-                me.recompute_active_commands(ctx);
-            }
-        });
         // Recompute when task data is updated so commands gated on a conversation's task
         // harness (e.g. /continue-locally) appear once the task fetch resolves.
         ctx.subscribe_to_model(&AgentConversationsModel::handle(ctx), |me, event, ctx| {
@@ -248,13 +236,6 @@ impl SlashCommandDataSource {
             session_context |= Availability::NO_LRC_CONTROL;
         }
 
-        let has_active_conversation =
-            BlocklistAIHistoryModel::as_ref(ctx)
-                .active_conversation(self.terminal_view_id)
-                .is_some();
-        if has_active_conversation {
-            session_context |= Availability::ACTIVE_CONVERSATION;
-        }
 
         if UserWorkspaces::as_ref(ctx).is_codebase_context_enabled(ctx) {
             session_context |= Availability::CODEBASE_CONTEXT;
@@ -389,36 +370,8 @@ impl SlashCommandDataSource {
     /// Only an explicit non-Oz harness (Claude, Gemini, OpenCode, Unknown) hides the
     /// command. Conversations without a `task_id` are local and never qualify.
     #[cfg(not(target_family = "wasm"))]
-    fn active_conversation_is_cloud_oz(&self, ctx: &AppContext) -> bool {
-        let conversation_id =
-            match BlocklistAIHistoryModel::as_ref(ctx).active_conversation(self.terminal_view_id) {
-                Some(conv) => conv.id(),
-                None => return false,
-            };
-
-        let history = BlocklistAIHistoryModel::as_ref(ctx);
-        let Some(conversation) = history.conversation(&conversation_id) else {
-            return false;
-        };
-        let Some(task_id) = conversation.task_id() else {
-            return false;
-        };
-
-        let Some(task) = AgentConversationsModel::as_ref(ctx).get_task_data(&task_id) else {
-            // Task data not yet fetched. Permissive default: assume Oz so the command
-            // is reachable while the fetch is in flight; once the fetch resolves,
-            // `TasksUpdated` triggers a recompute and a non-Oz task hides the command.
-            return true;
-        };
-
-        match task
-            .agent_config_snapshot
-            .as_ref()
-            .and_then(|s| s.harness.as_ref())
-        {
-            Some(config) => config.harness_type == Harness::Oz,
-            None => true,
-        }
+    fn active_conversation_is_cloud_oz(&self, _ctx: &AppContext) -> bool {
+        false
     }
 }
 
