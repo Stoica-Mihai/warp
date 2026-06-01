@@ -5,7 +5,6 @@ use warpui::platform::WindowStyle;
 use warpui::{AddSingletonModel, App, EntityId, ModelHandle, ViewContext, ViewHandle};
 
 use super::NotebookManager;
-use crate::ai::blocklist::BlocklistAIHistoryModel;
 use crate::auth::auth_manager::AuthManager;
 use crate::auth::AuthStateProvider;
 use crate::cloud_object::model::actions::ObjectActions;
@@ -89,7 +88,6 @@ fn initialize_app(app: &mut App) -> TestState {
     app.add_singleton_model(TerminalKeybindings::new);
     app.add_singleton_model(|_| AuthStateProvider::new_for_test());
     app.add_singleton_model(AuthManager::new_for_test);
-    app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
     #[cfg(feature = "voice_input")]
     app.add_singleton_model(voice_input::VoiceInput::new);
 

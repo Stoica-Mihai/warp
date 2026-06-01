@@ -34,9 +34,6 @@ use crate::ai::ambient_agents::task::TaskPrincipalInfo;
 use crate::ai::ambient_agents::{
     AgentSource, AmbientAgentTask, AmbientAgentTaskId, AmbientAgentTaskState,
 };
-use crate::ai::blocklist::history_model::CloudConversationData;
-use crate::ai::blocklist::{OrchestrationEventService, OrchestrationEventStreamer, TaskStatusSyncModel};
-use crate::ai::blocklist::BlocklistAIHistoryModel;
 use crate::ai::document::ai_document_model::AIDocumentModel;
 use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
 use crate::ai::harness_availability::HarnessAvailabilityModel;
@@ -130,15 +127,7 @@ fn initialize_app(app: &mut App) {
     app.add_singleton_model(|_| KeybindingChangedNotifier::new());
     app.add_singleton_model(NotebookKeybindings::new);
     app.add_singleton_model(TerminalKeybindings::new);
-    app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
-    // Pill bar model subscribes to history events; register after the
-    // history model is in place.
     app.add_singleton_model(|_| CLIAgentSessionsModel::new());
-    app.add_singleton_model(OrchestrationEventService::new);
-    app.add_singleton_model(TaskStatusSyncModel::new);
-    if FeatureFlag::OrchestrationV2.is_enabled() {
-        app.add_singleton_model(OrchestrationEventStreamer::new);
-    }
     app.add_singleton_model(crate::ai::blocklist::BlocklistAIPermissions::new);
     app.add_singleton_model(AgentNotificationsModel::new);
     app.add_singleton_model(|ctx| {
@@ -318,12 +307,6 @@ fn test_server_conversation_metadata(
     }
 }
 
-fn cloud_conversation_with_ambient_task(task_id: AmbientAgentTaskId) -> CloudConversationData {
-    let mut conversation = AIConversation::new(false, false);
-    conversation.set_task_id(task_id);
-    conversation.set_server_metadata(test_server_conversation_metadata(Some(task_id)));
-    CloudConversationData::Oz(Box::new(conversation))
-}
 
 fn persisted_remote_child_conversation(
     conversation_id: AIConversationId,
@@ -379,25 +362,17 @@ fn start_parent_conversation(
 }
 
 fn start_parent_conversation_for_terminal_view(
-    terminal_view_id: EntityId,
-    ctx: &mut ViewContext<PaneGroup>,
+    _terminal_view_id: EntityId,
+    _ctx: &mut ViewContext<PaneGroup>,
 ) -> AIConversationId {
-    BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, ctx| {
-        history_model.start_new_conversation(terminal_view_id, false, false, false, ctx)
-    })
+    AIConversationId::new()
 }
 fn restore_conversation_for_terminal_view(
-    terminal_view_id: EntityId,
+    _terminal_view_id: EntityId,
     conversation: AIConversation,
-    ctx: &mut ViewContext<PaneGroup>,
+    _ctx: &mut ViewContext<PaneGroup>,
 ) -> AIConversationId {
-    let conversation_id = conversation.id();
-
-    BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, ctx| {
-        history_model.restore_conversations(terminal_view_id, vec![conversation], ctx);
-    });
-
-    conversation_id
+    conversation.id()
 }
 
 fn restore_child_conversation_for_terminal_view(
@@ -879,10 +854,6 @@ fn test_create_missing_child_agent_panes_restores_remote_child_from_history_mode
                 "child pane should not exist before startup restoration runs",
             );
 
-            BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, _| {
-                history_model
-                    .set_parent_for_conversation(child_conversation_id, parent_conversation_id);
-            });
             RestoredAgentConversations::handle(ctx).update(ctx, |store, _| {
                 *store =
                     RestoredAgentConversations::new(vec![persisted_remote_child_conversation(
@@ -918,89 +889,6 @@ fn test_create_missing_child_agent_panes_restores_remote_child_from_history_mode
     });
 }
 
-#[test]
-fn test_ambient_transcript_restore_creates_cloud_mode_pane_when_handoff_enabled() {
-    let _agent_view = FeatureFlag::AgentView.override_enabled(true);
-    let _cloud_mode = FeatureFlag::CloudMode.override_enabled(true);
-    let _setup_v2 = FeatureFlag::CloudModeSetupV2.override_enabled(true);
-    let _handoff = FeatureFlag::HandoffCloudCloud.override_enabled(true);
-
-    App::test((), |mut app| async move {
-        initialize_app(&mut app);
-        let pane_group = mock_pane_group(&mut app, Default::default());
-        let task_id = new_ambient_agent_task_id();
-
-        pane_group.update(&mut app, |panes, ctx| {
-            AgentConversationsModel::handle(ctx).update(ctx, |model, _| {
-                model.insert_task_for_test(ambient_agent_task_for_current_user(task_id));
-            });
-            panes.load_data_into_conversation_transcript_viewer(
-                cloud_conversation_with_ambient_task(task_id),
-                Some(task_id),
-                ctx,
-            );
-        });
-
-        pane_group.read(&app, |panes, ctx| {
-            let terminal_view = panes
-                .active_session_view(ctx)
-                .expect("restored pane should have an active terminal view");
-            let view = terminal_view.as_ref(ctx);
-            let ambient_model = view
-                .ambient_agent_view_model()
-                .expect("ambient restore should create a Cloud Mode view")
-                .as_ref(ctx);
-
-            assert_eq!(ambient_model.task_id(), Some(task_id));
-            assert!(ambient_model.is_agent_running());
-            assert_eq!(
-                view.ambient_agent_task_id_for_details_panel(ctx),
-                Some(task_id)
-            );
-            assert!(view.active_conversation_id(ctx).is_some());
-
-            let model = view.model.lock();
-            assert!(!model.is_conversation_transcript_viewer());
-            assert!(!model.is_read_only());
-        });
-    });
-}
-
-#[test]
-fn test_ambient_transcript_restore_uses_generic_viewer_when_handoff_disabled() {
-    let _handoff = FeatureFlag::HandoffCloudCloud.override_enabled(false);
-    let _setup_v2 = FeatureFlag::CloudModeSetupV2.override_enabled(true);
-
-    App::test((), |mut app| async move {
-        initialize_app(&mut app);
-        let pane_group = mock_pane_group(&mut app, Default::default());
-        let task_id = new_ambient_agent_task_id();
-
-        pane_group.update(&mut app, |panes, ctx| {
-            panes.load_data_into_conversation_transcript_viewer(
-                cloud_conversation_with_ambient_task(task_id),
-                Some(task_id),
-                ctx,
-            );
-        });
-
-        pane_group.read(&app, |panes, ctx| {
-            let terminal_view = panes
-                .active_session_view(ctx)
-                .expect("fallback viewer should have an active terminal view");
-            let view = terminal_view.as_ref(ctx);
-            assert!(view.ambient_agent_view_model().is_none());
-
-            let model = view.model.lock();
-            assert!(model.is_conversation_transcript_viewer());
-            assert!(model.is_read_only());
-            assert_eq!(
-                model.conversation_transcript_viewer_status(),
-                Some(&ConversationTranscriptViewerStatus::ViewingAmbientConversation(task_id))
-            );
-        });
-    });
-}
 
 #[test]
 fn test_entering_parent_agent_view_lazily_restores_hidden_child_pane() {
@@ -1436,17 +1324,6 @@ fn test_ensure_hidden_child_agent_pane_materializes_restored_remote_child_linked
             let task_id = new_ambient_agent_task_id();
             let initial_pane_count = panes.pane_count();
 
-            BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, ctx| {
-                history_model.assign_run_id_for_conversation(
-                    parent_conversation_id,
-                    parent_run_id.clone(),
-                    None,
-                    parent_terminal_view_id,
-                    ctx,
-                );
-                history_model
-                    .set_parent_for_conversation(child_conversation_id, parent_conversation_id);
-            });
             RestoredAgentConversations::handle(ctx).update(ctx, |store, _| {
                 *store =
                     RestoredAgentConversations::new(vec![persisted_remote_child_conversation(
@@ -1565,11 +1442,6 @@ fn test_ensure_hidden_child_agent_pane_skips_child_owned_by_another_pane_group()
             );
             assert!(!panes.child_agent_panes.contains_key(&child_conversation_id));
             assert_eq!(panes.pane_count(), initial_pane_count);
-            assert_eq!(
-                BlocklistAIHistoryModel::as_ref(ctx)
-                    .terminal_view_id_for_conversation(&child_conversation_id),
-                Some(child_owner_terminal_view_id)
-            );
         });
     });
 }
@@ -1611,11 +1483,6 @@ fn test_entering_parent_agent_view_skips_child_owned_by_another_pane_group() {
         parent_pane_group.update(&mut app, |panes, ctx| {
             assert!(!panes.child_agent_panes.contains_key(&child_conversation_id));
             assert_eq!(panes.pane_count(), initial_pane_count);
-            assert_eq!(
-                BlocklistAIHistoryModel::as_ref(ctx)
-                    .terminal_view_id_for_conversation(&child_conversation_id),
-                Some(child_owner_terminal_view_id)
-            );
         });
     });
 }

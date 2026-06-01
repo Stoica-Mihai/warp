@@ -3,7 +3,6 @@ use repo_metadata::repositories::DetectedRepositories;
 use repo_metadata::watcher::DirectoryWatcher;
 #[cfg(feature = "local_fs")]
 use repo_metadata::RepoMetadataModel;
-use warp_core::features::FeatureFlag;
 use warp_core::ui::appearance::Appearance;
 use warpui::platform::WindowStyle;
 use warpui::{App, SingletonEntity, ViewHandle, WindowId};
@@ -12,10 +11,7 @@ use watcher::HomeDirectoryWatcher;
 use super::settings::initialize_history_persistence_for_tests;
 use crate::ai::agent_conversations_model::AgentConversationsModel;
 use crate::ai::ambient_agents::github_auth_notifier::GitHubAuthNotifier;
-use crate::ai::blocklist::{OrchestrationEventService, OrchestrationEventStreamer, TaskStatusSyncModel};
-use crate::ai::blocklist::{
-    BlocklistAIHistoryModel, BlocklistAIPermissions, SerializedBlockListItem,
-};
+use crate::ai::blocklist::{BlocklistAIPermissions, SerializedBlockListItem};
 use crate::ai::connected_self_hosted_workers::ConnectedSelfHostedWorkersModel;
 use crate::ai::document::ai_document_model::AIDocumentModel;
 use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
@@ -80,13 +76,7 @@ pub fn initialize_app_for_terminal_view(app: &mut App) {
     app.add_singleton_model(|_| ResizableData::default());
     app.add_singleton_model(LocalWorkflows::new);
     app.add_singleton_model(|_| History::default());
-    app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
     app.add_singleton_model(|_| CLIAgentSessionsModel::new());
-    app.add_singleton_model(OrchestrationEventService::new);
-    app.add_singleton_model(TaskStatusSyncModel::new);
-    if FeatureFlag::OrchestrationV2.is_enabled() {
-        app.add_singleton_model(OrchestrationEventStreamer::new);
-    }
     app.add_singleton_model(BlocklistAIPermissions::new);
     app.add_singleton_model(AgentNotificationsModel::new);
     app.add_singleton_model(UndoCloseStack::new);

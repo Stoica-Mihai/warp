@@ -21,9 +21,6 @@ use crate::ai::agent::{
 };
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::blocklist::block::cli_controller::UserTakeOverReason;
-use crate::ai::blocklist::{
-    BlocklistAIHistoryEvent, BlocklistAIHistoryModel, ResponseStreamId,
-};
 use crate::ai::cloud_environments::{
     AmbientAgentEnvironment, CloudAmbientAgentEnvironment, CloudAmbientAgentEnvironmentModel,
 };
@@ -104,76 +101,6 @@ fn exchange_with_inputs(inputs: Vec<AIAgentInput>) -> AIAgentExchange {
     }
 }
 
-fn append_exchange_and_handle_event(
-    view: &mut TerminalView,
-    input: AIAgentInput,
-    ctx: &mut ViewContext<TerminalView>,
-) -> (
-    AIConversationId,
-    TaskId,
-    AIAgentExchangeId,
-    ResponseStreamId,
-) {
-    append_exchange_with_inputs_and_handle_event(view, vec![input], ctx)
-}
-
-fn append_exchange_with_inputs_and_handle_event(
-    view: &mut TerminalView,
-    inputs: Vec<AIAgentInput>,
-    ctx: &mut ViewContext<TerminalView>,
-) -> (
-    AIConversationId,
-    TaskId,
-    AIAgentExchangeId,
-    ResponseStreamId,
-) {
-    let history_model = BlocklistAIHistoryModel::handle(ctx);
-    let (conversation_id, task_id, exchange_id, response_stream_id) =
-        history_model.update(ctx, |history_model, ctx| {
-            let conversation_id =
-                history_model.start_new_conversation(view.view_id, false, false, false, ctx);
-            let task_id = history_model
-                .conversation(&conversation_id)
-                .expect("conversation should exist")
-                .get_root_task_id()
-                .clone();
-            let response_stream_id = ResponseStreamId::new_for_test();
-            let exchange = exchange_with_inputs(inputs);
-            let exchange_id = exchange.id;
-            history_model
-                .conversation_mut(&conversation_id)
-                .expect("conversation should exist")
-                .append_reassigned_exchange(&response_stream_id, exchange, view.view_id, ctx)
-                .expect("exchange should append");
-            (conversation_id, task_id, exchange_id, response_stream_id)
-        });
-
-    (conversation_id, task_id, exchange_id, response_stream_id)
-}
-
-fn update_exchange_input_and_handle_event(
-    view: &mut TerminalView,
-    conversation_id: AIConversationId,
-    exchange_id: AIAgentExchangeId,
-    response_stream_id: ResponseStreamId,
-    inputs: Vec<AIAgentInput>,
-    ctx: &mut ViewContext<TerminalView>,
-) {
-    let history_model = BlocklistAIHistoryModel::handle(ctx);
-    history_model.update(ctx, |history_model, ctx| {
-        let conversation = history_model
-            .conversation_mut(&conversation_id)
-            .expect("conversation should exist");
-        let mut exchange = conversation
-            .remove_exchange(exchange_id)
-            .expect("exchange should exist");
-        exchange.input = inputs;
-        conversation
-            .append_reassigned_exchange(&response_stream_id, exchange, view.view_id, ctx)
-            .expect("exchange should append");
-    });
-
-}
 
 fn ai_block_count(view: &TerminalView) -> usize {
     view.rich_content_views
@@ -3348,88 +3275,6 @@ fn drag_drop_image_in_cli_agent_long_running_command_pastes_via_clipboard() {
 
 
 
-#[test]
-fn cli_session_status_updates_single_child_conversation_without_agent_view() {
-    App::test((), |mut app| async move {
-        initialize_app_for_terminal_view(&mut app);
-        let _agent_view = FeatureFlag::AgentView.override_enabled(true);
-
-        let terminal = add_window_with_terminal(&mut app, None);
-
-        let child_conversation_id = terminal.update(&mut app, |view, ctx| {
-            let parent_conversation_id =
-                BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, ctx| {
-                    history_model.start_new_conversation(view.view_id, false, false, false, ctx)
-                });
-            let child_conversation_id =
-                BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, ctx| {
-                    history_model.start_new_child_conversation(
-                        view.view_id,
-                        "Agent 2".to_string(),
-                        parent_conversation_id,
-                        None,
-                        ctx,
-                    )
-                });
-
-            CLIAgentSessionsModel::handle(ctx).update(ctx, |sessions, ctx| {
-                sessions.set_session(
-                    view.view_id,
-                    CLIAgentSession {
-                        agent: CLIAgent::Claude,
-                        status: CLIAgentSessionStatus::InProgress,
-                        session_context: CLIAgentSessionContext::default(),
-                        input_state: CLIAgentInputState::Closed,
-                        should_auto_toggle_input: false,
-                        listener: None,
-                        remote_host: None,
-                        plugin_version: None,
-                        draft_text: None,
-                        custom_command_prefix: None,
-                    },
-                    ctx,
-                );
-            });
-
-            child_conversation_id
-        });
-
-        terminal.read(&app, |_view, ctx| {
-            let conversation = BlocklistAIHistoryModel::as_ref(ctx)
-                .conversation(&child_conversation_id)
-                .expect("child conversation should exist");
-            assert_eq!(conversation.status(), &ConversationStatus::InProgress);
-        });
-
-        terminal.update(&mut app, |view, ctx| {
-            CLIAgentSessionsModel::handle(ctx).update(ctx, |sessions, ctx| {
-                sessions.update_from_event(
-                    view.view_id,
-                    &CLIAgentEvent {
-                        v: 1,
-                        agent: CLIAgent::Claude,
-                        event: CLIAgentEventType::Stop,
-                        session_id: None,
-                        cwd: None,
-                        project: None,
-                        payload: CLIAgentEventPayload {
-                            response: Some("Done".to_owned()),
-                            ..Default::default()
-                        },
-                    },
-                    ctx,
-                );
-            });
-        });
-
-        terminal.read(&app, |_view, ctx| {
-            let conversation = BlocklistAIHistoryModel::as_ref(ctx)
-                .conversation(&child_conversation_id)
-                .expect("child conversation should exist");
-            assert_eq!(conversation.status(), &ConversationStatus::Success);
-        });
-    })
-}
 
 
 

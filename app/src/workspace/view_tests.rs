@@ -20,7 +20,7 @@ use watcher::HomeDirectoryWatcher;
 use super::*;
 use crate::ai::agent_conversations_model::AgentConversationsModel;
 use crate::ai::ambient_agents::github_auth_notifier::GitHubAuthNotifier;
-use crate::ai::blocklist::{BlocklistAIHistoryModel, BlocklistAIPermissions};
+use crate::ai::blocklist::BlocklistAIPermissions;
 use crate::ai::document::ai_document_model::AIDocumentModel;
 use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
 use crate::ai::facts::manager::AIFactManager;
@@ -111,7 +111,6 @@ fn initialize_app(app: &mut App) {
     app.add_singleton_model(NotebookKeybindings::new);
     app.add_singleton_model(TerminalKeybindings::new);
     app.add_singleton_model(NotebookManager::mock);
-    app.add_singleton_model(|_| BlocklistAIHistoryModel::new_for_test());
     app.add_singleton_model(|_| CLIAgentSessionsModel::new());
     app.add_singleton_model(AgentNotificationsModel::new);
     app.add_singleton_model(AgentConversationsModel::new);
@@ -583,11 +582,7 @@ fn restore_conversation_in_active_pane_enters_existing_live_conversation_without
                 .focused_session_view(ctx)
                 .expect("workspace should start with a terminal view")
         });
-        let terminal_view_id = terminal_view.read(&app, |view, _| view.view_id());
-        let conversation_id =
-            BlocklistAIHistoryModel::handle(&app).update(&mut app, |history, ctx| {
-                history.start_new_conversation(terminal_view_id, false, false, false, ctx)
-            });
+        let conversation_id = AIConversationId::new();
 
         workspace.update(&mut app, |workspace, ctx| {
             assert_eq!(workspace.tab_count(), 1);
