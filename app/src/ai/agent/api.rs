@@ -25,7 +25,7 @@ use warpui::{AppContext, EntityId, SingletonEntity as _};
 use super::{AIAgentInput, MCPContext, MCPServer, RequestMetadata, Suggestions};
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
-use crate::ai::blocklist::{BlocklistAIPermissions, RequestInput, SessionContext};
+use crate::ai::blocklist::{RequestInput, SessionContext};
 use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
 use crate::ai::llms::LLMId;
 use crate::ai::mcp::templatable_manager::TemplatableMCPServerInfo;
@@ -262,8 +262,7 @@ impl RequestParams {
             warp_multi_agent_api::IsolationLevel::None
         };
 
-        let web_search_enabled =
-            BlocklistAIPermissions::as_ref(app).get_web_search_enabled(app, terminal_view_id);
+        let web_search_enabled = true;
         let research_agent_enabled = app
             .private_user_preferences()
             .read_value("ResearchAgentEnabled")
@@ -273,19 +272,11 @@ impl RequestParams {
             .unwrap_or_default();
         let is_ambient_agent = conversation.ambient_agent_task_id.is_some();
         let computer_use_enabled = FeatureFlag::AgentModeComputerUse.is_enabled()
-            && BlocklistAIPermissions::as_ref(app)
-                .get_computer_use_setting(app, terminal_view_id)
-                .is_enabled()
             && computer_use::is_supported_on_current_platform()
             && (FeatureFlag::LocalComputerUse.is_enabled() || is_ambient_agent);
-        let ask_user_question_enabled = BlocklistAIPermissions::as_ref(app)
-            .get_ask_user_question_setting(app, terminal_view_id)
-            != crate::ai::execution_profiles::AskUserQuestionPermission::Never;
+        let ask_user_question_enabled = true;
 
         let orchestration_enabled = ai_settings.is_orchestration_enabled(app)
-            && BlocklistAIPermissions::as_ref(app)
-                .get_run_agents_setting(app, terminal_view_id)
-                .is_enabled()
             && session_context
                 .session_type()
                 .as_ref()

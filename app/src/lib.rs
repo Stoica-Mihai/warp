@@ -133,10 +133,10 @@ use ::ai::index::DEFAULT_SYNC_REQUESTS_PER_MIN;
 use ::ai::project_context::model::ProjectContextModel;
 pub use ai::agent::todos::AIAgentTodoList;
 pub use ai::agent::{AIAgentActionResultType, FileEdit, TodoOperation};
+pub(crate) use ai::blocklist::BlocklistAIHistoryModel;
 use ai::agent_conversations_model::AgentConversationsModel;
 use ai::agent_management::AgentNotificationsModel;
 use ai::ambient_agents::github_auth_notifier::GitHubAuthNotifier;
-use ai::blocklist::{BlocklistAIHistoryModel, BlocklistAIPermissions};
 use ai::persisted_workspace::PersistedWorkspace;
 use auth::auth_manager::AuthManager;
 use auth::auth_state::{AuthState, AuthStateProvider};
@@ -1109,7 +1109,7 @@ pub(crate) fn initialize_app(
         mut restored_user_profiles,
         mut time_of_next_force_object_refresh,
         mut object_actions,
-        mut ai_queries,
+        _ai_queries,
         persisted_workspaces,
         mut workspace_language_servers,
         mut multi_agent_conversations,
@@ -1175,7 +1175,6 @@ pub(crate) fn initialize_app(
         restored_user_profiles = Default::default();
         time_of_next_force_object_refresh = None;
         object_actions = Default::default();
-        ai_queries = Default::default();
         workspace_language_servers = Default::default();
         multi_agent_conversations = Default::default();
         persisted_projects = Default::default();
@@ -1407,8 +1406,6 @@ pub(crate) fn initialize_app(
     billing::shared_objects_creation_denied_modal::init(ctx);
     tab_configs::new_worktree_modal::init(ctx);
     tab_configs::params_modal::init(ctx);
-    ai::blocklist::init(ctx);
-    ai::blocklist::block::status_bar::init(ctx);
     drive::index::init(ctx);
     settings_view::update_environment_form::init(ctx);
     env_vars::env_var_collection_block::init(ctx);
@@ -1474,20 +1471,9 @@ pub(crate) fn initialize_app(
         )
     });
 
-    {
-        let conversations = &multi_agent_conversations;
-        ctx.add_singleton_model(move |_| BlocklistAIHistoryModel::new(ai_queries, conversations));
-    }
     ctx.add_singleton_model(move |_| RestoredAgentConversations::new(multi_agent_conversations));
     ctx.add_singleton_model(|_| CLIAgentSessionsModel::new());
     ctx.add_singleton_model(AgentNotificationsModel::new);
-    ctx.add_singleton_model(BlocklistAIPermissions::new);
-    ctx.add_singleton_model(ai::blocklist::OrchestrationEventService::new);
-    ctx.add_singleton_model(ai::blocklist::TaskStatusSyncModel::new);
-    ctx.add_singleton_model(ai::blocklist::LocalSharedSessionLinkModel::new);
-    if warp_core::features::FeatureFlag::OrchestrationV2.is_enabled() {
-        ctx.add_singleton_model(ai::blocklist::OrchestrationEventStreamer::new);
-    }
 
     if launch_mode.supports_indexing() {
         ctx.add_singleton_model(RepoOutlines::new);

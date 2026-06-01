@@ -69,7 +69,7 @@ impl PlanAndTodoListView {
         ctx: &mut ViewContext<Self>,
     ) -> Self {
         let agent_todos_popup = ctx.add_typed_action_view(|ctx| {
-            AgentTodosPopupView::new(terminal_view_id, context_model.clone(), ctx)
+            AgentTodosPopupView::new(terminal_view_id, ctx)
         });
         ctx.subscribe_to_view(&agent_todos_popup, |me, _, event, ctx| match event {
             AgentTodosPopupEvent::Close => {
