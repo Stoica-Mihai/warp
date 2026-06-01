@@ -5,7 +5,8 @@ use warp_core::execution_mode::ExecutionMode;
 use warp_util::path::EscapeChar;
 use warpui::{App, EntityId, ModelHandle};
 
-use super::{BlocklistAIHistoryModel, BlocklistAIPermissions};
+use crate::ai::blocklist::BlocklistAIHistoryModel;
+use super::BlocklistAIPermissions;
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::blocklist::permissions::{
     CommandExecutionPermission, CommandExecutionPermissionDeniedReason, FileReadPermission,

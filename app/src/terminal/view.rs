@@ -224,12 +224,8 @@ use crate::ai::blocklist::block::cli::CLISubagentView;
 use crate::ai::blocklist::block::cli_controller::{
     CLISubagentController, CLISubagentEvent, UserTakeOverReason,
 };
-use crate::ai::blocklist::block::AIBlockAction;
 use crate::ai::blocklist::codebase_index_speedbump_banner::{
     CodebaseIndexSpeedbumpBannerAction, CodebaseIndexSpeedbumpBannerState, VisibilityState,
-};
-use crate::ai::blocklist::model::{
-    AIBlockModel, AIBlockModelHelper, AIBlockModelImpl,
 };
 use crate::ai::blocklist::suggested_agent_mode_workflow_modal::SuggestedAgentModeWorkflowAndId;
 use crate::ai::blocklist::suggested_rule_modal::SuggestedRuleAndId;
@@ -241,13 +237,9 @@ use crate::ai::blocklist::usage::conversation_usage_view::{
 use crate::ai::blocklist::{
     ai_brand_color, block_context_from_terminal_model,
     get_ai_block_overflow_menu_element_position_id, get_attached_blocks_chip_element_position_id,
-    AIBlock, AIBlockEvent, BlocklistAIActionEvent, BlocklistAIActionModel, BlocklistAIContextEvent,
-    BlocklistAIContextModel,
     BlocklistAIInputEvent, BlocklistAIInputModel,
     ConversationStatusUpdate, InputConfig, InputType,
     InputTypeAutoDetectionSource,
-    PendingAttachment, PendingQueryState, ShellCommandExecutor,
-    ShellCommandExecutorEvent,
     ATTACH_AS_AGENT_MODE_CONTEXT_TEXT,
 };
 use crate::ai::conversation_utils;
@@ -10098,57 +10090,6 @@ impl TerminalView {
         ctx.notify();
     }
 
-    /// Removes AI blocks from `rich_content_views` that match the given conversation and exchange IDs.
-    /// This handles cleanup of the block, removal from the block list model, and notifying the
-    /// new last AI block in the conversation so it re-renders with the footer.
-    fn remove_ai_blocks_for_exchanges(
-        &mut self,
-        conversation_id: &AIConversationId,
-        exchange_ids: &HashSet<AIAgentExchangeId>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let mut blocks_to_remove: Vec<(EntityId, ViewHandle<AIBlock>)> = vec![];
-        self.rich_content_views.retain(|rich_content| {
-            if let Some(ai_metadata) = rich_content.ai_block_metadata() {
-                if ai_metadata.conversation_id == *conversation_id
-                    && exchange_ids.contains(&ai_metadata.exchange_id)
-                {
-                    blocks_to_remove.push((
-                        ai_metadata.ai_block_handle.id(),
-                        ai_metadata.ai_block_handle.clone(),
-                    ));
-                    return false;
-                }
-            }
-            true
-        });
-
-        blocks_to_remove.into_iter().for_each(|(view_id, handle)| {
-            handle.update(ctx, |block, ctx| {
-                block.cleanup_block(ctx);
-            });
-            self.model
-                .lock()
-                .block_list_mut()
-                .remove_rich_content(view_id);
-        });
-
-        // Notify the new last AI block so it re-renders with the footer
-        if let Some(new_last_block) = self.rich_content_views.iter().rev().find_map(|rc| {
-            let ai_metadata = rc.ai_block_metadata()?;
-            if ai_metadata.conversation_id == *conversation_id {
-                return Some(ai_metadata.ai_block_handle.clone());
-            }
-            None
-        }) {
-            new_last_block.update(ctx, |_, ctx| ctx.notify());
-        }
-
-        // Update scroll position to ensure we don't have blank space
-        self.update_scroll_position_locking(ScrollPositionUpdate::AfterEnd, ctx);
-    }
-
-    
 
     #[allow(clippy::too_many_arguments)]
     fn on_maa_prompt_suggestion_generated(
@@ -11002,16 +10943,12 @@ impl TerminalView {
         }
     }
 
-    /// Returns the rich-content link currently hovered inside the AI block view whose view id is
-    /// `rich_content_view_id`, if any. Used to surface a link-specific right-click context menu.
     fn hovered_rich_content_link_for_view(
         &self,
-        rich_content_view_id: EntityId,
-        ctx: &AppContext,
+        _rich_content_view_id: EntityId,
+        _ctx: &AppContext,
     ) -> Option<RichContentLink> {
-        self.ai_block_handle_by_view_id(rich_content_view_id)?
-            .as_ref(ctx)
-            .hovered_rich_content_link()
+        None
     }
 
     fn context_menu_items(
@@ -12234,13 +12171,6 @@ impl TerminalView {
 
     }
 
-    pub fn set_pending_query_state(
-        &mut self,
-        _state: PendingQueryState,
-        _ctx: &mut ViewContext<Self>,
-    ) {
-    }
-
     // Additionally handles side effects of changing block selections (i.e. CMD + F results,
     // Agent Mode context, etc.). The field `self.selected_blocks` should only be mutated as part of
     // a `change_block_selections` or `change_block_selections_to_match_ai_context` invocation.
@@ -12822,44 +12752,6 @@ impl TerminalView {
             click_cursor.start().total_count
         };
 
-        // Loop over each item in the block list. If it's an AI block which doesn't include the point
-        // where the user clicked, begin a selection at either the maximum (bottom right) or minimum
-        // (top left) point in the block. This is needed to support selections across command blocks
-        // and AI blocks since SelectableArea can't start selections outside of its bounds on its own.
-        if let Some(active_window_id) = ctx.windows().active_window() {
-            while let Some(block_height_item) = block_cursor.item() {
-                if let BlockHeightItem::RichContent(RichContentItem { view_id, .. }) =
-                    block_height_item
-                {
-                    if let Some(ai_block) = ctx.view_with_id::<AIBlock>(active_window_id, *view_id)
-                    {
-                        let x_pos = match selection_type {
-                            SelectionType::Rect => Some(position.x()),
-                            _ => None,
-                        };
-
-                        let ai_block_view = ctx.view(&ai_block);
-                        let ai_block_total_index = block_cursor.start().total_count;
-
-                        if (ai_block_total_index < selection_start_total_index
-                            && !is_inverted_blocklist)
-                            || (ai_block_total_index > selection_start_total_index
-                                && is_inverted_blocklist)
-                        {
-                            ai_block_view.start_selection_at_max_point(selection_type, x_pos);
-                        } else if (ai_block_total_index > selection_start_total_index
-                            && !is_inverted_blocklist)
-                            || (ai_block_total_index < selection_start_total_index
-                                && is_inverted_blocklist)
-                        {
-                            ai_block_view.start_selection_at_min_point(selection_type, x_pos);
-                        }
-                    }
-                }
-
-                block_cursor.next();
-            }
-        };
 
         ctx.notify();
     }
@@ -14013,49 +13905,12 @@ impl TerminalView {
             })
     }
 
-    /// Returns an iterator over the `AIBlock`s that belong to the current
-    /// thread of `conversation_id` (newest first, bounded by the most recent
-    /// user query).
-    fn ai_blocks_for_current_thread<'a>(
-        &'a self,
-        conversation_id: &'a AIConversationId,
-        ctx: &'a AppContext,
-    ) -> impl Iterator<Item = &'a AIBlock> + 'a {
-        self.ai_block_metadata_for_current_thread(conversation_id, ctx)
-            .map(move |ai_metadata| ai_metadata.ai_block_handle.as_ref(ctx))
-    }
-
-    /// Collects all imported review comments from blocks in the current thread of the given
-    /// conversation.
-    fn all_comments_in_thread(
-        &self,
-        conversation_id: &AIConversationId,
-        ctx: &AppContext,
-    ) -> (Vec<AttachedReviewComment>, Option<String>) {
-        let mut all_comments = Vec::new();
-        let mut base_branch = None;
-        for ai_block in self.ai_blocks_for_current_thread(conversation_id, ctx) {
-            if let Some(imported) = ai_block.collect_imported_comments() {
-                all_comments.extend(imported.comments);
-                if base_branch.is_none() {
-                    base_branch = imported.base_branch;
-                }
-            }
-        }
-        // The iterator yields blocks newest-first; reverse to get chronological order.
-        all_comments.reverse();
-        (all_comments, base_branch)
-    }
-
-    /// Returns `true` if any block in the current thread of the given conversation has imported
-    /// review comments.
     pub(crate) fn has_imported_comments_in_thread(
         &self,
-        conversation_id: &AIConversationId,
-        ctx: &AppContext,
+        _conversation_id: &AIConversationId,
+        _ctx: &AppContext,
     ) -> bool {
-        self.ai_blocks_for_current_thread(conversation_id, ctx)
-            .any(|ai_block| ai_block.has_any_imported_comments())
+        false
     }
 
     
@@ -14095,29 +13950,6 @@ impl TerminalView {
             return (!block_handle.as_ref(ctx).completed()).then_some(block_handle);
         }
         None
-    }
-
-    fn ai_block_for_exchange(
-        &self,
-        exchange_id: &AIAgentExchangeId,
-    ) -> Option<&ViewHandle<AIBlock>> {
-        self.rich_content_views.iter().find_map(|rich_content| {
-            let ai_metadata = rich_content.ai_block_metadata()?;
-            if ai_metadata.exchange_id == *exchange_id {
-                return Some(&ai_metadata.ai_block_handle);
-            }
-            None
-        })
-    }
-
-    fn ai_block_handle_by_view_id(&self, view_id: EntityId) -> Option<&ViewHandle<AIBlock>> {
-        self.rich_content_views.iter().find_map(|rich_content| {
-            let ai_metadata = rich_content.ai_block_metadata()?;
-            if ai_metadata.ai_block_handle.id() == view_id {
-                return Some(&ai_metadata.ai_block_handle);
-            }
-            None
-        })
     }
 
     /// Returns the last block's `EnvVarCollectionBlock` if it is uncompleted, scoped to the
@@ -17243,44 +17075,9 @@ impl TerminalView {
                 };
                 ctx.clipboard().write(ClipboardContent::plain_text(url));
             }
-            CopyAIBlockQuery { ai_block_view_id } => {
-                for rich_content in self.rich_content_views.iter() {
-                    if let Some(ai_metadata) = rich_content.ai_block_metadata() {
-                        if ai_metadata.ai_block_handle.id() == *ai_block_view_id {
-                            ai_metadata.ai_block_handle.update(ctx, |block, ctx| {
-                                block.handle_action(&AIBlockAction::CopyQuery, ctx);
-                            });
-                            break;
-                        }
-                    }
-                }
-            }
-            CopyAIBlockOutput { ai_block_view_id } => {
-                // Copy only the current AI block's output
-                for rich_content in self.rich_content_views.iter() {
-                    if let Some(ai_metadata) = rich_content.ai_block_metadata() {
-                        if ai_metadata.ai_block_handle.id() == *ai_block_view_id {
-                            ai_metadata.ai_block_handle.update(ctx, |block, ctx| {
-                                block.handle_action(&AIBlockAction::CopyOutput, ctx);
-                            });
-                            break;
-                        }
-                    }
-                }
-            }
-            CopyAIBlock { ai_block_view_id } => {
-                // Copy current AI block's prompt and output
-                for rich_content in self.rich_content_views.iter() {
-                    if let Some(ai_metadata) = rich_content.ai_block_metadata() {
-                        if ai_metadata.ai_block_handle.id() == *ai_block_view_id {
-                            ai_metadata.ai_block_handle.update(ctx, |block, ctx| {
-                                block.handle_action(&AIBlockAction::Copy, ctx);
-                            });
-                            break;
-                        }
-                    }
-                }
-            }
+            CopyAIBlockQuery { .. } => {}
+            CopyAIBlockOutput { .. } => {}
+            CopyAIBlock { ai_block_view_id: _ } => {}
             CopyAIBlockConversation { ai_block_view_id } => {
                 let conversation_id = self.rich_content_views.iter().find_map(|rich_content| {
                     let ai_metadata = rich_content.ai_block_metadata()?;
@@ -17323,18 +17120,7 @@ impl TerminalView {
             ForkAIConversation { conversation_id } => {
                 self.fork_ai_conversation(*conversation_id, None, ctx);
             }
-            CopyAgentCommand { ai_block_view_id } => {
-                for rich_content in self.rich_content_views.iter() {
-                    if let Some(ai_metadata) = rich_content.ai_block_metadata() {
-                        if ai_metadata.ai_block_handle.id() == *ai_block_view_id {
-                            ai_metadata.ai_block_handle.update(ctx, |block, ctx| {
-                                block.handle_action(&AIBlockAction::CopyCommand, ctx);
-                            });
-                            break;
-                        }
-                    }
-                }
-            }
+            CopyAgentCommand { .. } => {}
             CopyAgentGitBranch { ai_block_view_id } => {
                 for rich_content in self.rich_content_views.iter() {
                     if let Some(ai_metadata) = rich_content.ai_block_metadata() {
