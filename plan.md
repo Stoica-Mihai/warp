@@ -330,10 +330,11 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Step 5 (`97a134ef`): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType kept real. 3-gate 0/0/0.
 - Step 6 (`125c0f72`): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op; `#[path]` redirect keeps 72 external `::history_model::` imports unchanged. 3-gate 0/0/0.
 
-**CURRENT STATE (2026-06-01 session 4):**
-- 3-gate error counts: **71/86/71** (improvement over pre-existing 72/87/72)
-- Binary: 794.3 MB (flat — handler bodies were already dead-stripped; real shrink deferred until struct fields + inline_action/ deleted)
-- Commits this session: `f048a967` (session 3) + `0d24336f` + `7a710de6` (session 4; restores `is_conversation_selected` stub for `workspace/view.rs:13893`)
+**CURRENT STATE (2026-06-01 session 6):**
+- 3-gate: **0/0/0**
+- Binary: **776.7 MB** (`92742608`, −67.4 MB total vs 844.2 MB baseline)
+- Input struct AI fields DONE. inline_action/ + stubs = next target (Step 7). See `/tmp/phase-h-handoff.md`.
+- Session 6 commits: `b2ba5b4a` (AI models → Input::new() locals, −4 new() params) + `92742608` (remove AI fields from Input struct, −2,515 LoC, 19 test fns deleted)
 
 ### Sub-task A: Relocate shared non-AI modules — ✅ DONE
 
@@ -384,11 +385,13 @@ After sub-tasks A+C (or A+B+C), no code calls stubs:
 - Remove `mod` + `use` from `mod.rs`
 - Remove `lib.rs` singleton regs: `BlocklistAIHistoryModel`, `BlocklistAIPermissions`
 
-### Sub-task E: Clean up Input struct + TerminalView
+### Sub-task E: Clean up Input struct + TerminalView — ✅ DONE (`92742608`)
 
-Remove `ai_input_model`, `ai_context_model`, `ai_action_model` fields from:
-- `terminal/input.rs` `Input` struct (50+ method bodies must be updated/deleted)
-- `terminal/view.rs` `TerminalView` struct (already cleaned in G-preview; verify nothing remains)
+Removed `ai_input_model`, `ai_context_model`, `ai_action_model`, `agent_status_view` fields from `Input` struct. All ~300 method-body refs fixed by excision. −2,515 LoC. 19 AI input-mode tests deleted. Binary 776.7 MB (−0.71 MB). 3-gate 0/0/0.
+
+`agent_status_view` creation removed from Input::new(); view.rs cancel_active_conversation_via_status_bar() → no-op; summarization_cancel_dialog_handle() → None; workspace/view.rs ai_context_model().update() → deleted.
+
+Note: `SlashCommandModel`, `TerminalInputMessageBar`, `models/view.rs` still have AI model fields — they compile fine (passed from Input::new() locals). Will be cleaned when stubs are deleted in Sub-task D.
 
 Also delete `permissions.rs` (all AI callers) + stub/delete `persistence.rs` (relocate `SerializedBlockListItem` first).
 
