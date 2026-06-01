@@ -433,7 +433,7 @@ pub mod model {
         use crate::ai::agent::{
             AIAgentExchangeId, AIAgentInput, AIAgentOutput, ServerOutputId, Shared,
         };
-        use crate::ai::blocklist::AIBlock;
+        use super::super::AIBlock;
         use crate::ai::llms::LLMId;
 
         pub struct FakeAIBlockModel {

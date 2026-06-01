@@ -28,10 +28,6 @@ pub(crate) mod codebase_index_speedbump_banner;
 pub(crate) mod telemetry_banner;
 pub(super) mod view_util;
 
-#[cfg(any(test, feature = "integration_tests"))]
-pub(crate) use block::model::testing::FakeAIBlockModel;
-pub(crate) use block::{init, model, AIBlock, AIBlockEvent, RequestedEditResolution};
-pub use block::{keyboard_navigable_buttons, toggleable_items};
 pub use input_config::{InputConfig, InputType, InputTypeAutoDetectionSource};
 // BlocklistAIInputModel/Event still needed by some callers; provide minimal stubs inline
 pub(crate) use self::input_stubs::{BlocklistAIInputEvent, BlocklistAIInputModel};
