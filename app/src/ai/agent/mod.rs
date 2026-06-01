@@ -495,23 +495,16 @@ impl AIAgentOutput {
 
     /// Format this output for copying to clipboard.
     /// This extracts all content (text, code, and action results) with proper formatting.
-    pub fn format_for_copy(
-        &self,
-        action_model: Option<&crate::ai::blocklist::BlocklistAIActionModel>,
-    ) -> String {
+    pub fn format_for_copy(&self) -> String {
         let mut result = Vec::new();
         let mut last_was_action = false;
 
-        // Process all messages in order, collecting all content
         for message in &self.messages {
             match &message.message {
                 AIAgentOutputMessageType::Text(text) => {
-                    // If the last message was an action and this is text, add some separation
                     if last_was_action {
-                        result.push(String::new()); // Add blank line for readability
+                        result.push(String::new());
                     }
-
-                    // Collect all text and code sections from this text message
                     for section in &text.sections {
                         match section {
                             AIAgentTextSection::PlainText { text } => {
@@ -527,17 +520,7 @@ impl AIAgentOutput {
                     }
                     last_was_action = false;
                 }
-                AIAgentOutputMessageType::Action(action) => {
-                    // Include action results from the action model if available
-                    if let Some(action_model) = action_model {
-                        if let Some(action_result) = action_model.get_action_result(&action.id) {
-                            result.push(format!("{}", MarkdownActionResult(&action_result.result)));
-                            // Add an extra newline after tool call results for readability
-                            result.push(String::new());
-                            last_was_action = true;
-                        }
-                    }
-                }
+                AIAgentOutputMessageType::Action(_action) => {}
                 AIAgentOutputMessageType::TodoOperation(operation) => {
                     result.push(format!("{operation}"));
                     last_was_action = false;
@@ -2911,25 +2894,16 @@ impl AIAgentExchange {
     }
 
     /// Format the output part of this exchange for copying to clipboard.
-    pub fn format_output_for_copy(
-        &self,
-        action_model: Option<&crate::ai::blocklist::BlocklistAIActionModel>,
-    ) -> String {
+    pub fn format_output_for_copy(&self) -> String {
         match self.output_status.output() {
-            Some(output) => output.get().format_for_copy(action_model),
+            Some(output) => output.get().format_for_copy(),
             None => String::new(),
         }
     }
 
-    /// Format the entire exchange (both input and output) for copying to clipboard.
-    /// Always adds USER: and AGENT: labels.
-    /// If `skip_agent_label` is true, skips the AGENT: label (for consecutive agent outputs).
-    pub fn format_for_copy(
-        &self,
-        action_model: Option<&crate::ai::blocklist::BlocklistAIActionModel>,
-    ) -> String {
+    pub fn format_for_copy(&self) -> String {
         let input_text = self.format_input_for_copy();
-        let output_text = self.format_output_for_copy(action_model);
+        let output_text = self.format_output_for_copy();
         let has_user_input = !input_text.is_empty();
         let has_agent_output = !output_text.is_empty();
 

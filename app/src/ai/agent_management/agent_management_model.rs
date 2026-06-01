@@ -9,7 +9,6 @@ use crate::ai::agent_management::notifications::{
     NotificationSourceAgent,
 };
 use crate::ai::artifacts::Artifact;
-use crate::ai::blocklist::{BlocklistAIHistoryEvent, ConversationStatusUpdate};
 use crate::settings::AISettings;
 use crate::terminal::cli_agent_sessions::{
     CLIAgentSessionStatus, CLIAgentSessionsModel, CLIAgentSessionsModelEvent,
@@ -17,7 +16,6 @@ use crate::terminal::cli_agent_sessions::{
 use crate::terminal::{CLIAgent, TerminalView};
 use crate::workspace::util::is_terminal_view_in_same_tab;
 use crate::workspace::{Workspace, WorkspaceRegistry};
-use crate::BlocklistAIHistoryModel;
 
 /// Singleton model responsible for triggering in-app notifications on blocking conversation
 /// status updates and tracking/storing these notifications for the notifications mailbox.
@@ -38,11 +36,6 @@ impl SingletonEntity for AgentNotificationsModel {}
 
 impl AgentNotificationsModel {
     pub(crate) fn new(ctx: &mut ModelContext<Self>) -> Self {
-        let history_model = BlocklistAIHistoryModel::handle(ctx);
-        ctx.subscribe_to_model(&history_model, move |me, event, ctx| {
-            me.handle_history_event(event, ctx);
-        });
-
         let cli_sessions_model = CLIAgentSessionsModel::handle(ctx);
         ctx.subscribe_to_model(&cli_sessions_model, |me, event, ctx| {
             me.handle_cli_agent_session_event(event, ctx);
@@ -169,101 +162,6 @@ impl AgentNotificationsModel {
                 }
             },
         }
-    }
-
-    fn handle_history_event(
-        &mut self,
-        event: &BlocklistAIHistoryEvent,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        // When a conversation is deleted or removed, clean up its notification and pending artifacts.
-        if let BlocklistAIHistoryEvent::DeletedConversation {
-            conversation_id, ..
-        }
-        | BlocklistAIHistoryEvent::RemoveConversation {
-            conversation_id, ..
-        } = event
-        {
-            if FeatureFlag::HOANotifications.is_enabled() {
-                self.pending_artifacts.remove(conversation_id);
-                self.remove_notification_by_source(
-                    NotificationOrigin::Conversation(*conversation_id),
-                    ctx,
-                );
-            }
-            return;
-        }
-
-        // Accumulate artifacts as they arrive during the conversation.
-        if let BlocklistAIHistoryEvent::UpdatedConversationArtifacts {
-            conversation_id,
-            artifact,
-            ..
-        } = event
-        {
-            if FeatureFlag::HOANotifications.is_enabled() {
-                self.pending_artifacts
-                    .entry(*conversation_id)
-                    .or_default()
-                    .push(artifact.clone());
-            }
-            return;
-        }
-
-        let BlocklistAIHistoryEvent::UpdatedConversationStatus {
-            terminal_view_id,
-            conversation_id,
-            // We shouldn't trigger toasts when restoring conversations on startup.
-            update: ConversationStatusUpdate::Changed { .. },
-            ..
-        } = event
-        else {
-            return;
-        };
-
-        let ai_history_model = BlocklistAIHistoryModel::as_ref(ctx);
-        let Some(updated_conversation) = ai_history_model.conversation(conversation_id) else {
-            return;
-        };
-
-        if updated_conversation.should_exclude_from_navigation() {
-            return;
-        }
-
-        let status = updated_conversation.status().clone();
-        let latest_query = updated_conversation.latest_user_query();
-        if FeatureFlag::HOANotifications.is_enabled() {
-            self.handle_history_event_for_mailbox(
-                &status,
-                *conversation_id,
-                latest_query,
-                *terminal_view_id,
-                ctx,
-            );
-            // The new mailbox path handled the event — skip the legacy toast path below.
-            return;
-        }
-
-        if !status.should_trigger_notification() {
-            return;
-        }
-
-        if is_terminal_view_visible(*terminal_view_id, ctx) {
-            return;
-        }
-
-        let Some((window_id, tab_index)) =
-            window_and_tab_idx_id_for_conversation(*conversation_id, ctx)
-        else {
-            return;
-        };
-
-        ctx.emit(AgentManagementEvent::ConversationNeedsAttention {
-            window_id,
-            tab_index,
-            terminal_view_id: *terminal_view_id,
-            conversation_id: *conversation_id,
-        });
     }
 
     fn handle_history_event_for_mailbox(

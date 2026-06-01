@@ -1396,13 +1396,10 @@ impl AIConversation {
 
     /// Export the conversation to markdown format.
     /// This is used by both clipboard export and file export.
-    pub fn export_to_markdown(
-        &self,
-        action_model: Option<&crate::ai::blocklist::BlocklistAIActionModel>,
-    ) -> String {
+    pub fn export_to_markdown(&self) -> String {
         let mut result = Vec::new();
         for exchange in self.all_exchanges() {
-            let formatted_exchange = exchange.format_for_copy(action_model);
+            let formatted_exchange = exchange.format_for_copy();
             if !formatted_exchange.is_empty() {
                 result.push(formatted_exchange);
             }

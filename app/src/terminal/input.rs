@@ -4347,7 +4347,7 @@ impl Input {
 
         let file_path = current_dir.join(&filename);
 
-        let conversation_text = conversation.export_to_markdown(None);
+        let conversation_text = conversation.export_to_markdown();
 
         // Check if file already exists and warn user
         let file_exists = file_path.exists();

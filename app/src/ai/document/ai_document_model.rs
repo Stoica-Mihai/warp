@@ -21,7 +21,6 @@ use {anyhow, warp_multi_agent_api as maa_api};
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::AIAgentActionId;
 use crate::ai::ai_document_view::DEFAULT_PLANNING_DOCUMENT_TITLE;
-use crate::ai::blocklist::{BlocklistAIHistoryEvent, BlocklistAIHistoryModel};
 use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
 use crate::appearance::Appearance;
 use crate::auth::auth_state::AuthStateProvider;
@@ -193,13 +192,6 @@ impl AIDocumentModel {
             me.handle_update_manager_event(event, ctx);
         });
 
-        // Subscribe to history events so we can hydrate the orchestration
-        // config from OrchestrationConfigSnapshot messages that arrive
-        // in the conversation's task message list.
-        ctx.subscribe_to_model(&BlocklistAIHistoryModel::handle(ctx), |me, event, ctx| {
-            me.handle_history_event_for_orchestration_config(event, ctx);
-        });
-
         // Setup throttled save channel
         let (save_tx, save_rx) = async_channel::unbounded();
         ctx.spawn_stream_local(
@@ -343,20 +335,6 @@ impl AIDocumentModel {
             ai_document_id,
         ));
 
-        // Update the plan artifact's notebook_uid in the conversation
-        let notebook_uid = NotebookId::from(server_id);
-        BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, ctx| {
-            let terminal_view_id =
-                history_model.terminal_view_id_for_conversation(&conversation_id);
-            if let Some(conversation) = history_model.conversation_mut(&conversation_id) {
-                conversation.update_plan_notebook_uid(
-                    ai_document_id,
-                    notebook_uid,
-                    terminal_view_id,
-                    ctx,
-                );
-            }
-        });
     }
 
     /// Create a new document with default title/content and return its ID.
@@ -1126,13 +1104,8 @@ impl AIDocumentModel {
     }
 
     /// Look up server_conversation_token for a document's conversation.
-    fn get_server_conversation_id(&self, id: &AIDocumentId, ctx: &AppContext) -> Option<String> {
-        self.documents.get(id).and_then(|doc| {
-            BlocklistAIHistoryModel::as_ref(ctx)
-                .conversation(&doc.conversation_id)
-                .and_then(|conv| conv.server_conversation_token())
-                .map(|token| token.as_str().to_string())
-        })
+    fn get_server_conversation_id(&self, _id: &AIDocumentId, _ctx: &AppContext) -> Option<String> {
+        None
     }
 
     /// Helper method to create a notebook in the Plan folder.
@@ -1174,76 +1147,6 @@ impl AIDocumentModel {
         });
     }
 
-    // ── Orchestration config: history event → hydration ──────────
-
-    fn handle_history_event_for_orchestration_config(
-        &mut self,
-        event: &BlocklistAIHistoryEvent,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        // On restore, scan all restored conversations for the last snapshot.
-        if let BlocklistAIHistoryEvent::RestoredConversations {
-            conversation_ids, ..
-        } = event
-        {
-            for cid in conversation_ids {
-                self.scan_conversation_for_orchestration_config(*cid, ctx);
-            }
-        }
-    }
-
-    /// Scans all messages across all tasks in a restored conversation to find
-    /// per-plan `OrchestrationConfigSnapshot` messages and hydrate the config map.
-    /// Backward scan: for each `plan_id`, the first snapshot found (most recent) wins.
-    fn scan_conversation_for_orchestration_config(
-        &mut self,
-        conversation_id: AIConversationId,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        use std::collections::HashMap;
-        let configs = {
-            let history = BlocklistAIHistoryModel::as_ref(ctx);
-            let Some(conversation) = history.conversation(&conversation_id) else {
-                return;
-            };
-            let mut configs: HashMap<String, (OrchestrationConfig, OrchestrationConfigStatus)> =
-                HashMap::new();
-            let messages: Vec<_> = conversation
-                .all_tasks()
-                .flat_map(|task| task.messages())
-                .collect();
-            for message in messages.iter().rev() {
-                if let Some(maa_api::message::Message::OrchestrationConfigSnapshot(snapshot)) =
-                    &message.message
-                {
-                    if !snapshot.plan_id.is_empty() && !configs.contains_key(&snapshot.plan_id) {
-                        if let Some(config) = snapshot
-                            .config
-                            .as_ref()
-                            .map(OrchestrationConfig::from_proto)
-                        {
-                            let status =
-                                OrchestrationConfigStatus::from_proto(snapshot.status.as_ref());
-                            configs.insert(snapshot.plan_id.clone(), (config, status));
-                        }
-                    }
-                }
-            }
-            configs
-        };
-        if !configs.is_empty() {
-            BlocklistAIHistoryModel::handle(ctx).update(ctx, |history, hctx| {
-                if let Some(conversation) = history.conversation_mut(&conversation_id) {
-                    if conversation.set_orchestration_configs(configs) {
-                        hctx.emit(BlocklistAIHistoryEvent::OrchestrationConfigUpdated {
-                            conversation_id,
-                            from_restore: true,
-                        });
-                    }
-                }
-            });
-        }
-    }
 
     // ── Orchestration config accessors ────────────────────────────
 
@@ -1296,15 +1199,6 @@ impl AIDocumentModel {
                 status,
             },
         );
-        BlocklistAIHistoryModel::handle(ctx).update(ctx, |history, hctx| {
-            if let Some(conversation) = history.conversation_mut(&conversation_id) {
-                conversation.set_orchestration_config_for_plan(plan_id, config, status);
-            }
-            hctx.emit(BlocklistAIHistoryEvent::OrchestrationConfigUpdated {
-                conversation_id,
-                from_restore: false,
-            });
-        });
     }
 
     /// Restore a document to a previous version, creating a new version in the process.
