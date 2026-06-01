@@ -2913,41 +2913,6 @@ impl TerminalView {
             ctx.add_model(|ctx| ambient_agent::AmbientAgentViewModel::new(terminal_view_id, ctx))
         });
 
-        let ai_context_model = ctx.add_model(|ctx| {
-            BlocklistAIContextModel::new(
-                sessions.clone(),
-                &model_events_handle,
-                model.clone(),
-                terminal_view_id,
-                ctx,
-            )
-        });
-        let ai_input_model = ctx.add_model(|ctx| {
-            let mut m = BlocklistAIInputModel::new(
-                model.clone(),
-                ai_context_model.clone(),
-                terminal_view_id,
-                ctx,
-            );
-            if !m.is_autodetection_enabled_for_current_context(ctx) {
-                if let Some(input_config) = initial_input_config {
-                    m.set_input_config(input_config, true, None, ctx);
-                }
-            }
-            m
-        });
-        let get_relevant_files_controller = ctx.add_model(GetRelevantFilesController::new);
-        let ai_action_model = ctx.add_model(|ctx| {
-            BlocklistAIActionModel::new(
-                model.clone(),
-                active_session.clone(),
-                &model_events_handle,
-                get_relevant_files_controller.clone(),
-                terminal_view_id,
-                ctx,
-            )
-        });
-
         let find_model = ctx.add_model(|_| TerminalFindModel::new(model.clone()));
 
         ctx.subscribe_to_model(
@@ -3104,16 +3069,6 @@ impl TerminalView {
         let terminal_content_element_position_id =
             format!("terminal_content_element_{}", ctx.view_id());
 
-        let cli_subagent_controller = ctx.add_model(|ctx| {
-            CLISubagentController::new(
-                &ai_action_model,
-                model.clone(),
-                &model_events_handle,
-                terminal_view_id,
-                ctx,
-            )
-        });
-
         let input: ViewHandle<Input> = ctx.add_typed_action_view(|ctx| {
             Input::new(
                 model.clone(),
@@ -3123,10 +3078,6 @@ impl TerminalView {
                 size_info,
                 menu_positioning_provider,
                 current_prompt.clone(),
-                ai_context_model.clone(),
-                ai_input_model.clone(),
-                ai_action_model.clone(),
-                cli_subagent_controller.clone(),
                 terminal_view_id,
                 None, // current_repo_path - will be set when CWD is determined
                 model_events_handle.clone(),

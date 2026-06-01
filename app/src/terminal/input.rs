@@ -1903,10 +1903,6 @@ impl Input {
         size_info: SizeInfo,
         menu_positioning_provider: Arc<dyn MenuPositioningProvider>,
         current_prompt: ModelHandle<PromptType>,
-        ai_context_model: ModelHandle<BlocklistAIContextModel>,
-        ai_input_model: ModelHandle<BlocklistAIInputModel>,
-        ai_action_model: ModelHandle<BlocklistAIActionModel>,
-        cli_subagent_controller: ModelHandle<CLISubagentController>,
         terminal_view_id: EntityId,
         current_repo_path: Option<PathBuf>,
         model_events: ModelHandle<crate::terminal::model_events::ModelEventDispatcher>,
@@ -1923,6 +1919,19 @@ impl Input {
             );
             completer_data.completion_session_context(ctx)
         };
+
+        let ai_context_model = ctx.add_model(|ctx| {
+            BlocklistAIContextModel::new(sessions.clone(), &model_events, model.clone(), terminal_view_id, ctx)
+        });
+        let ai_input_model = ctx.add_model(|ctx| {
+            BlocklistAIInputModel::new(model.clone(), ai_context_model.clone(), terminal_view_id, ctx)
+        });
+        let ai_action_model = ctx.add_model(|ctx| {
+            BlocklistAIActionModel::new(model.clone(), active_session.clone(), &model_events, terminal_view_id, ctx)
+        });
+        let cli_subagent_controller = ctx.add_model(|ctx| {
+            CLISubagentController::new(&ai_action_model, model.clone(), &model_events, terminal_view_id, ctx)
+        });
 
         let handoff_compose_state = ctx.add_model(|_ctx| HandoffComposeState::default());
         ctx.subscribe_to_model(&handoff_compose_state, |me, _, _, ctx| {

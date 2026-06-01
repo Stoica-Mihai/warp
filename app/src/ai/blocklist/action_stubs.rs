@@ -151,7 +151,6 @@ impl BlocklistAIActionModel {
         _terminal_model: std::sync::Arc<parking_lot::FairMutex<crate::terminal::TerminalModel>>,
         _active_session: warpui::ModelHandle<crate::terminal::model::session::active_session::ActiveSession>,
         _model_events: &warpui::ModelHandle<crate::terminal::model_events::ModelEventDispatcher>,
-        _get_relevant_files_controller: warpui::ModelHandle<crate::ai::get_relevant_files::controller::GetRelevantFilesController>,
         _terminal_view_id: warpui::EntityId,
         _ctx: &mut ModelContext<Self>,
     ) -> Self {
