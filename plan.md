@@ -330,36 +330,48 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Step 5 (`97a134ef`): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType kept real. 3-gate 0/0/0.
 - Step 6 (`125c0f72`): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op; `#[path]` redirect keeps 72 external `::history_model::` imports unchanged. 3-gate 0/0/0.
 
-**CURRENT STATE (2026-06-01 session 12 in progress):**
+**CURRENT STATE (2026-06-01 session 12 complete):**
 - 3-gate: **0/0/0**
-- Binary: **768.9 MB** (−0.77 MB from session 11; 4 strip commits)
-- Session 12 deletions: `suggested_agent_mode_workflow_modal` + `suggested_rule_modal` + `summarization_cancel_dialog` (all live-linked via ctx.add_typed_action_view); `telemetry_banner` (TelemetryBanner view + HideTelemetryBannerPermanently action); `ai/blocklist/usage/` dir; `codebase_index_speedbump_banner`; `avatar_disc`, `suggestion_chip_view`, `telemetry` orphans. Also fixed: pub mod block visibility bug, bug where stale incremental state masked compile errors.
-- Commits: `9a02a0c9`, `22fe13f0`, `b08085ec`, `e4fb19dd`
-- Total session 12 LoC removed: ~4,100
+- Binary: **768.9 MB** (−0.77 MB from session 11; binary flat since despite further deletions)
+- Session 12 total commits (10 strip commits): `9a02a0c9`…`3d2e0e0b`
+- Session 12 total LoC removed: ~9,600 across 30+ files
+
+**Session 12 deletions done:**
+- `suggested_agent_mode_workflow_modal` + `suggested_rule_modal` + `summarization_cancel_dialog` (live-linked)
+- `telemetry_banner` + HideTelemetryBannerPermanently action + should_collect_ai_ugc_telemetry cascade
+- `ai/blocklist/usage/` dir (35K LoC total)
+- `codebase_index_speedbump_banner` + 4 methods + InlineBannerType variant + settings fields
+- `avatar_disc`, `suggestion_chip_view`, `telemetry` orphan modules
+- `prompt/prompt_alert.rs` (537 LoC) — live-linked via ctx.add_typed_action_view in 2 places
+- `prompt/plan_and_todo_list.rs` (473 LoC) — live-linked; ContextChipKind::AgentPlanAndTodoList removed
+- Fixed: pub mod block E0365 visibility bug + stale incremental cache masking compile errors
 
 **Remaining in `ai/blocklist/` (KEEP or deferred):**
 - `cli_controller.rs` + `cli.rs` — KEEP (CLISubagentController real functionality)
 - `code_block.rs` — KEEP (code rendering in terminal output)
 - `handoff/` — cloud agent handoff; used by ambient_agent + remote_server + terminal/input
 - `keystroke_render.rs` — KEEP (keyboard shortcut rendering in terminal)
-- `permissions.rs` — BlocklistAIPermissions; all callers AI territory; defer with spider excisions
+- `permissions.rs` — BlocklistAIPermissions; all callers AI territory; defer
 - `persistence.rs` — SerializedBlockListItem load-bearing; PersistedAIInput AI-only; defer
-- `prompt/` — PromptAlertView live-linked (ctx.add_typed_action_view) in prompt_suggestions.rs; prompt_suggestions is inline banner infra; **next target**
+- `prompt.rs` — just `PromptIconButtonTheme` (50 LoC); 1 caller (universal_developer_input.rs)
 - `input_stubs` inline in mod.rs — BlocklistAIInputModel stub; needed until spider files cleaned
 - `view_util.rs` — KEEP (colors/icons used in terminal UI)
 - `request_input.rs`, `response_stream_id.rs`, `session_context.rs` — KEEP (AI session types)
 
-**NEXT: Delete `prompt/prompt_alert.rs` + `terminal/view/inline_banner/prompt_suggestions.rs`**
+**`ai/predict/` — NEXT large target (session 13):**
+- `next_command_model.rs` (36K LoC) — **LIVE-LINKED** via `ctx.add_model(NextCommandModel::new)` in `terminal/input.rs:2288`. 24 refs in input.rs + callers in `editor/view/mod.rs`.
+- `generate_ai_input_suggestions.rs` (7.7K) + `generate_am_query_suggestions.rs` — only in server_api.rs; easy 2-file deletion.
+- `predict_am_queries.rs` — used in server_api.rs + terminal/input.rs:166,10445.
+- `prompt_suggestions/` subdir — const ACCEPT_PROMPT_SUGGESTION_KEYBINDING used in 2 places (inline it); functions `has_pending_code_or_unit_test_prompt_suggestion`, `is_accept_prompt_suggestion_bound_to_*` used in terminal/input.rs + terminal/view.rs.
 
-`PromptAlertView` is live-linked via `ctx.add_typed_action_view(PromptAlertView::new)` in
-`terminal/view/inline_banner/prompt_suggestions.rs`. All callers are AI/billing-specific
-(SignupAnonymousUser, OpenBillingAndUsagePage, OpenPrivacyPage, OpenBillingPortal).
-To delete: remove PromptAlertView field + subscription + handler from prompt_suggestions.rs,
-then check if all of prompt_suggestions.rs can be deleted (the prompt suggestions inline banner
-is AI-powered UX that suggests commands). Then clean up prompt/ module.
+**Session 13 plan:**
+1. Remove `generate_ai_input_suggestions` + `generate_am_query_suggestions` from server_api.rs → delete those 2 files
+2. Inline ACCEPT_PROMPT_SUGGESTION_KEYBINDING const → remove `prompt_suggestions/` module dep from init.rs + prompt_suggestions.rs
+3. Remove `next_command_model` from terminal/input.rs (24 refs) — biggest win (~36K LoC, live-linked)
+4. Remove from editor/view/mod.rs
+5. Delete `ai/predict/` entirely
 
-After that: `handoff/` deletion requires touching ambient_agent + remote_server + terminal/input;
-defer to fresh session.
+Key note: `is_command_valid`, `is_next_command_enabled` from next_command_model are also imported in terminal/input.rs. Replacing with `false` simplifies excision.
 
 **PREVIOUS STATE (2026-06-01 session 9 final):**
 - 3-gate: **0/0/0** (commits `28c4ed8b`, `1f3f26b3`, `2640a60f`)
