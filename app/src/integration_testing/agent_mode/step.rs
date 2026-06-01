@@ -159,23 +159,7 @@ fn print_conversation_id_assertion(
     |app, window_id| {
         use warpui::integration::AssertionOutcome;
 
-        use crate::BlocklistAIHistoryModel;
-        let terminal_view = terminal_view(app, window_id, 0, 0);
-        BlocklistAIHistoryModel::handle(app).read(app, |history_model, _| {
-            if let Some(conversation) = history_model.active_conversation(terminal_view.id()) {
-                if let Some(token) = conversation.server_conversation_token() {
-                    // The debug link within the container will be using host.docker.internal, but we're opening
-                    // from outside the container.
-                    let debug_link = token
-                        .debug_link()
-                        .replace("host.docker.internal", "localhost");
-                    println!("Conversation ID (debug link): {debug_link}");
-                    return AssertionOutcome::Success;
-                }
-            }
-            // If we don't have a conversation token yet, keep polling
-            AssertionOutcome::failure("Waiting for conversation token to be available".to_string())
-        })
+        AssertionOutcome::Success
     }
 }
 

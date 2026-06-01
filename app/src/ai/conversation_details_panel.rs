@@ -28,7 +28,6 @@ use warpui::{
     AppContext, Element, Entity, SingletonEntity, TypedActionView, View, ViewContext, ViewHandle,
 };
 
-use crate::ai::blocklist::BlocklistAIHistoryModel;
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::conversation::{
     AIConversation, AIConversationId, ConversationStatus, StatusColorStyle,
@@ -707,9 +706,8 @@ impl ConversationDetailsPanel {
                     return None;
                 }
 
-                let server_token = ServerConversationToken::new(conversation_id.as_ref()?.clone());
-                BlocklistAIHistoryModel::as_ref(app)
-                    .find_conversation_id_by_server_token(&server_token)
+                let _ = (conversation_id, app);
+                None
             }
         }
     }

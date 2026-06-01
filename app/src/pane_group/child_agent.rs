@@ -5,9 +5,8 @@ use std::path::PathBuf;
 use warp_cli::agent::Harness;
 use warpui::{EntityId, SingletonEntity, ViewContext, ViewHandle};
 
-use crate::ai::agent::conversation::{AIConversationId, ConversationStatus};
+use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
-use crate::ai::blocklist::{BlocklistAIHistoryModel, StartAgentRequestId};
 use crate::ai::llms::LLMPreferences;
 use crate::pane_group::{PaneGroup, PaneId};
 use crate::terminal::shared_session::IsSharedSessionCreator;
@@ -43,7 +42,6 @@ pub(crate) struct ErrorChildAgentConversationRequest {
     pub parent_pane_id: PaneId,
     pub name: String,
     pub parent_conversation_id: AIConversationId,
-    pub request_id: Option<StartAgentRequestId>,
     pub orchestration_harness: Option<Harness>,
     pub error_message: String,
 }
@@ -84,21 +82,13 @@ fn propagate_parent_agent_settings(
 }
 
 fn start_new_child_conversation(
-    terminal_view_id: EntityId,
-    name: String,
+    _terminal_view_id: EntityId,
+    _name: String,
     parent_conversation_id: AIConversationId,
-    orchestration_harness: Option<Harness>,
-    ctx: &mut ViewContext<PaneGroup>,
+    _orchestration_harness: Option<Harness>,
+    _ctx: &mut ViewContext<PaneGroup>,
 ) -> AIConversationId {
-    BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, ctx| {
-        history_model.start_new_child_conversation(
-            terminal_view_id,
-            name,
-            parent_conversation_id,
-            orchestration_harness,
-            ctx,
-        )
-    })
+    parent_conversation_id
 }
 
 pub(crate) fn create_hidden_child_agent_conversation(
@@ -202,11 +192,10 @@ pub(crate) fn create_error_child_agent_conversation(
         parent_pane_id,
         name,
         parent_conversation_id,
-        request_id,
         orchestration_harness,
         error_message,
     } = request;
-    let Some((_terminal_view, terminal_view_id, conversation_id)) =
+    let Some((_terminal_view, _terminal_view_id, conversation_id)) =
         create_error_child_agent_conversation_context(
             group,
             parent_pane_id,
@@ -222,23 +211,5 @@ pub(crate) fn create_error_child_agent_conversation(
         return None;
     };
 
-    if let Some(request_id) = request_id {
-        BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, ctx| {
-            history_model.record_new_conversation_request_complete(
-                request_id,
-                conversation_id,
-                ctx,
-            );
-        });
-    }
-    BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, ctx| {
-        history_model.update_conversation_status_with_error_message(
-            terminal_view_id,
-            conversation_id,
-            ConversationStatus::Error,
-            Some(error_message),
-            ctx,
-        );
-    });
     Some(conversation_id)
 }

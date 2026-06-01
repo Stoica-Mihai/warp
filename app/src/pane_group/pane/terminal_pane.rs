@@ -1370,7 +1370,6 @@ fn dispatch_start_agent_conversation(
                     parent_pane_id,
                     name: request.name,
                     parent_conversation_id: request.parent_conversation_id,
-                    request_id: Some(request.id),
                     orchestration_harness: None,
                     error_message: "Local child agents are not supported in WASM builds."
                         .to_string(),
@@ -1522,7 +1521,6 @@ fn launch_local_no_harness_child(
                             parent_pane_id,
                             name: request_name,
                             parent_conversation_id,
-                            request_id: Some(request_id),
                             orchestration_harness: Some(Harness::Oz),
                             error_message:
                                 "Failed to create a hidden pane for the local child agent."
@@ -1539,7 +1537,6 @@ fn launch_local_no_harness_child(
                         parent_pane_id,
                         name: request_name,
                         parent_conversation_id,
-                        request_id: Some(request_id),
                         orchestration_harness: Some(Harness::Oz),
                         error_message: format!("Failed to create local child task: {error}"),
                     },
@@ -1665,7 +1662,6 @@ fn launch_local_harness_child(
                             parent_pane_id,
                             name: request_name,
                             parent_conversation_id,
-                            request_id: Some(request_id),
                             orchestration_harness: Some(orchestration_harness),
                             error_message:
                                 "Failed to create a hidden pane for the local child harness."
@@ -1682,7 +1678,6 @@ fn launch_local_harness_child(
                         parent_pane_id,
                         name: request_name,
                         parent_conversation_id,
-                        request_id: Some(request_id),
                         orchestration_harness: Some(orchestration_harness),
                         error_message,
                     },
