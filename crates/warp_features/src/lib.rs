@@ -585,14 +585,6 @@ pub enum FeatureFlag {
     /// Enables loading and returning bundled skills in the SkillManager.
     BundledSkills,
 
-    /// Enables the Oz launch modal for introducing cloud agent features.
-    OzLaunchModal,
-
-    /// Enables the OpenWarp launch modal announcing Warp going open-source.
-    OpenWarpLaunchModal,
-
-    /// Enables the orchestration launch modal announcing multi-agent orchestration features.
-    OrchestrationLaunchModal,
 
     /// Updated tab styling (background colors, border, close button positioning, margins).
     NewTabStyling,
@@ -838,7 +830,6 @@ pub const DOGFOOD_FLAGS: &[FeatureFlag] = &[
     FeatureFlag::FileGlobV2Warnings,
     FeatureFlag::SummarizationViaMessageReplacement,
     FeatureFlag::LocalComputerUse,
-    FeatureFlag::OzLaunchModal,
     FeatureFlag::QueueSlashCommand,
     // These are enabled via 100% experiment on prod warp-server,
     // but we need to enable here for dogfood builds.

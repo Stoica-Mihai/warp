@@ -8795,8 +8795,6 @@ impl TerminalView {
 
         self.ignore_next_set_title_event = true;
 
-        let _is_launch_modal_open = OneTimeModalModel::as_ref(ctx).is_oz_launch_modal_open();
-
         let _has_plugin_instructions_block = self.rich_content_views.iter().any(|rc| {
             matches!(
                 rc.metadata(),
