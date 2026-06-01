@@ -53,9 +53,6 @@ use crate::ai::agent_management::details_action_buttons::{
 use crate::ai::ambient_agents::{cancel_task_with_toast, AgentSource};
 use crate::ai::artifacts::{Artifact, ArtifactButtonsRow, ArtifactButtonsRowEvent};
 use crate::ai::blocklist::format_credits;
-use crate::ai::conversation_details_panel::{
-    ConversationDetailsData, ConversationDetailsPanel, ConversationDetailsPanelEvent,
-};
 use crate::ai::harness_availability::HarnessAvailabilityModel;
 use crate::ai::harness_display;
 use crate::app_state::PersistedAgentManagementFilters;
@@ -179,10 +176,6 @@ pub struct AgentManagementView {
     clear_all_filters_button: ViewHandle<ActionButton>,
     no_filter_results_button: ViewHandle<ActionButton>,
 
-    /// Details panel for showing task/conversation metadata
-    details_panel: ViewHandle<ConversationDetailsPanel>,
-    /// Currently selected item ID (for rendering details)
-    selected_item_id: Option<ManagementCardItemId>,
 }
 
 /// Enum to track the state of the view, based on what tasks we have visible
@@ -330,13 +323,6 @@ impl AgentManagementView {
 
         let filters = persisted_filters.map(|p| p.filters).unwrap_or_default();
 
-        let details_panel: ViewHandle<ConversationDetailsPanel> =
-            ctx.add_typed_action_view(|ctx| {
-                ConversationDetailsPanel::new(true, MANAGEMENT_PANEL_WIDTH, ctx)
-            });
-
-        ctx.subscribe_to_view(&details_panel, Self::handle_details_panel_event);
-
         let mut view = Self {
             list_state,
             scroll_state: ScrollStateHandle::default(),
@@ -364,8 +350,6 @@ impl AgentManagementView {
             new_agent_button,
             agent_type_selector,
             is_agent_type_selector_open: false,
-            details_panel,
-            selected_item_id: None,
         };
 
         view.update_filter_buttons(ctx);
@@ -1111,11 +1095,7 @@ impl AgentManagementView {
                     destination: ForkedConversationDestination::NewTab,
                 });
             }
-            AgentDetailsButtonEvent::ViewDetails { item_id } => {
-                self.update_details_panel_for_item(item_id, ctx);
-                self.selected_item_id = Some(*item_id);
-                ctx.notify();
-            }
+            AgentDetailsButtonEvent::ViewDetails { item_id: _ } => {}
             AgentDetailsButtonEvent::CopyLink { link } => {
                 match item_id {
                     ManagementCardItemId::Conversation(_conversation_id) => {}
@@ -1185,7 +1165,6 @@ impl AgentManagementView {
                 self.update_creator_dropdown(ctx);
                 self.update_environment_dropdown(ctx);
                 self.update_source_dropdown(ctx);
-                self.refresh_details_panel_if_needed(ctx);
                 self.get_tasks_from_model(ctx);
             }
             AgentConversationsModelEvent::ConversationUpdated { kind } => {
@@ -1193,15 +1172,7 @@ impl AgentManagementView {
             }
             AgentConversationsModelEvent::ConversationArtifactsUpdated { conversation_id } => {
                 self.update_artifacts_for_conversation(*conversation_id, ctx);
-                self.refresh_details_panel_if_needed(ctx);
             }
-        }
-    }
-
-    /// Refresh the details panel if it's currently showing an item
-    fn refresh_details_panel_if_needed(&mut self, ctx: &mut ViewContext<Self>) {
-        if let Some(item_id) = self.selected_item_id {
-            self.update_details_panel_for_item(&item_id, ctx);
         }
     }
 
@@ -1236,42 +1207,6 @@ impl AgentManagementView {
                 }
             }
         }
-        self.refresh_details_panel_if_needed(ctx);
-    }
-
-    /// Update the details panel with fresh data for the given item.
-    fn update_details_panel_for_item(
-        &mut self,
-        item_id: &ManagementCardItemId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let model = AgentConversationsModel::as_ref(ctx);
-        let Some(entry) = model.get_entry_by_id(item_id, ctx) else {
-            return;
-        };
-        let open_action = AgentConversationsModel::resolve_open_action(
-            AgentConversationNavigationSubject::Entry(*item_id),
-            Some(RestoreConversationLayout::NewTab),
-            ctx,
-        );
-        let copy_link_url = AgentConversationsModel::resolve_copy_link(
-            AgentConversationNavigationSubject::Entry(*item_id),
-            ctx,
-        );
-        let task = entry
-            .identity
-            .ambient_agent_task_id
-            .and_then(|task_id| model.get_task_data(&task_id));
-        let data = ConversationDetailsData::from_agent_conversation_entry(
-            &entry,
-            task.as_ref(),
-            open_action,
-            copy_link_url,
-        );
-
-        self.details_panel.update(ctx, |p, ctx| {
-            p.set_conversation_details(data, ctx);
-        });
     }
 
     /// Update just the artifact buttons for a specific conversation
@@ -1302,25 +1237,6 @@ impl AgentManagementView {
             self.items[index].artifact_buttons_view = None;
         }
         ctx.notify();
-    }
-
-    fn handle_details_panel_event(
-        &mut self,
-        _view: ViewHandle<ConversationDetailsPanel>,
-        event: &ConversationDetailsPanelEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            ConversationDetailsPanelEvent::Close => {
-                self.selected_item_id = None;
-                ctx.notify();
-            }
-            ConversationDetailsPanelEvent::OpenPlanNotebook { notebook_uid } => {
-                ctx.emit(AgentManagementViewEvent::OpenPlanNotebook {
-                    notebook_uid: *notebook_uid,
-                });
-            }
-        }
     }
 
     fn handle_agent_type_selector_event(
@@ -2106,17 +2022,7 @@ impl View for AgentManagementView {
 
         let main_view = Container::new(centered).with_uniform_margin(16.).finish();
 
-        // Wrap main view with details panel if we have selected an item
-        let base_view = if self.selected_item_id.is_some() {
-            Flex::row()
-                .with_main_axis_size(MainAxisSize::Max)
-                .with_cross_axis_alignment(CrossAxisAlignment::Stretch)
-                .with_child(Expanded::new(1., main_view).finish())
-                .with_child(ChildView::new(&self.details_panel).finish())
-                .finish()
-        } else {
-            main_view
-        };
+        let base_view = main_view;
 
         if self.is_agent_type_selector_open {
             Stack::new()

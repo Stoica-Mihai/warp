@@ -3449,9 +3449,6 @@ impl PaneGroup {
         // descendants, so disable polling on this child.
         let (view, terminal_manager) =
             Self::create_cloud_mode_terminal(resources, view_bounds.size(), false, ctx);
-        view.update(ctx, |view, _| {
-            view.suppress_initial_conversation_details_panel_auto_open();
-        });
         let pane_data = TerminalPane::new(
             uuid.as_bytes().to_vec(),
             terminal_manager,

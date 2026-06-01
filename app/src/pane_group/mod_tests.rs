@@ -695,13 +695,6 @@ fn test_insert_hidden_ambient_child_agent_pane_suppresses_details_auto_open() {
             let terminal_view = panes
                 .terminal_view_from_pane_id(child_pane_id, ctx)
                 .expect("hidden ambient child pane should have a terminal view");
-            assert!(
-                terminal_view
-                    .as_ref(ctx)
-                    .is_initial_conversation_details_panel_auto_open_suppressed_for_test(),
-                "hidden ambient child panes opened from the parent orchestration UI should not \
-                 auto-open details during environment setup or session readiness"
-            );
         });
     });
 }
@@ -824,13 +817,6 @@ fn test_restored_remote_hidden_child_pane_enters_existing_ambient_session() {
             let terminal_view = panes
                 .terminal_view_from_pane_id(child_pane_id, ctx)
                 .expect("remote child pane should have a terminal view");
-            assert!(
-                terminal_view
-                    .as_ref(ctx)
-                    .is_initial_conversation_details_panel_auto_open_suppressed_for_test(),
-                "remote child panes opened from the parent orchestration UI should not auto-open \
-                 details when the ambient session becomes ready"
-            );
         });
     });
 }

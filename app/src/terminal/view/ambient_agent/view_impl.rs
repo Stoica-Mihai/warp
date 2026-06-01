@@ -20,13 +20,10 @@ use super::loading_screen::{
 use super::{AmbientAgentEntryBlock, AmbientAgentViewModel, AmbientAgentViewModelEvent};
 use crate::ai::agent::conversation::{AIConversationId, ConversationStatus};
 use crate::ai::agent::display_user_query_with_mode;
-use crate::ai::conversation_details_panel::ConversationDetailsData;
 use crate::ai::AIRequestUsageModel;
 use crate::pane_group::TerminalViewResources;
 use crate::terminal::view::rich_content::{RichContentInsertionPosition, RichContentMetadata};
-use crate::terminal::view::{
-    ConversationDetailsPanelAutoOpenPolicy, Event as TerminalViewEvent, TerminalView,
-};
+use crate::terminal::view::{Event as TerminalViewEvent, TerminalView};
 use crate::terminal::CLIAgent;
 use crate::workspace::view::cloud_agent_capacity_modal::CloudAgentCapacityModalVariant;
 use crate::workspaces::user_workspaces::UserWorkspaces;
@@ -155,17 +152,7 @@ impl TerminalView {
                     event,
                     AmbientAgentViewModelEvent::ExecutionSessionReady { .. }
                 ) {
-                    if self.pending_cloud_followup_task_id.is_some()
-                        && !self.is_conversation_details_panel_open
-                    {
-                        self.suppress_initial_conversation_details_panel_auto_open();
-                    }
                     self.pending_cloud_followup_task_id = None;
-                }
-                if FeatureFlag::HandoffCloudCloud.is_enabled() {
-                    self.refresh_conversation_details_panel_if_open(ctx);
-                } else {
-                    self.maybe_auto_open_conversation_details_panel(ctx);
                 }
                 // Re-render to hide the loading screen now that the session is ready.
                 ctx.emit(TerminalViewEvent::TerminalViewStateChanged);
@@ -187,10 +174,6 @@ impl TerminalView {
                 );
 
 
-                // Refresh the details panel to show failed status
-                if self.is_conversation_details_panel_open {
-                    self.fetch_and_update_conversation_details_panel(ctx);
-                }
                 // Re-render to show the error state.
                 ctx.emit(TerminalViewEvent::TerminalViewStateChanged);
                 ctx.notify();
@@ -240,10 +223,6 @@ impl TerminalView {
                     None,
                     ctx,
                 );
-                // Refresh the details panel to show cancelled status
-                if self.is_conversation_details_panel_open {
-                    self.fetch_and_update_conversation_details_panel(ctx);
-                }
                 // Re-render to show the cancelled state in the footer.
                 ctx.emit(TerminalViewEvent::TerminalViewStateChanged);
                 ctx.notify();
@@ -737,71 +716,4 @@ impl TerminalView {
         }
     }
 
-    /// Fetches task data and updates the conversation details panel.
-    ///
-    /// Prefers cloud `AmbientAgentTask` data when this terminal view has an
-    /// associated task ID. Otherwise falls back to populating the panel from
-    /// the active local `AIConversation`, so the same panel can surface
-    /// conversation metadata for non-cloud Warp Agent runs (APP-3595).
-    pub(in crate::terminal::view) fn fetch_and_update_conversation_details_panel(
-        &mut self,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if let Some(task_id) = self.ambient_agent_task_id_for_details_panel(ctx) {
-            let conversations_handle =
-                crate::ai::agent_conversations_model::AgentConversationsModel::handle(ctx);
-            let task = conversations_handle.update(ctx, |model, ctx| {
-                model.get_or_async_fetch_task_data(&task_id, ctx)
-            });
-
-            let data = task
-                .as_ref()
-                .map(|task| ConversationDetailsData::from_task(task, None, None, ctx))
-                .unwrap_or_else(|| {
-                    let fetch_error = conversations_handle
-                        .as_ref(ctx)
-                        .task_fetch_error(&task_id)
-                        .map(str::to_owned);
-                    ConversationDetailsData::from_task_id(task_id, fetch_error)
-                });
-            self.conversation_details_panel.update(ctx, |panel, ctx| {
-                panel.set_conversation_details(data, ctx);
-            });
-            return;
-        }
-
-    }
-
-    pub(in crate::terminal::view) fn refresh_conversation_details_panel_if_open(
-        &mut self,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if self.is_conversation_details_panel_open && self.can_show_conversation_details_ui(ctx) {
-            self.fetch_and_update_conversation_details_panel(ctx);
-            ctx.notify();
-        }
-    }
-
-    /// Auto-opens the conversation details panel once for cloud mode runs.
-    /// This is used for legacy local cloud mode session startup and shared
-    /// ambient session joins. Local non-cloud conversations require an explicit
-    /// user click on the pane-header toggle button.
-    pub(in crate::terminal::view) fn maybe_auto_open_conversation_details_panel(
-        &mut self,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if self.has_auto_opened_conversation_details_panel {
-            return;
-        }
-        self.has_auto_opened_conversation_details_panel = true;
-
-        match self.conversation_details_panel_auto_open_policy {
-            ConversationDetailsPanelAutoOpenPolicy::DefaultOpen => {
-                self.is_conversation_details_panel_open = true;
-                self.fetch_and_update_conversation_details_panel(ctx);
-                ctx.notify();
-            }
-            ConversationDetailsPanelAutoOpenPolicy::DefaultClosed => {}
-        }
-    }
 }
