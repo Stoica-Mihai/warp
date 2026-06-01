@@ -330,11 +330,17 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Step 5 (`97a134ef`): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType kept real. 3-gate 0/0/0.
 - Step 6 (`125c0f72`): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op; `#[path]` redirect keeps 72 external `::history_model::` imports unchanged. 3-gate 0/0/0.
 
-**CURRENT STATE (2026-06-01 session 6):**
+**CURRENT STATE (2026-06-01 session 7):**
 - 3-gate: **0/0/0**
-- Binary: **776.7 MB** (`92742608`, −67.4 MB total vs 844.2 MB baseline)
-- Input struct AI fields DONE. inline_action/ + stubs = next target (Step 7). See `/tmp/phase-h-handoff.md`.
-- Session 6 commits: `b2ba5b4a` (AI models → Input::new() locals, −4 new() params) + `92742608` (remove AI fields from Input struct, −2,515 LoC, 19 test fns deleted)
+- Binary: **773.0 MB** (`e481e765`, −3.74 MB vs `92742608`)
+- Step 7 DONE: inline_action/ (27 files, ~14k LoC) deleted. CodeDiffView callers cleaned (passive_code_diff.rs, code_diff_pane.rs, code_diff_pane_model.rs, on_maa_code_diff_generated, open_code_diff, vertical_tabs, orchestration_config_block.rs). Stub files RESTORED (block_stubs/action_stubs/history_model_stubs/context_model_stubs/orchestration_stubs). Oracle loop: fixed block_stubs.rs CodeDiffView references, code_block.rs inline_action imports → terminal/view/ canonical.
+- Session 7 commits: `e481e765` (Step 7 — inline_action/ deleted, CodeDiffView callers removed)
+
+**NEXT: Delete all stub files + oracle loop (Step 8)**:
+Stubs must be deleted with simultaneous excision of all caller files. Pre-map callers before deleting.
+Key files to excise: slash_command_model.rs, models/view.rs, terminal_message_bar.rs, context_chips/display.rs, workspace/view.rs, pane_group/mod.rs, terminal/input.rs, terminal/model/blocks.rs.
+
+**LESSON (session 7):** Deleting all 5 stubs at once caused 92 errors across ~60 files. Either delete stubs one at a time (per-stub oracle loop) or pre-map ALL callers before deleting. The 60-file cascade is manageable but requires a dedicated session with full pre-analysis.
 
 ### Sub-task A: Relocate shared non-AI modules — ✅ DONE
 
