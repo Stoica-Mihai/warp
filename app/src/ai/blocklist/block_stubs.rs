@@ -796,9 +796,7 @@ pub enum AIBlockEvent {
         is_visible: bool,
     },
     ToggleCodeDiffVisibility,
-    OpenCodeWithDiff {
-        view: ViewHandle<crate::ai::blocklist::inline_action::code_diff_view::CodeDiffView>,
-    },
+    OpenCodeWithDiff,
     #[cfg(feature = "local_fs")]
     OpenDetectedFilePath {
         absolute_path: std::path::PathBuf,
@@ -883,7 +881,7 @@ impl AIBlock {
     pub fn collect_imported_comments(&self) -> Option<ImportedComments> { None }
     pub fn conversation_id(&self) -> Option<crate::ai::agent::conversation::AIConversationId> { None }
     pub fn dismiss_ai_tooltips(&mut self, _ctx: &mut ViewContext<Self>) {}
-    pub fn find_undismissed_code_diff(&self, _app: &AppContext) -> Option<warpui::ViewHandle<crate::ai::blocklist::inline_action::code_diff_view::CodeDiffView>> { None }
+    pub fn find_undismissed_code_diff(&self, _app: &AppContext) -> Option<()> { None }
     pub fn get_preceding_user_query(&self, _app: &AppContext) -> String { String::new() }
     pub fn has_any_imported_comments(&self) -> bool { false }
     pub fn hovered_rich_content_link(&self) -> Option<crate::terminal::view::RichContentLink> { None }
@@ -891,7 +889,7 @@ impl AIBlock {
     pub fn is_hidden(&self, _app: &AppContext) -> bool { false }
     pub fn is_restored(&self) -> bool { false }
     pub fn num_requested_commands(&self) -> usize { 0 }
-    pub fn pending_unit_test_suggestion(&self, _app: &AppContext) -> Option<warpui::ViewHandle<crate::ai::blocklist::inline_action::suggested_unit_tests::SuggestedUnitTestsView>> { None }
+    pub fn pending_unit_test_suggestion(&self, _app: &AppContext) -> Option<()> { None }
     pub fn requested_commands_iter<'a>(&'a self) -> impl Iterator<Item = (crate::ai::agent::AIAgentActionId, ())> + 'a { std::iter::empty() }
     pub fn revert_all_diffs(&mut self, _app: &mut AppContext) {}
     pub fn selected_text(&self, _app: &AppContext) -> Option<String> { None }

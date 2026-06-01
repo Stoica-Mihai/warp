@@ -29,7 +29,6 @@ pub(crate) use response_stream_id::{ClientIdentifiers, ResponseStreamId};
 pub(crate) use session_context::SessionContext;
 #[path = "history_model_stubs.rs"]
 pub mod history_model;
-pub mod inline_action;
 mod input_config;
 pub(crate) mod keystroke_render;
 mod permissions;
@@ -87,7 +86,7 @@ mod input_stubs {
     }
     impl BlocklistAIInputModel {
         pub fn new(_model: std::sync::Arc<parking_lot::FairMutex<crate::terminal::TerminalModel>>,
-                   _ctx_model: warpui::ModelHandle<super::context_model_stubs::BlocklistAIContextModel>,
+                   _ctx_model: warpui::ModelHandle<super::BlocklistAIContextModel>,
                    _terminal_view_id: warpui::EntityId,
                    _ctx: &mut ModelContext<Self>) -> Self {
             Self { input_config: InputConfig { input_type: InputType::Shell, is_locked: false } }

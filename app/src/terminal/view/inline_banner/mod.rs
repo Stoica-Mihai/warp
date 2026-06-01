@@ -1,8 +1,6 @@
 //! This module contains logic to render inline banners for various use cases in the Blocklist. An
 //! inline banner is distinct from a typical app banner in that inline banner are rendered within
 //! the Blocklist (between blocks) while app banners are pinned to the top of the window.
-mod passive_code_diff;
-pub use passive_code_diff::*;
 mod agent_mode_setup;
 mod alias_expansion;
 mod anonymous_user_ai_sign_up;

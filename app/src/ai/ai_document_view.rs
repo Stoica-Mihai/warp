@@ -27,7 +27,6 @@ use crate::ai::document::ai_document_model::{
     AIDocumentId, AIDocumentInstance, AIDocumentModel, AIDocumentModelEvent, AIDocumentSaveStatus,
     AIDocumentUpdateSource, AIDocumentUserEditStatus, AIDocumentVersion,
 };
-use crate::ai::document::orchestration_config_block::OrchestrationConfigBlockView;
 use crate::appearance::Appearance;
 use crate::drive::items::WarpDriveItemId;
 use crate::drive::CloudObjectTypeAndId;
@@ -158,7 +157,6 @@ pub struct AIDocumentView {
     synced_status_mouse_state: MouseStateHandle,
     view_position_id: String,
     version_button: ViewHandle<ActionButton>,
-    orchestration_config_block: Option<ViewHandle<OrchestrationConfigBlockView>>,
 }
 
 impl AIDocumentView {
@@ -269,31 +267,6 @@ impl AIDocumentView {
                         let our_conv = AIDocumentModel::as_ref(ctx)
                             .get_conversation_id_for_document_id(&document_id);
                         if our_conv.as_ref() == Some(cid) {
-                            // Lazily create the config block view if the
-                            // plan sidebar opened before the orchestration
-                            // config arrived.
-                            let was_freshly_created = if me.orchestration_config_block.is_none() {
-                                let conv_id = *cid;
-                                // TODO: introduce DocumentId / PlanId newtypes to make this
-                                // conversion type-safe.
-                                let plan_id = document_id.to_string();
-                                me.orchestration_config_block =
-                                    Some(ctx.add_typed_action_view(move |ctx| {
-                                        OrchestrationConfigBlockView::new(conv_id, plan_id, ctx)
-                                    }));
-                                true
-                            } else {
-                                false
-                            };
-                            // Arm auto-pop for live agent dispatches but
-                            // not for restore-hydrated events.
-                            if was_freshly_created && !*from_restore {
-                                if let Some(block) = &me.orchestration_config_block {
-                                    block.update(ctx, |block, ctx| {
-                                        block.arm_for_fresh_dispatch(ctx);
-                                    });
-                                }
-                            }
                             ctx.notify();
                         }
                     }
@@ -428,14 +401,6 @@ impl AIDocumentView {
                         .map(|_| cid)
                 })
         });
-        let doc_id_for_block = document_id;
-        let orchestration_config_block = has_orchestration_config.map(|conv_id| {
-            let plan_id = doc_id_for_block.to_string();
-            ctx.add_typed_action_view(move |ctx| {
-                OrchestrationConfigBlockView::new(conv_id, plan_id, ctx)
-            })
-        });
-
         let mut me = Self {
             document_id,
             document_version,
@@ -453,7 +418,6 @@ impl AIDocumentView {
             synced_status_mouse_state: MouseStateHandle::default(),
             view_position_id,
             version_button,
-            orchestration_config_block,
         };
         // Force update the editor view based on the initial document version
         me.refresh(ctx);
@@ -1054,20 +1018,6 @@ impl View for AIDocumentView {
 
         let mut content_column =
             Flex::column().with_cross_axis_alignment(CrossAxisAlignment::Stretch);
-
-        // Orchestration config block — shown above the editor when the
-        // conversation has an active OrchestrationConfigSnapshot.
-        if has_orchestration_config {
-            if let Some(config_block) = &self.orchestration_config_block {
-                content_column.add_child(
-                    Container::new(ChildView::new(config_block).finish())
-                        .with_horizontal_padding(16.)
-                        .with_padding_bottom(12.)
-                        .with_padding_top(8.)
-                        .finish(),
-                );
-            }
-        }
 
         let editor = Container::new(ChildView::new(&self.editor).finish())
             .with_padding_left(8.)
