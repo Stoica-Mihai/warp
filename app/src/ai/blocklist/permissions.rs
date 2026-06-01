@@ -11,6 +11,8 @@ use warp_core::user_preferences::GetUserPreferences;
 use warp_util::path::EscapeChar;
 use warpui::{AppContext, Entity, EntityId, ModelContext, SingletonEntity};
 
+#[cfg(test)]
+use crate::ai::blocklist::BlocklistAIHistoryModel;
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::execution_profiles::profiles::{AIExecutionProfilesModel, ClientProfileId};
 use crate::ai::execution_profiles::{
