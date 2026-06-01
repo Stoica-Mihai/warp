@@ -330,29 +330,36 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Step 5 (`97a134ef`): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType kept real. 3-gate 0/0/0.
 - Step 6 (`125c0f72`): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op; `#[path]` redirect keeps 72 external `::history_model::` imports unchanged. 3-gate 0/0/0.
 
-**CURRENT STATE (2026-06-01 session 11 complete):**
+**CURRENT STATE (2026-06-01 session 12 in progress):**
 - 3-gate: **0/0/0**
-- Binary: **769.6 MB** (0 B delta — block_stubs AIBlock/view_impl were already linker-dead)
-- **ALL 5 stub files DELETED**: `action_stubs.rs`, `context_model_stubs.rs`, `orchestration_stubs.rs`, `history_model_stubs.rs`, `block_stubs.rs` ✅
-- `CLISubagentController` + `CLISubagentView` relocated to real modules: `ai/blocklist/cli_controller.rs` + `ai/blocklist/cli.rs`
-- mod.rs: `#[path]` redirect replaced with inline `pub mod block { pub use super::cli_controller; pub use super::cli; }` thin wrapper; unused re-exports removed
-- 9 callers updated (`terminal/input.rs`, `input/models/view.rs`, `input/slash_commands/data_source/mod.rs`, `model/block/interaction_mode.rs`, `model/block/serialized_block.rs`, `universal_developer_input.rs`, `view.rs`, `view_tests.rs`)
-- Commit: `2ad3c87d`
+- Binary: **768.9 MB** (−0.77 MB from session 11; 4 strip commits)
+- Session 12 deletions: `suggested_agent_mode_workflow_modal` + `suggested_rule_modal` + `summarization_cancel_dialog` (all live-linked via ctx.add_typed_action_view); `telemetry_banner` (TelemetryBanner view + HideTelemetryBannerPermanently action); `ai/blocklist/usage/` dir; `codebase_index_speedbump_banner`; `avatar_disc`, `suggestion_chip_view`, `telemetry` orphans. Also fixed: pub mod block visibility bug, bug where stale incremental state masked compile errors.
+- Commits: `9a02a0c9`, `22fe13f0`, `b08085ec`, `e4fb19dd`
+- Total session 12 LoC removed: ~4,100
 
-**NEXT (session 12): Clean remaining AI in ai/blocklist/ + spider file excisions**
+**Remaining in `ai/blocklist/` (KEEP or deferred):**
+- `cli_controller.rs` + `cli.rs` — KEEP (CLISubagentController real functionality)
+- `code_block.rs` — KEEP (code rendering in terminal output)
+- `handoff/` — cloud agent handoff; used by ambient_agent + remote_server + terminal/input
+- `keystroke_render.rs` — KEEP (keyboard shortcut rendering in terminal)
+- `permissions.rs` — BlocklistAIPermissions; all callers AI territory; defer with spider excisions
+- `persistence.rs` — SerializedBlockListItem load-bearing; PersistedAIInput AI-only; defer
+- `prompt/` — PromptAlertView live-linked (ctx.add_typed_action_view) in prompt_suggestions.rs; prompt_suggestions is inline banner infra; **next target**
+- `input_stubs` inline in mod.rs — BlocklistAIInputModel stub; needed until spider files cleaned
+- `view_util.rs` — KEEP (colors/icons used in terminal UI)
+- `request_input.rs`, `response_stream_id.rs`, `session_context.rs` — KEEP (AI session types)
 
-Remaining non-trivial AI in `ai/blocklist/`:
-- `permissions.rs` — all callers are AI territory; delete together with spider file cleanup
-- `persistence.rs` — `SerializedBlockListItem` is load-bearing (session restore); relocate before delete; `PersistedAIInput`/`PersistedAIInputType` are AI-only (delete with permissions)
-- `input_stubs` inline in mod.rs — can simplify once BlocklistAIInputModel callers fully excised from spider files
+**NEXT: Delete `prompt/prompt_alert.rs` + `terminal/view/inline_banner/prompt_suggestions.rs`**
 
-Spider files still holding AI refs (mostly CLISubagentController usage + AIBlock render branches):
-- `terminal/view.rs` — AIBlock rendering + CLISubagentController subscriptions
-- `terminal/input.rs` — CLISubagentController creation + AI model refs
-- `workspace/view.rs` — remaining AI history model + context refs
-- `pane_group/mod.rs` — remaining AI block registration paths
+`PromptAlertView` is live-linked via `ctx.add_typed_action_view(PromptAlertView::new)` in
+`terminal/view/inline_banner/prompt_suggestions.rs`. All callers are AI/billing-specific
+(SignupAnonymousUser, OpenBillingAndUsagePage, OpenPrivacyPage, OpenBillingPortal).
+To delete: remove PromptAlertView field + subscription + handler from prompt_suggestions.rs,
+then check if all of prompt_suggestions.rs can be deleted (the prompt suggestions inline banner
+is AI-powered UX that suggests commands). Then clean up prompt/ module.
 
-After spider file excisions + permissions.rs/persistence.rs cleanup: the `ai/blocklist/` directory will be mostly empty (just prompt/, code_block.rs, view_util.rs, keystroke_render.rs, cli_controller.rs, cli.rs, and the shared infra). Then the `ai/agent/` crate deletion becomes unblocked.
+After that: `handoff/` deletion requires touching ambient_agent + remote_server + terminal/input;
+defer to fresh session.
 
 **PREVIOUS STATE (2026-06-01 session 9 final):**
 - 3-gate: **0/0/0** (commits `28c4ed8b`, `1f3f26b3`, `2640a60f`)
