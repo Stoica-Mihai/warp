@@ -330,26 +330,29 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Step 5 (`97a134ef`): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType kept real. 3-gate 0/0/0.
 - Step 6 (`125c0f72`): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op; `#[path]` redirect keeps 72 external `::history_model::` imports unchanged. 3-gate 0/0/0.
 
-**CURRENT STATE (2026-06-01 session 10 complete):**
+**CURRENT STATE (2026-06-01 session 11 complete):**
 - 3-gate: **0/0/0**
-- Binary: **769.6 MB** (−3.3 MB from session 9; 4/5 stub files deleted)
-- **4 stub files DELETED**: `action_stubs.rs`, `context_model_stubs.rs`, `orchestration_stubs.rs`, `history_model_stubs.rs`
-- **`block_stubs.rs` DEFERRED**: still needed for `CLISubagentController`, `CLISubagentEvent`, `CLISubagentView`, `LongRunningCommandControlState`, `UserTakeOverReason`. Must move to real module before deletion.
-- ~80 files cleaned of stub type refs (serial approach, 3-gate checked frequently)
-- Full session 11 handoff at `/tmp/session11-handoff.md`
+- Binary: **769.6 MB** (0 B delta — block_stubs AIBlock/view_impl were already linker-dead)
+- **ALL 5 stub files DELETED**: `action_stubs.rs`, `context_model_stubs.rs`, `orchestration_stubs.rs`, `history_model_stubs.rs`, `block_stubs.rs` ✅
+- `CLISubagentController` + `CLISubagentView` relocated to real modules: `ai/blocklist/cli_controller.rs` + `ai/blocklist/cli.rs`
+- mod.rs: `#[path]` redirect replaced with inline `pub mod block { pub use super::cli_controller; pub use super::cli; }` thin wrapper; unused re-exports removed
+- 9 callers updated (`terminal/input.rs`, `input/models/view.rs`, `input/slash_commands/data_source/mod.rs`, `model/block/interaction_mode.rs`, `model/block/serialized_block.rs`, `universal_developer_input.rs`, `view.rs`, `view_tests.rs`)
+- Commit: `2ad3c87d`
 
-**NEXT (session 11): Delete block_stubs.rs**
+**NEXT (session 12): Clean remaining AI in ai/blocklist/ + spider file excisions**
 
-Steps (SERIAL, 3-gate between each):
-1. Create `app/src/ai/blocklist/cli_controller.rs` — copy content from `block_stubs.rs`'s `pub mod cli_controller { ... }` block (lines ~155–287). Make it a top-level module (no wrapping `pub mod cli_controller`).
-2. Create `app/src/ai/blocklist/cli.rs` — copy `CLISubagentView` + `CLISubagentViewEvent` from `block_stubs.rs` lines ~120–152.
-3. Update `app/src/ai/blocklist/mod.rs`: add `pub(crate) mod cli_controller; pub(crate) mod cli;`; remove `#[path = "block_stubs.rs"] pub mod block;`.
-4. Update 8 caller import paths (all change `block::cli_controller` → `cli_controller`, `block::cli` → `cli`). Files: `terminal/input.rs:144`, `terminal/input/models/view.rs:15`, `terminal/input/slash_commands/data_source/mod.rs:22`, `terminal/model/block/interaction_mode.rs:9`, `terminal/model/block/serialized_block.rs:12`, `terminal/universal_developer_input.rs:30`, `terminal/view.rs:222+223`.
-5. Remove mod.rs line 98: `pub use crate::ai::blocklist::block::{secret_redaction, AIBlockResponseRating, TextLocation};` (no external callers).
-6. Run 3-gate → all 0 → delete `app/src/ai/blocklist/block_stubs.rs`.
-7. Build binary → measure → add build-size-log row.
+Remaining non-trivial AI in `ai/blocklist/`:
+- `permissions.rs` — all callers are AI territory; delete together with spider file cleanup
+- `persistence.rs` — `SerializedBlockListItem` is load-bearing (session restore); relocate before delete; `PersistedAIInput`/`PersistedAIInputType` are AI-only (delete with permissions)
+- `input_stubs` inline in mod.rs — can simplify once BlocklistAIInputModel callers fully excised from spider files
 
-Expected: **large binary reduction** (~5–20 MB) from AIBlock/AIBlockModel/view_impl dead-code elimination.
+Spider files still holding AI refs (mostly CLISubagentController usage + AIBlock render branches):
+- `terminal/view.rs` — AIBlock rendering + CLISubagentController subscriptions
+- `terminal/input.rs` — CLISubagentController creation + AI model refs
+- `workspace/view.rs` — remaining AI history model + context refs
+- `pane_group/mod.rs` — remaining AI block registration paths
+
+After spider file excisions + permissions.rs/persistence.rs cleanup: the `ai/blocklist/` directory will be mostly empty (just prompt/, code_block.rs, view_util.rs, keystroke_render.rs, cli_controller.rs, cli.rs, and the shared infra). Then the `ai/agent/` crate deletion becomes unblocked.
 
 **PREVIOUS STATE (2026-06-01 session 9 final):**
 - 3-gate: **0/0/0** (commits `28c4ed8b`, `1f3f26b3`, `2640a60f`)
