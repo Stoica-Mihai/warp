@@ -332,7 +332,7 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 **CURRENT STATE (2026-06-01 session 12 complete):**
 - 3-gate: **0/0/0**
-- Binary: **768.9 MB** (−0.77 MB from session 11; binary flat since despite further deletions)
+- Binary: **768.5 MB** (−1.13 MB from session 11; 768,516,552 B measured after final build)
 - Session 12 total commits (10 strip commits): `9a02a0c9`…`3d2e0e0b`
 - Session 12 total LoC removed: ~9,600 across 30+ files
 
