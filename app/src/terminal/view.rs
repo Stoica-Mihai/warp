@@ -223,9 +223,6 @@ use crate::ai::blocklist::cli::CLISubagentView;
 use crate::ai::blocklist::cli_controller::{
     CLISubagentController, CLISubagentEvent, UserTakeOverReason,
 };
-use crate::ai::blocklist::codebase_index_speedbump_banner::{
-    CodebaseIndexSpeedbumpBannerAction, CodebaseIndexSpeedbumpBannerState, VisibilityState,
-};
 use crate::ai::blocklist::{
     ai_brand_color,
     get_ai_block_overflow_menu_element_position_id, get_attached_blocks_chip_element_position_id,
@@ -930,7 +927,6 @@ pub enum InlineBannerType {
     ShellProcessTerminated,
     OpenInWarp,
     VimMode,
-    CodebaseIndexSpeedbump,
     AgentModeSetup,
     AnonymousUserAISignUp,
     AwsBedrockLogin,
@@ -944,7 +940,6 @@ impl InlineBannerType {
         match self {
             // Agent-related banners: visible in agent view
             Self::PromptSuggestions
-            | Self::CodebaseIndexSpeedbump
             | Self::AgentModeSetup
             | Self::AnonymousUserAISignUp
             | Self::AwsBedrockLogin
@@ -1004,8 +999,6 @@ struct InlineBannersState {
     open_in_warp_banner: Option<OpenInWarpBannerState>,
 
     vim_banner_state: Option<VimModeBannerState>,
-
-    codebase_index_speedbump_banner: Option<CodebaseIndexSpeedbumpBannerState>,
 
     agent_setup_speedbump_banner: Option<AgentModeSetupSpeedbumpBannerState>,
 
@@ -3337,25 +3330,6 @@ impl TerminalView {
         ctx.subscribe_to_view(&environment_setup_mode_selector, |me, _, event, ctx| {
             me.handle_environment_setup_mode_selector_event(event, ctx);
         });
-
-        if FeatureFlag::CodebaseIndexSpeedbump.is_enabled() {
-            // Check whether or not to show the codebase index speedbump when the codebase indexing settings change.
-            ctx.subscribe_to_model(&CodeSettings::handle(ctx), |me, _, _, ctx| {
-                me.check_codebase_index_speedbump_on_settings_changed(ctx);
-            });
-
-            // Check whether or not to show the codebase index speedbump when AI settings change.
-            ctx.subscribe_to_model(&AISettings::handle(ctx), |me, _, ai_settings_event, ctx| {
-                match ai_settings_event {
-                    AISettingsChangedEvent::IsAnyAIEnabled { .. }
-                    | AISettingsChangedEvent::AgentModeCodingPermissions { .. }
-                    | AISettingsChangedEvent::AgentModeCodingFileReadAllowlist { .. } => {
-                        me.check_codebase_index_speedbump_on_settings_changed(ctx);
-                    }
-                    _ => {}
-                }
-            });
-        }
 
         ctx.subscribe_to_model(&AISettings::handle(ctx), |me, _, ai_settings_event, ctx| {
             if let AISettingsChangedEvent::AwsBedrockCredentialsEnabled { .. } = ai_settings_event {
@@ -6595,101 +6569,6 @@ impl TerminalView {
         }
     }
 
-    fn codebase_index_speedbump_banner_action(
-        &mut self,
-        action: CodebaseIndexSpeedbumpBannerAction,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match action {
-            CodebaseIndexSpeedbumpBannerAction::ToggleAlwaysAllow => {
-                if let Some(banner_state) =
-                    &mut self.inline_banners_state.codebase_index_speedbump_banner
-                {
-                    banner_state.toggle_always_allow_checked();
-                }
-                ctx.notify();
-            }
-            CodebaseIndexSpeedbumpBannerAction::AllowIndexing => {
-                if let Some(banner_state) =
-                    &mut self.inline_banners_state.codebase_index_speedbump_banner
-                {
-                    // Set "Read files" setting to true if the checkbox was checked
-                    if banner_state.always_allow_checked {
-                        CodeSettings::handle(ctx).update(ctx, |model, ctx| {
-                            report_if_error!(model.auto_indexing_enabled.set_value(true, ctx));
-                        });
-                    }
-
-                    // Index the codebase
-                    CodebaseIndexManager::handle(ctx).update(ctx, |manager, ctx| {
-                        manager.index_directory(banner_state.repo_path.clone(), ctx);
-                    });
-
-                    // Change state to indexing
-                    banner_state.show_indexing_banner();
-                }
-                ctx.notify();
-            }
-            CodebaseIndexSpeedbumpBannerAction::Close => {
-                if let Some(banner_state) = self
-                    .inline_banners_state
-                    .codebase_index_speedbump_banner
-                    .take()
-                {
-                    // If user dismissed the banner, we want to persist the dismissal (only if it's a speedbump banner).
-                    if banner_state.visibility_state == VisibilityState::Speedbump {
-                        let mut dismissed_repo_paths = AISettings::as_ref(ctx)
-                            .codebase_index_speedbump_banner_dismissed_for_repo_paths
-                            .clone();
-                        dismissed_repo_paths.push(banner_state.repo_path.clone());
-                        AISettings::handle(ctx).update(ctx, |ai_settings, ctx| {
-                            if let Err(e) = ai_settings
-                                .codebase_index_speedbump_banner_dismissed_for_repo_paths
-                                .set_value(dismissed_repo_paths, ctx) {
-                                    log::error!(
-                                        "Failed to persist 'Codebase indexing speedbump banner dismissed' setting: {e}"
-                                    );
-                                }
-                        });
-                    }
-
-                    // Remove banner
-                    self.model
-                        .lock()
-                        .block_list_mut()
-                        .remove_inline_banner(banner_state.id);
-                }
-                ctx.notify();
-            }
-            CodebaseIndexSpeedbumpBannerAction::ViewStatus => {
-                ctx.emit(Event::OpenSettings(SettingsSection::CodeIndexing));
-            }
-            CodebaseIndexSpeedbumpBannerAction::DismissForever => {
-                AISettings::handle(ctx).update(ctx, |ai_settings, ctx| {
-                    if let Err(e) = ai_settings
-                        .codebase_index_speedbump_banner_globally_dismissed
-                        .set_value(true, ctx)
-                    {
-                        log::error!(
-                            "Failed to persist 'Codebase indexing speedbump banner globally dismissed' setting: {e}"
-                        );
-                    }
-                });
-                if let Some(banner_state) = self
-                    .inline_banners_state
-                    .codebase_index_speedbump_banner
-                    .take()
-                {
-                    self.model
-                        .lock()
-                        .block_list_mut()
-                        .remove_inline_banner(banner_state.id);
-                }
-                ctx.notify();
-            }
-        }
-    }
-
     #[cfg(feature = "local_fs")]
     fn insert_agent_mode_setup_speedbump_banner(
         &mut self,
@@ -6717,50 +6596,6 @@ impl TerminalView {
         self.mark_agent_init_callout_as_shown_for_directory(&repo_path, ctx);
 
         ctx.notify();
-    }
-
-    #[cfg(feature = "local_fs")]
-    fn insert_codebase_index_speedbump_banner(
-        &mut self,
-        repo_path: PathBuf,
-        show_is_indexing: bool,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        // Create new inline banner
-        let banner_id = self.inline_banners_state.next_banner_id();
-        let mut banner_state = CodebaseIndexSpeedbumpBannerState::new(banner_id, repo_path);
-        if show_is_indexing {
-            banner_state.show_indexing_banner(); // Set to indexing state
-        }
-
-        // Insert the banner into the block list
-        self.model
-            .lock()
-            .block_list_mut()
-            .append_inline_banner_with_custom_height(
-                InlineBannerItem::new(banner_id, InlineBannerType::CodebaseIndexSpeedbump),
-                4.0,
-            );
-
-        // Store the banner state
-        self.inline_banners_state.codebase_index_speedbump_banner = Some(banner_state);
-
-        ctx.notify();
-    }
-
-    #[cfg(feature = "local_fs")]
-    fn remove_codebase_index_speedbump_banner(&mut self, ctx: &mut ViewContext<Self>) {
-        if let Some(banner_state) = self
-            .inline_banners_state
-            .codebase_index_speedbump_banner
-            .take()
-        {
-            self.model
-                .lock()
-                .block_list_mut()
-                .remove_inline_banner(banner_state.id);
-            ctx.notify();
-        }
     }
 
     #[cfg(feature = "local_fs")]
@@ -9299,30 +9134,8 @@ impl TerminalView {
     fn init_project_and_suppress_banners(&mut self, path: PathBuf, ctx: &mut ViewContext<Self>) {
         log::info!("Indexing and running /init for new repo at {path:?}");
 
-        // Ensure we don't hit speedumps - Mark this as "already shown and dismissed"
-        // This method is used when opening a new repo that the user has selected directly.
         self.mark_agent_init_callout_as_shown_for_directory(&path, ctx);
-        AISettings::handle(ctx).update(ctx, |ai_settings, ctx| {
-            let mut dismissed_paths = ai_settings
-                .codebase_index_speedbump_banner_dismissed_for_repo_paths
-                .clone();
-            if !dismissed_paths.contains(&path) {
-                dismissed_paths.push(path.clone());
-                let _ = ai_settings
-                    .codebase_index_speedbump_banner_dismissed_for_repo_paths
-                    .set_value(dismissed_paths, ctx);
-            }
-        });
-
         self.init_project(true, ctx);
-    }
-
-    // Show or hide codebase index speedbump depending when a settings change happens.
-    fn check_codebase_index_speedbump_on_settings_changed(&mut self, ctx: &mut ViewContext<Self>) {
-        if let Some(working_directory) = self.pwd_if_local(ctx) {
-            let path_buf = PathBuf::from(&working_directory);
-            self.update_repo_banner_state(path_buf, ctx);
-        }
     }
 
     fn summarize_conversation(&mut self, _ctx: &mut ViewContext<Self>) {}
@@ -15993,12 +15806,6 @@ impl TerminalView {
             );
         }
 
-        if let Some(banner_state) = &self.inline_banners_state.codebase_index_speedbump_banner {
-            inline_banners.insert(
-                banner_state.id,
-                banner_state.render_codebase_index_speedbump_banner(appearance),
-            );
-        }
 
         if let Some(banner_state) = &self.inline_banners_state.agent_setup_speedbump_banner {
             inline_banners.insert(
@@ -18153,7 +17960,6 @@ impl TypedActionView for TerminalView {
             | OpenEditSkillPane { .. }
             | OpenAddPromptPane
             | AddProjectAtCurrentDirectory
-            | CodebaseIndexSpeedbumpBanner(_)
             | AgentModeSetupSpeedbumpBanner(_)
             | AnonymousUserAISignUpBanner(_)
             | SetupCloudEnvironment(_)
@@ -18649,9 +18455,6 @@ impl TypedActionView for TerminalView {
             }
             ToggleAutoexecuteMode => {}
             ToggleQueueNextPrompt => {}
-            CodebaseIndexSpeedbumpBanner(action) => {
-                self.codebase_index_speedbump_banner_action(*action, ctx);
-            }
             AgentModeSetupSpeedbumpBanner(action) => {
                 self.agent_mode_setup_speedbump_banner_action(*action, ctx)
             }
@@ -18701,11 +18504,6 @@ impl TypedActionView for TerminalView {
                                 manager.index_directory(repo_path.clone(), ctx);
                             });
 
-                            self.remove_codebase_index_speedbump_banner(ctx);
-                            self.insert_codebase_index_speedbump_banner(
-                                repo_path, true, /* show_is_indexing */
-                                ctx,
-                            );
                         }
                     }
                 }
