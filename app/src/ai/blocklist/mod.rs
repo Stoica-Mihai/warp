@@ -1,11 +1,6 @@
 //! This module contains model and view logic for Blocklist AI.
-pub(crate) mod avatar_disc;
 pub(crate) mod cli;
 pub(crate) mod cli_controller;
-pub mod block {
-    pub use super::cli;
-    pub use super::cli_controller;
-}
 pub mod code_block;
 pub(crate) mod handoff;
 
@@ -21,8 +16,6 @@ pub(crate) mod keystroke_render;
 mod permissions;
 pub(crate) mod persistence;
 pub mod prompt;
-mod suggestion_chip_view;
-pub(crate) mod telemetry;
 pub(super) mod view_util;
 
 pub use input_config::{InputConfig, InputType, InputTypeAutoDetectionSource};
@@ -83,7 +76,6 @@ pub use permissions::CommandExecutionPermissionAllowedReason;
 #[cfg_attr(target_family = "wasm", allow(unused))]
 pub(crate) use persistence::PersistedAIInputType;
 pub(crate) use persistence::{PersistedAIInput, SerializedBlockListItem};
-pub use suggestion_chip_view::*;
 pub use view_util::error_color;
 pub(crate) use view_util::{
     ai_brand_color, ai_indicator_height, format_credits,
