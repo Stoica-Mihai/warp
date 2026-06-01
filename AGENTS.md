@@ -37,7 +37,9 @@ Relocated to `terminal/view/`: inline_action_icons, inline_action_header, reques
 **Phase F sub-task C DONE** (session 3, `f048a967`):
 Deleted `ai/blocklist/block.rs` (6481 LoC) + `block/` dir (32 files, ~16k LoC). Created `block_stubs.rs` (~800 LoC) via `#[path]` redirect. Also: pure secret-detection fns extracted to `app/src/secret_redaction.rs`; render_recommended_badge inlined into keyboard_navigable_buttons.rs. 3-gate: **71/86/71** (better than pre-existing 72/87/72; `is_conversation_selected` stub added at `7a710de6` for `workspace/view.rs:13893`).
 
-**NEXT: Phase G continued — fix direct field access in pane_impl.rs/context_menu.rs, then delete AI struct fields from TerminalView + Input, then delete inline_action/ + stubs.** See plan.md.
+**Phase G session 5 DONE** (`941d7453`): `ai_context_model`/`ai_input_model`/`ai_action_model` fields removed from TerminalView struct; all external callers of `ai_context_model()` getter fixed (9 files); `input_config()` returns `InputConfig::new(app)`; `register_diffset_attachment` deleted. 3-gate 71/86/71 (no regression). `ai_context_model`/`ai_input_model`/`ai_action_model` still in **Input** struct (206+ refs).
+
+**NEXT: Fix stub signature mismatches (71→0 errors), then fix Input struct, then delete inline_action/ + stubs.** See plan.md.
 
 **STRATEGY CHANGE (session 3 lesson):** Use **delete-and-fix** not **delete-and-stub** for remaining AI code. The stub approach for block/ required ~25 oracle iterations and produced 800 LoC of stub code that yields zero binary reduction until callers are deleted anyway. For the next big deletion (inline_action/, terminal/view.rs AI branches, terminal/input.rs AI branches), delete the callers at the same time — fix errors by removing call sites, not adding stubs.
 
