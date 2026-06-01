@@ -6,7 +6,7 @@ use super::{Block, SerializedAIMetadata};
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::task::TaskId;
 use crate::ai::agent::AIAgentActionId;
-use crate::ai::blocklist::block::cli_controller::{
+use crate::ai::blocklist::cli_controller::{
     LongRunningCommandControlState, UserTakeOverReason,
 };
 use crate::terminal::event::Event;

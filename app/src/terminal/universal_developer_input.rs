@@ -27,7 +27,7 @@ use warpui::{
     View, ViewContext, ViewHandle,
 };
 
-use crate::ai::blocklist::block::cli_controller::CLISubagentController;
+use crate::ai::blocklist::cli_controller::CLISubagentController;
 use crate::ai::blocklist::prompt::prompt_alert::{PromptAlertEvent, PromptAlertView};
 use crate::ai::blocklist::prompt::PromptIconButtonTheme;
 use crate::ai::blocklist::{BlocklistAIInputModel, InputConfig, InputType};

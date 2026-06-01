@@ -12,7 +12,7 @@ use warpui::{
     ViewHandle,
 };
 
-use crate::ai::blocklist::block::cli_controller::{CLISubagentController, CLISubagentEvent};
+use crate::ai::blocklist::cli_controller::{CLISubagentController, CLISubagentEvent};
 use crate::ai::llms::{LLMId, LLMPreferences, LLMPreferencesEvent};
 use crate::features::FeatureFlag;
 use crate::search::data_source::{Query, QueryFilter};

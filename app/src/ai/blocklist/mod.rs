@@ -1,7 +1,11 @@
 //! This module contains model and view logic for Blocklist AI.
 pub(crate) mod avatar_disc;
-#[path = "block_stubs.rs"]
-pub mod block;
+pub(crate) mod cli;
+pub(crate) mod cli_controller;
+pub mod block {
+    pub use super::cli;
+    pub use super::cli_controller;
+}
 pub mod code_block;
 pub(crate) mod handoff;
 
@@ -94,5 +98,3 @@ pub(crate) use view_util::{
     render_ai_agent_mode_icon, render_ai_follow_up_icon, ATTACH_AS_AGENT_MODE_CONTEXT_TEXT,
     CLAUDE_ORANGE, NEW_AGENT_PANE_LABEL,
 };
-
-pub use crate::ai::blocklist::block::{secret_redaction, AIBlockResponseRating, TextLocation};
