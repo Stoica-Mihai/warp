@@ -349,18 +349,25 @@ Running 8+ concurrent agents that all write to overlapping files caused repeated
 
 **NEXT: Step 8c (session 10) — serial stub caller excision + delete stubs**
 
-Remaining files with stub imports (use serial approach, one file at a time):
-- `pane_group/pane/terminal_pane.rs` — 52 stubs (pane-fixer-agent reverted)
-- `ai/agent/conversation.rs` — 50 stubs (complex, implement ai-files-agent stopped)
-- `terminal/input.rs` — 31 stubs (some reverted after input-spider-agent)
-- `terminal/view.rs` — 30 stubs (view-code-cleaner partial)
-- `pane_group/mod.rs` — 19 stubs
-- `ai/agent_management/agent_management_model.rs`, `ai/conversation_navigation/mod.rs`, etc.
+Full session 10 handoff at `/tmp/session10-handoff.md`
 
-Strategy for session 10:
-1. Use ONE agent per file, wait for completion before starting next
-2. For spider files (terminal_pane.rs, conversation.rs): hand-edit + cargo check oracle loop
-3. After ALL callers clean → delete 5 stub files → remove lib.rs lines → 3-gate → binary reduction
+Key remaining stub files (51 total, current counts):
+- `pane_group/pane/terminal_pane.rs` — 52 stubs (reverted by parallel agent conflict)
+- `ai/agent/conversation.rs` — 51 stubs
+- `terminal/view.rs` — 41 stubs
+- `terminal/input.rs` — 37 stubs
+- `pane_group/mod.rs` — 18 stubs
+- ~46 smaller files (1-16 stubs each; many are trivial 1-3 line fixes)
+
+Strategy for session 10 (**CRITICAL: SERIAL, NOT PARALLEL**):
+1. Tier 1: 4 trivial test files (2 lines each) → commit
+2. Tier 2: ~30 Group C files serially → commit batches
+3. Tier 3: delete 4 AI-only test files (via removing `#[path]` decls)
+4. Tier 4 (spider files — ONE AT A TIME with cargo check between each):
+   a. `terminal_pane.rs` → commit; b. `ai/agent/conversation.rs` → commit
+   c. `terminal/input.rs` → commit; d. `terminal/view.rs` → commit
+   e. `pane_group/mod.rs` → commit
+5. Delete 5 stub files + clean mod.rs + remove lib.rs 2 lines → 3-gate → ~10-25 MB drop
 
 **LESSON (session 9):** Full stub deletion requires ALL spider files clean first. Attempted all-at-once deletion produced 109+ errors. Correct approach: excise AI branches from each spider file before deleting stubs. Use Python batch scripts for Groups A/B/C; hand-edit spider files with full context.
 
