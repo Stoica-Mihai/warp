@@ -30,9 +30,7 @@ use warpui::{
 use crate::ai::blocklist::block::cli_controller::CLISubagentController;
 use crate::ai::blocklist::prompt::prompt_alert::{PromptAlertEvent, PromptAlertView};
 use crate::ai::blocklist::prompt::PromptIconButtonTheme;
-use crate::ai::blocklist::{
-    BlocklistAIHistoryEvent, BlocklistAIInputModel, InputConfig, InputType,
-};
+use crate::ai::blocklist::{BlocklistAIInputModel, InputConfig, InputType};
 use crate::ai::AIRequestUsageModel;
 use crate::network::NetworkStatus;
 #[cfg(not(target_family = "wasm"))]
@@ -52,7 +50,6 @@ use crate::view_components::action_button::{
     ActionButton, ActionButtonTheme, ButtonSize, NakedTheme, TooltipAlignment,
 };
 use crate::workspaces::user_workspaces::UserWorkspaces;
-use crate::BlocklistAIHistoryModel;
 
 pub enum AtContextMenuDisabledReason {
     #[cfg(target_family = "wasm")]
@@ -457,27 +454,6 @@ impl UniversalDeveloperInputButtonBar {
         });
 
 
-        ctx.subscribe_to_model(
-            &BlocklistAIHistoryModel::handle(ctx),
-            |me, _, event, ctx| {
-                if event
-                    .terminal_view_id()
-                    .is_some_and(|id| id != me.terminal_view_id)
-                {
-                    return;
-                }
-
-                match event {
-                    BlocklistAIHistoryEvent::StartedNewConversation { .. }
-                    | BlocklistAIHistoryEvent::SetActiveConversation { .. }
-                    | BlocklistAIHistoryEvent::UpdatedTodoList { .. }
-                    | BlocklistAIHistoryEvent::UpdatedConversationStatus { .. } => {
-                        ctx.notify();
-                    }
-                    _ => (),
-                }
-            },
-        );
 
         ctx.subscribe_to_model(&input_model, move |me, input_model, event, ctx| {
             if !event.did_update_input_config() {

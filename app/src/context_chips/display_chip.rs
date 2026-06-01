@@ -547,11 +547,9 @@ impl DisplayChip {
     ) -> Self {
         let display_chip_kind = match chip_result.kind {
             ContextChipKind::AgentPlanAndTodoList => {
-                let context_model = config.ai_context_model.clone();
                 let view_id = config.terminal_view_id;
                 let plan_and_todo_list = ctx.add_typed_action_view(|ctx| {
                     PlanAndTodoListView::new(
-                        context_model,
                         config.menu_positioning_provider.clone(),
                         view_id,
                         is_in_agent_view,

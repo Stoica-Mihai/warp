@@ -151,13 +151,10 @@ use crate::ai::blocklist::handoff::touched_repos::{
 use crate::ai::blocklist::handoff::{HandoffLaunchAttachments, PendingCloudLaunch};
 use crate::ai::blocklist::prompt::prompt_alert::{PromptAlertEvent, PromptAlertView};
 use crate::ai::blocklist::telemetry_banner::should_collect_ai_ugc_telemetry;
-#[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-use crate::ai::blocklist::PendingAttachment;
 use crate::ai::blocklist::{
-    ai_brand_color, ai_indicator_height, render_ai_agent_mode_icon, render_ai_follow_up_icon,
-    AttachmentType, BlocklistAIActionModel, BlocklistAIContextEvent, BlocklistAIContextModel,
-    BlocklistAIHistoryEvent,
-    BlocklistAIHistoryModel, BlocklistAIInputEvent, BlocklistAIInputModel, InputConfig, InputType,
+    ai_indicator_height, render_ai_agent_mode_icon,
+    BlocklistAIActionModel, BlocklistAIContextModel,
+    BlocklistAIInputEvent, BlocklistAIInputModel, InputConfig, InputType,
     InputTypeAutoDetectionSource,
 };
 use crate::ai::cloud_agent_settings::CloudAgentSettings;
@@ -1564,8 +1561,6 @@ impl AmbientAgentViewState {
 struct AttachmentChip {
     file_name: String,
     mouse_state_handle: MouseStateHandle,
-    attachment_type: AttachmentType,
-    /// Index into the unified pending_attachments list for deletion.
     index: usize,
 }
 
@@ -2320,7 +2315,6 @@ impl Input {
             let has_prompt_suggestion_banner_for_keymap = has_prompt_suggestion_banner.clone();
             let input_render_state_model_handle_clone = input_render_state_model_handle.clone();
 
-            let ai_context_model_clone = ai_context_model.clone();
             let ai_input_model = ai_input_model.clone();
 
             ctx.subscribe_to_model(&ai_input_model, |me, _, _, ctx| {
@@ -2384,11 +2378,8 @@ impl Input {
                                 )
                             }
 
-                            // Render the AI mode indicator to the left of the editor if we're in AI mode or the AI suggested a command.
-                            // Also renders the reply icon when following up in an existing conversation.
                             if let Some(ai_input_indicator) = maybe_render_ai_input_indicators(
                                 &ai_input_model,
-                                &ai_context_model_clone,
                                 ai_follow_up_icon_mouse_state_clone.clone(),
                                 terminal_view_id,
                                 app,
@@ -2672,7 +2663,7 @@ impl Input {
             if let Some(buffer_state) = buffer_to_restore {
                 me.restore_buffer_state(buffer_state, ctx);
             }
-            let _ = input_config_to_restore; // AI input model removed; no-op.
+            let _ = input_config_to_restore;
 
             me.set_zero_state_hint_text(ctx);
             ctx.notify();
@@ -2711,97 +2702,8 @@ impl Input {
             me.set_zero_state_hint_text(ctx);
             ctx.notify();
         });
-        // Re-render the input's placeholder/hint text when any history event that could
-        // change `selected_conversation_status_for_hint` fires — the selected conversation
-        // swapping, its status changing, its title being set/unset, it becoming non-empty,
-        // or its being cleared. Mirrors the set used by
-        // `agent_conversation_event_affects_vertical_tabs` in `workspace/view.rs` that keeps
-        // vertical tab progress indicators in sync.
-        ctx.subscribe_to_model(
-            &BlocklistAIHistoryModel::handle(ctx),
-            move |me, _, event, ctx| {
-                let affects_hint = matches!(
-                    event,
-                    BlocklistAIHistoryEvent::UpdatedConversationStatus { .. }
-                        | BlocklistAIHistoryEvent::SetActiveConversation { .. }
-                        | BlocklistAIHistoryEvent::ClearedActiveConversation { .. }
-                        | BlocklistAIHistoryEvent::ClearedConversationsInTerminalView { .. }
-                        | BlocklistAIHistoryEvent::StartedNewConversation { .. }
-                        | BlocklistAIHistoryEvent::SplitConversation { .. }
-                        | BlocklistAIHistoryEvent::AppendedExchange { .. }
-                        | BlocklistAIHistoryEvent::UpdatedStreamingExchange { .. }
-                        | BlocklistAIHistoryEvent::UpdatedConversationMetadata { .. }
-                        | BlocklistAIHistoryEvent::RestoredConversations { .. }
-                );
-                if !affects_hint {
-                    return;
-                }
-                if event.terminal_view_id() != Some(terminal_view_id) {
-                    return;
-                }
-                me.set_zero_state_hint_text(ctx);
-                ctx.notify();
-            },
-        );
-
-        ctx.subscribe_to_model(&ai_context_model, |me, context_model, event, ctx| {
-            match event {
-                BlocklistAIContextEvent::PendingQueryStateUpdated => {
-                    me.remove_excess_images(ctx);
-                    me.update_image_context_options(ctx);
-                    me.set_zero_state_hint_text(ctx);
-                    // If buffer empty and autodetect enabled, set the underlying input type to AI.
-                    // Visually to the user, empty buffer is really a separate unclassified state. But since we don't support a third state
-                    // in the model right now, we set the type to AI to make sure conversation block context is rendered when a conversation is selected
-                    // on empty buffer. The actual underlying type doesn't otherwise matter on an empty buffer.
-                    // AI input model removed; no mode change needed.
-                    // The editor view renders the follow up icon, so we need to re-render the editor view.
-                    me.editor().update(ctx, |_, ctx| {
-                        ctx.notify();
-                    })
-                }
-                BlocklistAIContextEvent::UpdatedPendingContext { .. } => {
-                    me.update_image_context_options(ctx);
-                    me.attachment_chips = context_model
-                        .as_ref(ctx)
-                        .pending_attachments()
-                        .iter()
-                        .enumerate()
-                        .map(|(i, attachment)| AttachmentChip {
-                            file_name: attachment.file_name().to_string(),
-                            mouse_state_handle: Default::default(),
-                            attachment_type: attachment.attachment_type(),
-                            index: i,
-                        })
-                        .collect_vec();
-                }
-                BlocklistAIContextEvent::QueueNextPromptToggled => {}
-            }
-            ctx.notify();
-        });
-
         ctx.subscribe_to_model(&LLMPreferences::handle(ctx), |me, _, event, ctx| {
             if let LLMPreferencesEvent::UpdatedActiveAgentModeLLM = event {
-                // If the new model doesn't support vision and we had image chips,
-                // the context model already cleared them — show a toast.
-                let has_image_chips = me
-                    .attachment_chips
-                    .iter()
-                    .any(|c| matches!(c.attachment_type, AttachmentType::Image));
-                let vision_supported =
-                    LLMPreferences::as_ref(ctx).vision_supported(ctx, Some(me.terminal_view_id));
-                if has_image_chips && !vision_supported {
-                    let window_id = ctx.window_id();
-                    ToastStack::handle(ctx).update(ctx, |ts, ctx| {
-                        ts.add_ephemeral_toast(
-                            DismissibleToast::error(
-                                "Attached images were removed — the selected model does not support images.".to_string(),
-                            ),
-                            window_id,
-                            ctx,
-                        );
-                    });
-                }
                 me.update_image_context_options(ctx);
                 ctx.notify();
             }
@@ -4146,13 +4048,9 @@ impl Input {
         ctx.notify();
     }
 
-    fn open_user_query_menu(&mut self, _action: UserQueryMenuAction, _ctx: &mut ViewContext<Self>) {
-        // ai_context_model stub returns no conversation; nothing to open
-    }
+    fn open_user_query_menu(&mut self, _action: UserQueryMenuAction, _ctx: &mut ViewContext<Self>) {}
 
-    fn open_rewind_menu(&mut self, _ctx: &mut ViewContext<Self>) {
-        // ai_context_model stub returns no conversation; nothing to open
-    }
+    fn open_rewind_menu(&mut self, _ctx: &mut ViewContext<Self>) {}
 
     fn handle_rewind_menu_event(&mut self, event: &RewindMenuEvent, ctx: &mut ViewContext<Self>) {
         if !self.suggestions_mode_model.as_ref(ctx).is_rewind_menu() {
@@ -4275,155 +4173,12 @@ impl Input {
     #[cfg(not(target_family = "wasm"))]
     fn export_conversation_to_file(
         &mut self,
-        filename_arg: Option<String>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        use std::fs;
-        use std::path::PathBuf;
-
-        use chrono::Local;
-
-        let history = BlocklistAIHistoryModel::handle(ctx);
-        let Some(conversation) = history
-            .as_ref(ctx)
-            .active_conversation(self.terminal_view_id)
-        else {
-            let window_id = ctx.window_id();
-            ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                let toast =
-                    DismissibleToast::default(String::from("No active conversation to export"));
-                toast_stack.add_ephemeral_toast(toast, window_id, ctx);
-            });
-            return;
-        };
-
-        // Determine the filename
-        let filename = if let Some(name) = filename_arg.as_ref().filter(|s| !s.trim().is_empty()) {
-            name.trim().to_string()
-        } else {
-            // Generate default filename: timestamp-conversation_title.md
-            let timestamp = Local::now().format("%Y%m%d_%H%M%S");
-            let title = conversation
-                .title()
-                .unwrap_or_else(|| "conversation".to_string())
-                .chars()
-                .map(|c| {
-                    // Replace spaces with underscores, keep alphanumeric, underscores, and hyphens
-                    if c.is_whitespace() {
-                        '_'
-                    } else if c.is_alphanumeric() || c == '_' || c == '-' {
-                        c
-                    } else {
-                        '_'
-                    }
-                })
-                .collect::<String>();
-            format!("{timestamp}-{title}.md")
-        };
-
-        // Ensure the filename has .md extension
-        let filename = if !filename.ends_with(".md") {
-            format!("{filename}.md")
-        } else {
-            filename
-        };
-
-        let current_dir = self
-            .active_block_metadata
-            .as_ref()
-            .and_then(|metadata| metadata.current_working_directory())
-            .map(PathBuf::from)
-            .or_else(|| {
-                log::debug!(
-                    "No CWD from active_block_metadata, falling back to std::env::current_dir()"
-                );
-                std::env::current_dir().ok()
-            })
-            .unwrap_or_else(|| {
-                log::warn!("Failed to determine current directory, using '.'");
-                PathBuf::from(".")
-            });
-
-        let file_path = current_dir.join(&filename);
-
-        let conversation_text = conversation.export_to_markdown();
-
-        // Check if file already exists and warn user
-        let file_exists = file_path.exists();
-        if file_exists {
-            let window_id = ctx.window_id();
-            let display_path = file_path.display().to_string();
-            ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                let toast = DismissibleToast::default(format!(
-                    "File {display_path} already exists and will be overwritten"
-                ));
-                toast_stack.add_ephemeral_toast(toast, window_id, ctx);
-            });
-        }
-
-        // Write to file
-        match fs::write(&file_path, conversation_text) {
-            Ok(_) => {
-                // Show success toast
-                let window_id = ctx.window_id();
-                let display_path = file_path.display().to_string();
-                ToastStack::handle(ctx).update(ctx, move |toast_stack, ctx| {
-                    let toast = DismissibleToast::default(format!(
-                        "Conversation exported to {display_path}"
-                    ));
-                    toast_stack.add_ephemeral_toast(toast, window_id, ctx);
-                });
-            }
-            Err(e) => {
-                // Show error toast with user-friendly message
-                let user_message = match e.kind() {
-                    std::io::ErrorKind::PermissionDenied => {
-                        format!(
-                            "Permission denied writing to {}. Check file permissions.",
-                            file_path.display()
-                        )
-                    }
-                    std::io::ErrorKind::NotFound => {
-                        format!(
-                            "Directory not found: {}",
-                            file_path
-                                .parent()
-                                .map(|p| p.display().to_string())
-                                .unwrap_or_default()
-                        )
-                    }
-                    std::io::ErrorKind::AlreadyExists => {
-                        format!("File {} already exists", file_path.display())
-                    }
-                    _ => {
-                        format!("Failed to export to {}: {}", file_path.display(), e)
-                    }
-                };
-
-                log::error!(
-                    "Failed to write conversation to file {}: {}",
-                    file_path.display(),
-                    e
-                );
-                let window_id = ctx.window_id();
-                ToastStack::handle(ctx).update(ctx, move |toast_stack, ctx| {
-                    let toast = DismissibleToast::default(user_message);
-                    toast_stack.add_ephemeral_toast(toast, window_id, ctx);
-                });
-            }
-        }
-
-        // Clear the buffer after execution
-        self.editor.update(ctx, |editor, ctx| {
-            editor.clear_buffer(ctx);
-        });
-    }
-    /// When the active conversation is changed, the number of attached images may exceed the
-    /// limit of images for a conversation — no-op since AI context model is removed.
+        _filename_arg: Option<String>,
+        _ctx: &mut ViewContext<Self>,
+    ) {}
     pub fn remove_excess_images(&mut self, _ctx: &mut ViewContext<Self>) {}
 
     pub fn update_image_context_options(&mut self, ctx: &mut ViewContext<Self>) {
-        // AI input type is always Shell; image context is always disabled.
         self.editor.update(ctx, move |editor, ctx| {
             editor.update_image_context_options(ImageContextOptions::Disabled, ctx);
             ctx.notify();
@@ -4456,7 +4211,6 @@ impl Input {
         }
     }
 
-    // Auto-attach the last block for this query — no-op since AI context model is removed.
     fn auto_attach_last_block_for_query(&mut self, _ctx: &mut ViewContext<Self>) {}
 
     pub fn clear_attached_context(&mut self, ctx: &mut ViewContext<Self>) {
@@ -4949,7 +4703,6 @@ impl Input {
         }
     }
 
-    /// Switches to AI mode but preserves current lock state — no-op since AI is removed.
     fn enter_ai_mode(
         &mut self,
         _decision_source: Option<InputTypeAutoDetectionSource>,
@@ -4957,7 +4710,6 @@ impl Input {
     ) {
     }
 
-    /// Ensures agent mode — no-op since AI input model is removed.
     pub fn ensure_agent_mode_for_ai_features(
         &mut self,
         _should_override_shell_lock: bool,
@@ -5060,19 +4812,7 @@ impl Input {
             return;
         }
         if self.prefix_mode(ctx) == InputPrefixMode::CloudHandoff {
-            let conversation_is_empty = BlocklistAIHistoryModel::as_ref(ctx)
-                .active_conversation(self.terminal_view_id)
-                .is_none_or(|c| c.is_empty());
-            let hint = if conversation_is_empty {
-                CLOUD_MODE_V2_HINT_TEXT.to_owned()
-            } else {
-                self.handoff_compose_state
-                    .as_ref(ctx)
-                    .selected_environment_id()
-                    .and_then(|id| CloudAmbientAgentEnvironment::get_by_id(id, ctx))
-                    .map(|env| format!("Hand off to {}", env.model().string_model.display_name()))
-                    .unwrap_or_else(|| "Handoff to cloud".to_owned())
-            };
+            let hint = CLOUD_MODE_V2_HINT_TEXT.to_owned();
             self.editor.update(ctx, |editor, ctx| {
                 editor.set_placeholder_text(&hint, ctx);
             });
@@ -8268,7 +8008,6 @@ impl Input {
                         if *was_intelligent_autosuggestion {
                             self.was_intelligent_autosuggestion_accepted = true;
                         }
-                        // AI input model removed; entering AI mode is a no-op.
                     }
                 };
             }
@@ -10904,11 +10643,9 @@ impl Input {
         }
 
         let buffer_text = self.editor.as_ref(ctx).buffer_text(ctx);
-
-        // AI input type is always Shell; autodetection is a no-op.
+        let _ = buffer_text;
     }
 
-    /// Set input mode to Agent Mode — no-op since AI input model is removed.
     pub fn set_input_mode_agent(
         &mut self,
         ensure_input_is_focused: bool,
@@ -10919,14 +10656,12 @@ impl Input {
         }
     }
 
-    /// Set input mode to Terminal Mode — already Shell; just optionally focus.
     pub fn set_input_mode_terminal(&mut self, steal_focus: bool, ctx: &mut ViewContext<Self>) {
         if steal_focus {
             self.focus_input_box(ctx);
         }
     }
 
-    /// Applies an input config update from an external source — no-op since AI input model removed.
     pub fn apply_external_input_config_update(
         &mut self,
         _config: InputConfig,
@@ -10934,15 +10669,12 @@ impl Input {
     ) {
     }
 
-    /// Returns true if the input is locked in shell mode — always false since AI model removed.
     fn is_locked_in_shell_mode(&self, _ctx: &ViewContext<Self>) -> bool {
         false
     }
 
-    /// Exits `!` shell mode by switching back to AI mode — no-op since AI input model removed.
     fn exit_shell_mode_to_ai(&mut self, _ctx: &mut ViewContext<Self>) {}
 
-    /// Returns true if the input is locked in AI mode — always false since AI model removed.
     fn is_locked_in_ai_mode(&self, _ctx: &ViewContext<Self>) -> bool {
         false
     }
@@ -11514,10 +11246,7 @@ impl Input {
             })
             .finish();
 
-        let icon = match chip.attachment_type {
-            AttachmentType::Image => Icon::Image,
-            AttachmentType::File => Icon::File,
-        };
+        let icon = Icon::File;
 
         let attachment_chip = Chip::new(
             chip.file_name.clone(),
@@ -11546,19 +11275,7 @@ impl Input {
         .with_close_button(close_button)
         .build();
 
-        if matches!(chip.attachment_type, AttachmentType::Image) {
-            let preview_chip_index = chip.index;
-            EventHandler::new(attachment_chip.finish())
-                .on_left_mouse_down(move |ctx, _, _| {
-                    ctx.dispatch_typed_action(TerminalAction::OpenAttachmentLightbox {
-                        index: preview_chip_index,
-                    });
-                    DispatchEventResult::StopPropagation
-                })
-                .finish()
-        } else {
-            attachment_chip.finish()
-        }
+        attachment_chip.finish()
     }
 
     fn render_input_box(
@@ -11907,9 +11624,7 @@ impl TypedActionView for Input {
                 };
                 self.select_slash_command(command, SlashCommandTrigger::keybinding(), ctx);
             }
-            InputAction::StartNewAgentConversation => {
-                // AI input model removed; starting a new conversation is a no-op.
-            }
+            InputAction::StartNewAgentConversation => {}
             InputAction::OpenInlineHistoryMenu => {
                 self.open_inline_history_menu(ctx);
             }
@@ -12029,13 +11744,6 @@ impl View for Input {
 
         if self.prompt_render_helper.has_open_chip_menu(app) {
             ctx.set.insert("PromptChipMenuOpen");
-        }
-
-        if BlocklistAIHistoryModel::as_ref(app)
-            .all_live_conversations_for_terminal_view(self.terminal_view_id)
-            .any(|conversation| conversation.initial_user_query().is_some())
-        {
-            ctx.set.insert("ActiveAIConversationHasHistory");
         }
 
         if AppEditorSettings::as_ref(app).vim_mode_enabled() {
@@ -12189,8 +11897,7 @@ fn render_prefix_mode_indicator(
 }
 fn maybe_render_ai_input_indicators(
     ai_input_model: &ModelHandle<BlocklistAIInputModel>,
-    ai_context_model: &ModelHandle<BlocklistAIContextModel>,
-    ai_follow_up_icon_mouse_state: MouseStateHandle,
+    _ai_follow_up_icon_mouse_state: MouseStateHandle,
     terminal_view_id: EntityId,
     app: &AppContext,
 ) -> Option<Box<dyn Element>> {
@@ -12227,7 +11934,6 @@ fn maybe_render_ai_input_indicators(
     let is_universal_developer_input_enabled =
         InputSettings::as_ref(app).is_universal_developer_input_enabled(app);
 
-    // If universal developer input is enabled, don't show any AI indicators
     if is_universal_developer_input_enabled {
         return None;
     }
@@ -12237,21 +11943,8 @@ fn maybe_render_ai_input_indicators(
         AnsiColorIdentifier::Yellow.to_ansi_color(&appearance.theme().terminal_colors().normal),
     );
 
-    let all_icons = if ai_context_model
-        .as_ref(app)
-        .is_targeting_existing_conversation()
-    {
-        let reply_icon = render_ai_follow_up_icon(ai_follow_up_icon_mouse_state, app);
-        Flex::row()
-            .with_cross_axis_alignment(CrossAxisAlignment::Center)
-            .with_child(ai_icon)
-            .with_child(reply_icon)
-            .finish()
-    } else {
-        ai_icon
-    };
     Some(
-        Container::new(all_icons)
+        Container::new(ai_icon)
             .with_margin_right(em_width)
             .finish(),
     )

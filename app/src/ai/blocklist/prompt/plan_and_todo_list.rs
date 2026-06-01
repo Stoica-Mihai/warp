@@ -14,27 +14,23 @@ use warpui::fonts::{Properties, Weight};
 use warpui::platform::Cursor;
 use warpui::ui_components::components::UiComponent;
 use warpui::{
-    AppContext, Element, Entity, EntityId, ModelHandle, SingletonEntity as _, TypedActionView,
+    AppContext, Element, Entity, EntityId, ModelHandle, SingletonEntity, TypedActionView,
     View, ViewContext, ViewHandle,
 };
 
 use crate::ai::agent::icons::todo_list_icon;
 use crate::ai::agent::todos::popup::{AgentTodosPopupEvent, AgentTodosPopupView};
-use crate::ai::blocklist::{
-    BlocklistAIContextEvent, BlocklistAIContextModel, BlocklistAIHistoryEvent,
-};
 use crate::ai::document::ai_document_model::{
     AIDocumentId, AIDocumentModel, AIDocumentModelEvent, AIDocumentVersion,
 };
 use crate::terminal::input::{MenuPositioning, MenuPositioningProvider};
 use crate::ui_components::blended_colors;
-use crate::{AIAgentTodoList, BlocklistAIHistoryModel};
+use crate::AIAgentTodoList;
 
 const TODO_BUTTON_SAVE_POSITION_ID: &str = "plan_and_todo_list::todo_button";
 
 /// A context chip that shows the todo list and plan for the active conversation
 pub struct PlanAndTodoListView {
-    context_model: ModelHandle<BlocklistAIContextModel>,
     menu_positioning_provider: Arc<dyn MenuPositioningProvider>,
     terminal_view_id: EntityId,
     todo_button_mouse_state: MouseStateHandle,
@@ -62,7 +58,6 @@ pub enum PlanAndTodoListAction {
 
 impl PlanAndTodoListView {
     pub fn new(
-        context_model: ModelHandle<BlocklistAIContextModel>,
         menu_positioning_provider: Arc<dyn MenuPositioningProvider>,
         terminal_view_id: EntityId,
         is_in_agent_view: bool,
@@ -93,40 +88,7 @@ impl PlanAndTodoListView {
             },
         );
 
-        ctx.subscribe_to_model(
-            &BlocklistAIHistoryModel::handle(ctx),
-            |me, _, event, ctx| {
-                if event
-                    .terminal_view_id()
-                    .is_some_and(|id| id != me.terminal_view_id)
-                {
-                    return;
-                }
-                // Note: UpdatedStreamingExchange is not needed here because plan/todo
-                // chips only depend on conversation-level events and UpdatedTodoList,
-                // not on regular content streaming updates.
-                match event.clone() {
-                    BlocklistAIHistoryEvent::StartedNewConversation { .. }
-                    | BlocklistAIHistoryEvent::SetActiveConversation { .. }
-                    | BlocklistAIHistoryEvent::ClearedConversationsInTerminalView { .. }
-                    | BlocklistAIHistoryEvent::AppendedExchange { .. }
-                    | BlocklistAIHistoryEvent::UpdatedTodoList { .. } => {
-                        ctx.notify();
-                    }
-                    _ => (),
-                }
-            },
-        );
-
-        // Subscribe to context model to detect when pending query state changes (e.g., new conversation)
-        ctx.subscribe_to_model(&context_model, |_, _, event, ctx| {
-            if let BlocklistAIContextEvent::PendingQueryStateUpdated = event {
-                ctx.notify();
-            }
-        });
-
         Self {
-            context_model,
             menu_positioning_provider,
             terminal_view_id,
             todo_button_mouse_state: Default::default(),
@@ -237,11 +199,7 @@ impl PlanAndTodoListView {
             CornerRadius::with_all(Radius::Pixels(4.))
         };
 
-        let conversation_is_streaming = self
-            .context_model
-            .as_ref(app)
-            .selected_conversation(app)
-            .is_some_and(|conversation| conversation.status().is_in_progress());
+        let conversation_is_streaming = false;
         let is_document_dirty = AIDocumentModel::as_ref(app)
             .get_current_document(&ai_document_id)
             .map(|doc| doc.user_edit_status.is_dirty())
@@ -308,34 +266,12 @@ impl PlanAndTodoListView {
         }
     }
 
-    fn todo_list(&self, app: &AppContext) -> Option<AIAgentTodoList> {
-        let todo_list = self
-            .context_model
-            .as_ref(app)
-            .selected_conversation_todolist(app);
-
-        let should_show_todo_button = todo_list.is_some();
-
-        if !should_show_todo_button {
-            return None;
-        }
-
-        if let Some(todo_list) = todo_list {
-            if !todo_list.is_empty() {
-                return Some(todo_list.clone());
-            }
-        }
-
+    fn todo_list(&self, _app: &AppContext) -> Option<AIAgentTodoList> {
         None
     }
 
-    fn ai_document_id(&self, app: &AppContext) -> Option<AIDocumentId> {
-        self.context_model
-            .as_ref(app)
-            .selected_conversation_id(app)
-            .and_then(|conversation_id| {
-                AIDocumentModel::as_ref(app).get_document_id_by_conversation_id(conversation_id)
-            })
+    fn ai_document_id(&self, _app: &AppContext) -> Option<AIDocumentId> {
+        None
     }
 
     fn render_todo_button(
