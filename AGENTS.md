@@ -21,7 +21,7 @@ Done so far — full per-commit log in `git log` and `plan.md`. Areas complete (
 
 telemetry · wasm-orphan crates · onboarding crate + flags · Sentry crash-reporting · Sublight rebrand · channel enum cascade · autoupdate pipeline · session-sharing (all vestiges incl. `SharedSessionStatus` + `is_shared_session_viewer` cascade) · Warp Drive server-sync + SyncQueue + ObjectClient · SharingDialog + permission-CRUD · login gate bypass · auth gate UI · AuthManager login stub · Firebase crate · server-driven A/B experiments · dead AuthClient privacy-sync · AuthView/AuthOverrideWarningModal cloud-gate UI · billing/teams/platform/referrals pages · AI assistant panel + Warp AI command search · AI settings pages + execution profile editor · execution profiles data model + inline profile selector · ScheduledAgentManager registration + AgentSource computation · **Phase C: `ai/agent_sdk/` STRIP COMPLETE** (`d3eb301d` + `889d83dd`) · **Phase E+F complete: `ai/blocklist/agent_view/` deleted + AI view files** (`94c6be3f`) · `TextLocation` relocated to `util/text_location` + `LinkActionConstructors` to `util/link_detection` (`73dd201c`) · **Phase G-preview COMPLETE: `ai_controller` removed from TerminalView struct** (`1f600e66`, −10.97 MB) · **Phase F sub-task C: `block.rs` + `block/` deleted** (`f048a967`, −25k LoC, binary flat until callers deleted) · **Phase G handler-body removal: 20+ AI handler methods + `CLISubagentController` removed from terminal/view.rs** (`0d24336f`, binary flat — struct fields still needed by direct field access in pane_impl.rs/context_menu.rs)
 
-**Current state:** Binary **794.3 MB** (−49.9 MB total vs 844.2 MB baseline). **0/0/0 errors** (`1270e39d` — stub signature fixes). App always starts in Terminal.
+**Current state:** Binary **777.5 MB** (`34867dcb`, −66.7 MB total vs 844.2 MB baseline). **0/0/0 errors.** App verified running (Wayland, terminal opens, no crash). Input struct still has 4 AI model params (~300 refs across input.rs + subdirs + context_chips/).
 
 **Phase F steps 1–6 DONE** (2026-05-31):
 - **Step 1** (`202b79e0`, −7.96 MB): `controller/` + `passive_suggestions/` deleted. −6,081 LoC.
@@ -41,7 +41,9 @@ Deleted `ai/blocklist/block.rs` (6481 LoC) + `block/` dir (32 files, ~16k LoC). 
 
 **Stub fixes DONE** (`1270e39d`): 71/86/71 → 0/0/0. Stub method signatures corrected (block_stubs, action_stubs, history_model_stubs, orchestration_stubs).
 
-**NEXT: Fix Input struct (remove 4 AI params + ~300 downstream refs), then delete inline_action/ + stubs simultaneously.** See plan.md.
+**Singleton fix DONE** (`34867dcb`): `BlocklistAIHistoryModel` re-registered in lib.rs. App builds fresh + runs. Binary −16.83 MB (stub fixes enabled linker dead-code elim).
+
+**NEXT: Fix Input struct** — remove 4 AI params (ai_context_model, ai_input_model, ai_action_model, cli_subagent_controller) from Input::new() + struct fields + ~300 downstream refs. Then delete inline_action/ + stubs simultaneously for another large binary reduction. See plan.md.
 
 **STRATEGY CHANGE (session 3 lesson):** Use **delete-and-fix** not **delete-and-stub** for remaining AI code. The stub approach for block/ required ~25 oracle iterations and produced 800 LoC of stub code that yields zero binary reduction until callers are deleted anyway. For the next big deletion (inline_action/, terminal/view.rs AI branches, terminal/input.rs AI branches), delete the callers at the same time — fix errors by removing call sites, not adding stubs.
 
