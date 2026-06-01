@@ -1322,16 +1322,6 @@ define_settings_group!(AISettings, settings: [
         private: true,
     }
 
-    // Tracks whether we've done the one-time auto-open of the conversation list for discoverability.
-    // Once set to true, the conversation list visibility will be restored from workspace state.
-    has_auto_opened_conversation_list: HasAutoOpenedConversationList {
-        type: bool,
-        default: false,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: true,
-    }
-
     // Whether the ambient agent trial widget has been dismissed by the user.
     //
     // Not a user-visible setting - we model it as a setting so we can track state.
@@ -1400,18 +1390,6 @@ define_settings_group!(AISettings, settings: [
         toml_path: "agents.warp_agent.input.include_agent_commands_in_history",
         description: "Whether agent-executed commands are included in command history.",
     }
-
-    // Controls whether the conversation history view appears in the tools panel.
-    show_conversation_history: ShowConversationHistory {
-        type: bool,
-        default: true,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: false,
-        toml_path: "agents.warp_agent.other.show_conversation_history",
-        description: "Whether conversation history appears in the tools panel.",
-    }
-
 
     // Controls whether agent notifications (mailbox button, toasts, notification items) are shown.
     show_agent_notifications: ShowAgentNotifications {

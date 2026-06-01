@@ -73,7 +73,6 @@ pub enum AgentViewEntryOrigin {
     InlineHistoryMenu,
     InlineConversationMenu,
     OnboardingCallout,
-    ConversationListView,
     DefaultSessionMode,
     LongRunningCommand,
     Onboarding,
