@@ -359,20 +359,19 @@ All non-AI callers updated to canonical paths. Old files in block/ and inline_ac
 - `secret_redaction.rs` — has AI-type deps (`AIBlockAction`, `AIAgentOutput`, `AIAgentTextSection`) baked in; pure-function part (`find_secrets_in_text*`) can be split out, but requires reading 717 lines to identify the split. Deferred to Phase G pass.
 - `numbered_button.rs` — only used by `keyboard_navigable_buttons.rs` (now in terminal/view via `crate::ai::blocklist::block::numbered_button::render_recommended_badge`) and `number_shortcut_buttons.rs` (AI). Must relocate `render_recommended_badge` to terminal/view before block/ can be deleted.
 
-### Sub-task B: Delete inline_action/ directory — ⏸ BLOCKED
+### Sub-task B: Delete inline_action/ directory — ✅ DONE (`e481e765`)
 
-Blocker: `code_diff_view` is the sole remaining non-AI dependency in inline_action/:
-- `terminal/view.rs:231` — `use ..::code_diff_view::{CodeDiffView, FileDiff}`
-- `terminal/view.rs:10618` — `use ..::code_diff_view::CodeDiffViewEvent`
-- `workspace/view.rs:157` — `use ..::code_diff_view::CodeDiffView`
-- `pane_group/mod.rs:50` — `CodeDiffView`
-- `pane_group/pane/code_diff_pane.rs:8` — `CodeDiffView`, `CodeDiffViewEvent`
-- `pane_group/pane/code_diff_pane_model.rs:3` — same
-- `pane_group/pane/mod.rs:44` — `CodeDiffView`
-- `terminal/view/inline_banner/passive_code_diff.rs:4` — `CodeDiffView`
-- `code/inline_diff.rs:21` — `DiffSessionType`
+All CodeDiffView callers cleaned first (pre-step):
+- Deleted: `passive_code_diff.rs`, `code_diff_pane.rs`, `code_diff_pane_model.rs`
+- Removed CodeDiffView from: terminal/view.rs (on_maa_code_diff_generated, open_code_diff, OpenCodeDiff event), workspace/view.rs (open_code_diff method, code_diff_paths, handler, is_code_diff_pane), pane_group/ (all variants + methods), vertical_tabs.rs
+- Removed DiffSessionType + register_file + finish_file_registration from code/inline_diff.rs
+- Deleted orchestration_config_block.rs + 10 refs from ai_document_view.rs
 
-**Plan:** In Phase G pass (when cleaning terminal/view.rs of AI refs), delete `passive_code_diff.rs` + `code_diff_pane.rs` + `code_diff_pane_model.rs` (all AI-specific views), remove CodeDiffView from workspace/view.rs, pane_group/, code/inline_diff.rs. THEN inline_action/ can be deleted.
+Then inline_action/ directory deleted (27 files, 14,357 LoC). 3-gate 0/0/0.
+
+**Also fixed in oracle loop:**
+- `code_block.rs` imports updated to terminal/view/ canonical locations
+- `block_stubs.rs` CodeDiffView/SuggestedUnitTestsView → `Option<()>` stubs
 
 ### Sub-task C: Delete block/ directory and block.rs — ✅ DONE (`f048a967`)
 
@@ -386,10 +385,11 @@ Deleted `ai/blocklist/block.rs` (6481 LoC) + `block/` dir (32 files, ~16k LoC). 
 
 ### Sub-task D: Delete all stub files
 
-After sub-tasks A+C (or A+B+C), no code calls stubs:
-- Delete `action_stubs.rs`, `orchestration_stubs.rs`, `context_model_stubs.rs`, `input_model_stubs.rs`, `history_model_stubs.rs`
-- Remove `mod` + `use` from `mod.rs`
-- Remove `lib.rs` singleton regs: `BlocklistAIHistoryModel`, `BlocklistAIPermissions`
+**Step 8 (session 8):** Delete all 5 stub files + oracle loop across ~60 callers.
+- Delete: `action_stubs.rs`, `orchestration_stubs.rs`, `context_model_stubs.rs`, `history_model_stubs.rs`, `block_stubs.rs`, `block_tests.rs`
+- Remove all stub mod+use from `mod.rs`
+- Remove `lib.rs` singleton regs: `BlocklistAIHistoryModel` (lines 136 + 1474), `BlocklistAIPermissions`
+- See `/tmp/phase-h-handoff.md` for full caller map + recommended excision order
 
 ### Sub-task E: Clean up Input struct + TerminalView — ✅ DONE (`92742608`)
 
