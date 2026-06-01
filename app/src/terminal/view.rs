@@ -220,7 +220,7 @@ use crate::terminal::view::agent_view_state::{
     agent_view_bg_fill, get_agent_view_entry_block_position_id, AgentViewDisplayMode,
     AgentViewEntryOrigin, ENTER_OR_EXIT_CONFIRMATION_WINDOW,
 };
-use crate::ai::blocklist::block::cli::{CLISubagentView, CLISubagentViewEvent};
+use crate::ai::blocklist::block::cli::CLISubagentView;
 use crate::ai::blocklist::block::cli_controller::{
     CLISubagentController, CLISubagentEvent, UserTakeOverReason,
 };
