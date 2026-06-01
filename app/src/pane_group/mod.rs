@@ -46,10 +46,9 @@ use crate::ai::agent_conversations_model::{
 };
 use crate::ai::ai_document_view::AIDocumentView;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
-use crate::ai::blocklist::history_model::CloudConversationData;
 use crate::ai::blocklist::suggested_agent_mode_workflow_modal::SuggestedAgentModeWorkflowAndId;
 use crate::ai::blocklist::suggested_rule_modal::SuggestedRuleAndId;
-use crate::ai::blocklist::{BlocklistAIHistoryModel, InputConfig, SerializedBlockListItem};
+use crate::ai::blocklist::{InputConfig, SerializedBlockListItem};
 use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentModel, AIDocumentVersion};
 use crate::ai::execution_profiles::profiles::ClientProfileId;
 use crate::ai::llms::LLMId;
@@ -2166,15 +2165,7 @@ impl PaneGroup {
         }
 
         // Find terminal view via document -> conversation -> terminal view.
-        let terminal_view = BlocklistAIHistoryModel::as_ref(ctx)
-            .terminal_view_id_for_conversation(&conversation_id)
-            .and_then(|terminal_view_id| {
-                // Find the pane containing this terminal view.
-                self.pane_contents.keys().find_map(|pane_id| {
-                    self.terminal_view_from_pane_id(*pane_id, ctx)
-                        .filter(|tv| tv.id() == terminal_view_id)
-                })
-            });
+        let terminal_view: Option<ViewHandle<TerminalView>> = None;
 
         // Unmaximize the current pane first so the new document pane is visible.
         if self.is_focused_pane_maximized(ctx) {
@@ -2533,10 +2524,10 @@ impl PaneGroup {
     /// that owner lives outside this pane group.
     fn terminal_view_id_for_owned_conversation(
         &self,
-        conversation_id: AIConversationId,
-        ctx: &AppContext,
+        _conversation_id: AIConversationId,
+        _ctx: &AppContext,
     ) -> Option<EntityId> {
-        BlocklistAIHistoryModel::as_ref(ctx).terminal_view_id_for_conversation(&conversation_id)
+        None
     }
 
     fn pane_id_for_owned_conversation(
@@ -2573,9 +2564,7 @@ impl PaneGroup {
         parent_pane_id: PaneId,
         ctx: &mut ViewContext<Self>,
     ) {
-        let child_ids = BlocklistAIHistoryModel::as_ref(ctx)
-            .child_conversation_ids_of(&parent_conversation_id)
-            .to_vec();
+        let child_ids: Vec<AIConversationId> = vec![];
 
         for child_id in child_ids {
             if self
@@ -2590,13 +2579,8 @@ impl PaneGroup {
                 continue;
             }
 
-            let child_conversation = BlocklistAIHistoryModel::as_ref(ctx)
-                .conversation(&child_id)
-                .cloned()
-                .or_else(|| {
-                    RestoredAgentConversations::handle(ctx)
-                        .update(ctx, |store, _| store.take_conversation(&child_id))
-                });
+            let child_conversation = RestoredAgentConversations::handle(ctx)
+                .update(ctx, |store, _| store.take_conversation(&child_id));
             let Some(child_conversation) = child_conversation else {
                 log::warn!("Child conversation {child_id:?} not found in memory or restored store");
                 continue;
@@ -2647,24 +2631,11 @@ impl PaneGroup {
             return true;
         }
 
-        let parent_conversation_id =
-            BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, ctx| {
-                history_model
-                    .conversation(&child_conversation_id)
-                    .and_then(|conversation| {
-                        history_model.resolved_parent_conversation_id_for_conversation(conversation)
-                    })
-                    .or_else(|| {
-                        RestoredAgentConversations::handle(ctx).read(ctx, |store, _| {
-                            store.get_conversation(&child_conversation_id).and_then(
-                                |conversation| {
-                                    history_model.resolved_parent_conversation_id_for_conversation(
-                                        conversation,
-                                    )
-                                },
-                            )
-                        })
-                    })
+        let parent_conversation_id: Option<AIConversationId> =
+            RestoredAgentConversations::handle(ctx).read(ctx, |store, _| {
+                store
+                    .get_conversation(&child_conversation_id)
+                    .and_then(|conversation| conversation.parent_conversation_id())
             });
 
         let Some(parent_conversation_id) = parent_conversation_id else {
@@ -2966,28 +2937,7 @@ impl PaneGroup {
         ambient_agent_task_id: Option<AmbientAgentTaskId>,
         ctx: &mut ViewContext<Self>,
     ) {
-        let history_model_handle = BlocklistAIHistoryModel::handle(ctx);
-
-        let future = history_model_handle.update(ctx, |history_model, ctx| {
-            history_model.load_conversation_by_server_token(&server_conversation_token, ctx)
-        });
-        ctx.spawn(future, move |group, conversation, ctx| {
-            if let Some(conversation) = conversation {
-                group.load_data_into_transcript_viewer(
-                    target_view,
-                    conversation,
-                    ambient_agent_task_id,
-                    ctx,
-                );
-            } else if let Some(pane_id) =
-                group.find_pane_id_for_terminal_view(target_view.id(), ctx)
-            {
-                log::error!(
-                    "Failed to restore ambient agent pane, replacing with new cloud conversation"
-                );
-                group.replace_pane_with_new_cloud_conversation(pane_id, ctx);
-            }
-        });
+        let _ = (target_view, server_conversation_token, ambient_agent_task_id, ctx);
     }
 
     /// Replaces a pane with a new cloud conversation.
@@ -3296,11 +3246,6 @@ impl PaneGroup {
                 ctx,
             );
 
-            BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, _ctx| {
-                history_model
-                    .mark_terminal_view_as_conversation_transcript_viewer(terminal_view.id());
-            });
-
             Self::terminal_pane_data(
                 Uuid::new_v4().as_bytes().to_vec(),
                 terminal_view,
@@ -3325,94 +3270,20 @@ impl PaneGroup {
     /// Uses the active session view as the target.
     pub fn load_data_into_conversation_transcript_viewer(
         &mut self,
-        conversation: CloudConversationData,
-        ambient_agent_task_id: Option<AmbientAgentTaskId>,
-        ctx: &mut ViewContext<Self>,
+        _conversation: (),
+        _ambient_agent_task_id: Option<AmbientAgentTaskId>,
+        _ctx: &mut ViewContext<Self>,
     ) {
-        // Get the active terminal view
-        let Some(terminal_view) = self.active_session_view(ctx) else {
-            log::error!("No active terminal view to load conversation into");
-            return;
-        };
-        self.load_data_into_transcript_viewer(
-            terminal_view,
-            conversation,
-            ambient_agent_task_id,
-            ctx,
-        );
     }
 
     /// Load conversation data into a specific transcript viewer terminal view.
     fn load_data_into_transcript_viewer(
         &mut self,
-        terminal_view: ViewHandle<TerminalView>,
-        cloud_conversation: CloudConversationData,
-        ambient_agent_task_id: Option<AmbientAgentTaskId>,
-        ctx: &mut ViewContext<Self>,
+        _terminal_view: ViewHandle<TerminalView>,
+        _cloud_conversation: (),
+        _ambient_agent_task_id: Option<AmbientAgentTaskId>,
+        _ctx: &mut ViewContext<Self>,
     ) {
-        let terminal_manager = self
-            .find_pane_id_for_terminal_view(terminal_view.id(), ctx)
-            .and_then(|pid| pid.as_terminal_pane_id())
-            .and_then(|tpid| self.terminal_session_by_id(tpid))
-            .map(|session| session.terminal_manager(ctx));
-
-        let ambient_agent_task_id =
-            ambient_agent_task_id.or_else(|| Self::ambient_agent_task_id(&cloud_conversation));
-
-        if FeatureFlag::HandoffCloudCloud.is_enabled() {
-            if let Some(task_id) = ambient_agent_task_id {
-                if terminal_view
-                    .as_ref(ctx)
-                    .ambient_agent_view_model()
-                    .is_some()
-                {
-                    Self::load_data_into_restored_ambient_cloud_mode_view(
-                        terminal_view,
-                        cloud_conversation,
-                        task_id,
-                        ctx,
-                    );
-                    ctx.notify();
-                    return;
-                }
-
-                if let Some(pane_id) = self.find_pane_id_for_terminal_view(terminal_view.id(), ctx)
-                {
-                    self.replace_loading_pane_with_restored_ambient_cloud_mode_pane(
-                        pane_id,
-                        cloud_conversation,
-                        task_id,
-                        ctx,
-                    );
-                    ctx.notify();
-                    return;
-                }
-            }
-        }
-
-        BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, _ctx| {
-            history_model.mark_terminal_view_as_conversation_transcript_viewer(terminal_view.id());
-        });
-
-        if let Some(ref terminal_manager) = terminal_manager {
-            let status = if let Some(task_id) = ambient_agent_task_id {
-                ConversationTranscriptViewerStatus::ViewingAmbientConversation(task_id)
-            } else {
-                ConversationTranscriptViewerStatus::ViewingLocalConversation
-            };
-
-            terminal_manager.update(ctx, |terminal_manager, _ctx| {
-                terminal_manager
-                    .model()
-                    .lock()
-                    .set_conversation_transcript_viewer_status(Some(status));
-            });
-        }
-
-        let _ = cloud_conversation;
-        let _ = ambient_agent_task_id;
-
-        ctx.notify();
     }
 
     fn handle_windowing_state_update(
@@ -3945,10 +3816,6 @@ impl PaneGroup {
             // Discard any child agent panes parented by this terminal view.
             self.remove_child_agent_panes(terminal_view_id, ctx);
 
-            // Preserve conversations from terminal views before cleaning up the pane
-            BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, _| {
-                history_model.mark_conversations_historical_for_terminal_view(terminal_view_id);
-            });
         }
 
         self.cleanup_closed_pane(pane_id, ctx);
@@ -3966,32 +3833,7 @@ impl PaneGroup {
         let Some(terminal_view) = self.terminal_view_from_pane_id(pane_id, ctx) else {
             return;
         };
-        let closing_view_id = terminal_view.id();
-
-        let history_handle = BlocklistAIHistoryModel::handle(ctx);
-        let transfers: Vec<(AIConversationId, EntityId)> = history_handle
-            .as_ref(ctx)
-            .all_live_conversations_for_terminal_view(closing_view_id)
-            .filter_map(|conversation| {
-                let parent_id = conversation.parent_conversation_id()?;
-                let parent_owner = history_handle
-                    .as_ref(ctx)
-                    .terminal_view_id_for_conversation(&parent_id)?;
-                if parent_owner == closing_view_id {
-                    return None;
-                }
-                Some((conversation.id(), parent_owner))
-            })
-            .collect();
-
-        if transfers.is_empty() {
-            return;
-        }
-        history_handle.update(ctx, |history_model, ctx| {
-            for (child_id, parent_owner) in transfers {
-                history_model.set_active_conversation_id(child_id, parent_owner, ctx);
-            }
-        });
+        let _ = terminal_view;
     }
 
     /// If this pane was the active session and or focused pane, focuses the previous session and pane.
@@ -4043,20 +3885,8 @@ impl PaneGroup {
         parent_terminal_view_id: EntityId,
         ctx: &AppContext,
     ) -> Vec<(AIConversationId, PaneId)> {
-        let history_model = BlocklistAIHistoryModel::as_ref(ctx);
-        self.child_agent_panes
-            .iter()
-            .filter(|(conv_id, _)| {
-                history_model
-                    .conversation(conv_id)
-                    .and_then(|c| c.parent_conversation_id())
-                    .and_then(|parent_id| {
-                        history_model.terminal_view_id_for_conversation(&parent_id)
-                    })
-                    .is_some_and(|tv_id| tv_id == parent_terminal_view_id)
-            })
-            .map(|(conv_id, pane_id)| (*conv_id, *pane_id))
-            .collect()
+        let _ = parent_terminal_view_id;
+        vec![]
     }
 
     /// Removes and discards all child agent panes whose parent conversation
@@ -4719,23 +4549,14 @@ impl PaneGroup {
         success
     }
 
-    fn ambient_agent_task_id(
-        cloud_conversation: &CloudConversationData,
-    ) -> Option<AmbientAgentTaskId> {
-        match cloud_conversation {
-            CloudConversationData::Oz(conversation) => conversation
-                .server_metadata()
-                .and_then(|metadata| metadata.ambient_agent_task_id),
-            CloudConversationData::CLIAgent(cli_conversation) => {
-                cli_conversation.metadata.ambient_agent_task_id
-            }
-        }
+    fn ambient_agent_task_id(_cloud_conversation: &()) -> Option<AmbientAgentTaskId> {
+        None
     }
 
     fn replace_loading_pane_with_restored_ambient_cloud_mode_pane(
         &mut self,
         loading_pane_id: PaneId,
-        cloud_conversation: CloudConversationData,
+        _cloud_conversation: (),
         task_id: AmbientAgentTaskId,
         ctx: &mut ViewContext<Self>,
     ) -> bool {
@@ -4751,7 +4572,7 @@ impl PaneGroup {
 
         Self::load_data_into_restored_ambient_cloud_mode_view(
             terminal_view.clone(),
-            cloud_conversation,
+            (),
             task_id,
             ctx,
         );
@@ -4777,7 +4598,7 @@ impl PaneGroup {
 
     fn load_data_into_restored_ambient_cloud_mode_view(
         terminal_view: ViewHandle<TerminalView>,
-        cloud_conversation: CloudConversationData,
+        _cloud_conversation: (),
         task_id: AmbientAgentTaskId,
         ctx: &mut ViewContext<Self>,
     ) {
@@ -4797,7 +4618,6 @@ impl PaneGroup {
                 .block_list_mut()
                 .set_is_executing_oz_environment_startup_commands(false);
         });
-        let _ = cloud_conversation;
     }
 
     /// Clear all panes that were hidden due to being closed (for undo functionality)
@@ -5427,12 +5247,6 @@ impl PaneGroup {
 
         let terminal_view = terminal_manager.as_ref(ctx).view();
 
-        BlocklistAIHistoryModel::handle(ctx).update(ctx, |history_model, _ctx| {
-            history_model.mark_terminal_view_as_conversation_transcript_viewer(terminal_view.id());
-        });
-
-        let _ = ambient_agent_task_id;
-
         (terminal_view, terminal_manager)
     }
 
@@ -5544,81 +5358,11 @@ impl PaneGroup {
     /// Returns true if replacement was successful.
     pub fn replace_loading_pane_with_terminal(
         &mut self,
-        loading_pane_id: PaneId,
-        cloud_conversation: CloudConversationData,
-        ctx: &mut ViewContext<Self>,
+        _loading_pane_id: PaneId,
+        _cloud_conversation: (),
+        _ctx: &mut ViewContext<Self>,
     ) -> bool {
-        if FeatureFlag::HandoffCloudCloud.is_enabled() {
-            if let Some(task_id) = Self::ambient_agent_task_id(&cloud_conversation) {
-                return self.replace_loading_pane_with_restored_ambient_cloud_mode_pane(
-                    loading_pane_id,
-                    cloud_conversation,
-                    task_id,
-                    ctx,
-                );
-            }
-        }
-        let restoration = match cloud_conversation {
-            CloudConversationData::Oz(conversation) => {
-                ConversationRestorationInNewPaneType::Historical {
-                    conversation: *conversation,
-                    should_use_live_appearance: true,
-                    ambient_agent_task_id: None,
-                }
-            }
-            CloudConversationData::CLIAgent(cli_conversation) => {
-                if !FeatureFlag::AgentHarness.is_enabled() {
-                    log::warn!("AgentHarness flag is disabled; ignoring CLI agent conversation");
-                    return false;
-                }
-                ConversationRestorationInNewPaneType::HistoricalCLIAgent {
-                    conversation: *cli_conversation,
-                    should_use_live_appearance: true,
-                }
-            }
-        };
-
-        // Get the initial working directory from the restored conversation.
-        let startup_directory = restoration
-            .initial_working_directory()
-            .map(PathBuf::from)
-            .filter(|path| path.is_dir());
-
-        let uuid = Uuid::new_v4();
-        let resources = TerminalViewResources {
-            tips_completed: self.tips_completed.clone(),
-            server_api: self.server_api.clone(),
-            model_event_sender: self.model_event_sender.clone(),
-        };
-
-        let view_bounds = Self::estimated_view_bounds(ctx);
-        let (view, terminal_manager) = PaneGroup::create_session(
-            startup_directory,
-            HashMap::new(),
-            uuid.as_bytes(),
-            IsSharedSessionCreator::No,
-            resources,
-            None,
-            Some(restoration),
-            self.user_default_shell_unsupported_banner_model_handle
-                .clone(),
-            view_bounds.size(),
-            self.model_event_sender.clone(),
-            None, // chosen_shell
-            None, // initial_input_config
-            ctx,
-        );
-
-        let pane_data = TerminalPane::new(
-            uuid.as_bytes().to_vec(),
-            terminal_manager,
-            view,
-            self.model_event_sender.clone(),
-            ctx,
-        );
-
-        // Use replace_pane to swap loading pane with new terminal pane
-        self.replace_pane(loading_pane_id, pane_data, false, ctx)
+        false
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -6167,18 +5911,9 @@ impl PaneGroup {
     /// matches the history model's owner for `conversation_id`.
     fn pane_id_for_conversation_owner(
         &self,
-        conversation_id: AIConversationId,
-        ctx: &AppContext,
+        _conversation_id: AIConversationId,
+        _ctx: &AppContext,
     ) -> Option<PaneId> {
-        let owner_view_id = BlocklistAIHistoryModel::as_ref(ctx)
-            .terminal_view_id_for_conversation(&conversation_id)?;
-        for pane_id in self.pane_contents.keys() {
-            if let Some(terminal_view) = self.terminal_view_from_pane_id(*pane_id, ctx) {
-                if terminal_view.id() == owner_view_id {
-                    return Some(*pane_id);
-                }
-            }
-        }
         None
     }
 
@@ -6201,14 +5936,6 @@ impl PaneGroup {
         let Some(target_pane_id) = target_pane_id else {
             // No owning pane in this group (e.g. the conversation lives
             // in another tab). Fall back to workspace-level navigation.
-            if let Some(owner_view_id) = BlocklistAIHistoryModel::as_ref(ctx)
-                .terminal_view_id_for_conversation(&conversation_id)
-            {
-                ctx.dispatch_typed_action(&WorkspaceAction::FocusTerminalViewInWorkspace {
-                    terminal_view_id: owner_view_id,
-                });
-                return;
-            }
             self.log_swap_resolution_failure(focused_pane_id, conversation_id, ctx);
             return;
         };
@@ -6339,10 +6066,7 @@ impl PaneGroup {
 
         // Resolve the target child's orchestrator. Used to scope swap
         // reverts so we don't disturb swaps owned by other orchestrators.
-        let parent_pane_id = BlocklistAIHistoryModel::as_ref(ctx)
-            .conversation(&conversation_id)
-            .and_then(|c| c.parent_conversation_id())
-            .and_then(|parent_conv_id| self.pane_id_for_conversation_owner(parent_conv_id, ctx));
+        let parent_pane_id: Option<PaneId> = None;
 
         // If the orchestrator is swapped out, revert it so it returns to
         // its slot before we split next to it.
@@ -6507,17 +6231,11 @@ impl PaneGroup {
         conversation_id: AIConversationId,
         ctx: &AppContext,
     ) {
-        let history_model = BlocklistAIHistoryModel::as_ref(ctx);
-        let history_owner_view_id =
-            history_model.terminal_view_id_for_conversation(&conversation_id);
-        let conversation_in_memory = history_model.conversation(&conversation_id).is_some();
-        let parent_id = history_model
-            .conversation(&conversation_id)
-            .and_then(|c| c.parent_conversation_id());
-        let is_remote_child = history_model
-            .conversation(&conversation_id)
-            .map(|c| c.is_remote_child())
-            .unwrap_or(false);
+        let history_owner_view_id: Option<warpui::EntityId> = None;
+        let conversation_in_memory = false;
+        let parent_id: Option<AIConversationId> = None;
+        let is_remote_child = false;
+        let _ = (conversation_id, ctx);
 
         let focused_view_id = self
             .terminal_view_from_pane_id(focused_pane_id, ctx)
