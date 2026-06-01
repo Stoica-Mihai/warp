@@ -2,7 +2,7 @@
 // orchestration_topology, orchestration_conversation_links, task_status_sync_model,
 // local_shared_session_link_model).
 
-use warpui::{Entity, ModelContext, SingletonEntity};
+use warpui::{Element, Entity, ModelContext, SingletonEntity};
 
 use warpui::AppContext;
 

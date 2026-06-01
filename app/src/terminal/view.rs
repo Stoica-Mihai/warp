@@ -7605,8 +7605,9 @@ impl TerminalView {
         passive_block.update(ctx, |ai_block, ctx| {
             ai_block.cleanup_block(ctx);
         });
-        let conversation_id = passive_block.as_ref(ctx).conversation_id();
-        conversation_utils::remove_conversation(conversation_id, self.view_id, true, ctx);
+        if let Some(conversation_id) = passive_block.as_ref(ctx).conversation_id() {
+            conversation_utils::remove_conversation(conversation_id, self.view_id, true, ctx);
+        }
         self.rich_content_views.remove(rich_content_idx);
         self.model
             .lock()
@@ -13682,9 +13683,9 @@ impl TerminalView {
                 if rich_content.view_id() == content.view_id {
                     if let Some(ai_metadata) = rich_content.ai_block_metadata() {
                         let ai_block = ai_metadata.ai_block_handle.as_ref(app);
-                        if let Some(prompt) = ai_history_model
-                            .conversation(&ai_block.conversation_id())
-                            .and_then(|conversation| conversation.latest_user_query())
+                        if let Some(prompt) = ai_block.conversation_id().and_then(|cid| ai_history_model
+                            .conversation(&cid)
+                            .and_then(|conversation| conversation.latest_user_query()))
                         {
                             return CommandContext::LastRunAIBlock {
                                 prompt: prompt.to_owned(),
@@ -17962,7 +17963,7 @@ impl TerminalView {
                                     .find_map(|(action_id, _)| {
                                         model
                                             .block_list()
-                                            .block_for_ai_action_id(action_id)
+                                            .block_for_ai_action_id(&action_id)
                                             .and_then(|block| block.git_branch().cloned())
                                     });
 

@@ -906,7 +906,7 @@ impl AskUserQuestionView {
         let should_restore_as_cancelled = BlocklistAIHistoryModel::as_ref(app)
             .conversation(&self.conversation_id)
             .is_some_and(|conversation| !conversation.status().is_in_progress())
-            && !action_model.has_unfinished_actions_for_conversation(self.conversation_id);
+            && !action_model.has_unfinished_actions_for_conversation(&self.conversation_id);
 
         should_restore_as_cancelled.then(|| {
             AIActionStatus::Finished(Arc::new(AIAgentActionResult {
@@ -1080,7 +1080,7 @@ impl AskUserQuestionView {
     ) -> ViewHandle<compact_agent_input::CompactAgentInput> {
         let initial_text = initial_text.map(String::from);
         let input = ctx.add_view(move |ctx| {
-            let input = compact_agent_input::CompactAgentInput::new(ctx);
+            let mut input = compact_agent_input::CompactAgentInput::new(ctx);
             input.set_placeholder_text("Type your answer and press Enter", ctx);
             if let Some(initial_text) = initial_text.as_deref() {
                 input.set_text(initial_text, ctx);

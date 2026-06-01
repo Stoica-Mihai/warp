@@ -178,6 +178,23 @@ pub struct AIQueryHistory {
     pub history_order: HistoryOrder,
 }
 
+#[cfg(any(test, feature = "integration_tests"))]
+impl AIQueryHistory {
+    pub fn new_for_test(
+        query_text: impl Into<String>,
+        start_time: impl Into<chrono::DateTime<chrono::Local>>,
+        history_order: crate::input_suggestions::HistoryOrder,
+    ) -> Self {
+        Self {
+            query_text: query_text.into(),
+            start_time: start_time.into(),
+            output_status: AIQueryHistoryOutputStatus::Completed,
+            working_directory: None,
+            history_order,
+        }
+    }
+}
+
 // --- Event enum ---
 
 #[derive(Clone, Debug)]
@@ -455,6 +472,8 @@ impl BlocklistAIHistoryModel {
         false
     }
 
+    pub fn merge_cloud_conversation_metadata(&mut self, _metadata: Vec<ServerAIConversationMetadata>) {}
+
     pub fn get_local_conversations_metadata(&self) -> impl Iterator<Item = &AIConversationMetadata> {
         std::iter::empty()
     }
@@ -475,11 +494,11 @@ impl BlocklistAIHistoryModel {
         None
     }
 
-    pub fn get_or_set_canonical_conversation_id_for_server_token(&mut self, _token: ServerConversationToken) -> AIConversationId {
+    pub fn get_or_set_canonical_conversation_id_for_server_token(&mut self, _token: &ServerConversationToken) -> AIConversationId {
         AIConversationId::new()
     }
 
-    pub(crate) fn all_ai_queries(&self, _terminal_view_id: EntityId) -> impl Iterator<Item = super::AIQueryHistory> {
+    pub(crate) fn all_ai_queries(&self, _terminal_view_id: Option<EntityId>) -> impl Iterator<Item = super::AIQueryHistory> {
         std::iter::empty()
     }
 
@@ -491,10 +510,9 @@ impl BlocklistAIHistoryModel {
         Box::pin(std::future::ready(None))
     }
 
-    pub fn load_conversation_data<C>(
+    pub fn load_conversation_data(
         &self,
         _conversation_id: AIConversationId,
-        _ctx: &mut C,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Option<CloudConversationData>> + Send>> {
         Box::pin(std::future::ready(None))
     }
@@ -515,17 +533,17 @@ impl BlocklistAIHistoryModel {
 
     pub fn remove_conversation(&mut self, _conversation_id: AIConversationId, _terminal_view_id: EntityId, _ctx: &mut ModelContext<Self>) {}
 
-    pub fn delete_conversation(&mut self, _conversation_id: AIConversationId, _terminal_view_id: EntityId, _ctx: &mut ModelContext<Self>) {}
+    pub fn delete_conversation(&mut self, _conversation_id: AIConversationId, _terminal_view_id: Option<EntityId>, _ctx: &mut ModelContext<Self>) {}
 
-    pub fn fork_conversation(&mut self, _conversation_id: AIConversationId, _terminal_view_id: EntityId, _ctx: &mut ModelContext<Self>) -> Option<AIConversationId> { None }
+    pub fn fork_conversation(&mut self, _conversation: &AIConversation, _prefix: &str, _preserve_task_ids: bool, _title_override: Option<&str>, _ctx: &mut ModelContext<Self>) -> Result<AIConversation, String> { Err("stubs: fork_conversation not available".into()) }
 
-    pub fn fork_conversation_at_exchange(&mut self, _conversation_id: AIConversationId, _exchange_id: AIAgentExchangeId, _terminal_view_id: EntityId, _ctx: &mut ModelContext<Self>) -> Option<AIConversationId> { None }
+    pub fn fork_conversation_at_exchange(&mut self, _conversation: &AIConversation, _exchange_id: AIAgentExchangeId, _fork_from_exact: bool, _prefix: &str, _title_override: Option<&str>, _ctx: &mut ModelContext<Self>) -> Result<AIConversation, String> { Err("stubs: fork_conversation_at_exchange not available".into()) }
 
     pub fn on_forked_conversation(&mut self, _conversation_id: AIConversationId, _terminal_view_id: EntityId, _ctx: &mut ModelContext<Self>) {}
 
     pub fn initialize_output_for_response_stream(&mut self, _stream_id: ResponseStreamId, _conversation_id: AIConversationId, _terminal_view_id: EntityId, _ctx: &mut ModelContext<Self>) {}
 
-    pub fn assign_run_id_for_conversation(&mut self, _conversation_id: AIConversationId, _run_id: String, _ctx: &mut ModelContext<Self>) {}
+    pub fn assign_run_id_for_conversation(&mut self, _conversation_id: AIConversationId, _run_id: String, _task_id: Option<crate::ai::ambient_agents::AmbientAgentTaskId>, _terminal_view_id: EntityId, _ctx: &mut ModelContext<Self>) {}
 
     pub fn mark_response_stream_completed_successfully(&mut self, _stream_id: &ResponseStreamId, _ctx: &mut ModelContext<Self>) {}
 
@@ -545,15 +563,15 @@ impl BlocklistAIHistoryModel {
 
     pub fn set_conversation_pinned(&mut self, _conversation_id: AIConversationId, _is_pinned: bool, _ctx: &mut ModelContext<Self>) {}
 
-    pub fn set_server_conversation_token_for_conversation(&mut self, _conversation_id: AIConversationId, _token: ServerConversationToken, _ctx: &mut ModelContext<Self>) {}
+    pub fn set_server_conversation_token_for_conversation(&mut self, _conversation_id: AIConversationId, _token: impl Into<String>) {}
 
-    pub fn set_server_conversation_token_for_conversation_and_persist(&mut self, _conversation_id: AIConversationId, _token: ServerConversationToken, _ctx: &mut ModelContext<Self>) {}
+    pub fn set_server_conversation_token_for_conversation_and_persist(&mut self, _conversation_id: AIConversationId, _token: impl Into<String>, _ctx: &mut ModelContext<Self>) {}
 
     pub fn set_server_metadata_for_conversation(&mut self, _conversation_id: AIConversationId, _metadata: ServerAIConversationMetadata, _ctx: &mut ModelContext<Self>) {}
 
-    pub fn set_parent_for_conversation(&mut self, _conversation_id: AIConversationId, _parent_id: AIConversationId, _ctx: &mut ModelContext<Self>) {}
+    pub fn set_parent_for_conversation(&mut self, _conversation_id: AIConversationId, _parent_id: AIConversationId) {}
 
-    pub fn start_new_child_conversation(&mut self, _parent_id: AIConversationId, _terminal_view_id: EntityId, _ctx: &mut ModelContext<Self>) -> AIConversationId { AIConversationId::new() }
+    pub fn start_new_child_conversation(&mut self, _terminal_view_id: EntityId, _name: String, _parent_conversation_id: AIConversationId, _orchestration_harness: Option<warp_cli::agent::Harness>, _ctx: &mut ModelContext<Self>) -> AIConversationId { AIConversationId::new() }
 
     pub(super) fn update_conversation_for_new_request_input(&mut self, _request_input: super::RequestInput, _stream_id: ResponseStreamId, _terminal_view_id: EntityId, _ctx: &mut ModelContext<Self>) -> Result<(), UpdateHistoryError> { Ok(()) }
 
@@ -569,13 +587,13 @@ impl BlocklistAIHistoryModel {
 
     pub fn set_exchange_hidden_status(&mut self, _conversation_id: AIConversationId, _exchange_id: AIAgentExchangeId, _is_hidden: bool, _ctx: &mut ModelContext<Self>) {}
 
-    pub fn set_viewing_shared_session_for_conversation(&mut self, _conversation_id: AIConversationId, _ctx: &mut ModelContext<Self>) {}
+    pub fn set_viewing_shared_session_for_conversation(&mut self, _conversation_id: AIConversationId, _is_viewing: bool) {}
 
     pub fn set_has_code_review_opened_to_true(&mut self, _conversation_id: AIConversationId) {}
 
     pub fn toggle_autoexecute_override(&mut self, _conversation_id: &AIConversationId, _terminal_view_id: EntityId, _ctx: &mut ModelContext<Self>) {}
 
-    pub fn truncate_conversation_from_exchange(&mut self, _conversation_id: AIConversationId, _exchange_id: AIAgentExchangeId, _ctx: &mut ModelContext<Self>) {}
+    pub fn truncate_conversation_from_exchange(&mut self, _conversation_id: AIConversationId, _exchange_id: AIAgentExchangeId, _ctx: &mut ModelContext<Self>) -> Result<std::collections::HashSet<AIAgentExchangeId>, String> { Ok(std::collections::HashSet::new()) }
 
     pub fn insert_forked_conversation_from_tasks(&mut self, _conversation: AIConversation, _terminal_view_id: EntityId, _ctx: &mut ModelContext<Self>) -> AIConversationId { AIConversationId::new() }
 

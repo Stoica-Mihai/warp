@@ -412,7 +412,7 @@ pub mod model {
             ctx: &mut ViewContext<Self::View>,
         );
         fn request_type(&self, app: &AppContext) -> AIRequestType;
-        fn is_first_action_in_output(&self, _app: &AppContext) -> bool { false }
+        fn is_first_action_in_output(&self, _action_id: &crate::ai::agent::AIAgentActionId, _app: &AppContext) -> bool { false }
         fn conversation<'a>(&'a self, _app: &'a AppContext) -> Option<&'a crate::ai::agent::conversation::AIConversation> { None }
     }
 
@@ -566,12 +566,12 @@ pub mod compact_agent_input {
     impl CompactAgentInput {
         pub fn new(_ctx: &mut ViewContext<Self>) -> Self { CompactAgentInput }
         pub fn editor(&self) -> &Self { self }
-        pub fn read(&self) -> &Self { self }
+        pub fn read<F, R>(&self, _ctx: &AppContext, f: F) -> R where F: FnOnce(&Self, &AppContext) -> R { f(self, _ctx) }
         pub fn trim(&self) -> &str { "" }
         pub fn is_empty(&self, _app: &AppContext) -> bool { true }
         pub fn buffer_text(&self, _app: &AppContext) -> String { String::new() }
-        pub fn set_text(&mut self, _text: String, _app: &mut AppContext) {}
-        pub fn set_placeholder_text(&mut self, _text: String) {}
+        pub fn set_text(&mut self, _text: &str, _ctx: &mut ViewContext<Self>) {}
+        pub fn set_placeholder_text(&mut self, _text: &str, _ctx: &mut ViewContext<Self>) {}
     }
 
     impl Entity for CompactAgentInput {
@@ -605,7 +605,8 @@ pub mod number_shortcut_buttons {
     impl NumberShortcutButtonsConfig {
         pub fn new() -> Self { NumberShortcutButtonsConfig }
         pub fn with_keyboard_navigation(self) -> Self { self }
-        pub fn with_enter_to_activate(self) -> Self { self }
+        pub fn with_enter_to_activate(self, _activate: bool) -> Self { self }
+        pub fn with_scroll_state(self, _state: impl std::any::Any) -> Self { self }
     }
 
     impl Default for NumberShortcutButtonsConfig {
@@ -622,7 +623,9 @@ pub mod number_shortcut_buttons {
     impl NumberShortcutButtons {
         pub fn new_with_config(
             _buttons: Vec<NumberShortcutButtonBuilder>,
+            _selected: Option<usize>,
             _config: NumberShortcutButtonsConfig,
+            _ctx: &mut ViewContext<Self>,
         ) -> Self {
             NumberShortcutButtons { selected_button_index: None }
         }
@@ -646,20 +649,24 @@ pub mod number_shortcut_buttons {
         fn handle_action(&mut self, _: &NumberShortcutButtonsAction, _: &mut ViewContext<Self>) {}
     }
 
-    pub fn numbered_shortcut_button(
+    pub fn numbered_shortcut_button<A: Clone + std::fmt::Debug + 'static>(
         _number: usize,
+        _label: String,
+        _is_checked: bool,
+        _recommended: bool,
+        _show_checkmark: bool,
         _mouse_state: MouseStateHandle,
-        _app: &AppContext,
+        _action: A,
     ) -> NumberShortcutButtonBuilder {
         NumberShortcutButtonBuilder
     }
 
     pub fn inline_input_shortcut_button(
         _number: usize,
+        _input: warpui::ViewHandle<super::compact_agent_input::CompactAgentInput>,
         _mouse_state: MouseStateHandle,
-        _app: &AppContext,
-    ) -> Box<dyn Element> {
-        Empty::new().finish()
+    ) -> NumberShortcutButtonBuilder {
+        NumberShortcutButtonBuilder
     }
 }
 
@@ -729,24 +736,34 @@ pub mod view_impl {
             pub secret_redaction_state: &'a crate::ai::blocklist::block::secret_redaction::SecretRedactionState,
         }
 
-        pub struct RenderReadFileArg {
-            pub path: String,
-        }
+        pub struct RenderReadFileArg;
 
         impl RenderReadFileArg {
-            pub fn new(_path: String) -> Self { RenderReadFileArg { path: _path } }
+            pub fn new<A: warpui::Action>(
+                _ctx: RenderContext<'_>,
+                _find_ctx: Option<super::FindContext<'_>>,
+                _is_selecting: bool,
+                _link_actions: crate::util::link_detection::LinkActionConstructors<A>,
+            ) -> Self { RenderReadFileArg }
         }
 
-        pub fn action_icon(_app: &AppContext) -> Box<dyn Element> {
-            Empty::new().finish()
+        pub fn action_icon(
+            _action_id: &crate::ai::agent::AIAgentActionId,
+            _action_model: &warpui::ModelHandle<crate::ai::blocklist::BlocklistAIActionModel>,
+            _block_model: &dyn crate::ai::blocklist::block::model::AIBlockModel<View = crate::ai::blocklist::AIBlock>,
+            _app: &AppContext,
+        ) -> warpui::elements::Icon {
+            warpui::elements::Icon::new("", pathfinder_color::ColorU::black())
         }
 
         pub fn render_read_files_text(
-            _args: &[RenderReadFileArg],
-            _ctx: &RenderContext<'_>,
+            _args: RenderReadFileArg,
+            _file_texts: impl Iterator<Item = String>,
             _app: &AppContext,
-        ) -> Box<dyn Element> {
-            Empty::new().finish()
+            _appearance: &warp_core::ui::appearance::Appearance,
+            _action_index: usize,
+        ) -> Empty {
+            Empty::new()
         }
 
         pub fn are_all_text_sections_empty(
@@ -841,6 +858,13 @@ pub enum FinishReason {
     CancelledDuringRequestedCommandExecution,
 }
 
+// ─── ImportedComments ─────────────────────────────────────────────────────────
+
+pub struct ImportedComments {
+    pub comments: Vec<crate::code_review::comments::AttachedReviewComment>,
+    pub base_branch: Option<String>,
+}
+
 // ─── AIBlock ─────────────────────────────────────────────────────────────────
 
 pub struct AIBlock;
@@ -856,26 +880,26 @@ impl AIBlock {
 
     pub fn cleanup_block(&mut self, _ctx: &mut ViewContext<Self>) {}
     pub fn clear_all_selections(&mut self, _app: &AppContext) {}
-    pub fn collect_imported_comments(&self, _app: &AppContext) -> Vec<String> { vec![] }
+    pub fn collect_imported_comments(&self) -> Option<ImportedComments> { None }
     pub fn conversation_id(&self) -> Option<crate::ai::agent::conversation::AIConversationId> { None }
-    pub fn dismiss_ai_tooltips(&mut self) {}
+    pub fn dismiss_ai_tooltips(&mut self, _ctx: &mut ViewContext<Self>) {}
     pub fn find_undismissed_code_diff(&self, _app: &AppContext) -> Option<warpui::ViewHandle<crate::ai::blocklist::inline_action::code_diff_view::CodeDiffView>> { None }
-    pub fn get_preceding_user_query(&self, _app: &AppContext) -> Option<String> { None }
-    pub fn has_any_imported_comments(&self, _app: &AppContext) -> bool { false }
-    pub fn hovered_rich_content_link(&self) -> Option<&crate::terminal::view::RichContentLinkTooltipInfo> { None }
-    pub fn is_finished(&self, _app: &AppContext) -> bool { true }
-    pub fn is_hidden(&self) -> bool { false }
-    pub fn is_restored(&self, _app: &AppContext) -> bool { false }
+    pub fn get_preceding_user_query(&self, _app: &AppContext) -> String { String::new() }
+    pub fn has_any_imported_comments(&self) -> bool { false }
+    pub fn hovered_rich_content_link(&self) -> Option<crate::terminal::view::RichContentLink> { None }
+    pub fn is_finished(&self) -> bool { true }
+    pub fn is_hidden(&self, _app: &AppContext) -> bool { false }
+    pub fn is_restored(&self) -> bool { false }
     pub fn num_requested_commands(&self) -> usize { 0 }
-    pub fn pending_unit_test_suggestion(&self, _app: &AppContext) -> Option<()> { None }
+    pub fn pending_unit_test_suggestion(&self, _app: &AppContext) -> Option<warpui::ViewHandle<crate::ai::blocklist::inline_action::suggested_unit_tests::SuggestedUnitTestsView>> { None }
     pub fn requested_commands_iter<'a>(&'a self) -> impl Iterator<Item = (crate::ai::agent::AIAgentActionId, ())> + 'a { std::iter::empty() }
     pub fn revert_all_diffs(&mut self, _app: &mut AppContext) {}
     pub fn selected_text(&self, _app: &AppContext) -> Option<String> { None }
     pub fn server_output_id(&self, _app: &AppContext) -> Option<crate::ai::agent::ServerOutputId> { None }
-    pub fn set_secret_redaction_state(&mut self, _state: crate::ai::blocklist::block::secret_redaction::SecretRedactionState) {}
-    pub fn set_shell_launch_data(&mut self, _data: ()) {}
-    pub fn start_selection_at_max_point(&self, _app: &AppContext) {}
-    pub fn start_selection_at_min_point(&self, _app: &AppContext) {}
+    pub fn set_secret_redaction_state(&mut self, _location: &crate::util::text_location::TextLocation, _secret_range: &warpui::elements::SecretRange, _show_secret: bool) {}
+    pub fn set_shell_launch_data(&mut self, _data: Option<crate::terminal::ShellLaunchData>, _ctx: &mut ViewContext<Self>) {}
+    pub fn start_selection_at_max_point(&self, _selection_type: warpui::text::SelectionType, _x_pos: Option<f32>) {}
+    pub fn start_selection_at_min_point(&self, _selection_type: warpui::text::SelectionType, _x_pos: Option<f32>) {}
 }
 
 impl Entity for AIBlock {

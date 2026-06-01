@@ -10057,7 +10057,7 @@ impl Workspace {
         let history_model = BlocklistAIHistoryModel::handle(ctx);
         let future = history_model
             .as_ref(ctx)
-            .load_conversation_data(conversation_id, ctx);
+            .load_conversation_data(conversation_id);
         let terminal_view_for_closure = terminal_view.clone();
         let window_id = ctx.window_id();
         ctx.spawn(future, move |_workspace, conversation, ctx| {
@@ -10113,7 +10113,7 @@ impl Workspace {
         let history_model = BlocklistAIHistoryModel::handle(ctx);
         let future = history_model
             .as_ref(ctx)
-            .load_conversation_data(conversation_id, ctx);
+            .load_conversation_data(conversation_id);
         ctx.spawn(future, move |_workspace, conversation, ctx| {
             let Some(conversation) = conversation else {
                 log::warn!("Failed to load conversation {conversation_id}");
@@ -10181,7 +10181,7 @@ impl Workspace {
         let history_model = BlocklistAIHistoryModel::handle(ctx);
         let future = history_model
             .as_ref(ctx)
-            .load_conversation_data(conversation_id, ctx);
+            .load_conversation_data(conversation_id);
 
         ctx.spawn(future, move |workspace, conversation, ctx| {
             let Some(conversation) = conversation else {
@@ -10298,7 +10298,7 @@ impl Workspace {
         // Load the conversation data asynchronously
         let future = history_model
             .as_ref(ctx)
-            .load_conversation_data(conversation_id, ctx);
+            .load_conversation_data(conversation_id);
 
         ctx.spawn(future, move |workspace, source_conversation, ctx| {
             let Some(CloudConversationData::Oz(source_conversation)) = source_conversation else {

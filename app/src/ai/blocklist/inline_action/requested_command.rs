@@ -373,7 +373,7 @@ impl RequestedCommandView {
                             .action_model
                             .as_ref(ctx)
                             .get_action_result(action_id)
-                            .cloned()
+                            .clone()
                         else {
                             log::info!("Got finished action event without result: {action_id}.");
                             return;

@@ -85,7 +85,7 @@ pub struct RunAgentsSpawningSnapshot {
 pub enum RunAgentsExecutorEvent {
     SpawningStarted {
         action_id: AIAgentActionId,
-        snapshot: Box<RunAgentsSpawningSnapshot>,
+        snapshot: RunAgentsSpawningSnapshot,
     },
     SpawningFinished {
         action_id: AIAgentActionId,
@@ -128,7 +128,7 @@ pub struct AskUserQuestionExecutor;
 
 impl AskUserQuestionExecutor {
     pub fn new(_ctx: &mut ModelContext<Self>) -> Self { Self }
-    pub fn complete(&mut self, _answers: std::collections::HashMap<String, crate::ai::agent::AskUserQuestionItem>) {}
+    pub fn complete(&mut self, _answers: Vec<ai::agent::action_result::AskUserQuestionAnswerItem>) {}
 }
 
 impl Entity for AskUserQuestionExecutor { type Event = (); }
@@ -247,7 +247,7 @@ impl BlocklistAIActionModel {
         AskUserQuestionExecutor::handle(_ctx)
     }
 
-    pub fn deny_run_agents(&mut self, _action_id: &AIAgentActionId, _ctx: &mut ModelContext<Self>) {}
+    pub fn deny_run_agents(&mut self, _action_id: &AIAgentActionId, _reason: String, _ctx: &mut ModelContext<Self>) {}
 
     pub fn get_async_running_action(&self, _conversation_id: &crate::ai::agent::conversation::AIConversationId) -> Option<&AIAgentActionId> { None }
 
