@@ -330,7 +330,7 @@ impl UriHost {
                                     primary_window_id,
                                     "root_view:open_settings_page_in_existing_window",
                                     "root_view:open_settings_page_in_new_window",
-                                    &SettingsSection::CloudEnvironments,
+                                    &SettingsSection::Account,
                                     ctx,
                                 );
                             }
@@ -773,7 +773,6 @@ enum Action {
     CloudAgentSetup,
     NewCloudAgentConversation,
     NewAgentConversation,
-    CreateEnvironment { repos: Vec<String> },
     FocusCloudMode,
     AutoHandoffToCloud { trigger: AutoCloudHandoffTrigger },
 }
@@ -788,14 +787,6 @@ impl Action {
             "/cloud_agent_setup" => Ok(Self::CloudAgentSetup),
             "/new_cloud_agent_conversation" => Ok(Self::NewCloudAgentConversation),
             "/new_agent_conversation" => Ok(Self::NewAgentConversation),
-            "/create_environment" => {
-                let repos = url
-                    .query_pairs()
-                    .filter_map(|(k, v)| (k == "repo").then(|| v.into_owned()))
-                    .collect::<Vec<_>>();
-
-                Ok(Self::CreateEnvironment { repos })
-            }
             "/focus_cloud_mode" => Ok(Self::FocusCloudMode),
             "/auto_handoff_to_cloud" | "/auto-handoff-to-cloud" => Ok(Self::AutoHandoffToCloud {
                 trigger: parse_auto_handoff_trigger(url),
@@ -933,30 +924,6 @@ impl Action {
                     workspace.handle_action(&WorkspaceAction::AddAgentTab, ctx);
                 });
             }
-            Action::CreateEnvironment { repos } => {
-                use crate::root_view::CreateEnvironmentArg;
-
-                let arg = CreateEnvironmentArg {
-                    repos: repos.clone(),
-                };
-
-                let primary_window_and_view = primary_window_id.and_then(|window_id| {
-                    ctx.root_view_id(window_id)
-                        .map(|view_id| (window_id, view_id))
-                });
-
-                if let Some((primary_window_id, root_view_id)) = primary_window_and_view {
-                    ctx.dispatch_action(
-                        primary_window_id,
-                        &[root_view_id],
-                        "root_view:create_environment_in_existing_window",
-                        &arg,
-                        log::Level::Info,
-                    );
-                } else {
-                    ctx.dispatch_global_action("root_view:create_environment", &arg);
-                }
-            }
             Action::FocusCloudMode => {
                 let mut terminal_view_id = find_cloud_mode_terminal_view_id(primary_window_id, ctx);
                 if terminal_view_id.is_none() {
@@ -990,7 +957,7 @@ impl Action {
                     primary_window_id,
                     "root_view:open_settings_page_in_existing_window",
                     "root_view:open_settings_page_in_new_window",
-                    &SettingsSection::CloudEnvironments,
+                    &SettingsSection::Account,
                     ctx,
                 );
             }
@@ -1006,7 +973,6 @@ impl Action {
         use WindowBehaviorHint as W;
         match self {
             Self::Docker
-            | Self::CreateEnvironment { .. }
             | Self::OpenRepo
             | Self::CloudAgentSetup
             | Self::NewCloudAgentConversation
@@ -1355,13 +1321,6 @@ fn find_cloud_mode_terminal_in_workspace(
         let Some(ambient_terminal_id) = ambient_terminal_id else {
             continue;
         };
-
-        let has_environment_management_pane = pane_group
-            .pane_ids()
-            .any(|pane_id| pane_id.is_environment_management_pane());
-        if has_environment_management_pane {
-            return Some(ambient_terminal_id);
-        }
 
         if fallback_ambient_terminal_id.is_none() {
             fallback_ambient_terminal_id = Some(ambient_terminal_id);

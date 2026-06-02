@@ -12,7 +12,6 @@ pub(super) mod ai_document_pane;
 pub(super) mod ai_fact_pane;
 pub(super) mod code_pane;
 pub(super) mod env_var_collection_pane;
-pub(crate) mod environment_management_pane;
 pub(super) mod file_pane;
 #[cfg(not(target_family = "wasm"))]
 pub(super) mod local_harness_launch;
@@ -50,7 +49,6 @@ use crate::notebooks::notebook::NotebookView;
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::server::network_log_view::NetworkLogView;
 use crate::settings::PaneSettings;
-use crate::settings_view::environments_page::EnvironmentsPageView;
 use crate::settings_view::SettingsView;
 use crate::terminal::available_shells::AvailableShell;
 use crate::terminal::TerminalView;
@@ -124,7 +122,6 @@ pub(crate) enum IPaneType {
     File,
     Code,
     EnvVarCollection,
-    EnvironmentManagement,
     Workflow,
     Settings,
     AIFact,
@@ -144,7 +141,6 @@ impl Display for IPaneType {
             IPaneType::File => write!(f, "File"),
             IPaneType::Code => write!(f, "Code"),
             IPaneType::EnvVarCollection => write!(f, "Environment Variable Collection"),
-            IPaneType::EnvironmentManagement => write!(f, "Environment Management"),
             IPaneType::Workflow => write!(f, "Workflow"),
             IPaneType::Settings => write!(f, "Settings"),
             IPaneType::AIFact => write!(f, "AI Fact"),
@@ -192,13 +188,6 @@ impl PaneId {
         ctx: &ViewContext<PaneView<EnvVarCollectionView>>,
     ) -> Self {
         Self::new_from_ctx(IPaneType::EnvVarCollection, ctx)
-    }
-
-    /// Creates a [`PaneId`] from a [`ViewContext<PaneView<EnvironmentsPageView>>`]
-    pub fn from_environment_management_pane_ctx(
-        ctx: &ViewContext<PaneView<EnvironmentsPageView>>,
-    ) -> Self {
-        Self::new_from_ctx(IPaneType::EnvironmentManagement, ctx)
     }
 
     /// Creates a [`PaneId`] from a [`ViewContext<PaneView<WorkflowView>>`]
@@ -260,16 +249,6 @@ impl PaneId {
         env_var_collection_view: &ViewHandle<PaneView<EnvVarCollectionView>>,
     ) -> Self {
         Self::new(IPaneType::EnvVarCollection, env_var_collection_view)
-    }
-
-    /// Creates a [`PaneId`] from a [`PaneView<EnvironmentsPageView>`] entity ID.
-    pub fn from_environment_management_pane_view(
-        environment_management_pane_view: &ViewHandle<PaneView<EnvironmentsPageView>>,
-    ) -> Self {
-        Self::new(
-            IPaneType::EnvironmentManagement,
-            environment_management_pane_view,
-        )
     }
 
     /// Creates a [`PaneId`] from a [`PaneView<WorkflowView>`] entity ID.
@@ -355,10 +334,6 @@ impl PaneId {
         matches!(self.0.pane_type, IPaneType::File)
     }
 
-    pub fn is_environment_management_pane(&self) -> bool {
-        matches!(self.0.pane_type, IPaneType::EnvironmentManagement)
-    }
-
     /// Returns true if this pane contains a Warp Drive object (notebook, workflow, etc.).
     pub fn is_warp_drive_object_pane(&self) -> bool {
         matches!(
@@ -387,9 +362,6 @@ impl PaneId {
             }
             IPaneType::EnvVarCollection => {
                 ChildView::<PaneView<EnvVarCollectionView>>::with_id(self.0.pane_view_id).finish()
-            }
-            IPaneType::EnvironmentManagement => {
-                ChildView::<PaneView<EnvironmentsPageView>>::with_id(self.0.pane_view_id).finish()
             }
             IPaneType::Workflow => {
                 ChildView::<PaneView<WorkflowView>>::with_id(self.0.pane_view_id).finish()

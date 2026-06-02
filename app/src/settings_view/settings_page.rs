@@ -29,7 +29,6 @@ use warpui::{Action, AppContext, SingletonEntity, ViewContext, ViewHandle};
 use super::about_page::AboutPageView;
 use super::appearance_page::AppearanceSettingsPageView;
 use super::code_page::CodeSettingsPageView;
-use super::environments_page::EnvironmentsPageView;
 use super::features_page::FeaturesPageView;
 use super::keybindings::KeybindingsView;
 use super::main_page::MainSettingsPageView;
@@ -103,7 +102,6 @@ pub enum SettingsPageViewHandle {
     Code(ViewHandle<CodeSettingsPageView>),
     Privacy(ViewHandle<PrivacyPageView>),
     Warpify(ViewHandle<WarpifyPageView>),
-    CloudEnvironments(ViewHandle<EnvironmentsPageView>),
     MCPServers(ViewHandle<MCPServersSettingsPageView>),
 }
 
@@ -120,7 +118,6 @@ impl SettingsPageViewHandle {
             Code(view_handle) => ChildView::new(view_handle).finish(),
             Privacy(view_handle) => ChildView::new(view_handle).finish(),
             Warpify(view_handle) => ChildView::new(view_handle).finish(),
-            CloudEnvironments(view_handle) => ChildView::new(view_handle).finish(),
             MCPServers(view_handle) => ChildView::new(view_handle).finish(),
         }
     }
@@ -176,8 +173,6 @@ impl SettingsPage {
 pub enum SettingsPageEvent {
     FocusModal,
     Pane(PaneEventWrapper),
-    EnvironmentSetupModeSelectorToggled { is_open: bool },
-    AgentAssistedEnvironmentModalToggled { is_open: bool },
 }
 
 /// Wrapper for pane events to avoid circular dependency with pane module.

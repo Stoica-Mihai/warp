@@ -5,7 +5,6 @@ use std::str::FromStr;
 use about_page::AboutPageView;
 use appearance_page::{AppearancePageAction, AppearanceSettingsPageView};
 use code_page::{CodeSettingsPageAction, CodeSettingsPageEvent, CodeSubpage};
-use environments_page::EnvironmentsPageView;
 use features_page::{FeaturesPageView, FeaturesSettingsPageEvent};
 use itertools::Itertools as _;
 use keybindings::KeybindingsView;
@@ -63,15 +62,11 @@ use crate::workspace::WorkspaceAction;
 use crate::GlobalResourceHandlesProvider;
 
 mod about_page;
-mod agent_assisted_environment_modal;
 mod appearance_page;
 mod code_page;
-mod delete_environment_confirmation_dialog;
 mod directory_color_add_picker;
-pub(crate) mod environments_page;
 mod features;
 mod features_page;
-pub(crate) mod handoff_environment_creation_modal;
 pub mod keybindings;
 mod main_page;
 pub mod mcp_servers;
@@ -83,7 +78,6 @@ mod privacy_page;
 mod settings_file_footer;
 pub(crate) mod settings_page;
 mod show_blocks_view;
-pub mod update_environment_form;
 mod warpify_page;
 
 #[cfg(not(target_family = "wasm"))]
@@ -200,8 +194,6 @@ pub enum SettingsSection {
     // ── Code umbrella subpages ──
     CodeIndexing,
     EditorAndCodeReview,
-    // ── Cloud platform umbrella subpages ──
-    CloudEnvironments,
 }
 
 use std::fmt::{self, Display};
@@ -216,7 +208,6 @@ impl Display for SettingsSection {
             SettingsSection::MCPServers => write!(f, "MCP Servers"),
             SettingsSection::CodeIndexing => write!(f, "Indexing and projects"),
             SettingsSection::EditorAndCodeReview => write!(f, "Editor and Code Review"),
-            SettingsSection::CloudEnvironments => write!(f, "Environments"),
             _ => write!(f, "{self:?}"),
         }
     }
@@ -225,7 +216,7 @@ impl Display for SettingsSection {
 impl SettingsSection {
     /// Returns true if this section is a subpage under any umbrella.
     pub fn is_subpage(&self) -> bool {
-        self.is_ai_subpage() || self.is_code_subpage() || self.is_cloud_platform_subpage()
+        self.is_ai_subpage() || self.is_code_subpage()
     }
 
     /// Returns true if this section is a stripped AI subpage variant.
@@ -246,11 +237,6 @@ impl SettingsSection {
         matches!(self, Self::CodeIndexing | Self::EditorAndCodeReview)
     }
 
-    /// Returns true if this section is a subpage under the "Cloud platform" umbrella.
-    pub fn is_cloud_platform_subpage(&self) -> bool {
-        matches!(self, Self::CloudEnvironments)
-    }
-
     /// Maps subpage sections back to their parent page section for page lookup.
     /// Non-subpage sections return themselves.
     pub fn parent_page_section(&self) -> Self {
@@ -268,10 +254,6 @@ impl SettingsSection {
         &[Self::CodeIndexing, Self::EditorAndCodeReview]
     }
 
-    /// The ordered list of Cloud platform subpage sections.
-    pub fn cloud_platform_subpages() -> &'static [Self] {
-        &[Self::CloudEnvironments]
-    }
 }
 
 impl FromStr for SettingsSection {
@@ -297,7 +279,6 @@ impl FromStr for SettingsSection {
             "Third party CLI agents" | "ThirdPartyCLIAgents" => Ok(Self::ThirdPartyCLIAgents),
             "Indexing and projects" | "CodeIndexing" => Ok(Self::CodeIndexing),
             "Editor and Code Review" | "EditorAndCodeReview" => Ok(Self::EditorAndCodeReview),
-            "CloudEnvironments" => Ok(Self::CloudEnvironments),
             _ => Err(()),
         }
     }
@@ -913,7 +894,6 @@ macro_rules! update_page {
             SettingsPageViewHandle::Keybindings(handle) => $ctx.update_view(handle, $update),
             SettingsPageViewHandle::Warpify(handle) => $ctx.update_view(handle, $update),
             SettingsPageViewHandle::Privacy(handle) => $ctx.update_view(handle, $update),
-            SettingsPageViewHandle::CloudEnvironments(handle) => $ctx.update_view(handle, $update),
             SettingsPageViewHandle::About(handle) => $ctx.update_view(handle, $update),
             SettingsPageViewHandle::Code(handle) => $ctx.update_view(handle, $update),
             SettingsPageViewHandle::MCPServers(handle) => $ctx.update_view(handle, $update),
@@ -931,7 +911,6 @@ pub struct SettingsView {
     clipped_scroll_state: ClippedScrollStateHandle,
     context_menu: ViewHandle<Menu<SettingsAction>>,
     context_menu_state: Option<Vector2F>,
-    environments_page_handle: ViewHandle<EnvironmentsPageView>,
     /// Sidebar navigation items (pages + umbrellas).
     nav_items: Vec<SettingsNavItem>,
     /// Handle to the Code settings page, used to switch subpage modes.
@@ -994,12 +973,6 @@ impl SettingsView {
 
         // About page
         let about_page_handle = ctx.add_view(AboutPageView::new);
-
-        // Environments page
-        let environments_page_handle = ctx.add_typed_action_view(EnvironmentsPageView::new);
-        ctx.subscribe_to_view(&environments_page_handle, |me, _, event, ctx| {
-            me.handle_environments_page_event(event, ctx);
-        });
 
         // Keybindings page
         let keybindings_handle = ctx.add_typed_action_view(KeybindingsView::new);
@@ -1068,7 +1041,6 @@ impl SettingsView {
 
         settings_pages.extend(vec![
             SettingsPage::new(mcp_servers_page_handle),
-            SettingsPage::new(environments_page_handle.clone()),
             SettingsPage::new(privacy_page_handle),
             SettingsPage::new(about_page_handle),
         ]);
@@ -1123,7 +1095,6 @@ impl SettingsView {
             clipped_scroll_state: Default::default(),
             context_menu,
             context_menu_state: Default::default(),
-            environments_page_handle,
             nav_items,
             code_page_handle: code_page_handle_for_nav,
             subpage_filter: HashMap::new(),
@@ -1263,7 +1234,7 @@ impl SettingsView {
                                     .map(|md| md.is_truthy())
                                     .unwrap_or_else(|| {
                                         // Subpages with their own backing page
-                                        // (e.g. AgentMCPServers, CloudEnvironments)
+                                        // (e.g. AgentMCPServers)
                                         // fall back to pages_filter.
                                         let backing = subpage_section.parent_page_section();
                                         self.settings_pages
@@ -1443,29 +1414,9 @@ impl SettingsView {
     ) {
         match event {
             SettingsPageEvent::FocusModal => ctx.focus(&self.search_editor),
-            SettingsPageEvent::Pane(_)
-            | SettingsPageEvent::EnvironmentSetupModeSelectorToggled { .. }
-            | SettingsPageEvent::AgentAssistedEnvironmentModalToggled { .. } => {
+            SettingsPageEvent::Pane(_) => {
                 // These events are not handled in standalone settings - only used
                 // when the view is hosted inside a pane.
-            }
-        }
-    }
-
-    fn handle_environments_page_event(
-        &mut self,
-        event: &SettingsPageEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            SettingsPageEvent::FocusModal => ctx.focus(&self.search_editor),
-            SettingsPageEvent::EnvironmentSetupModeSelectorToggled { .. }
-            | SettingsPageEvent::AgentAssistedEnvironmentModalToggled { .. } => {
-                // Re-render so the modal overlay is shown/hidden.
-                ctx.notify();
-            }
-            SettingsPageEvent::Pane(_) => {
-                // Not applicable in standalone settings view.
             }
         }
     }
@@ -1490,9 +1441,7 @@ impl SettingsView {
     ) {
         match event {
             SettingsPageEvent::FocusModal => ctx.focus(&self.search_editor),
-            SettingsPageEvent::Pane(_)
-            | SettingsPageEvent::EnvironmentSetupModeSelectorToggled { .. }
-            | SettingsPageEvent::AgentAssistedEnvironmentModalToggled { .. } => {
+            SettingsPageEvent::Pane(_) => {
                 // These events are not handled in standalone settings - only used
                 // when the view is hosted inside a pane.
             }
@@ -1631,7 +1580,6 @@ impl SettingsView {
             self.clear_search_query(ctx);
         }
         self.current_settings_page = section;
-        if previous_section != section && section == SettingsSection::CloudEnvironments {}
 
         // When navigating to a subpage, update the backing page's active subpage mode
         // and auto-expand the umbrella containing it.
@@ -1643,9 +1591,6 @@ impl SettingsView {
                     view.set_active_subpage(subpage, ctx);
                 });
             }
-            // Cloud platform subpages render their backing pages directly
-            // (no subpage mode switch needed — the full page is shown).
-
             // Auto-expand the umbrella containing this subpage.
             for item in &mut self.nav_items {
                 if let SettingsNavItem::Umbrella(umbrella) = item {
@@ -1692,7 +1637,6 @@ impl SettingsView {
             SettingsPageViewHandle::About(v) => v.as_ref(app).should_render(app),
             SettingsPageViewHandle::Privacy(v) => v.as_ref(app).should_render(app),
             SettingsPageViewHandle::Warpify(v) => v.as_ref(app).should_render(app),
-            SettingsPageViewHandle::CloudEnvironments(v) => v.as_ref(app).should_render(app),
             SettingsPageViewHandle::MCPServers(v) => v.as_ref(app).should_render(app),
             SettingsPageViewHandle::Code(v) => v.as_ref(app).should_render(app),
         }
@@ -2185,24 +2129,6 @@ impl View for SettingsView {
                     ChildAnchor::Center,
                 ),
             );
-        }
-
-        // Render environment setup mode selector overlay when open.
-        if let Some(selector_handle) = self
-            .environments_page_handle
-            .as_ref(app)
-            .environment_setup_mode_selector_handle()
-        {
-            stack.add_child(ChildView::new(selector_handle).finish());
-        }
-
-        // Render agent-assisted environment modal overlay when open.
-        if let Some(modal_handle) = self
-            .environments_page_handle
-            .as_ref(app)
-            .agent_assisted_environment_modal_handle(app)
-        {
-            stack.add_child(ChildView::new(modal_handle).finish());
         }
 
         SavePosition::new(stack.finish(), POSITION_ID).finish()

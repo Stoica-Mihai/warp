@@ -873,7 +873,6 @@ pub enum Event {
     OpenViewMCPPane,
     OpenAddMCPPane,
     OpenProjectRulesPane,
-    OpenEnvironmentManagementPane,
     OpenFilesPalette {
         source: PaletteSource,
     },
@@ -912,15 +911,9 @@ pub enum Event {
     ScrollToExchange {
         exchange_id: AIAgentExchangeId,
     },
-    /// Trigger environment setup flow with optional repository arguments
-    TriggerEnvironmentSetup {
-        repos: Vec<String>,
-    },
     RegisterPluginListener(CLIAgent),
     #[cfg(not(target_family = "wasm"))]
     OpenPluginInstructionsPane(CLIAgent, PluginModalKind),
-    OpenHandoffEnvironmentCreationModal,
-    OpenCloudModeV2EnvironmentCreationModal,
 }
 
 pub enum InputState {
@@ -3171,11 +3164,6 @@ impl Input {
 
         let prompt = self.editor.as_ref(ctx).buffer_text(ctx).trim().to_owned();
         if prompt.is_empty() {
-            return true;
-        }
-
-        if CloudAmbientAgentEnvironment::get_all(ctx).is_empty() {
-            ctx.emit(Event::OpenHandoffEnvironmentCreationModal);
             return true;
         }
 
@@ -9841,19 +9829,6 @@ impl Input {
                 let prompt = command.trim().to_owned();
                 if prompt.is_empty() {
                     return;
-                }
-
-                if false {
-                    if let Some(ambient_agent_view_model) = self.ambient_agent_view_model() {
-                        let needs_env_modal = ambient_agent_view_model
-                            .as_ref(ctx)
-                            .selected_environment_id()
-                            .is_none();
-                        if needs_env_modal {
-                            ctx.emit(Event::OpenCloudModeV2EnvironmentCreationModal);
-                            return;
-                        }
-                    }
                 }
 
                 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
