@@ -423,8 +423,6 @@ fn test_has_any_ai_remaining_true_with_self_serve_auto_reload() {
 #[test]
 fn test_has_any_ai_remaining_true_with_self_serve_auto_reload_and_billing_v2_disabled() {
     App::test((), |mut app| async move {
-        let _guard = FeatureFlag::BillingAndUsagePageV2.override_enabled(false);
-
         let (_uid, mut workspace) = create_test_workspace();
         workspace
             .billing_metadata
