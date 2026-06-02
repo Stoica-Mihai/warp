@@ -472,10 +472,6 @@ impl TerminalManager {
                 executable_path: shell_starter.logical_shell_path().to_owned(),
                 shell_type: shell_starter.shell_type(),
             },
-            ShellStarter::DockerSandbox(docker_starter) => ShellLaunchData::Executable {
-                executable_path: docker_starter.logical_shell_path().to_owned(),
-                shell_type: docker_starter.shell_type(),
-            },
             ShellStarter::Wsl(shell_starter) => ShellLaunchData::WSL {
                 distro: shell_starter.distribution().to_owned(),
             },

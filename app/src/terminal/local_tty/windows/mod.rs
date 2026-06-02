@@ -161,16 +161,6 @@ pub(super) fn spawn(
             shell_command(shell_starter)?
         }
         ShellStarter::Wsl(wsl_shell_starter) => wsl_shell_command(wsl_shell_starter)?,
-        ShellStarter::DockerSandbox(_) => {
-            // Docker sandbox shells are only supported on Unix; they should
-            // never reach the Windows PTY spawn path. Surface as an error
-            // rather than panicking so a rogue persisted/round-tripped
-            // sandbox starter degrades gracefully on Windows.
-            log::error!("Docker sandbox shell starter reached the Windows PTY spawn path");
-            return Err(PtySpawnError::UnsupportedShellStarter(
-                "Docker sandbox shells are not supported on Windows".to_owned(),
-            ));
-        }
     };
     let mut process_information = PROCESS_INFORMATION::default();
 

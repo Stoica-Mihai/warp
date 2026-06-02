@@ -16287,11 +16287,6 @@ impl TerminalView {
                     .shell_path()
                     .to_string_lossy()
                     .to_string(),
-                ShellStarter::DockerSandbox(docker_shell_starter) => docker_shell_starter
-                    .direct
-                    .shell_path()
-                    .to_string_lossy()
-                    .to_string(),
                 ShellStarter::Wsl(wsl_shell_starter) => wsl_shell_starter.shell_path(),
             };
             Some((shell_path, shell_starter.shell_type()))

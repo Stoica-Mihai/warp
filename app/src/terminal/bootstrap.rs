@@ -289,26 +289,6 @@ fn init_subshell_script_for_unknown_shell(assets: &dyn AssetProvider) -> String 
         .replace("HOOK_NAME", "InitSubshell")
 }
 
-/// Returns the raw init shell script for the given `shell_type`, without
-/// single-quote escaping. Suitable for passing as an environment variable
-/// where the caller controls the eval context (e.g. Docker sandbox init).
-///
-/// Gated on `unix` because the sole caller today is the Unix Docker
-/// sandbox spawn path (`local_tty::unix::prepare_docker_sandbox`); on
-/// Windows/wasm the function is dead code.
-#[cfg(unix)]
-pub fn raw_init_shell_script_for_shell(
-    shell_type: ShellType,
-    assets: &dyn AssetProvider,
-) -> String {
-    let file = match shell_type {
-        ShellType::Bash => "bundled/bootstrap/bash_init_shell.sh",
-        ShellType::Zsh => "bundled/bootstrap/zsh_init_shell.sh",
-        ShellType::Fish => "bundled/bootstrap/fish_init_shell.sh",
-        ShellType::PowerShell => "bundled/bootstrap/pwsh_init_shell.ps1",
-    };
-    load_script(file, assets).replace("@@USING_CON_PTY_BOOLEAN@@", &(cfg!(windows).to_string()))
-}
 
 /// Returns the script in the file at `file_path` to be passed as a single-quoted argument in the
 /// shell (e.g. as a single quoted argument to `eval`).

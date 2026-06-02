@@ -440,7 +440,6 @@ impl<T: EventLoopSender> PtyController<T> {
                 (
                     Some(ShellLaunchData::Executable { .. })
                     | Some(ShellLaunchData::MSYS2 { .. })
-                    | Some(ShellLaunchData::DockerSandbox { .. })
                     | None,
                     _,
                 ) => None,
