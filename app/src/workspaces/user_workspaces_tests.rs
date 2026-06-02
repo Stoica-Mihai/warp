@@ -78,8 +78,6 @@ fn initialize_app(
 
 #[test]
 fn test_loading_all_spaces_after_switching_from_offline() {
-    let _flag = FeatureFlag::KnowledgeSidebar.override_enabled(true);
-
     let team = Team {
         uid: 123.into(),
         name: "test".to_string(),

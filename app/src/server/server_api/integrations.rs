@@ -26,7 +26,7 @@ use warp_graphql::queries::suggest_cloud_environment_image::{
     SuggestCloudEnvironmentImageVariables,
 };
 use warp_graphql::queries::user_github_info::{
-    GithubAuthRequiredOutput, UserGithubInfo, UserGithubInfoResult, UserGithubInfoVariables,
+    UserGithubInfo, UserGithubInfoResult, UserGithubInfoVariables,
 };
 use warp_graphql::queries::user_repo_auth_status::{
     RepoInput as UserRepoAuthStatusRepoInput, UserRepoAuthStatus, UserRepoAuthStatusInput,
@@ -34,8 +34,6 @@ use warp_graphql::queries::user_repo_auth_status::{
 };
 
 use super::ServerApi;
-use crate::channel::ChannelState;
-use crate::features::FeatureFlag;
 use crate::server::graphql::{get_request_context, get_user_facing_error_message};
 
 #[cfg(not(target_family = "wasm"))]
@@ -286,26 +284,6 @@ impl IntegrationsClient for ServerApi {
         let response = self.send_graphql_request(operation, None).await?;
 
         let result = response.user_github_info;
-
-        // Dev-only helper for testing GitHub-unauthed flows.
-        //
-        // Important: this runs after the network request completes so the UI can still
-        // show the loading state.
-        if FeatureFlag::SimulateGithubUnauthed.is_enabled() {
-            if let UserGithubInfoResult::GithubConnectedOutput(connected) = &result {
-                let auth_url = format!("{}/oauth/connect/github", ChannelState::server_root_url());
-                return Ok(UserGithubInfoResult::GithubAuthRequiredOutput(
-                    GithubAuthRequiredOutput {
-                        auth_url,
-                        // This value is unused by the app UI; it exists in the schema for
-                        // tx-bound flows. We intentionally omit txId from the auth URL so
-                        // the web flow can proceed without a server-created tx.
-                        tx_id: cynic::Id::new("simulated"),
-                        app_install_link: connected.app_install_link.clone(),
-                    },
-                ));
-            }
-        }
 
         Ok(result)
     }

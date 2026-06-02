@@ -1,9 +1,9 @@
-use warpui::{SingletonEntity, UpdateView};
+use warpui::UpdateView;
 
 use super::{
     fork_label_for_query, mark_feature_used_and_write_to_user_defaults, AIAgentExchangeId,
-    AIConversationId, AgentModeRewindEntrypoint, AppContext, ChannelState,
-    ClipboardContent, ContextMenuAction, ContextMenuState, ContextMenuType, EntityId, FeatureFlag,
+    AIConversationId, AppContext, ChannelState,
+    ClipboardContent, ContextMenuAction, ContextMenuState, ContextMenuType, EntityId,
     ForkAIConversationParams, ForkFromExchange, ForkedConversationDestination, MenuItem,
     MenuItemFields, RichContentLink, ServerConversationToken, ServerOutputId,
     TerminalAction, TerminalModel, TerminalView, Tip, TipHint, Vector2F, ViewContext,
@@ -319,20 +319,6 @@ impl TerminalView {
                         .into_item(),
                 );
             }
-        }
-
-        // We can't revert restored blocks since we don't restore the full diff
-        if FeatureFlag::RevertToCheckpoints.is_enabled() && !is_restored {
-            menu_items.push(
-                MenuItemFields::new("Rewind to before here")
-                    .with_on_select_action(TerminalAction::RewindAIConversation {
-                        ai_block_view_id,
-                        exchange_id: ai_exchange_id,
-                        conversation_id: ai_conversation_id,
-                        entrypoint: AgentModeRewindEntrypoint::ContextMenu,
-                    })
-                    .into_item(),
-            );
         }
 
         let debugging_items =

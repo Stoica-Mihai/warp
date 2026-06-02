@@ -463,13 +463,7 @@ impl TerminalView {
         initial_prompt: Option<String>,
         ctx: &mut ViewContext<Self>,
     ) {
-        if !(FeatureFlag::CloudMode.is_enabled()
-            && FeatureFlag::CloudModeFromLocalSession.is_enabled())
-        {
-            return;
-        }
-
-        self.start_cloud_mode(initial_prompt, ctx);
+        return;
     }
 
     /// Start a cloud mode session nested under this one, pushing a new pane onto this view's

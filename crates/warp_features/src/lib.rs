@@ -9,8 +9,6 @@ pub enum FeatureFlag {
     DebugMode,
     RecordAppActiveEvents,
 
-    KnowledgeSidebar,
-
     RuntimeFeatureFlags,
 
 
@@ -160,8 +158,6 @@ pub enum FeatureFlag {
     /// Enables Kitty image rendering
     KittyImages,
 
-    /// Enables support for Warp Packs.
-    WarpPacks,
 
 
 
@@ -384,9 +380,6 @@ pub enum FeatureFlag {
     /// Enables embedded code review comments.
     EmbeddedCodeReviewComments,
 
-    /// Enables the revert to checkpoints feature.
-    RevertToCheckpoints,
-
     /// Enables the /rewind slash command.
     RewindSlashCommand,
 
@@ -410,8 +403,6 @@ pub enum FeatureFlag {
     /// Enables cloud mode functionality for ambient agents.
     CloudMode,
 
-    /// Enables starting cloud mode from a local session.
-    CloudModeFromLocalSession,
 
 
     /// Enables support for AM file diffs backed by the V4A patch format.
@@ -437,8 +428,6 @@ pub enum FeatureFlag {
     /// Enables configuring header toolbar item order, side placement, and visibility.
     ConfigurableToolbar,
 
-    /// Enables real-time communication updates for ambient agent tasks.
-    AmbientAgentsRTC,
 
 
     /// When enabled, the server will use message replacement + retroactive subtasks for
@@ -448,11 +437,6 @@ pub enum FeatureFlag {
     /// Enables pluggable notifications via OSC 9 and OSC 777 escape sequences.
     /// External programs can trigger system and in-app notifications.
     PluggableNotifications,
-
-    /// Dev-only: simulate a GitHub-unauthed user in the Environments page flow.
-    ///
-    /// This is intended for developer testing and should have no effect in release builds.
-    SimulateGithubUnauthed,
 
     /// Enables sending the server a list of Skills that the client has access to.
     ///
