@@ -807,7 +807,6 @@ define_settings_group!(AISettings, settings: [
         private: false,
         toml_path: "agents.warp_agent.active_ai.natural_language_autosuggestions_enabled",
         description: "Controls whether ghosted text autosuggestions are shown for AI input queries.",
-        feature_flag: FeatureFlag::PredictAMQueries,
     }
     // This field should not be referenced directly to lookup shared block title generations
     // enablement -- use the `is_shared_block_title_generation_enabled()` getter.
@@ -842,7 +841,6 @@ define_settings_group!(AISettings, settings: [
         private: false,
         toml_path: "agents.warp_agent.active_ai.rule_suggestions_enabled",
         description: "Controls whether the agent suggests rules to save after responses.",
-        feature_flag: FeatureFlag::SuggestedRules,
     }
     // This field should not be referenced directly to lookup Voice AI enablement -- use the
     // `is_voice_input_enabled()` getter.

@@ -461,11 +461,8 @@ impl BackingView for TerminalView {
         items
     }
 
-    fn should_render_header(&self, app: &AppContext) -> bool {
-        let is_fullscreen_agent_view = false;
-        is_fullscreen_agent_view
-            || FeatureFlag::ContextWindowUsageV2.is_enabled()
-                && self.split_pane_state(app).is_in_split_pane()
+    fn should_render_header(&self, _app: &AppContext) -> bool {
+        false
     }
 
     fn render_header_content(

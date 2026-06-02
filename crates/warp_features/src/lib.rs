@@ -176,14 +176,8 @@ pub enum FeatureFlag {
     /// Enables the XML output system prompt for the pre-plan agent in Agent Mode.
     AgentModePrePlanXML,
 
-    /// Enables suggested rules.
-    SuggestedRules,
-
     /// Enables suggested workflows for Agent Mode.
     SuggestedAgentModeWorkflows,
-
-    /// Enables prediction of Agent Mode queries.
-    PredictAMQueries,
 
     /// Enables full source code embedding of repos when using codebase context.
     FullSourceCodeEmbedding,
@@ -212,13 +206,8 @@ pub enum FeatureFlag {
     /// Reload files in an AI conversation to prevent stale files.
     ReloadStaleConversationFiles,
 
-    /// Auto generate the title when creating a shared block.
-    SharedBlockTitleGeneration,
-
     /// Enables reading images with the `read_files` tool.
     ReadImageFiles,
-
-    UsageBasedPricing,
 
     /// Persist codebase indices to disk.
     CodebaseIndexPersistence,
@@ -406,9 +395,6 @@ pub enum FeatureFlag {
     /// Enables the /fork-from slash command.
     ForkFromCommand,
 
-    /// Enables v2 of the context window usage UI.
-    ContextWindowUsageV2,
-
     /// Enables global search
     GlobalSearch,
 
@@ -501,9 +487,6 @@ pub enum FeatureFlag {
 
     /// Enables conversation artifacts.
     ConversationArtifacts,
-
-    /// Enables auto-syncing ambient plans to Warp Drive.
-    SyncAmbientPlans,
 
     /// Enables platform skills support (--skill flag) for agent runs.
     ///
@@ -711,9 +694,6 @@ pub enum FeatureFlag {
     /// (`~/.git-credentials`, `~/.config/gh/hosts.yaml`) and runs the
     /// background refresh loop that keeps them fresh during a task run.
     GitCredentialRefresh,
-
-    /// Replaces the raw harness CLI command with a styled header showing CLI name + status icon.
-    HarnessSessionHeader,
 
     /// Enables the code review view for remote sessions.
     RemoteCodeReview,

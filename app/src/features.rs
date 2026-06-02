@@ -105,14 +105,10 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::AgentModePrimaryXML,
         #[cfg(feature = "agent_mode_pre_plan_xml")]
         FeatureFlag::AgentModePrePlanXML,
-        #[cfg(feature = "suggested_rules")]
-        FeatureFlag::SuggestedRules,
         #[cfg(feature = "suggested_agent_mode_workflows")]
         FeatureFlag::SuggestedAgentModeWorkflows,
         #[cfg(feature = "command_correction_key")]
         FeatureFlag::CommandCorrectionKey,
-        #[cfg(feature = "predict_am_queries")]
-        FeatureFlag::PredictAMQueries,
         #[cfg(feature = "full_source_code_embedding")]
         FeatureFlag::FullSourceCodeEmbedding,
         #[cfg(feature = "remote_codebase_indexing")]
@@ -143,12 +139,8 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::FileRetrievalTools,
         #[cfg(feature = "reload_stale_conversation_files")]
         FeatureFlag::ReloadStaleConversationFiles,
-        #[cfg(feature = "shared_block_title_generation")]
-        FeatureFlag::SharedBlockTitleGeneration,
         #[cfg(feature = "read_image_files")]
         FeatureFlag::ReadImageFiles,
-        #[cfg(feature = "usage_based_pricing")]
-        FeatureFlag::UsageBasedPricing,
         #[cfg(feature = "codebase_index_persistence")]
         FeatureFlag::CodebaseIndexPersistence,
         #[cfg(feature = "ai_context_menu")]
@@ -197,8 +189,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::MultiProfile,
         #[cfg(feature = "conversation_artifacts")]
         FeatureFlag::ConversationArtifacts,
-        #[cfg(feature = "sync_ambient_plans")]
-        FeatureFlag::SyncAmbientPlans,
         #[cfg(feature = "projects")]
         FeatureFlag::Projects,
         #[cfg(feature = "drive_objects_as_context")]
@@ -263,8 +253,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::WebFetchUI,
         #[cfg(feature = "fork_from_command")]
         FeatureFlag::ForkFromCommand,
-        #[cfg(feature = "context_window_usage_v2")]
-        FeatureFlag::ContextWindowUsageV2,
         #[cfg(feature = "global_search")]
         FeatureFlag::GlobalSearch,
         #[cfg(feature = "embedded_code_review_comments")]

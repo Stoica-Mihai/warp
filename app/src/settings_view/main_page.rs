@@ -5,7 +5,6 @@ use lazy_static::lazy_static;
 use pathfinder_color::ColorU;
 use pathfinder_geometry::vector::vec2f;
 use warp_core::channel::ChannelState;
-use warp_core::features::FeatureFlag;
 use warp_core::ui::icons::Icon;
 use warpui::assets::asset_cache::AssetSource;
 use warpui::elements::{
@@ -504,9 +503,7 @@ impl AccountWidget {
             )
             .with_cross_axis_alignment(CrossAxisAlignment::Start);
 
-        if !FeatureFlag::UsageBasedPricing.is_enabled() {
-            row.add_child(Align::new(plan_info.finish()).right().finish());
-        }
+        row.add_child(Align::new(plan_info.finish()).right().finish());
 
         row.finish()
     }
