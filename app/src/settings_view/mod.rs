@@ -182,13 +182,6 @@ pub enum SettingsSection {
     Privacy,
     SharedBlocks,
     Warpify,
-    // Stripped AI subpages — kept as dead variants so external callers compile.
-    AI,
-    WarpAgent,
-    AgentProfiles,
-    AgentMCPServers,
-    Knowledge,
-    ThirdPartyCLIAgents,
     /// Internal backing-page identifier for CodeSettingsPageView.
     Code,
     // ── Code umbrella subpages ──
@@ -216,20 +209,7 @@ impl Display for SettingsSection {
 impl SettingsSection {
     /// Returns true if this section is a subpage under any umbrella.
     pub fn is_subpage(&self) -> bool {
-        self.is_ai_subpage() || self.is_code_subpage()
-    }
-
-    /// Returns true if this section is a stripped AI subpage variant.
-    pub fn is_ai_subpage(&self) -> bool {
-        matches!(
-            self,
-            Self::AI
-                | Self::WarpAgent
-                | Self::AgentProfiles
-                | Self::AgentMCPServers
-                | Self::Knowledge
-                | Self::ThirdPartyCLIAgents
-        )
+        self.is_code_subpage()
     }
 
     /// Returns true if this section is a subpage under the "Code" umbrella.
@@ -241,9 +221,6 @@ impl SettingsSection {
     /// Non-subpage sections return themselves.
     pub fn parent_page_section(&self) -> Self {
         match self {
-            // Stripped AI sections redirect to Account (no AI backing page).
-            s if s.is_ai_subpage() => Self::Account,
-            // Code subpages render within the Code page.
             s if s.is_code_subpage() => Self::Code,
             other => *other,
         }
@@ -263,7 +240,6 @@ impl FromStr for SettingsSection {
         match s {
             "About" => Ok(Self::About),
             "Account" => Ok(Self::Account),
-            "AI" => Ok(Self::AI),
             "MCP Servers" => Ok(Self::MCPServers),
             "Appearance" => Ok(Self::Appearance),
             "Code" => Ok(Self::Code),
@@ -272,11 +248,6 @@ impl FromStr for SettingsSection {
             "Privacy" => Ok(Self::Privacy),
             "Shared blocks" => Ok(Self::SharedBlocks),
             "Warpify" => Ok(Self::Warpify),
-            "Oz" | "Warp Agent" | "WarpAgent" => Ok(Self::WarpAgent),
-            "Profiles" | "AgentProfiles" => Ok(Self::AgentProfiles),
-            "MCP servers" | "AgentMCPServers" => Ok(Self::AgentMCPServers),
-            "Knowledge" => Ok(Self::Knowledge),
-            "Third party CLI agents" | "ThirdPartyCLIAgents" => Ok(Self::ThirdPartyCLIAgents),
             "Indexing and projects" | "CodeIndexing" => Ok(Self::CodeIndexing),
             "Editor and Code Review" | "EditorAndCodeReview" => Ok(Self::EditorAndCodeReview),
             _ => Err(()),
@@ -1066,7 +1037,6 @@ impl SettingsView {
         // Resolve the initial page: map internal backing-page sections to their default subpage.
         let initial_page = match page {
             Some(SettingsSection::Code) => SettingsSection::CodeIndexing,
-            Some(section) if section.is_ai_subpage() => SettingsSection::Account,
             Some(section) if section.is_subpage() => section,
             other => other.unwrap_or_default(),
         };
@@ -1550,10 +1520,8 @@ impl SettingsView {
         allow_steal_focus: bool,
         ctx: &mut ViewContext<Self>,
     ) {
-        // Map internal backing-page sections to their default subpage.
         let section = match section {
             SettingsSection::Code => SettingsSection::CodeIndexing,
-            s if s.is_ai_subpage() => SettingsSection::Account,
             other => other,
         };
 
@@ -1650,8 +1618,7 @@ impl SettingsView {
         autoinstall_gallery_title: Option<&str>,
         ctx: &mut ViewContext<Self>,
     ) {
-        // Navigate to the AgentMCPServers subpage (under the Agents umbrella).
-        self.set_and_refresh_current_page(SettingsSection::AgentMCPServers, ctx);
+        self.set_and_refresh_current_page(SettingsSection::MCPServers, ctx);
         if let Some(mcp_page) = self.settings_page(SettingsSection::MCPServers) {
             if let SettingsPageViewHandle::MCPServers(view) = &mcp_page.view_handle {
                 view.update(ctx, |view, ctx| {
