@@ -183,7 +183,7 @@ impl Args {
 
                 // Check for disabled commands before parsing to prevent help from showing (e.g.
                 // `warp environment` should not return help text)
-                if !FeatureFlag::CloudEnvironments.is_enabled() {
+                {
                     let args: Vec<String> = env::args().collect();
                     if args.len() > 1 && args[1] == "environment" {
                         eprintln!("error: unrecognized subcommand 'environment'\n");
@@ -192,7 +192,7 @@ impl Args {
                     }
                 }
 
-                if !FeatureFlag::ProviderCommand.is_enabled() {
+                {
                     let args: Vec<String> = env::args().collect();
                     if args.len() > 1 && args[1] == "provider" {
                         eprintln!("error: unrecognized subcommand 'provider'\n");
@@ -219,7 +219,7 @@ impl Args {
                     }
                 }
 
-                if !FeatureFlag::WarpManagedSecrets.is_enabled() {
+                {
                     let args: Vec<String> = env::args().collect();
                     if args.len() > 1 && args[1] == "secret" {
                         eprintln!("error: unrecognized subcommand 'secret'\n");
@@ -277,18 +277,16 @@ impl Args {
         let mut command = <Args as CommandFactory>::command();
 
         // Hide the environment subcommands and --environment flags from help text
-        if !FeatureFlag::CloudEnvironments.is_enabled() {
-            command = command.mut_subcommand("environment", |c| c.hide(true));
-            command = command.mut_subcommand("agent", |agent_cmd| {
-                agent_cmd
-                    .mut_subcommand("run", |run_cmd| {
-                        run_cmd.mut_arg("environment", |arg| arg.hide(true))
-                    })
-                    .mut_subcommand("run-cloud", |cloud_cmd| {
-                        cloud_cmd.mut_arg("environment", |arg| arg.hide(true))
-                    })
-            });
-        }
+        command = command.mut_subcommand("environment", |c| c.hide(true));
+        command = command.mut_subcommand("agent", |agent_cmd| {
+            agent_cmd
+                .mut_subcommand("run", |run_cmd| {
+                    run_cmd.mut_arg("environment", |arg| arg.hide(true))
+                })
+                .mut_subcommand("run-cloud", |cloud_cmd| {
+                    cloud_cmd.mut_arg("environment", |arg| arg.hide(true))
+                })
+        });
 
         // Hide the --conversation flag from help text
         if !FeatureFlag::CloudConversations.is_enabled() {
@@ -310,9 +308,7 @@ impl Args {
         }
 
         // Hide the provider subcommand from help text
-        if !FeatureFlag::ProviderCommand.is_enabled() {
-            command = command.mut_subcommand("provider", |c| c.hide(true));
-        }
+        command = command.mut_subcommand("provider", |c| c.hide(true));
 
         // Hide the integration subcommand from help text
         if !FeatureFlag::IntegrationCommand.is_enabled() {
@@ -325,9 +321,7 @@ impl Args {
         }
 
         // Hide the secret subcommand from help text.
-        if !FeatureFlag::WarpManagedSecrets.is_enabled() {
-            command = command.mut_subcommand("secret", |c| c.hide(true));
-        }
+        command = command.mut_subcommand("secret", |c| c.hide(true));
 
         // Hide the federate subcommand from help text.
         if !FeatureFlag::OzIdentityFederation.is_enabled() {
