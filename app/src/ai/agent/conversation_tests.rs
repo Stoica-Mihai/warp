@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use warp_core::features::FeatureFlag;
 use warp_multi_agent_api as api;
 
 use super::{
@@ -110,7 +109,6 @@ fn latest_user_query_trims_and_skips_empty_queries() {
 
 #[test]
 fn restored_conversation_defaults_autoexecute_override_when_not_persisted() {
-    let _flag = FeatureFlag::RememberFastForwardState.override_enabled(true);
     let conversation_data: AgentConversationData =
         serde_json::from_str(r#"{"server_conversation_token":null}"#).unwrap();
 
@@ -184,7 +182,6 @@ fn cli_agent_transcript_vehicle_is_excluded_from_navigation() {
 
 #[test]
 fn restored_conversation_defaults_unknown_persisted_autoexecute_override() {
-    let _flag = FeatureFlag::RememberFastForwardState.override_enabled(true);
     let conversation_data: AgentConversationData = serde_json::from_str(
         r#"{"server_conversation_token":null,"autoexecute_override":"UnexpectedValue"}"#,
     )
@@ -200,7 +197,6 @@ fn restored_conversation_defaults_unknown_persisted_autoexecute_override() {
 
 #[test]
 fn restored_conversation_uses_persisted_autoexecute_override_when_enabled() {
-    let _flag = FeatureFlag::RememberFastForwardState.override_enabled(true);
     let conversation_data: AgentConversationData = serde_json::from_str(
         r#"{"server_conversation_token":null,"autoexecute_override":"RunToCompletion"}"#,
     )
@@ -216,7 +212,6 @@ fn restored_conversation_uses_persisted_autoexecute_override_when_enabled() {
 
 #[test]
 fn restored_conversation_ignores_persisted_autoexecute_override_when_disabled() {
-    let _flag = FeatureFlag::RememberFastForwardState.override_enabled(false);
     let conversation_data: AgentConversationData = serde_json::from_str(
         r#"{"server_conversation_token":null,"autoexecute_override":"RunToCompletion"}"#,
     )

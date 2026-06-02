@@ -418,13 +418,7 @@ impl AIConversation {
                 .and_then(|id| AIConversationId::try_from(id).ok());
             let is_remote_child = data.is_remote_child;
             let run_id = data.run_id;
-            let autoexecute_override = if FeatureFlag::RememberFastForwardState.is_enabled() {
-                data.autoexecute_override
-                    .map(Into::into)
-                    .unwrap_or_default()
-            } else {
-                AIConversationAutoexecuteMode::default()
-            };
+            let autoexecute_override = AIConversationAutoexecuteMode::default();
             let last_event_sequence = data.last_event_sequence;
             let pinned = data.pinned;
 

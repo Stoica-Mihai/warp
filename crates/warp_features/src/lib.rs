@@ -241,9 +241,6 @@ pub enum FeatureFlag {
     /// Enables the fast-forward autoexecute button
     FastForwardAutoexecuteButton,
 
-    /// Remembers the per-conversation fast-forward state across local session restoration.
-    RememberFastForwardState,
-
     /// Enables the find/replace in code editor
     CodeFindReplace,
 
@@ -767,7 +764,6 @@ pub const DOGFOOD_FLAGS: &[FeatureFlag] = &[
     // End manually enabled Code features.
     FeatureFlag::EditableMarkdownMermaid,
     FeatureFlag::CodeReviewScrollPreservation,
-    FeatureFlag::RememberFastForwardState,
     FeatureFlag::GeminiNotifications,
     #[cfg(not(windows))]
     FeatureFlag::SshRemoteServer,
