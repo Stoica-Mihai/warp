@@ -7,7 +7,6 @@ pub use overrides::{get_overrides, set_overrides};
 #[derive(Copy, Clone, Hash, PartialEq, Eq, Debug, Sequence)]
 pub enum FeatureFlag {
     DebugMode,
-    RecordAppActiveEvents,
 
     RuntimeFeatureFlags,
 
@@ -66,8 +65,6 @@ pub enum FeatureFlag {
     /// Enable multiselect in Notebooks and Warp Text.
     RichTextMultiselect,
 
-    /// If enabled, the default input mode is set to waterfall for new users.
-    DefaultWaterfallMode,
 
     /// Makes the input editor's prompt selectable.
     SelectablePrompt,
@@ -136,15 +133,11 @@ pub enum FeatureFlag {
 
     ImeMarkedText,
 
-    /// Enables partial next command suggestions with a prefix.
-    PartialNextCommandSuggestions,
 
 
     /// Enables iTerm image rendering
     ITermImages,
 
-    /// Enables validation of autosuggestions.
-    ValidateAutosuggestions,
 
     /// Enables prompt suggestions sourced via MAA.
     PromptSuggestionsViaMAA,
@@ -161,14 +154,8 @@ pub enum FeatureFlag {
 
 
 
-    /// Enables the XML output system prompt for the primary (terminal) agent in Agent Mode.
-    AgentModePrimaryXML,
 
-    /// Enables the XML output system prompt for the pre-plan agent in Agent Mode.
-    AgentModePrePlanXML,
 
-    /// Enables suggested workflows for Agent Mode.
-    SuggestedAgentModeWorkflows,
 
     /// Enables full source code embedding of repos when using codebase context.
     FullSourceCodeEmbedding,
@@ -179,8 +166,6 @@ pub enum FeatureFlag {
     /// If enabled, command palette searches will use Tantivy search instead of the default fuzzy search.
     UseTantivySearch,
 
-    /// Allows AI to call the grep tool.
-    GrepTool,
 
     /// MCP server v0 functionality.
     McpServer,
@@ -191,11 +176,7 @@ pub enum FeatureFlag {
     /// UNIX shells running "natively" on Windows via MSYS2.
     MSYS2Shells,
 
-    /// Allows AI to call the file retrieval tools.
-    FileRetrievalTools,
 
-    /// Reload files in an AI conversation to prevent stale files.
-    ReloadStaleConversationFiles,
 
     /// Enables reading images with the `read_files` tool.
     ReadImageFiles,
@@ -209,8 +190,6 @@ pub enum FeatureFlag {
     /// Enables the AI context menu outside of AI input mode.
     AtMenuOutsideOfAIMode,
 
-    /// Enables the resume button for cancelled AI conversations.
-    AIResumeButton,
 
     /// Enables the agent to decide whether to execute a command.
     AgentDecidesCommandExecution,
@@ -236,10 +215,6 @@ pub enum FeatureFlag {
     /// Enables Warp Drive objects (like workflows) as context in AI context menu
     DriveObjectsAsContext,
 
-    /// Expands code diff edits to replace the current pane instead of opening in a new tab.
-    ExpandEditToPane,
-    /// Enables fallback model load output messaging in the warping indicator.
-    FallbackModelLoadOutputMessaging,
 
     /// Enables close button on left side of tabs
     TabCloseButtonOnLeft,
@@ -251,11 +226,7 @@ pub enum FeatureFlag {
     /// as model selectors are always shown when this flag is enabled.
     ProfilesDesignRevamp,
 
-    /// Enables new Search Codebase UI
-    SearchCodebaseUI,
 
-    /// Enables return changed lines on apply diff result
-    ChangedLinesOnlyApplyDiffResult,
 
     /// Enables us to render linked code blocks
     LinkedCodeBlocks,
@@ -263,11 +234,7 @@ pub enum FeatureFlag {
     /// Enables the tabbed file viewer
     TabbedEditorView,
 
-    /// Enables sending telemetry data to a file in addition to the server
-    SendTelemetryToFile,
 
-    /// Enables multiple agent profiles in settings for managing different AI agent configurations.
-    MultiProfile,
 
     /// Enables the /pr-comments slash command.
     PRCommentsSlashCommand,
@@ -282,8 +249,6 @@ pub enum FeatureFlag {
     /// Enables selection-as-context functionality in the code editor.
     SelectionAsContext,
 
-    /// A context chip that shows when the PWD is inside of a git repository.
-    CodeModeChip,
 
     /// Enables the prompt chip that displays the GitHub PR for the current branch.
     GithubPrPromptChip,
@@ -330,8 +295,6 @@ pub enum FeatureFlag {
     /// Enables UI zoom support (scaling the entire UI by a given percentage).
     UIZoom,
 
-    /// Shows a confirmation dialog when cancelling an active summarization via Ctrl-C or stop.
-    SummarizationCancellationConfirmation,
 
     /// Enables find/search in code review pane
     CodeReviewFind,
@@ -352,11 +315,7 @@ pub enum FeatureFlag {
     /// Groups MCP tools and resources by their originating server when sending context to the AI backend.
     MCPGroupedServerContext,
 
-    /// Enables the web search UI (when the model executes a web search).
-    WebSearchUI,
 
-    /// Enables the web fetch UI (when the model fetches content from URLs).
-    WebFetchUI,
 
     /// Displays debugging IDs for MCP servers, installations, and gallery items.
     McpDebuggingIds,
@@ -371,8 +330,6 @@ pub enum FeatureFlag {
 
     /// Enables rendering markdown tables inline in AI block list responses.
     BlocklistMarkdownTableRendering,
-    /// Enables rendering markdown images inline in AI block list responses.
-    BlocklistMarkdownImages,
 
     /// Enables global search
     GlobalSearch,
@@ -380,19 +337,13 @@ pub enum FeatureFlag {
     /// Enables embedded code review comments.
     EmbeddedCodeReviewComments,
 
-    /// Enables the /rewind slash command.
-    RewindSlashCommand,
 
     /// Agent Management View.
     AgentManagementView,
 
-    /// Agent Management Details View - enables new details panel on card click.
-    AgentManagementDetailsView,
 
     AgentView,
 
-    /// Enables block context functionality in Agent View.
-    AgentViewBlockContext,
 
     /// Enables the inline history menu for quickly accessing previous commands and conversations.
     InlineHistoryMenu,
@@ -420,10 +371,6 @@ pub enum FeatureFlag {
     /// Enables cloud conversation loading via the CLI --conversation flag.
     CloudConversations,
 
-    /// Enables the "New agent" prompt chip in terminal mode when AgentView is enabled.
-    ///
-    /// When disabled (the default), the terminal message bar is shown instead.
-    AgentViewPromptChip,
 
     /// Enables configuring header toolbar item order, side placement, and visibility.
     ConfigurableToolbar,
@@ -443,23 +390,10 @@ pub enum FeatureFlag {
     /// If disabled, the server will send None as the SkillsContext.
     ListSkills,
 
-    /// When enabled, we expose LSP as a tool to the agent
-    LSPAsATool,
 
-    /// Enables conversation artifacts.
-    ConversationArtifacts,
 
-    /// Enables platform skills support (--skill flag) for agent runs.
-    ///
-    /// Skills are loaded from `.agents/skills/`, `.warp/skills/`, `.claude/skills/`, and `.codex/skills/`
-    /// directories to provide base prompts for agent runs.
-    OzPlatformSkills,
 
-    /// Enables image upload for ambient agents.
-    AmbientAgentsImageUpload,
 
-    /// Enables image attachment support for cloud mode conversations.
-    CloudModeImageContext,
 
     /// Enables loading and returning bundled skills in the SkillManager.
     BundledSkills,
@@ -471,12 +405,7 @@ pub enum FeatureFlag {
     /// Enables file-based MCP server support via .mcp.json files in repo roots.
     FileBasedMcp,
 
-    /// Enables passing user query arguments to skill invocations ($ARGUMENTS, $N).
-    SkillArguments,
 
-    /// When enabled, a conversation is only considered "active" once a new query has been
-    /// sent since opening (rather than the moment its agent view is expanded).
-    ActiveConversationRequiresInteraction,
 
     /// Enables attaching conversations as context in Agent Mode via the @ menu.
     ConversationsAsContext,
@@ -511,10 +440,6 @@ pub enum FeatureFlag {
     /// `OrchestrationV2`; has no effect when v2 is off.
     RunAgentsTool,
 
-    /// Renders a horizontal pill bar in the agent view pane header showing the
-    /// orchestrator agent and all of its child agents, with click-to-switch
-    /// behavior between siblings.
-    OrchestrationPillBar,
 
     /// Enables the orchestration pill bar in shared session viewers (web and
     /// native). When enabled, viewing a shared session that used orchestration
@@ -523,9 +448,6 @@ pub enum FeatureFlag {
     /// and switches the view to its transcript.
     OrchestrationViewerPillBar,
 
-    /// Shows a pending user query indicator during summarization when a follow-up
-    /// prompt is queued via `/fork-and-compact` or `/compact-and`.
-    PendingUserQueryIndicator,
 
     /// Gates the `/queue` slash command, which lets users queue a follow-up prompt
     /// while the agent is mid-response.
@@ -538,9 +460,6 @@ pub enum FeatureFlag {
     /// Enables Kitty keyboard protocol support (CSI u encoding, progressive enhancement).
     KittyKeyboardProtocol,
 
-    /// Detects the word "figma" in the terminal input in real-time and shows a
-    /// contextual button above the input.
-    FigmaDetection,
 
     /// Enables header rows on all inline menus (label, tabs, resize handle).
     InlineMenuHeaders,
@@ -639,15 +558,6 @@ pub enum FeatureFlag {
     /// snapshot attached. Requires `OzHandoff` to also be enabled.
     HandoffLocalCloud,
 
-    /// Enables creating API keys scoped to named agents in the API key
-    /// management UI. When enabled the "Team" option in the key-type
-    /// selector is replaced with "Agent" and users can pick which agent
-    /// identity the key authenticates as.
-    NamedAgents,
-    /// Gates the driver behavior that writes GitHub credentials to disk
-    /// (`~/.git-credentials`, `~/.config/gh/hosts.yaml`) and runs the
-    /// background refresh loop that keeps them fresh during a task run.
-    GitCredentialRefresh,
 
     /// Enables the code review view for remote sessions.
     RemoteCodeReview,
@@ -787,9 +697,6 @@ impl FeatureFlag {
         // ** ONLY Preview-exclusive features should be added to this list! **
         match self {
             CodeReviewFind => Some("Enables the find bar in the code review pane."),
-            BlocklistMarkdownImages => {
-                Some("Enables rendering markdown images inline in AI block list responses.")
-            }
             GlobalSearch => Some("Enables global search in the left panel"),
             BlocklistMarkdownTableRendering => {
                 Some("Enables rendering markdown tables inline in AI block list responses.")
