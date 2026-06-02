@@ -324,11 +324,6 @@ pub enum FeatureFlag {
     /// Enables loading conversations in the Agent Management View.
     InteractiveConversationManagementView,
 
-    /// Allows agent mode to use computer use tools.
-    AgentModeComputerUse,
-
-    /// Enables computer use functionality in local clients.
-    LocalComputerUse,
 
 
 
@@ -443,10 +438,7 @@ pub enum FeatureFlag {
     /// Enables tab configs — user-definable TOML templates for launching custom tab layouts.
     TabConfigs,
 
-    /// When enabled, solo users (not on a team) can use BYO API keys.
-    SoloUserByok,
-
-    /// Enables the Custom Inference settings UI for adding user-provided third-party / OpenAI-compatible inference endpoints.
+/// Enables the Custom Inference settings UI for adding user-provided third-party / OpenAI-compatible inference endpoints.
     CustomInferenceEndpoints,
     /// Enables Custom Inference endpoints for enterprise users.
     CustomInferenceEndpointsEnterprise,
@@ -509,7 +501,6 @@ pub const DOGFOOD_FLAGS: &[FeatureFlag] = &[
     FeatureFlag::Projects,
     FeatureFlag::FileAndDiffSetComments,
     FeatureFlag::SummarizationViaMessageReplacement,
-    FeatureFlag::LocalComputerUse,
     FeatureFlag::QueueSlashCommand,
     // These are enabled via 100% experiment on prod warp-server,
     // but we need to enable here for dogfood builds.

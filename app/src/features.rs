@@ -177,10 +177,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::AgentView,
 #[cfg(feature = "interactive_conversation_management_view")]
         FeatureFlag::InteractiveConversationManagementView,
-        #[cfg(feature = "agent_mode_computer_use")]
-        FeatureFlag::AgentModeComputerUse,
-        #[cfg(feature = "local_computer_use")]
-        FeatureFlag::LocalComputerUse,
         #[cfg(feature = "local_claude_codex_child_harnesses")]
         FeatureFlag::LocalClaudeCodexChildHarnesses,
         #[cfg(feature = "configurable_toolbar")]
@@ -235,8 +231,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::HOANotifications,
         #[cfg(feature = "open_code_notifications")]
         FeatureFlag::OpenCodeNotifications,
-#[cfg(feature = "solo_user_byok")]
-        FeatureFlag::SoloUserByok,
         #[cfg(feature = "git_operations_in_code_review")]
         FeatureFlag::GitOperationsInCodeReview,
         #[cfg(feature = "codex_notifications")]

@@ -216,10 +216,7 @@ impl RequestParams {
             .flatten()
             .and_then(|s| s.parse().ok())
             .unwrap_or_default();
-        let is_ambient_agent = conversation.ambient_agent_task_id.is_some();
-        let computer_use_enabled = FeatureFlag::AgentModeComputerUse.is_enabled()
-            && computer_use::is_supported_on_current_platform()
-            && (FeatureFlag::LocalComputerUse.is_enabled() || is_ambient_agent);
+        let computer_use_enabled = false;
         let ask_user_question_enabled = true;
 
         let orchestration_enabled = ai_settings.is_orchestration_enabled(app)

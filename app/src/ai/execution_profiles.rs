@@ -2,7 +2,6 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 use warp_core::channel::ChannelState;
-use warp_core::features::FeatureFlag;
 use warpui::{AppContext, SingletonEntity as _};
 
 use crate::ai::llms::{LLMContextWindow, LLMId, LLMPreferences};
@@ -18,7 +17,6 @@ use crate::settings::{
     AISettings, AgentModeCommandExecutionPredicate, DEFAULT_COMMAND_EXECUTION_ALLOWLIST,
     DEFAULT_COMMAND_EXECUTION_DENYLIST,
 };
-use crate::workspaces::user_workspaces::UserWorkspaces;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ActionPermission {
@@ -91,18 +89,8 @@ impl ComputerUsePermission {
     pub fn is_enabled(&self) -> bool { !matches!(self, Self::Never | Self::Unknown) }
     pub fn is_always_allow(&self) -> bool { matches!(self, Self::AlwaysAllow) }
 
-    pub fn resolve_cloud_agent_state(ctx: &AppContext) -> CloudAgentComputerUseState {
-        if !FeatureFlag::AgentModeComputerUse.is_enabled() {
-            return CloudAgentComputerUseState { enabled: false, is_forced_by_org: false };
-        }
-        let autonomy_setting = UserWorkspaces::as_ref(ctx).ai_autonomy_settings().computer_use_setting;
-        let user_preference = *AISettings::as_ref(ctx).cloud_agent_computer_use_enabled;
-        match autonomy_setting {
-            Some(ComputerUsePermission::Never) => CloudAgentComputerUseState { enabled: false, is_forced_by_org: true },
-            Some(ComputerUsePermission::AlwaysAllow) => CloudAgentComputerUseState { enabled: true, is_forced_by_org: true },
-            Some(ComputerUsePermission::AlwaysAsk) => CloudAgentComputerUseState { enabled: false, is_forced_by_org: true },
-            Some(ComputerUsePermission::Unknown) | None => CloudAgentComputerUseState { enabled: user_preference, is_forced_by_org: false },
-        }
+    pub fn resolve_cloud_agent_state(_ctx: &AppContext) -> CloudAgentComputerUseState {
+        CloudAgentComputerUseState { enabled: false, is_forced_by_org: false }
     }
 }
 
@@ -263,7 +251,7 @@ impl AIExecutionProfile {
         let command_denylist = if is_sandboxed { Vec::new() } else { DEFAULT_COMMAND_EXECUTION_DENYLIST.to_vec() };
         let computer_use_permission = match computer_use_override {
             Some(true) => {
-                if is_sandboxed || FeatureFlag::LocalComputerUse.is_enabled() {
+                if is_sandboxed {
                     ComputerUsePermission::AlwaysAllow
                 } else {
                     ComputerUsePermission::Never
