@@ -151,7 +151,8 @@ All telemetry surfaces removed across ~10 commits. Total: ~8918 LoC across step 
 | Resource center | `app/src/resource_center/` | 35 files, 2.2k LoC | **MEDIUM** | Menu subsystem; 35 fan-in. |
 | Get-started landing tab | `pane_group/pane/get_started*.rs` | 484 LoC | **MEDIUM** | Sibling landing surface (`get_started_tab` feature). Same as welcome screen — remove → new tab defaults to terminal pane. Feature-gated; 21 refs. |
 | Referrals | `referral_theme_status.rs` + `referrals_page.rs` | ~400 LoC | **MEDIUM** | Settings subsection; auth-coupled. |
-| Bonus grant notification | `workspace/bonus_grant_notification_model.rs` | 132 LoC | **MEDIUM** | Billing-coupled. |
+| ~~Bonus grant notification~~ | ~~`workspace/bonus_grant_notification_model.rs`~~ | ~~132 LoC~~ | **MEDIUM** | ✅ **DONE** `98278b0f` |
+| ~~Buy credits banner + auto-reload modal~~ | ~~`terminal/buy_credits_banner.rs` + `terminal/enable_auto_reload_modal.rs`~~ | ~~1,362 LoC~~ | **MEDIUM** | ✅ **DONE** `4b9da44d` — Warp billing UI; `OpenAutoReloadModal` event chain excised from 9 files. −1.56 MB. |
 | Onboarding crate | `crates/onboarding/` | 36 files, 11.5k LoC | **MEDIUM** | ⚠ Depended on by `ai` crate — partly blocked by AI removal. Feature-gated. |
 | Onboarding UI (block + HOA) | `terminal/view/block_onboarding/` (1.6k) + `workspace/hoa_onboarding/` (1.1k) | ~2.7k LoC | **MEDIUM** | ~104 refs in `terminal/view.rs`, modular. |
 | Agent tips | `app/src/ai/agent_tips.rs` | 673 LoC | **MEDIUM** | Feature-gated; AI-coupled. |
