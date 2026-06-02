@@ -393,9 +393,6 @@ pub enum FeatureFlag {
     /// Enables inline code review functionality
     InlineCodeReview,
 
-    /// Enables the local docker sandbox entrypoints in the client.
-    LocalDockerSandbox,
-
     /// Enables the /compact slash command.
     SummarizationConversationCommand,
 
@@ -808,7 +805,6 @@ pub const DOGFOOD_FLAGS: &[FeatureFlag] = &[
     FeatureFlag::CodeReviewScrollPreservation,
     FeatureFlag::RememberFastForwardState,
     FeatureFlag::GeminiNotifications,
-    FeatureFlag::LocalDockerSandbox,
     #[cfg(not(windows))]
     FeatureFlag::SshRemoteServer,
     FeatureFlag::DragTabsToWindows,

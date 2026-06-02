@@ -406,9 +406,6 @@ impl Input {
                     initial_prompt: prompt,
                 });
             }
-            _create_docker_sandbox if command.name == commands::CREATE_DOCKER_SANDBOX.name => {
-                ctx.emit(Event::CreateDockerSandbox);
-            }
             _conversations if command.name == commands::CONVERSATIONS.name => {
                 if false {
                     self.suggestions_mode_model.update(ctx, |model, ctx| {
