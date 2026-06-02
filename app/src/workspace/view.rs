@@ -156,7 +156,6 @@ use crate::banner::BannerState;
 use crate::billing::shared_objects_creation_denied_modal::{
     SharedObjectsCreationDeniedModal, SharedObjectsCreationDeniedModalEvent,
 };
-use crate::changelog_model::{ChangelogModel, ChangelogRequestType, Event as ChangelogEvent};
 use crate::channel::ChannelState;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::toast_message::CloudObjectToastMessage;
@@ -245,7 +244,7 @@ use crate::settings::cloud_preferences::CloudPreferencesSettings;
 use crate::settings::{
     active_theme_kind, respect_system_theme, AISettings, AISettingsChangedEvent,
     AccessibilitySettings, AliasExpansionSettings, AppEditorSettings, BlockVisibilitySettings,
-    ChangelogSettings, CodeSettings, CodeSettingsChangedEvent, CtrlTabBehavior, CursorBlink,
+    CodeSettings, CodeSettingsChangedEvent, CtrlTabBehavior, CursorBlink,
     DebugSettings, DefaultSessionMode, FontSettings, GPUSettings, InputModeSettings, InputSettings,
     MonospaceFontSize, PaneSettings, PrivacySettings, SelectionSettings, Settings, SshSettings,
     ThemeSettings,
@@ -769,7 +768,6 @@ pub struct Workspace {
     // Same applies to "show_new_session_dropdown_menu"
     new_session_dropdown_menu: ViewHandle<Menu<WorkspaceAction>>,
     show_new_session_dropdown_menu: Option<Vector2F>,
-    changelog_model: ModelHandle<ChangelogModel>,
     palette: ViewHandle<CommandPalette>,
     ctrl_tab_palette: ViewHandle<CommandPalette>,
     mouse_states: WorkspaceMouseStates,
@@ -777,7 +775,6 @@ pub struct Workspace {
     theme_chooser_view: ViewHandle<ThemeChooser>,
     previous_theme: Option<ThemeKind>,
     reward_modal: ViewHandle<Modal<RewardView>>,
-    reward_modal_pending: Option<RewardKind>,
     pub(crate) current_workspace_state: WorkspaceState,
     previous_workspace_state: Option<WorkspaceState>,
     welcome_tips_view_state: WelcomeTipsViewState,
@@ -2039,10 +2036,6 @@ impl Workspace {
             me.handle_window_state_change(event, ctx);
         });
 
-        let changelog_model = ChangelogModel::handle(ctx);
-        ctx.subscribe_to_model(&changelog_model, |me, _, event, ctx| {
-            me.handle_changelog_event(event, ctx);
-        });
 
         let reward_modal = Self::build_reward_modal(ctx);
         let (welcome_tips_view, welcome_tips_view_state) =
@@ -2253,7 +2246,6 @@ impl Workspace {
             show_tab_right_click_menu: None,
             new_session_dropdown_menu,
             show_new_session_dropdown_menu: None,
-            changelog_model,
             welcome_tips_view_state,
             welcome_tips_view,
             palette,
@@ -2263,7 +2255,6 @@ impl Workspace {
             settings_pane,
             theme_chooser_view,
             reward_modal,
-            reward_modal_pending: None,
             current_workspace_state: Default::default(),
             previous_workspace_state: None,
             model_event_sender,
@@ -2988,17 +2979,6 @@ impl Workspace {
         }
 
         None
-    }
-
-    pub fn check_for_changelog(
-        &self,
-        request_type: ChangelogRequestType,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.changelog_model.update(ctx, |changelog_model, ctx| {
-            changelog_model.check_for_changelog(request_type, ctx);
-            ctx.notify();
-        });
     }
 
     fn add_terminal_tab_in_ai_mode(&mut self, ctx: &mut ViewContext<Self>) {
@@ -4434,7 +4414,6 @@ impl Workspace {
         });
 
         ctx.focus(&self.reward_modal);
-        self.reward_modal_pending = None;
         self.current_workspace_state.is_reward_modal_open = true;
         ctx.notify();
     }
@@ -4445,21 +4424,6 @@ impl Workspace {
 
     fn view_user_docs(&mut self, ctx: &mut ViewContext<Self>) {
         ctx.open_url(links::USER_DOCS_URL);
-    }
-
-    fn view_latest_changelog(&mut self, ctx: &mut ViewContext<Self>) {
-        self.update_toast_stack.update(ctx, |stack, ctx| {
-            stack.clear_toasts(ctx);
-        });
-        self.tips_completed.update(ctx, |tips_completed, ctx| {
-            mark_feature_used_and_write_to_user_defaults(
-                Tip::Action(TipAction::Changelog),
-                tips_completed,
-                ctx,
-            );
-            ctx.notify();
-        });
-        self.check_for_changelog(ChangelogRequestType::UserAction, ctx);
     }
 
     fn view_privacy_policy(&mut self, ctx: &mut ViewContext<Self>) {
@@ -6333,9 +6297,6 @@ impl Workspace {
         }
 
         items.extend([
-            MenuItemFields::new("What's new")
-                .with_on_select_action(WorkspaceAction::ViewLatestChangelog)
-                .into_item(),
             MenuItemFields::new("Settings")
                 .with_on_select_action(WorkspaceAction::ShowSettings)
                 .into_item(),
@@ -9768,88 +9729,6 @@ impl Workspace {
         ctx.notify();
     }
 
-    fn handle_changelog_event(&mut self, event: &ChangelogEvent, ctx: &mut ViewContext<Self>) {
-        // For certain contexts, like shared sessions, we do not want to force open the side panel
-        // or display the reward modal.
-        if !ContextFlag::ForceSidePanelOpen.is_enabled() {
-            return;
-        }
-        // Don't show changelog if user has disabled it in settings.
-        let show_changelog_setting = *ChangelogSettings::as_ref(ctx).show_changelog_after_update;
-
-        let mut request_type = None;
-        let should_show_changelog = match event {
-            ChangelogEvent::ChangelogRequestFailed {
-                request_type: ChangelogRequestType::UserAction,
-            }
-            | ChangelogEvent::ChangelogRequestComplete {
-                request_type: ChangelogRequestType::UserAction,
-                ..
-            } => {
-                request_type = Some(ChangelogRequestType::UserAction);
-                true
-            }
-            ChangelogEvent::ChangelogRequestComplete {
-                request_type: ChangelogRequestType::WindowLaunch,
-                ..
-            } => match ChannelState::app_version() {
-                Some(version) => {
-                    let opening_warp_drive_on_start_up = OPENING_WARP_DRIVE_ON_START_UP
-                        .lock()
-                        .expect("Should be able to access OPENING_WARP_DRIVE_ON_START_UP");
-
-                    request_type = Some(ChangelogRequestType::WindowLaunch);
-                    // Do not show changelog on quake mode window or if it has already been shown
-                    // or if we are opening Warp Drive on start up
-                    quake_mode_window_id() != Some(ctx.window_id())
-                        && !Settings::has_changelog_been_shown(version, ctx)
-                        && !*opening_warp_drive_on_start_up
-                }
-                None => false,
-            },
-            ChangelogEvent::ChangelogRequestFailed {
-                request_type: ChangelogRequestType::WindowLaunch,
-            } => false,
-            ChangelogEvent::ImageRequestComplete => false,
-        } && show_changelog_setting;
-
-        match (
-            should_show_changelog,
-            request_type,
-            self.reward_modal_pending,
-        ) {
-            (true, Some(ChangelogRequestType::WindowLaunch), _) => {
-                if let Some(version) = ChannelState::app_version() {
-                    Settings::mark_changelog_shown(version, ctx);
-                    self.update_toast_stack.update(ctx, |stack, ctx| {
-                        let keystroke = ctx
-                            .editable_bindings()
-                            .find(|binding| binding.name == "workspace:view_changelog")
-                            .and_then(|binding| trigger_to_keystroke(binding.trigger));
-
-                        let mut link = ToastLink::new("View changelog".to_owned())
-                            .with_onclick_action(WorkspaceAction::ViewLatestChangelog);
-                        if let Some(keystroke) = keystroke {
-                            link = link.with_keystroke(keystroke);
-                        }
-
-                        let toast = DismissibleToast::default(String::from("Warp updated!"))
-                            .with_link(link);
-
-                        stack.add_ephemeral_toast(toast, ctx);
-                    });
-                }
-            }
-            (_, Some(ChangelogRequestType::UserAction), _) => {}
-            (false, _, Some(kind)) => {
-                // We shouldn't show the changelog modal, but we have a pending reward modal, so we
-                // should show that now that we know the changelog won't be shown
-                self.show_reward_modal(kind, ctx);
-            }
-            _ => {}
-        }
-    }
-
     pub fn is_theme_creator_modal_open(&self) -> bool {
         self.current_workspace_state.is_theme_creator_modal_open
     }
@@ -12811,11 +12690,7 @@ impl Workspace {
             ReferralThemeEvent::ReceivedReferralThemeActivated => RewardKind::ReceivedReferralTheme,
         };
 
-        if self.is_changelog_open_or_pending(ctx) {
-            self.reward_modal_pending = Some(kind);
-        } else {
-            self.show_reward_modal(kind, ctx);
-        }
+        self.show_reward_modal(kind, ctx);
     }
 
     /// This listens for changes to keybindings and keeps the cached versions up-to-date in our
@@ -12981,13 +12856,6 @@ impl Workspace {
             false,
             ctx,
         );
-    }
-
-    /// Determines if the changelog is currently being shown or if the changelog request is
-    /// in-flight
-    ///
-    fn is_changelog_open_or_pending(&self, ctx: &mut ViewContext<Self>) -> bool {
-        self.changelog_model.as_ref(ctx).is_check_pending()
     }
 
     pub(crate) fn focus_active_tab(&mut self, ctx: &mut ViewContext<Self>) {
@@ -16371,7 +16239,6 @@ impl TypedActionView for Workspace {
             }
             JoinSlack => self.join_slack(ctx),
             ViewUserDocs => self.view_user_docs(ctx),
-            ViewLatestChangelog => self.view_latest_changelog(ctx),
             ViewPrivacyPolicy => self.view_privacy_policy(ctx),
             SendFeedback => self.send_feedback(ctx),
             #[cfg(not(target_family = "wasm"))]

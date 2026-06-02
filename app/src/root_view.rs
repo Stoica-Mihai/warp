@@ -30,7 +30,6 @@ use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::blocklist::SerializedBlockListItem;
 use crate::app_state::{AppState, PaneUuid, WindowSnapshot};
 use crate::appearance::Appearance;
-use crate::changelog_model::ChangelogRequestType;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::{GenericStringObjectFormat, JsonObjectType, ObjectType};
 use crate::drive::items::WarpDriveItemId;
@@ -1288,12 +1287,6 @@ impl RootView {
             mouse_states: Default::default(),
             window_id: ctx.window_id(),
         };
-
-        if FeatureFlag::Changelog.is_enabled() {
-            workspace.update(ctx, |workspace, ctx| {
-                workspace.check_for_changelog(ChangelogRequestType::WindowLaunch, ctx);
-            });
-        }
 
         root_view
     }

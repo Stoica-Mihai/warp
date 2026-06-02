@@ -626,10 +626,6 @@ fn all_commands() -> Vec<StaticCommand> {
         commands.push(CREATE_DOCKER_SANDBOX);
     }
 
-    if FeatureFlag::Changelog.is_enabled() {
-        commands.push(CHANGELOG);
-    }
-
     commands.push(OPEN_CODE_REVIEW);
 
     if FeatureFlag::CreateProjectFlow.is_enabled() {
