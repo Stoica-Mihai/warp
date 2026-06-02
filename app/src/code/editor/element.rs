@@ -934,11 +934,7 @@ impl<V: EditorView> EditorWrapper<V> {
         appearance: &Appearance,
         gutter_button: &dyn GutterButton,
     ) -> Box<dyn Element> {
-        let vertical_padding = if FeatureFlag::InlineCodeReview.is_enabled() {
-            2.
-        } else {
-            4.
-        };
+        let vertical_padding = 4.;
 
         let button_size = gutter_element_height;
         let icon_size = button_size - (vertical_padding * 2.);
@@ -1150,9 +1146,7 @@ impl<V: EditorView> EditorWrapper<V> {
             FeatureFlag::RevertDiffHunk.is_enabled() && self.revert_hunk_button.is_some();
 
         // Show comment button independently of diff hunk state when requested
-        let show_comment_button = FeatureFlag::InlineCodeReview.is_enabled()
-            && self.comment_button.is_some()
-            && (should_show_comment_button || is_active_comment_on_current_line);
+        let show_comment_button = false;
 
         if should_show_diff_hunk_icons || is_active_comment_on_current_line || show_comment_button {
             let mut buttons = Flex::row().with_main_axis_size(MainAxisSize::Min);
@@ -1288,23 +1282,6 @@ impl<V: EditorView> Element for EditorWrapper<V> {
             for gutter_element in gutter_elements {
                 let gutter_element_size = gutter_element.element.layout(constraint, ctx, app);
 
-                if FeatureFlag::InlineCodeReview.is_enabled() {
-                    if let Some(comment_box) = &mut self.comment_box {
-                        let highlight_line = &comment_box.line;
-                        if gutter_element.line == *highlight_line {
-                            let highlight_width = size.x();
-                            let highlight_height = gutter_element_size.y();
-                            comment_box.line_highlight_element.layout(
-                                SizeConstraint {
-                                    min: vec2f(0.0, 0.0),
-                                    max: vec2f(highlight_width, highlight_height),
-                                },
-                                ctx,
-                                app,
-                            );
-                        }
-                    }
-                }
             }
         }
 
@@ -1490,26 +1467,6 @@ impl<V: EditorView> Element for EditorWrapper<V> {
 
             ctx.scene.stop_layer();
 
-            if FeatureFlag::InlineCodeReview.is_enabled() {
-                if let Some(comment_box) = &mut self.comment_box {
-                    if let Some((offset, height)) = inline_comment_gutter_element {
-                        let gutter_origin = origin + vec2f(0., offset);
-
-                        // Highlight the selected line.
-                        comment_box
-                            .line_highlight_element
-                            .paint(gutter_origin, ctx, app);
-
-                        // Cache a single pixel where the comment editor would be located
-                        // if were to render it within this element.
-                        let rect = RectF::new(gutter_origin, vec2f(1., height));
-                        ctx.position_cache.cache_position_for_one_frame(
-                            self.comment_save_position_id.clone(),
-                            rect,
-                        );
-                    }
-                }
-            }
         }
 
         // Cache find references anchor position if we have one.

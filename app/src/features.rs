@@ -171,8 +171,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::UIZoom,
         #[cfg(feature = "auto_open_code_review_pane")]
         FeatureFlag::AutoOpenCodeReviewPane,
-        #[cfg(feature = "inline_code_review")]
-        FeatureFlag::InlineCodeReview,
         #[cfg(feature = "mcp_grouped_server_context")]
         FeatureFlag::MCPGroupedServerContext,
         #[cfg(feature = "global_search")]

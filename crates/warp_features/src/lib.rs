@@ -290,8 +290,6 @@ pub enum FeatureFlag {
     /// Enables auto-opening code review pane on first agent change and its setting UI.
     AutoOpenCodeReviewPane,
 
-    /// Enables inline code review functionality
-    InlineCodeReview,
 
     /// Enables the artifact command for uploading and downloading CLI artifacts.
     ArtifactCommand,
