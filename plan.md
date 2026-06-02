@@ -148,11 +148,11 @@ All telemetry surfaces removed across ~10 commits. Total: ~8918 LoC across step 
 | Welcome/landing screen | `app/src/search/welcome_palette/` (858) + `pane_group/pane/{welcome_view,welcome_pane}.rs` | ~1.5k LoC | **MEDIUM** | New-tab landing surface, NOT throwaway. Remove → new tab defaults to `LeafContents::Terminal`; drop `Welcome` variant + sqlite persistence. Its actions (terminal/workflows/search/add-repo) all exist in command palette; strip AI "new conversation" + telemetry branches. |
 | Changelog section | `resource_center/section_views/changelog_section.rs` | ~100 LoC | **EASY** | Removable subsection. |
 | Launch/announcement modals | `workspace/view/launch_modal{,_oz,_orchestration}.rs` | 1.9k LoC | **MEDIUM** | `workspace/view.rs` 56 refs; 3 flavors. |
-| Resource center | `app/src/resource_center/` | 35 files, 2.2k LoC | **MEDIUM** | Menu subsystem; 35 fan-in. |
+| ~~Resource center~~ | ~~`app/src/resource_center/`~~ | ~~35 files, 2.2k LoC~~ | **MEDIUM** | ✅ **DONE** `4f942dbf` — ResourceCenterView panel deleted; TipsCompleted/Tip/KeybindingsView kept (load-bearing for terminal tips/settings). −2,922 LoC, −1.04 MB. |
 | Get-started landing tab | `pane_group/pane/get_started*.rs` | 484 LoC | **MEDIUM** | Sibling landing surface (`get_started_tab` feature). Same as welcome screen — remove → new tab defaults to terminal pane. Feature-gated; 21 refs. |
 | Referrals | `referral_theme_status.rs` + `referrals_page.rs` | ~400 LoC | **MEDIUM** | Settings subsection; auth-coupled. |
 | ~~Bonus grant notification~~ | ~~`workspace/bonus_grant_notification_model.rs`~~ | ~~132 LoC~~ | **MEDIUM** | ✅ **DONE** `98278b0f` |
-| ~~Buy credits banner + auto-reload modal~~ | ~~`terminal/buy_credits_banner.rs` + `terminal/enable_auto_reload_modal.rs`~~ | ~~1,362 LoC~~ | **MEDIUM** | ✅ **DONE** `4b9da44d` — Warp billing UI; `OpenAutoReloadModal` event chain excised from 9 files. −1.56 MB. |
+| ~~Buy credits banner + auto-reload modal~~ | ~~`terminal/buy_credits_banner.rs` + `terminal/enable_auto_reload_modal.rs`~~ | ~~1,362 LoC~~ | **MEDIUM** | ✅ **DONE** `4b9da44d` — Warp billing UI; `OpenAutoReloadModal` event chain excised from 9 files. −1.56 MB. Dead methods (`compute_buy_addon_credits_banner_display_state` / `dismiss/enable_buy_credits_banner` / `BuyCreditsBannerDisplayState`) cleaned up in `60d136cf`. |
 | Onboarding crate | `crates/onboarding/` | 36 files, 11.5k LoC | **MEDIUM** | ⚠ Depended on by `ai` crate — partly blocked by AI removal. Feature-gated. |
 | Onboarding UI (block + HOA) | `terminal/view/block_onboarding/` (1.6k) + `workspace/hoa_onboarding/` (1.1k) | ~2.7k LoC | **MEDIUM** | ~104 refs in `terminal/view.rs`, modular. |
 | Agent tips | `app/src/ai/agent_tips.rs` | 673 LoC | **MEDIUM** | Feature-gated; AI-coupled. |
