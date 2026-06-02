@@ -330,14 +330,23 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Step 5 (`97a134ef`): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType kept real. 3-gate 0/0/0.
 - Step 6 (`125c0f72`): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op; `#[path]` redirect keeps 72 external `::history_model::` imports unchanged. 3-gate 0/0/0.
 
-**CURRENT STATE (2026-06-02 session 18 in progress):**
+**CURRENT STATE (2026-06-02 session 18 COMPLETE):**
 - 3-gate: **0/0/0**
-- Binary: **758.4 MB** (758,421,472 B measured after 9d652a94+e6091b68; agent_mode_setup not yet measured)
-- Session 18 commits: `98278b0f` (bonus_grant_notification_model, −0.19 MB), `9d652a94`+`e6091b68` (anon banner + dead InlineBannerType variants, −0.31 MB), latest: agent_mode_setup banner
-- Session 17 handoff at `/tmp/session18-handoff.md`
+- Binary: **758.3 MB** (758,324,264 B; −0.60 MB vs session 17 end 758.9 MB)
+- Session 18 commits: `98278b0f` (bonus_grant_notification_model + 4 dead settings, −0.19 MB), `9d652a94`+`e6091b68` (anon sign-up banner + 3 dead InlineBannerType variants, −0.31 MB), `d6cadb90` (agent_mode_setup banner, −0.10 MB)
+- Session 19 handoff at `/tmp/session19-handoff.md`
 
 **DELETION CRITERIA (established session 18):**
-Delete only if the code exclusively serves Warp's proprietary cloud AI (Warp agent, billing, credits, auth). KEEP anything that could serve vendor CLI agents (claude/codex/gemini) or generic LLM providers (AWS Bedrock) — even if originally added for Warp AI.
+Delete only if the code exclusively serves Warp's proprietary cloud AI (Warp agent, billing, credits, auth). KEEP anything that could serve vendor CLI agents (claude/codex/gemini) or generic LLM providers (AWS Bedrock) — even if originally added for Warp AI. Verified KEEP: aws_bedrock_login + aws_cli_not_installed banners (generic AWS LLM provider infra).
+
+**DONE session 18:**
+- `bonus_grant_notification_model.rs` (132 LoC) — Warp billing credits granted toast
+- 4 dead GeneralSettings fields: agent_mode_onboarding_block_shown, free_tier_limit_hit_modal_dismissed, did_non_anonymous_user_log_in, bonus_grants_shown
+- `inline_banner/anonymous_user_ai_sign_up.rs` (240 LoC) — prompts anonymous users to sign up for Warp cloud AI
+- `anonymous_user_ai_sign_up_banner_shown` setting from GeneralSettings
+- 3 dead InlineBannerType variants: PromptSuggestions, SharedSessionStart, SharedSessionEnd
+- `inline_banner/agent_mode_setup.rs` (96 LoC) — prompts to set up Warp agent mode for a repo
+- `agent_mode_setup_banner_shown_for_repo_paths` setting from AISettings
 
 **DONE session 17: Delete cloud_agent_capacity_modal + free_tier_limit_hit_modal + codex_modal**
 - `workspace/view/cloud_agent_capacity_modal/` (448 LoC) — AI cloud capacity/credits limit modal
