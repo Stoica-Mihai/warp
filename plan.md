@@ -330,11 +330,21 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Step 5 (`97a134ef`): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType kept real. 3-gate 0/0/0.
 - Step 6 (`125c0f72`): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op; `#[path]` redirect keeps 72 external `::history_model::` imports unchanged. 3-gate 0/0/0.
 
-**CURRENT STATE (2026-06-02 session 17 in progress):**
+**CURRENT STATE (2026-06-02 session 17 COMPLETE):**
 - 3-gate: **0/0/0**
 - Binary: **758.9 MB** (758,922,616 B; −0.63 MB vs session 16 end)
-- Session 17 commit so far: `2a4ddb9b` (cloud_agent_capacity_modal + free_tier_limit_hit_modal + codex_modal, −1,496 net LoC, −0.63 MB)
-- Session 17 next: AIRequestUsageModel callers (request_usage_modal.rs or similar), or ResourceCenter strip
+- Session 17 commit: `2a4ddb9b` (cloud_agent_capacity_modal + free_tier_limit_hit_modal + codex_modal, 13 files −1,496 net LoC, −0.63 MB)
+- Session 17 handoff at `/tmp/session18-handoff.md`
+
+**DONE session 17: Delete cloud_agent_capacity_modal + free_tier_limit_hit_modal + codex_modal**
+- `workspace/view/cloud_agent_capacity_modal/` (448 LoC) — AI cloud capacity/credits limit modal
+- `workspace/view/free_tier_limit_hit_modal.rs` (464 LoC) — free-tier AI quota limit modal
+- `workspace/view/codex_modal.rs` (291 LoC) — GitHub Copilot integration prompt modal
+- All 3 were live-linked via `ctx.add_typed_action_view` in `Workspace::new()` → real binary shrink
+- Full call chains excised: workspace mod/field/new/render, util WorkspaceState fields, pane_group Event variants, terminal_pane handlers, terminal::view Event variants, ambient_agent ShowCloudAgentCapacityModal emit chain, root_view codex registration + fns
+- `show_out_of_credits_modal` simplified: drops `if is_on_paid_plan` branch (no modal to open), always refreshes usage
+- `FreeTierLimitCheckTriggered` was never emitted (dead since addition) — whole chain removed
+- `AgentViewState::CodexModal` dead variant removed from agent_view_state.rs
 
 **CURRENT STATE (2026-06-02 session 16 complete):**
 - 3-gate: **0/0/0**
