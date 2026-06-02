@@ -282,9 +282,6 @@ use crate::terminal::block_list_viewport::InputMode;
 #[cfg(not(target_family = "wasm"))]
 use crate::terminal::cli_agent_sessions::plugin_manager::{plugin_manager_for, PluginModalKind};
 use crate::terminal::cli_agent_sessions::{CLIAgentSessionsModel, CLIAgentSessionsModelEvent};
-use crate::terminal::enable_auto_reload_modal::{
-    EnableAutoReloadModal, EnableAutoReloadModalEvent,
-};
 use crate::terminal::general_settings::GeneralSettings;
 use crate::terminal::input::{Input, MenuPositioning};
 use crate::terminal::keys_settings::KeysSettings;
@@ -818,7 +815,6 @@ pub struct Workspace {
     show_header_toolbar_context_menu: Option<Vector2F>,
     theme_creator_modal: ViewHandle<ThemeCreatorModal>,
     theme_deletion_modal: ViewHandle<ThemeDeletionModal>,
-    enable_auto_reload_modal: ViewHandle<EnableAutoReloadModal>,
     toast_stack: ViewHandle<DismissibleToastStack<WorkspaceAction>>,
     agent_toast_stack: ViewHandle<AgentToastStack>,
     update_toast_stack: ViewHandle<DismissibleToastStack<WorkspaceAction>>,
@@ -1827,17 +1823,6 @@ impl Workspace {
             appearance,
         )
     }
-    fn build_enable_auto_reload_modal(
-        ctx: &mut ViewContext<Self>,
-    ) -> ViewHandle<EnableAutoReloadModal> {
-        let enable_auto_reload_modal = ctx.add_typed_action_view(EnableAutoReloadModal::new);
-        ctx.subscribe_to_view(&enable_auto_reload_modal, move |me, _, event, ctx| {
-            me.handle_enable_auto_reload_modal_event(event, ctx);
-        });
-
-        enable_auto_reload_modal
-    }
-
     /// Subscribe to the [`ServerApiProvider`] model to report status changes.
     fn observe_server_api(ctx: &mut ViewContext<Self>) {
         let server_api_events = ServerApiProvider::handle(ctx);
@@ -2097,12 +2082,6 @@ impl Workspace {
         let resource_center_view =
             Self::build_resource_center_view(ctx, tips_completed.clone(), changelog_model.clone());
 
-        let enable_auto_reload_modal = ctx.add_typed_action_view(EnableAutoReloadModal::new);
-        ctx.subscribe_to_view(&enable_auto_reload_modal, |me, _, event, ctx| {
-            me.handle_enable_auto_reload_modal_event(event, ctx);
-        });
-
-
         let workflow_modal = Self::build_workflow_modal(ai_client.clone(), ctx);
 
         let theme_creator_modal = Self::build_theme_creator_modal(ctx);
@@ -2116,8 +2095,6 @@ impl Workspace {
         let new_worktree_modal = Self::build_new_worktree_modal(ctx);
 
         let session_config_modal = Self::build_session_config_modal(ctx);
-
-        let enable_auto_reload_modal = Self::build_enable_auto_reload_modal(ctx);
 
         let rewind_confirmation_dialog = Self::build_rewind_confirmation_dialog(ctx);
         let delete_conversation_confirmation_dialog =
@@ -2373,7 +2350,6 @@ impl Workspace {
             #[cfg(target_family = "wasm")]
             view_cloud_runs_button,
             tab_fixed_width: None,
-            enable_auto_reload_modal,
             lightbox_view: None,
             pending_pane_group_transfer: false,
             suppress_detach_panes_on_window_close: false,
@@ -7539,26 +7515,6 @@ impl Workspace {
         );
     }
 
-    fn handle_enable_auto_reload_modal_event(
-        &mut self,
-        event: &EnableAutoReloadModalEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            EnableAutoReloadModalEvent::Close => {
-                self.current_workspace_state
-                    .is_enable_auto_reload_modal_open = false;
-                ctx.notify();
-            }
-            EnableAutoReloadModalEvent::ShowToast { message, flavor } => {
-                self.toast_stack.update(ctx, |toast_stack, ctx| {
-                    toast_stack
-                        .add_ephemeral_toast(DismissibleToast::new(message.clone(), *flavor), ctx);
-                });
-            }
-        }
-    }
-
     fn handle_welcome_tips_event(&mut self, event: &TipsEvent, ctx: &mut ViewContext<Self>) {
         match event {
             TipsEvent::Close => {
@@ -10688,14 +10644,6 @@ impl Workspace {
             }
             pane_group::Event::OpenSettings(section) => {
                 self.show_settings_with_section(Some(*section), ctx);
-            }
-            pane_group::Event::OpenAutoReloadModal { purchased_credits } => {
-                self.current_workspace_state
-                    .is_enable_auto_reload_modal_open = true;
-                self.enable_auto_reload_modal.update(ctx, |modal, ctx| {
-                    modal.set_selected_denomination_by_credits(*purchased_credits, ctx);
-                });
-                ctx.notify();
             }
             #[cfg(not(target_family = "wasm"))]
             pane_group::Event::OpenPluginInstructionsPane(agent, kind) => {
@@ -18796,13 +18744,6 @@ impl View for Workspace {
             stack.add_child(ChildView::new(&self.header_toolbar_editor_modal).finish());
         }
 
-
-        if self
-            .current_workspace_state
-            .is_enable_auto_reload_modal_open
-        {
-            stack.add_child(ChildView::new(&self.enable_auto_reload_modal).finish());
-        }
 
         if let Some(lightbox_view) = &self.lightbox_view {
             stack.add_child(ChildView::new(lightbox_view).finish());
