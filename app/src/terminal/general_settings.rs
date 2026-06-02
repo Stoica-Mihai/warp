@@ -84,13 +84,6 @@ define_settings_group!(GeneralSettings, settings: [
         sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
         private: true,
     },
-    agent_mode_onboarding_block_shown: AgentModeOnboardingBlockShown {
-        type: bool,
-        default: false,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: true,
-    },
     telemetry_banner_dismissed: TelemetryBannerDismissed {
         type: bool,
         default: false,
@@ -117,20 +110,6 @@ define_settings_group!(GeneralSettings, settings: [
         default: false,
         supported_platforms: SupportedPlatforms::ALL,
         sync_to_cloud: SyncToCloud::Never,
-        private: true,
-    },
-    did_non_anonymous_user_log_in: DidNonAnonymousUserLogIn {
-        type: bool,
-        default: false,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Never,
-        private: true,
-    },
-    free_tier_limit_hit_modal_dismissed: FreeTierLimitHitModalDismissed {
-        type: bool,
-        default: false,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
         private: true,
     },
     anonymous_user_ai_sign_up_banner_shown: AnonymousUserAISignUpBannerShown {
