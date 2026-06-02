@@ -201,7 +201,7 @@ impl Args {
                     }
                 }
 
-                if !FeatureFlag::IntegrationCommand.is_enabled() {
+                {
                     let args: Vec<String> = env::args().collect();
                     if args.len() > 1 && args[1] == "integration" {
                         eprintln!("error: unrecognized subcommand 'integration'\n");
@@ -210,7 +210,7 @@ impl Args {
                     }
                 }
 
-                if !FeatureFlag::ScheduledAmbientAgents.is_enabled() {
+                {
                     let args: Vec<String> = env::args().collect();
                     if args.len() > 1 && args[1] == "schedule" {
                         eprintln!("error: unrecognized subcommand 'schedule'\n");
@@ -228,7 +228,7 @@ impl Args {
                     }
                 }
 
-                if !FeatureFlag::OzIdentityFederation.is_enabled() {
+                {
                     let args: Vec<String> = env::args().collect();
                     if args.len() > 1 && args[1] == "federate" {
                         eprintln!("error: unrecognized subcommand 'federate'\n");
@@ -246,7 +246,7 @@ impl Args {
                     }
                 }
 
-                if !FeatureFlag::APIKeyManagement.is_enabled() {
+                {
                     let args: Vec<String> = env::args().collect();
                     if args.len() > 1 && args[1] == "api-key" {
                         eprintln!("error: unrecognized subcommand 'api-key'\n");
@@ -301,32 +301,24 @@ impl Args {
             });
         }
 
-        if !FeatureFlag::AmbientAgentsCommandLine.is_enabled() {
-            command = command.mut_subcommand("agent", |agent_cmd| {
-                agent_cmd.mut_subcommand("run-cloud", |c| c.hide(true))
-            });
-        }
+        command = command.mut_subcommand("agent", |agent_cmd| {
+            agent_cmd.mut_subcommand("run-cloud", |c| c.hide(true))
+        });
 
         // Hide the provider subcommand from help text
         command = command.mut_subcommand("provider", |c| c.hide(true));
 
         // Hide the integration subcommand from help text
-        if !FeatureFlag::IntegrationCommand.is_enabled() {
-            command = command.mut_subcommand("integration", |c| c.hide(true));
-        }
+        command = command.mut_subcommand("integration", |c| c.hide(true));
 
         // Hide the schedule subcommand from help text.
-        if !FeatureFlag::ScheduledAmbientAgents.is_enabled() {
-            command = command.mut_subcommand("schedule", |c| c.hide(true));
-        }
+        command = command.mut_subcommand("schedule", |c| c.hide(true));
 
         // Hide the secret subcommand from help text.
         command = command.mut_subcommand("secret", |c| c.hide(true));
 
         // Hide the federate subcommand from help text.
-        if !FeatureFlag::OzIdentityFederation.is_enabled() {
-            command = command.mut_subcommand("federate", |c| c.hide(true));
-        }
+        command = command.mut_subcommand("federate", |c| c.hide(true));
 
         // Hide the harness-support subcommand from help text.
         if !FeatureFlag::AgentHarness.is_enabled() {
@@ -334,15 +326,13 @@ impl Args {
         }
 
         // Hide the conversation subcommand and --conversation flag from help text.
-        if !FeatureFlag::ConversationApi.is_enabled() {
-            command = command.mut_subcommand("run", |run_cmd| {
-                run_cmd
-                    .mut_subcommand("conversation", |c| c.hide(true))
-                    .mut_subcommand("get", |get_cmd| {
-                        get_cmd.mut_arg("conversation", |arg| arg.hide(true))
-                    })
-            });
-        }
+        command = command.mut_subcommand("run", |run_cmd| {
+            run_cmd
+                .mut_subcommand("conversation", |c| c.hide(true))
+                .mut_subcommand("get", |get_cmd| {
+                    get_cmd.mut_arg("conversation", |arg| arg.hide(true))
+                })
+        });
         // Hide the message subcommand from help text.
         if !FeatureFlag::OrchestrationV2.is_enabled() {
             command = command.mut_subcommand("run", |run_cmd| {
@@ -356,9 +346,7 @@ impl Args {
         }
 
         // Hide the api-key subcommand from help text.
-        if !FeatureFlag::APIKeyManagement.is_enabled() {
-            command = command.mut_subcommand("api-key", |c| c.hide(true));
-        }
+        command = command.mut_subcommand("api-key", |c| c.hide(true));
 
         // Wire up `--version` / `-V` using the same version metadata used elsewhere in the
         // app, so the CLI reports the build's release tag.

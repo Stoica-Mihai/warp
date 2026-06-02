@@ -344,9 +344,6 @@ pub enum FeatureFlag {
     /// Enables API key authentication for Agent SDK
     APIKeyAuthentication,
 
-    /// Enables API key management UI in settings
-    APIKeyManagement,
-
     /// Enables OAuth support for MCP.
     McpOauth,
 
@@ -375,17 +372,11 @@ pub enum FeatureFlag {
     /// Enables auto-opening code review pane on first agent change and its setting UI.
     AutoOpenCodeReviewPane,
 
-    /// Enables the ambient agents command-line interface.
-    AmbientAgentsCommandLine,
-
     /// Enables inline code review functionality
     InlineCodeReview,
 
     /// Enables the /compact slash command.
     SummarizationConversationCommand,
-
-    /// Enables the integration command for managing agent integrations.
-    IntegrationCommand,
 
     /// Enables the artifact command for uploading and downloading CLI artifacts.
     ArtifactCommand,
@@ -438,9 +429,6 @@ pub enum FeatureFlag {
 
     /// Agent Management Details View - enables new details panel on card click.
     AgentManagementDetailsView,
-
-    /// Enables scheduled ambient agents.
-    ScheduledAmbientAgents,
 
     AgentView,
 
@@ -525,8 +513,6 @@ pub enum FeatureFlag {
     /// Skills are loaded from `.agents/skills/`, `.warp/skills/`, `.claude/skills/`, and `.codex/skills/`
     /// directories to provide base prompts for agent runs.
     OzPlatformSkills,
-    /// Enables Oz identity federation commands.
-    OzIdentityFederation,
 
     /// Enables image upload for ambient agents.
     AmbientAgentsImageUpload,
@@ -683,9 +669,6 @@ pub enum FeatureFlag {
 
     /// Replaces the in-block warpification banner with a warpify footer.
     WarpifyFooter,
-
-    /// Enables conversation retrieval via the CLI (oz run conversation get, oz run get --conversation).
-    ConversationApi,
 
     /// Enables commit, push, and create-PR actions in the code review panel.
     GitOperationsInCodeReview,
