@@ -332,9 +332,12 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 **CURRENT STATE (2026-06-02 session 18 in progress):**
 - 3-gate: **0/0/0**
-- Binary: **758.7 MB** (758,727,408 B; −0.19 MB vs session 17 end)
-- Session 18 commit: `98278b0f` (bonus_grant_notification_model + 3 dead settings, 6 files −159 net LoC, −0.19 MB)
+- Binary: **758.4 MB** (758,421,472 B measured after 9d652a94+e6091b68; agent_mode_setup not yet measured)
+- Session 18 commits: `98278b0f` (bonus_grant_notification_model, −0.19 MB), `9d652a94`+`e6091b68` (anon banner + dead InlineBannerType variants, −0.31 MB), latest: agent_mode_setup banner
 - Session 17 handoff at `/tmp/session18-handoff.md`
+
+**DELETION CRITERIA (established session 18):**
+Delete only if the code exclusively serves Warp's proprietary cloud AI (Warp agent, billing, credits, auth). KEEP anything that could serve vendor CLI agents (claude/codex/gemini) or generic LLM providers (AWS Bedrock) — even if originally added for Warp AI.
 
 **DONE session 17: Delete cloud_agent_capacity_modal + free_tier_limit_hit_modal + codex_modal**
 - `workspace/view/cloud_agent_capacity_modal/` (448 LoC) — AI cloud capacity/credits limit modal
