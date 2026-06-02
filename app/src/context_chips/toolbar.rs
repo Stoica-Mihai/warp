@@ -181,12 +181,6 @@ impl AgentToolbarItemKind {
             Self::ContextWindowUsage,
             Self::ModelSelector,
         ];
-        if FeatureFlag::OzHandoff.is_enabled()
-            && FeatureFlag::HandoffLocalCloud.is_enabled()
-            && cfg!(all(feature = "local_fs", not(target_family = "wasm")))
-        {
-            items.push(Self::HandoffToCloud);
-        }
         items.push(Self::VoiceInput);
         items.push(Self::FileAttach);
         items
@@ -207,12 +201,6 @@ impl AgentToolbarItemKind {
         ]);
         if FeatureFlag::FastForwardAutoexecuteButton.is_enabled() {
             items.push(Self::FastForwardToggle);
-        }
-        if FeatureFlag::OzHandoff.is_enabled()
-            && FeatureFlag::HandoffLocalCloud.is_enabled()
-            && cfg!(all(feature = "local_fs", not(target_family = "wasm")))
-        {
-            items.push(Self::HandoffToCloud);
         }
         items
     }

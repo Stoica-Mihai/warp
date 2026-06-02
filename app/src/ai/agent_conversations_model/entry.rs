@@ -303,14 +303,6 @@ fn task_session_id(task: &AmbientAgentTask) -> Option<SessionId> {
 }
 
 fn task_session_status(task: &AmbientAgentTask) -> SessionStatus {
-    if FeatureFlag::CloudConversations.is_enabled() {
-        return if task.active_run_execution().session_link.is_some() {
-            SessionStatus::Available
-        } else {
-            SessionStatus::Unavailable
-        };
-    }
-
     if task.active_run_execution().session_id.is_some() {
         SessionStatus::Available
     } else if (Utc::now() - task.created_at) > SESSION_EXPIRATION_TIME {

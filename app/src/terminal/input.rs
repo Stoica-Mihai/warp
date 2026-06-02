@@ -2950,38 +2950,8 @@ impl Input {
     }
 
     #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-    fn maybe_launch_cloud_handoff_request(&mut self, ctx: &mut ViewContext<Self>) -> bool {
-        use crate::cloud_object::CloudObjectLookup as _;
-
-        if !FeatureFlag::OzHandoff.is_enabled()
-            || !FeatureFlag::HandoffLocalCloud.is_enabled()
-            || !cfg!(all(feature = "local_fs", not(target_family = "wasm")))
-            || self.prefix_mode(ctx) != InputPrefixMode::CloudHandoff
-        {
-            return false;
-        }
-
-        let prompt = self.editor.as_ref(ctx).buffer_text(ctx).trim().to_owned();
-        if prompt.is_empty() {
-            return true;
-        }
-
-        let attachments = self.collect_cloud_launch_attachments(ctx);
-        let environment_id = self
-            .handoff_compose_state
-            .as_ref(ctx)
-            .selected_environment_id()
-            .cloned();
-        let entry_point = self.handoff_compose_state.as_ref(ctx).entry_point();
-        let _ = (prompt, attachments);
-        self.exit_cloud_handoff_compose_and_clear(ctx);
-
-        ctx.dispatch_typed_action_deferred(WorkspaceAction::OpenLocalToCloudHandoffPane {
-            launch: None,
-            environment_id,
-            entry_point,
-        });
-        true
+    fn maybe_launch_cloud_handoff_request(&mut self, _ctx: &mut ViewContext<Self>) -> bool {
+        false
     }
 
     #[cfg(not(all(feature = "local_fs", not(target_family = "wasm"))))]
@@ -9572,19 +9542,6 @@ impl Input {
                 suggestions.confirm(ctx);
             });
         } else if self.should_block_cloud_mode_setup_submission(ctx) {
-            return;
-        } else if FeatureFlag::HandoffCloudCloud.is_enabled()
-            && self
-                .ambient_agent_view_model()
-                .is_some_and(|ambient_agent_model| {
-                    ambient_agent_model
-                        .as_ref(ctx)
-                        .is_ready_for_cloud_followup_prompt()
-                })
-        {
-            ctx.emit(Event::SubmitCloudFollowup {
-                prompt: command.trim().to_owned(),
-            });
             return;
         } else if false {
             // AI input type is always Shell; this branch is unreachable.

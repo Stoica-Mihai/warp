@@ -348,8 +348,6 @@ pub enum FeatureFlag {
     /// Enables computer use functionality in local clients.
     LocalComputerUse,
 
-    /// Enables cloud conversation loading via the CLI --conversation flag.
-    CloudConversations,
 
 
     /// Enables configuring header toolbar item order, side placement, and visibility.
@@ -456,19 +454,7 @@ pub enum FeatureFlag {
     /// from code review + code editor for House Of Agents work
     HoaCodeReview,
 
-    /// Enables the `--harness` flag for `oz agent run`, allowing external agent
-    /// CLIs (e.g. `claude`) to execute prompts instead of Warp's agent harness.
-    AgentHarness,
 
-    /// Enables workspace- and block-snapshot handoff between cloud agent runs
-    /// and the local Warp client.
-    /// When enabled:
-    /// - The `AgentDriver` uploads a workspace snapshot (repo diffs + files) at the end of every
-    ///   cloud agent run, regardless of harness.
-    /// - Subsequent executions download the prior execution's handoff snapshot attachments.
-    /// - Third-party harness conversations hydrate their terminal output inline by fetching a
-    ///   block snapshot from the server.
-    OzHandoff,
 
     /// Enables the upgraded CLI agent session tracking and notifications infrastructure.
     HOANotifications,
@@ -523,14 +509,7 @@ pub enum FeatureFlag {
     /// `base_model_context_window_limit` is not sent on outbound requests, so
     /// the server falls back to its default.
     ConfigurableContextWindow,
-    /// Enables continuing cloud mode conversations in the cloud after an execution ends.
-    HandoffCloudCloud,
 
-    /// Enables the local-to-cloud Oz handoff entry points (footer chip and
-    /// `/move-to-cloud` slash command) that fork the active local Oz
-    /// conversation into a fresh cloud agent run with the current workspace
-    /// snapshot attached. Requires `OzHandoff` to also be enabled.
-    HandoffLocalCloud,
 
 
     /// Enables the code review view for remote sessions.

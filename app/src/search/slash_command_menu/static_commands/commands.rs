@@ -644,12 +644,6 @@ fn all_commands() -> Vec<StaticCommand> {
         commands.push(PR_COMMENTS);
     }
 
-    if FeatureFlag::OzHandoff.is_enabled()
-        && FeatureFlag::HandoffLocalCloud.is_enabled()
-        && cfg!(all(feature = "local_fs", not(target_family = "wasm")))
-    {
-        commands.push(MOVE_TO_CLOUD.clone());
-    }
 
     if FeatureFlag::InlineRepoMenu.is_enabled() && !cfg!(target_family = "wasm") {
         commands.push(OPEN_REPO);

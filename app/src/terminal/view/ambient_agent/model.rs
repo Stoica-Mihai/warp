@@ -505,7 +505,7 @@ impl AmbientAgentViewModel {
     /// True when the run is configured to use a non-Oz execution harness and the
     /// required feature flags are enabled.
     pub(super) fn is_third_party_harness(&self) -> bool {
-        FeatureFlag::AgentHarness.is_enabled() && self.selected_harness() != Harness::Oz
+        false
     }
 
     /// Returns the [`CLIAgent`] corresponding to the currently selected harness when it is a
@@ -961,43 +961,7 @@ impl AmbientAgentViewModel {
         ctx.emit(AmbientAgentViewModelEvent::ExecutionSessionReady { session_id });
     }
 
-    pub fn submit_cloud_followup(&mut self, prompt: String, ctx: &mut ModelContext<Self>) {
-        if !FeatureFlag::HandoffCloudCloud.is_enabled() {
-            log::warn!("Attempted to submit cloud follow-up while HandoffCloudCloud is disabled");
-            return;
-        }
-
-        let Some(task_id) = self.task_id else {
-            log::warn!("Attempted to submit cloud follow-up without an ambient task ID");
-            return;
-        };
-
-        let previous_session_id = self
-            .active_execution_session_id
-            .or(self.last_ended_execution_session_id);
-        let ai_client = ServerApiProvider::as_ref(ctx).get_ai_client();
-        let stream = submit_run_followup(
-            prompt.clone(),
-            task_id,
-            previous_session_id,
-            ai_client,
-            None,
-        );
-
-        self.pending_followup_prompt = Some(prompt);
-        self.status = Status::WaitingForSession {
-            progress: AgentProgress::new(),
-            kind: SessionStartupKind::Followup,
-        };
-        self.start_progress_timer(ctx);
-        ctx.emit(AmbientAgentViewModelEvent::FollowupDispatched);
-
-        ctx.spawn_stream_local(
-            stream,
-            |me, event_result, ctx| me.handle_ambient_agent_event_result(event_result, ctx),
-            |_me, _ctx| {},
-        );
-    }
+    pub fn submit_cloud_followup(&mut self, _prompt: String, _ctx: &mut ModelContext<Self>) {}
 
     pub fn status(&self) -> &Status {
         &self.status

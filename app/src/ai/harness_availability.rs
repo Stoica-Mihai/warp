@@ -133,7 +133,7 @@ impl HarnessAvailabilityModel {
 
     /// Whether the harness selector should be shown (>1 known harness, including disabled).
     pub fn should_show_harness_selector(&self) -> bool {
-        FeatureFlag::AgentHarness.is_enabled() && self.harnesses.len() > 1
+        false
     }
 
     /// Whether any harness is available at all (at least one enabled).
