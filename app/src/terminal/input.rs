@@ -9555,23 +9555,6 @@ impl Input {
                         .is_configuring_ambient_agent()
                 })
             {
-                if FeatureFlag::AgentHarness.is_enabled() {
-                    let availability = HarnessAvailabilityModel::as_ref(ctx);
-                    if !availability.has_any_enabled_harness() {
-                        let window_id = ctx.window_id();
-                        ToastStack::handle(ctx).update(ctx, |ts, ctx| {
-                            ts.add_ephemeral_toast(
-                                DismissibleToast::error(
-                                    "No agent harnesses are available. Contact your team admin."
-                                        .to_string(),
-                                ),
-                                window_id,
-                                ctx,
-                            );
-                        });
-                        return;
-                    }
-                }
 
                 let prompt = command.trim().to_owned();
                 if prompt.is_empty() {

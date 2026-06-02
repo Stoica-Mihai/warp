@@ -289,17 +289,15 @@ impl Args {
         });
 
         // Hide the --conversation flag from help text
-        if !FeatureFlag::CloudConversations.is_enabled() {
-            command = command.mut_subcommand("agent", |agent_cmd| {
-                agent_cmd
-                    .mut_subcommand("run", |run_cmd| {
-                        run_cmd.mut_arg("conversation", |arg| arg.hide(true))
-                    })
-                    .mut_subcommand("run-cloud", |cloud_cmd| {
-                        cloud_cmd.mut_arg("conversation", |arg| arg.hide(true))
-                    })
-            });
-        }
+        command = command.mut_subcommand("agent", |agent_cmd| {
+            agent_cmd
+                .mut_subcommand("run", |run_cmd| {
+                    run_cmd.mut_arg("conversation", |arg| arg.hide(true))
+                })
+                .mut_subcommand("run-cloud", |cloud_cmd| {
+                    cloud_cmd.mut_arg("conversation", |arg| arg.hide(true))
+                })
+        });
 
         command = command.mut_subcommand("agent", |agent_cmd| {
             agent_cmd.mut_subcommand("run-cloud", |c| c.hide(true))
@@ -321,9 +319,7 @@ impl Args {
         command = command.mut_subcommand("federate", |c| c.hide(true));
 
         // Hide the harness-support subcommand from help text.
-        if !FeatureFlag::AgentHarness.is_enabled() {
-            command = command.mut_subcommand("harness-support", |c| c.hide(true));
-        }
+        command = command.mut_subcommand("harness-support", |c| c.hide(true));
 
         // Hide the conversation subcommand and --conversation flag from help text.
         command = command.mut_subcommand("run", |run_cmd| {
