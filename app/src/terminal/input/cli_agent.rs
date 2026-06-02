@@ -63,15 +63,7 @@ impl Input {
 
         // Render attachment chips (e.g. pasted screenshots) above the editor,
         // matching the pattern used by the agent view input in agent.rs.
-        if FeatureFlag::ImageAsContext.is_enabled() {
-            if let Some(images) = self.render_attachment_chips(appearance) {
-                column.add_child(
-                    Container::new(images)
-                        .with_margin_top(spacing::UDI_CHIP_MARGIN)
-                        .finish(),
-                );
-            }
-        }
+
 
         column.add_child(editor_element);
 

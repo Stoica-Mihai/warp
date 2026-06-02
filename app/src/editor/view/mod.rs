@@ -3109,7 +3109,7 @@ impl EditorView {
 
     pub fn set_is_ai_input(&mut self, is_ai_input: bool, ctx: &mut ViewContext<Self>) {
         self.is_ai_input = is_ai_input;
-        if !self.is_ai_input && !FeatureFlag::AtMenuOutsideOfAIMode.is_enabled() {
+        if !self.is_ai_input {
             ctx.emit(Event::SetAIContextMenuOpen(false));
         }
         ctx.notify();
@@ -5858,11 +5858,6 @@ impl EditorView {
         {
             self.vim_escape(ctx);
         } else if self.can_select(ctx) {
-            if FeatureFlag::ClearAutosuggestionOnEscape.is_enabled()
-                && (!self.vim_mode_enabled(ctx) || self.vim_mode(ctx) == Some(VimMode::Normal))
-            {
-                self.clear_autosuggestion(ctx);
-            }
 
             if self.editor_model.as_ref(ctx).is_single_cursor_only(ctx) {
                 ctx.emit(Event::Escape);

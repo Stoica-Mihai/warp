@@ -122,8 +122,6 @@ pub enum FeatureFlag {
     DragTabsToWindows,
 
 
-    /// Enables cycling through the next command suggestions with down arrow.
-    CycleNextCommandSuggestion,
 
     /// Enables multi-workspace selection.
     MultiWorkspace,
@@ -142,8 +140,6 @@ pub enum FeatureFlag {
     /// Enables prompt suggestions sourced via MAA.
     PromptSuggestionsViaMAA,
 
-    /// Enables using `esc` to clear autosuggestions.
-    ClearAutosuggestionOnEscape,
 
     /// If enabled, the default theme is set to Adeberry for new users.
     DefaultAdeberryTheme,
@@ -170,8 +166,6 @@ pub enum FeatureFlag {
     /// MCP server v0 functionality.
     McpServer,
 
-    /// Enables image as context for AM.
-    ImageAsContext,
 
     /// UNIX shells running "natively" on Windows via MSYS2.
     MSYS2Shells,
@@ -187,12 +181,8 @@ pub enum FeatureFlag {
     /// Enables the AI context menu, or at-menu.
     AIContextMenuEnabled,
 
-    /// Enables the AI context menu outside of AI input mode.
-    AtMenuOutsideOfAIMode,
 
 
-    /// Enables the agent to decide whether to execute a command.
-    AgentDecidesCommandExecution,
 
     /// Enables inline review comments on specific lines of code.
     ContextLineReviewComments,
@@ -206,14 +196,10 @@ pub enum FeatureFlag {
     /// Enables file search functionality in command palette
     CommandPaletteFileSearch,
 
-    /// Enables the AI context menu nesting and commands
-    AIContextMenuCommands,
 
     /// Enables code symbols in AI context menu
     AIContextMenuCode,
 
-    /// Enables Warp Drive objects (like workflows) as context in AI context menu
-    DriveObjectsAsContext,
 
 
     /// Enables close button on left side of tabs
@@ -274,8 +260,6 @@ pub enum FeatureFlag {
     /// Enables ignoring input suggestions.
     AllowIgnoringInputSuggestions,
 
-    /// Enables the one-time modal on app startup for existing users for the Code launch.
-    CodeLaunchModal,
 
     /// Enables API key authentication for Agent SDK
     APIKeyAuthentication,
@@ -410,9 +394,6 @@ pub enum FeatureFlag {
     /// Enables attaching conversations as context in Agent Mode via the @ menu.
     ConversationsAsContext,
 
-    /// Enables the rich input editor for CLI agents (e.g., Claude Code).
-    /// Ctrl-G intercepts the keystroke and opens Warp's input editor instead of $EDITOR.
-    CLIAgentRichInput,
 
     /// Enables incremental (diff-based) buffer updates for auto-reload instead of full replace.
     IncrementalAutoReload,

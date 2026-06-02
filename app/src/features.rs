@@ -73,8 +73,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::SshDragAndDrop,
         #[cfg(feature = "drag_tabs_to_windows")]
         FeatureFlag::DragTabsToWindows,
-        #[cfg(feature = "cycle_next_command_suggestion")]
-        FeatureFlag::CycleNextCommandSuggestion,
         #[cfg(feature = "multi_workspace")]
         FeatureFlag::MultiWorkspace,
         #[cfg(feature = "ime_marked_text")]
@@ -83,8 +81,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::ITermImages,
         #[cfg(feature = "prompt_suggestions_via_maa")]
         FeatureFlag::PromptSuggestionsViaMAA,
-        #[cfg(feature = "clear_autosuggestion_on_escape")]
-        FeatureFlag::ClearAutosuggestionOnEscape,
         #[cfg(all(not(windows), feature = "kitty_images"))]
         FeatureFlag::KittyImages,
         #[cfg(feature = "default_adeberry_theme")]
@@ -109,8 +105,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::MarkdownMermaid,
         #[cfg(feature = "editable_markdown_mermaid")]
         FeatureFlag::EditableMarkdownMermaid,
-        #[cfg(feature = "image_as_context")]
-        FeatureFlag::ImageAsContext,
         #[cfg(feature = "msys2_shells")]
         FeatureFlag::MSYS2Shells,
         #[cfg(feature = "read_image_files")]
@@ -119,10 +113,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::CodebaseIndexPersistence,
         #[cfg(feature = "ai_context_menu")]
         FeatureFlag::AIContextMenuEnabled,
-        #[cfg(feature = "at_menu_outside_of_ai_mode")]
-        FeatureFlag::AtMenuOutsideOfAIMode,
-        #[cfg(feature = "agent_decides_command_execution")]
-        FeatureFlag::AgentDecidesCommandExecution,
         #[cfg(feature = "context_line_review_comments")]
         FeatureFlag::ContextLineReviewComments,
         #[cfg(feature = "fast_forward_autoexecute_button")]
@@ -131,8 +121,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::CodeFindReplace,
         #[cfg(feature = "command_palette_file_search")]
         FeatureFlag::CommandPaletteFileSearch,
-        #[cfg(feature = "ai_context_menu_commands")]
-        FeatureFlag::AIContextMenuCommands,
         #[cfg(feature = "ai_context_menu_code")]
         FeatureFlag::AIContextMenuCode,
         #[cfg(feature = "tab_close_button_on_left")]
@@ -147,8 +135,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::UndoClosedPanes,
         #[cfg(feature = "projects")]
         FeatureFlag::Projects,
-        #[cfg(feature = "drive_objects_as_context")]
-        FeatureFlag::DriveObjectsAsContext,
         #[cfg(feature = "pr_comments_slash_command")]
         FeatureFlag::PRCommentsSlashCommand,
         #[cfg(feature = "pr_comments_skill")]
@@ -169,8 +155,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::FileTree,
         #[cfg(feature = "allow_ignoring_input_suggestions")]
         FeatureFlag::AllowIgnoringInputSuggestions,
-        #[cfg(feature = "code_launch_modal")]
-        FeatureFlag::CodeLaunchModal,
         #[cfg(feature = "api_key_authentication")]
         FeatureFlag::APIKeyAuthentication,
         #[cfg(feature = "mcp_oauth")]
@@ -277,8 +261,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::HOANotifications,
         #[cfg(feature = "open_code_notifications")]
         FeatureFlag::OpenCodeNotifications,
-        #[cfg(feature = "cli_agent_rich_input")]
-        FeatureFlag::CLIAgentRichInput,
         #[cfg(feature = "transfer_control_tool")]
         FeatureFlag::TransferControlTool,
         #[cfg(feature = "solo_user_byok")]

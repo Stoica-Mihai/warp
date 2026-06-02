@@ -899,12 +899,6 @@ impl BlocklistAIPermissions {
 
         match self.get_execute_commands_setting(ctx, terminal_view_id) {
             ActionPermission::AgentDecides | ActionPermission::Unknown => {
-                if FeatureFlag::AgentDecidesCommandExecution.is_enabled() && is_risky == Some(false)
-                {
-                    return CommandExecutionPermission::Allowed(
-                        CommandExecutionPermissionAllowedReason::AgentDecided,
-                    );
-                }
 
                 if contains_redirection {
                     return CommandExecutionPermission::Denied(
