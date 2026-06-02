@@ -147,14 +147,10 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::ReloadStaleConversationFiles,
         #[cfg(feature = "shared_block_title_generation")]
         FeatureFlag::SharedBlockTitleGeneration,
-        #[cfg(feature = "retry_truncated_code_responses")]
-        FeatureFlag::RetryTruncatedCodeResponses,
         #[cfg(feature = "read_image_files")]
         FeatureFlag::ReadImageFiles,
         #[cfg(feature = "usage_based_pricing")]
         FeatureFlag::UsageBasedPricing,
-        #[cfg(feature = "cross_repo_context")]
-        FeatureFlag::CrossRepoContext,
         #[cfg(feature = "codebase_index_persistence")]
         FeatureFlag::CodebaseIndexPersistence,
         #[cfg(feature = "ai_context_menu")]
@@ -167,8 +163,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::FigmaDetection,
         #[cfg(feature = "agent_decides_command_execution")]
         FeatureFlag::AgentDecidesCommandExecution,
-        #[cfg(feature = "codebase_index_speedbump")]
-        FeatureFlag::CodebaseIndexSpeedbump,
         #[cfg(feature = "context_line_review_comments")]
         FeatureFlag::ContextLineReviewComments,
         #[cfg(feature = "fast_forward_autoexecute_button")]

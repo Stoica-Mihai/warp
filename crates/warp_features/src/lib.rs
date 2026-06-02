@@ -215,16 +215,10 @@ pub enum FeatureFlag {
     /// Auto generate the title when creating a shared block.
     SharedBlockTitleGeneration,
 
-    /// Retry truncated file edit responses from the coding agent.
-    RetryTruncatedCodeResponses,
-
     /// Enables reading images with the `read_files` tool.
     ReadImageFiles,
 
     UsageBasedPricing,
-
-    /// Enables cross-repo codebase context.
-    CrossRepoContext,
 
     /// Persist codebase indices to disk.
     CodebaseIndexPersistence,
@@ -240,9 +234,6 @@ pub enum FeatureFlag {
 
     /// Enables the agent to decide whether to execute a command.
     AgentDecidesCommandExecution,
-
-    /// Show speed bump when enabling codebase indexing.
-    CodebaseIndexSpeedbump,
 
     /// Enables inline review comments on specific lines of code.
     ContextLineReviewComments,
@@ -261,9 +252,6 @@ pub enum FeatureFlag {
 
     /// Enables the AI context menu nesting and commands
     AIContextMenuCommands,
-
-    /// Enables sending stderr warnings in FileGlobV2 results.
-    FileGlobV2Warnings,
 
     /// Enables code symbols in AI context menu
     AIContextMenuCode,
@@ -782,21 +770,17 @@ pub const DOGFOOD_FLAGS: &[FeatureFlag] = &[
     FeatureFlag::MultiWorkspace,
     FeatureFlag::ImeMarkedText,
     FeatureFlag::MSYS2Shells,
-    FeatureFlag::RetryTruncatedCodeResponses,
     FeatureFlag::ContextLineReviewComments,
     FeatureFlag::RunGeneratorsWithCmdExe,
     FeatureFlag::Projects,
     FeatureFlag::FileAndDiffSetComments,
-    FeatureFlag::FileGlobV2Warnings,
     FeatureFlag::SummarizationViaMessageReplacement,
     FeatureFlag::LocalComputerUse,
     FeatureFlag::QueueSlashCommand,
     // These are enabled via 100% experiment on prod warp-server,
     // but we need to enable here for dogfood builds.
-    FeatureFlag::CrossRepoContext,
     FeatureFlag::CodebaseIndexPersistence,
     FeatureFlag::FullSourceCodeEmbedding,
-    FeatureFlag::CodebaseIndexSpeedbump,
     // End manually enabled Code features.
     FeatureFlag::EditableMarkdownMermaid,
     FeatureFlag::CodeReviewScrollPreservation,
