@@ -330,10 +330,10 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Step 5 (`97a134ef`): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType kept real. 3-gate 0/0/0.
 - Step 6 (`125c0f72`): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op; `#[path]` redirect keeps 72 external `::history_model::` imports unchanged. 3-gate 0/0/0.
 
-**CURRENT STATE (2026-06-02 session 17 COMPLETE):**
+**CURRENT STATE (2026-06-02 session 18 in progress):**
 - 3-gate: **0/0/0**
-- Binary: **758.9 MB** (758,922,616 B; −0.63 MB vs session 16 end)
-- Session 17 commit: `2a4ddb9b` (cloud_agent_capacity_modal + free_tier_limit_hit_modal + codex_modal, 13 files −1,496 net LoC, −0.63 MB)
+- Binary: **758.7 MB** (758,727,408 B; −0.19 MB vs session 17 end)
+- Session 18 commit: `98278b0f` (bonus_grant_notification_model + 3 dead settings, 6 files −159 net LoC, −0.19 MB)
 - Session 17 handoff at `/tmp/session18-handoff.md`
 
 **DONE session 17: Delete cloud_agent_capacity_modal + free_tier_limit_hit_modal + codex_modal**
