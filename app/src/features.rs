@@ -195,8 +195,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::DriveObjectsAsContext,
         #[cfg(feature = "pr_comments_slash_command")]
         FeatureFlag::PRCommentsSlashCommand,
-        #[cfg(feature = "pr_comments_v2")]
-        FeatureFlag::PRCommentsV2,
         #[cfg(feature = "pr_comments_skill")]
         FeatureFlag::PRCommentsSkill,
         #[cfg(feature = "selection_as_context")]
@@ -205,8 +203,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::CodeModeChip,
         #[cfg(feature = "github_pr_prompt_chip")]
         FeatureFlag::GithubPrPromptChip,
-        #[cfg(feature = "create_project_flow")]
-        FeatureFlag::CreateProjectFlow,
         #[cfg(feature = "vim_code_editor")]
         FeatureFlag::VimCodeEditor,
         #[cfg(feature = "allow_opening_file_links_using_editor_env")]
@@ -243,16 +239,12 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::AutoOpenCodeReviewPane,
         #[cfg(feature = "inline_code_review")]
         FeatureFlag::InlineCodeReview,
-        #[cfg(feature = "summarize_conversation_command")]
-        FeatureFlag::SummarizationConversationCommand,
         #[cfg(feature = "mcp_grouped_server_context")]
         FeatureFlag::MCPGroupedServerContext,
         #[cfg(feature = "web_search_ui")]
         FeatureFlag::WebSearchUI,
         #[cfg(feature = "web_fetch_ui")]
         FeatureFlag::WebFetchUI,
-        #[cfg(feature = "fork_from_command")]
-        FeatureFlag::ForkFromCommand,
         #[cfg(feature = "global_search")]
         FeatureFlag::GlobalSearch,
         #[cfg(feature = "embedded_code_review_comments")]
@@ -285,8 +277,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::NamedAgents,
         #[cfg(feature = "cloud_conversations")]
         FeatureFlag::CloudConversations,
-        #[cfg(feature = "agent_toolbar_editor")]
-        FeatureFlag::AgentToolbarEditor,
         #[cfg(feature = "configurable_toolbar")]
         FeatureFlag::ConfigurableToolbar,
         #[cfg(feature = "agent_view_prompt_chip")]
@@ -319,8 +309,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::AskUserQuestion,
         #[cfg(feature = "lsp_as_a_tool")]
         FeatureFlag::LSPAsATool,
-        #[cfg(feature = "inline_profile_selector")]
-        FeatureFlag::InlineProfileSelector,
         #[cfg(feature = "oz_platform_skills")]
         FeatureFlag::OzPlatformSkills,
         #[cfg(feature = "bundled_skills")]
@@ -377,12 +365,8 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::CLIAgentRichInput,
         #[cfg(feature = "transfer_control_tool")]
         FeatureFlag::TransferControlTool,
-        #[cfg(feature = "warpify_footer")]
-        FeatureFlag::WarpifyFooter,
         #[cfg(feature = "solo_user_byok")]
         FeatureFlag::SoloUserByok,
-        #[cfg(feature = "skip_firebase_anonymous_user")]
-        FeatureFlag::SkipFirebaseAnonymousUser,
         #[cfg(feature = "git_operations_in_code_review")]
         FeatureFlag::GitOperationsInCodeReview,
         #[cfg(feature = "codex_notifications")]

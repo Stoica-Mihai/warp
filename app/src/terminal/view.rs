@@ -4060,17 +4060,13 @@ impl TerminalView {
 
         let diff_mode = self.diff_mode_for_branch(base_branch, ctx);
 
-        let open_code_review = if FeatureFlag::PRCommentsV2.is_enabled() {
-            None
-        } else {
-            Some(CodeReviewPanelArg {
-                repo_path: Some(LocalOrRemotePath::Local(repo_path.to_path_buf())),
-                terminal_view: self.view_handle.clone(),
-                entrypoint: CodeReviewPaneEntrypoint::InvokedByAgent,
-                focus_new_pane: false,
-                cli_agent: None,
-            })
-        };
+        let open_code_review = Some(CodeReviewPanelArg {
+            repo_path: Some(LocalOrRemotePath::Local(repo_path.to_path_buf())),
+            terminal_view: self.view_handle.clone(),
+            entrypoint: CodeReviewPaneEntrypoint::InvokedByAgent,
+            focus_new_pane: false,
+            cli_agent: None,
+        });
 
         ctx.emit(Event::InsertCodeReviewComments {
             repo_path: LocalOrRemotePath::Local(repo_path.to_path_buf()),
@@ -5994,10 +5990,6 @@ impl TerminalView {
         warpify_keybinding: Option<Keystroke>,
         ctx: &mut ViewContext<Self>,
     ) {
-        if FeatureFlag::WarpifyFooter.is_enabled() {
-            return;
-        }
-
         let mut model = self.model.lock();
 
         // Don't show the warpify banner when an agent is monitoring the command either.
@@ -7329,17 +7321,10 @@ impl TerminalView {
                             .add_subshell_banner_abort_handle(ctx.spawn_abortable(
                                 Timer::after(*SUBSHELL_BANNER_DELAY_DURATION),
                                 |view, _, ctx| {
-                                    if FeatureFlag::WarpifyFooter.is_enabled() {
-                                        view.show_warpify_footer(
-                                            WarpificationMode::subshell(command),
-                                            ctx,
-                                        );
-                                    } else {
-                                        view.handle_action(
-                                            &TerminalAction::ShowSubshellBanner(command),
-                                            ctx,
-                                        );
-                                    }
+                                    view.handle_action(
+                                        &TerminalAction::ShowSubshellBanner(command),
+                                        ctx,
+                                    );
                                 },
                                 |_, _| {},
                             ));
@@ -9045,15 +9030,11 @@ impl TerminalView {
         if is_ssh_command {
             return vec![];
         }
-        if FeatureFlag::CommandCorrectionsHistoryRule.is_enabled() {
-            correct_command(command, &session_metadata, std::iter::empty())
-        } else {
-            correct_command(
-                command,
-                &session_metadata,
-                DEFAULT_IGNORED_RULES_FOR_COMMAND_CORRECTIONS.into_iter(),
-            )
-        }
+        correct_command(
+            command,
+            &session_metadata,
+            DEFAULT_IGNORED_RULES_FOR_COMMAND_CORRECTIONS.into_iter(),
+        )
     }
 
     fn write_init_subshell_bytes_to_pty(
@@ -10473,13 +10454,7 @@ impl TerminalView {
             .session(self.view_id)
             .is_some();
         let edit_menu_item = if has_cli_agent_session {
-            FeatureFlag::AgentToolbarEditor.is_enabled().then(|| {
-                MenuItemFields::new("Edit CLI agent toolbelt")
-                    .with_on_select_action(TerminalAction::ContextMenu(
-                        ContextMenuAction::EditCLIAgentToolbar,
-                    ))
-                    .into_item()
-            })
+            None
         } else {
             Some(
                 MenuItemFields::new("Edit prompt")
@@ -15733,16 +15708,8 @@ impl TerminalView {
             CopyPrompt { position, part } => self.copy_prompt(position, part, ctx),
             CopyRprompt => self.copy_rprompt(ctx),
             EditPrompt => self.edit_prompt(ctx),
-            EditAgentToolbar => {
-                if FeatureFlag::AgentToolbarEditor.is_enabled() {
-                    ctx.emit(Event::OpenAgentToolbarEditor);
-                }
-            }
-            EditCLIAgentToolbar => {
-                if FeatureFlag::AgentToolbarEditor.is_enabled() {
-                    ctx.emit(Event::OpenCLIAgentToolbarEditor);
-                }
-            }
+            EditAgentToolbar => {}
+            EditCLIAgentToolbar => {}
             AskAI(ask_source) => {
                 if FeatureFlag::AgentMode.is_enabled() {}
 
@@ -16696,14 +16663,7 @@ impl TerminalView {
                     ref command,
                 } = ssh_interactive_session_event
                 {
-                    if FeatureFlag::WarpifyFooter.is_enabled() {
-                        self.show_warpify_footer(
-                            WarpificationMode::ssh(command.clone(), host.to_owned()),
-                            ctx,
-                        );
-                    } else {
-                        self.add_ssh_warpify_prompt(command, host.to_owned(), ctx)
-                    }
+                    self.add_ssh_warpify_prompt(command, host.to_owned(), ctx);
                 }
             }
         }

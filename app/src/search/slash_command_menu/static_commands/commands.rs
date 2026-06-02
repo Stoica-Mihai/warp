@@ -616,15 +616,6 @@ fn all_commands() -> Vec<StaticCommand> {
 
     commands.push(OPEN_CODE_REVIEW);
 
-    if FeatureFlag::CreateProjectFlow.is_enabled() {
-        commands.push(CREATE_NEW_PROJECT.clone());
-    }
-
-    if FeatureFlag::SummarizationConversationCommand.is_enabled() {
-        commands.push(COMPACT.clone());
-        commands.push(COMPACT_AND.clone());
-    }
-
     if FeatureFlag::QueueSlashCommand.is_enabled() {
         commands.push(QUEUE.clone());
     }
@@ -636,9 +627,6 @@ fn all_commands() -> Vec<StaticCommand> {
             CONTINUE_LOCALLY.clone(),
         ]);
 
-        if FeatureFlag::ForkFromCommand.is_enabled() {
-            commands.push(FORK_FROM);
-        }
     }
 
     if !cfg!(target_family = "wasm") {
@@ -665,10 +653,6 @@ fn all_commands() -> Vec<StaticCommand> {
         && cfg!(all(feature = "local_fs", not(target_family = "wasm")))
     {
         commands.push(MOVE_TO_CLOUD.clone());
-    }
-
-    if FeatureFlag::InlineProfileSelector.is_enabled() {
-        commands.push(PROFILE.clone());
     }
 
     if FeatureFlag::RevertToCheckpoints.is_enabled() && FeatureFlag::RewindSlashCommand.is_enabled()

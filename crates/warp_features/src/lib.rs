@@ -37,11 +37,6 @@ pub enum FeatureFlag {
     /// Ligature Support in the Editor and Grid
     Ligatures,
 
-    /// When enabled, the `History` rule from the command_corrections crate
-    /// will be enabled. When the `History` rule is enabled, the command_corrections
-    /// lib will use the user's history as a last-ditch effort to find a reasonable correction.
-    CommandCorrectionsHistoryRule,
-
     /// Used to gate an experiment we're doing on WarpDev ONLY
     /// to get a sense of PTY throughput over time.
     RecordPtyThroughput,
@@ -281,9 +276,6 @@ pub enum FeatureFlag {
     /// Enables the /pr-comments slash command.
     PRCommentsSlashCommand,
 
-    /// Enables displaying imported PR review comments in the blocklist.
-    PRCommentsV2,
-
     /// Gates the bundled skill-based implementation of PR comment fetching.
     PRCommentsSkill,
 
@@ -299,9 +291,6 @@ pub enum FeatureFlag {
 
     /// Enables the prompt chip that displays the GitHub PR for the current branch.
     GithubPrPromptChip,
-
-    /// A button on the homepage for easily creating new projects.
-    CreateProjectFlow,
 
     /// Enables vim keybindings in the code editor.
     VimCodeEditor,
@@ -361,9 +350,6 @@ pub enum FeatureFlag {
     /// Enables inline code review functionality
     InlineCodeReview,
 
-    /// Enables the /compact slash command.
-    SummarizationConversationCommand,
-
     /// Enables the artifact command for uploading and downloading CLI artifacts.
     ArtifactCommand,
 
@@ -391,9 +377,6 @@ pub enum FeatureFlag {
     BlocklistMarkdownTableRendering,
     /// Enables rendering markdown images inline in AI block list responses.
     BlocklistMarkdownImages,
-
-    /// Enables the /fork-from slash command.
-    ForkFromCommand,
 
     /// Enables global search
     GlobalSearch,
@@ -451,9 +434,6 @@ pub enum FeatureFlag {
     /// When disabled (the default), the terminal message bar is shown instead.
     AgentViewPromptChip,
 
-    /// Enables editing the agent input footer layout from the prompt context menu.
-    AgentToolbarEditor,
-
     /// Enables configuring header toolbar item order, side placement, and visibility.
     ConfigurableToolbar,
 
@@ -473,9 +453,6 @@ pub enum FeatureFlag {
     ///
     /// This is intended for developer testing and should have no effect in release builds.
     SimulateGithubUnauthed,
-
-    /// When enabled, profile selection is displayed in an inline view above the Agent input (e.g. via /profile).
-    InlineProfileSelector,
 
     /// Enables sending the server a list of Skills that the client has access to.
     ///
@@ -629,10 +606,6 @@ pub enum FeatureFlag {
     GeminiNotifications,
 
     /// When enabled, the "Skip for now" login flow does not create a Firebase
-    /// anonymous user. The user remains fully logged out (no credentials) and
-    /// login-gated features are disabled until they sign in.
-    SkipFirebaseAnonymousUser,
-
     /// Enables tab configs — user-definable TOML templates for launching custom tab layouts.
     TabConfigs,
 
@@ -646,9 +619,6 @@ pub enum FeatureFlag {
     CustomInferenceEndpoints,
     /// Enables Custom Inference endpoints for enterprise users.
     CustomInferenceEndpointsEnterprise,
-
-    /// Replaces the in-block warpification banner with a warpify footer.
-    WarpifyFooter,
 
     /// Enables commit, push, and create-PR actions in the code review panel.
     GitOperationsInCodeReview,
