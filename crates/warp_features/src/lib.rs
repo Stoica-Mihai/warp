@@ -168,13 +168,6 @@ pub enum FeatureFlag {
     /// Enables support for Warp Packs.
     WarpPacks,
 
-    /// Enables the revised AI analytics policy banner.
-    ///
-    /// This does not gate actual collection of data under the new policy.
-    GlobalAIAnalyticsBanner,
-
-    /// Enables actual collection of AI analytics data per the revised AI analytics policy.
-    GlobalAIAnalyticsCollection,
 
 
     /// Enables the XML output system prompt for the primary (terminal) agent in Agent Mode.
@@ -188,9 +181,6 @@ pub enum FeatureFlag {
 
     /// Enables suggested workflows for Agent Mode.
     SuggestedAgentModeWorkflows,
-
-    /// Forces users to login.
-    ForceLogin,
 
     /// Enables prediction of Agent Mode queries.
     PredictAMQueries,
@@ -400,27 +390,14 @@ pub enum FeatureFlag {
     /// Enables the ambient agents command-line interface.
     AmbientAgentsCommandLine,
 
-    /// Feature flags for the Build Plan Auto Reload experiment.
-    BuildPlanAutoReloadBannerToggle,
-    BuildPlanAutoReloadPostPurchaseModal,
-
     /// Enables inline code review functionality
     InlineCodeReview,
-
-    /// Enables cloud environments management via CLI.
-    CloudEnvironments,
-
-    /// Enables the /create-environment slash command for setting up Warp Environments
-    CreateEnvironmentSlashCommand,
 
     /// Enables the local docker sandbox entrypoints in the client.
     LocalDockerSandbox,
 
     /// Enables the /compact slash command.
     SummarizationConversationCommand,
-
-    /// Enables the provider command for linking third-party services.
-    ProviderCommand,
 
     /// Enables the integration command for managing agent integrations.
     IntegrationCommand,
@@ -498,9 +475,6 @@ pub enum FeatureFlag {
     CloudModeFromLocalSession,
 
 
-    /// Enables Warp Managed Secrets functionality.
-    WarpManagedSecrets,
-
     /// Enables support for AM file diffs backed by the V4A patch format.
     V4AFileDiffs,
 
@@ -512,9 +486,6 @@ pub enum FeatureFlag {
 
     /// Enables computer use functionality in local clients.
     LocalComputerUse,
-
-    /// Enables team API key creation in the API key management UI.
-    TeamApiKeys,
 
     /// Enables cloud conversation loading via the CLI --conversation flag.
     CloudConversations,
@@ -821,7 +792,6 @@ pub const DOGFOOD_FLAGS: &[FeatureFlag] = &[
     FeatureFlag::ContextLineReviewComments,
     FeatureFlag::RunGeneratorsWithCmdExe,
     FeatureFlag::Projects,
-    FeatureFlag::ProviderCommand,
     FeatureFlag::FileAndDiffSetComments,
     FeatureFlag::FileGlobV2Warnings,
     FeatureFlag::SummarizationViaMessageReplacement,
@@ -930,8 +900,6 @@ impl FeatureFlag {
             BlocklistMarkdownImages => {
                 Some("Enables rendering markdown images inline in AI block list responses.")
             }
-            CloudEnvironments => Some("Enables creating and managing Warp Environments via the CLI."),
-            CreateEnvironmentSlashCommand => Some("Enables the /create environment slash command for setting up Warp Environments with custom configurations."),
             GlobalSearch => Some("Enables global search in the left panel"),
             BlocklistMarkdownTableRendering => {
                 Some("Enables rendering markdown tables inline in AI block list responses.")
