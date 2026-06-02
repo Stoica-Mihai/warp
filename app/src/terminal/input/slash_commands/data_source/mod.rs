@@ -176,13 +176,8 @@ impl SlashCommandDataSource {
     /// for a running CLI agent (Claude Code, Codex, etc.).
     const CLI_AGENT_INPUT_ALLOWED_COMMANDS: &[&str] = &["/prompts", "/skills"];
 
-    fn is_cloud_mode(&self, ctx: &AppContext) -> bool {
+    fn is_cloud_mode(&self, _ctx: &AppContext) -> bool {
         self.is_cloud_mode_v2
-            || (FeatureFlag::CloudMode.is_enabled()
-                && self
-                    .ambient_agent_view_model
-                    .as_ref()
-                    .is_some_and(|model| model.as_ref(ctx).is_ambient_agent()))
     }
 
     fn recompute_active_commands(&mut self, ctx: &mut ModelContext<Self>) {
@@ -245,9 +240,6 @@ impl SlashCommandDataSource {
             session_context |= Availability::AI_ENABLED;
         }
 
-        if self.is_cloud_mode_v2 && FeatureFlag::CloudModeInputV2.is_enabled() {
-            session_context |= Availability::CLOUD_AGENT_V2;
-        }
 
         if !self.is_cloud_mode(ctx) {
             session_context |= Availability::NOT_CLOUD_AGENT;

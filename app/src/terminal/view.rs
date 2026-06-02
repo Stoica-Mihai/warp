@@ -4447,14 +4447,11 @@ impl TerminalView {
         // In cloud agent conversations, once the shared session is ready but before the first
         // agent exchange arrives, we hide the interactive input view. A non-interactive footer is
         // rendered instead (see `TerminalView::render`).
-        if !FeatureFlag::CloudModeSetupV2.is_enabled()
-            && !FeatureFlag::HandoffCloudCloud.is_enabled()
-            && ambient_agent::is_cloud_agent_pre_first_exchange(
-                self.ambient_agent_view_model.as_ref(),
-                model,
-                app,
-            )
-        {
+        if ambient_agent::is_cloud_agent_pre_first_exchange(
+            self.ambient_agent_view_model.as_ref(),
+            model,
+            app,
+        ) {
             return false;
         }
 
@@ -4498,7 +4495,6 @@ impl TerminalView {
 
         if has_active_long_running_agent_interaction
             && is_active_and_long_running
-            && (!FeatureFlag::CloudModeSetupV2.is_enabled() || !is_oz_env_startup_command)
             && !is_running_in_band_command
             && model.block_list().is_bootstrapped()
         {
@@ -4519,8 +4515,6 @@ impl TerminalView {
         app: &AppContext,
     ) -> bool {
         !model.is_read_only()
-            && !FeatureFlag::CloudModeSetupV2.is_enabled()
-            && !FeatureFlag::HandoffCloudCloud.is_enabled()
             && ambient_agent::is_cloud_agent_pre_first_exchange(
                 self.ambient_agent_view_model.as_ref(),
                 model,
@@ -17911,7 +17905,7 @@ impl View for TerminalView {
         // the agent status bar for setup/follow-up progress.
         if self.ambient_agent_view_model.as_ref().is_some_and(|model| {
             let model = model.as_ref(app);
-            model.agent_progress().is_some() && !FeatureFlag::CloudModeSetupV2.is_enabled()
+            model.agent_progress().is_some()
         }) {
             stack.add_child(self.render_ambient_agent_progress(appearance, app));
         }

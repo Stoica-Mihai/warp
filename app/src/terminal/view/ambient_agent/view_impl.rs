@@ -78,9 +78,7 @@ impl TerminalView {
         // off to the live third-party harness CLI block. Idempotent and cheap when no
         // block exists.
         let should_remove_pending_user_query = match event {
-            AmbientAgentViewModelEvent::Failed { .. } => {
-                !FeatureFlag::CloudModeSetupV2.is_enabled()
-            }
+            AmbientAgentViewModelEvent::Failed { .. } => true,
             AmbientAgentViewModelEvent::NeedsGithubAuth
             | AmbientAgentViewModelEvent::Cancelled
             | AmbientAgentViewModelEvent::HarnessCommandStarted { .. }
@@ -116,18 +114,11 @@ impl TerminalView {
                     ctx.notify();
                     return;
                 }
-                if FeatureFlag::CloudModeSetupV2.is_enabled() {
-                }
                 // Re-render to show loading state.
                 ctx.emit(TerminalViewEvent::TerminalViewStateChanged);
                 ctx.notify();
             }
             AmbientAgentViewModelEvent::FollowupDispatched => {
-                if FeatureFlag::CloudModeSetupV2.is_enabled() {
-                    ambient_agent_view_model.update(ctx, |model, ctx| {
-                        model.start_new_setup_command_group(ctx);
-                    });
-                }
                 self.update_active_ambient_agent_conversation_status(
                     ConversationStatus::InProgress,
                     None,
@@ -168,13 +159,6 @@ impl TerminalView {
                 ctx.notify();
             }
             AmbientAgentViewModelEvent::ShowAICreditModal => {
-                if FeatureFlag::CloudMode.is_enabled()
-                    && ambient_agent_view_model.as_ref(ctx).is_ambient_agent()
-                    && !self.model.lock().is_shared_ambient_agent_session()
-                {
-                    self.show_out_of_credits_modal(ctx);
-                }
-
                 ctx.notify();
             }
             AmbientAgentViewModelEvent::NeedsGithubAuth => {
@@ -264,12 +248,10 @@ impl TerminalView {
 
     pub(in crate::terminal::view) fn maybe_insert_setup_command_blocks(
         &mut self,
-        block_id: &BlockId,
-        ctx: &mut ViewContext<Self>,
+        _block_id: &BlockId,
+        _ctx: &mut ViewContext<Self>,
     ) {
-        if !FeatureFlag::CloudModeSetupV2.is_enabled() {
-            return;
-        }
+        return;
 
         let Some(ambient_agent_view_model) = self.ambient_agent_view_model.clone() else {
             return;

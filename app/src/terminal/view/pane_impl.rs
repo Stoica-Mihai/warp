@@ -271,11 +271,7 @@ impl TerminalView {
 
         // Cloud-mode-only ambient agent cancel button is shown while we're waiting
         // for the session to be ready.
-        let is_waiting_for_session = FeatureFlag::CloudMode.is_enabled()
-            && self
-                .ambient_agent_view_model
-                .as_ref()
-                .is_some_and(|model| model.as_ref(app).is_waiting_for_session());
+        let is_waiting_for_session = false;
         let button_element = if is_waiting_for_session {
             Some(self.render_ambient_agent_cancel_button(app))
         } else {
@@ -560,12 +556,8 @@ impl TerminalView {
 
     /// Render shared session header content (participant avatars and role controls).
 
-    pub fn is_ambient_agent_session(&self, ctx: &AppContext) -> bool {
-        FeatureFlag::CloudMode.is_enabled()
-            && self
-                .ambient_agent_view_model
-                .as_ref()
-                .is_some_and(|model| model.as_ref(ctx).is_ambient_agent())
+    pub fn is_ambient_agent_session(&self, _ctx: &AppContext) -> bool {
+        false
     }
 
     fn selected_conversation_for_user_facing_chrome<'a>(

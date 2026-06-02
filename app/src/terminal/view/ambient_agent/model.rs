@@ -806,10 +806,6 @@ impl AmbientAgentViewModel {
 
     /// Whether or not we should show a status footer (loading, error, auth, or cancelled).
     pub fn should_show_status_footer(&self) -> bool {
-        if FeatureFlag::CloudModeSetupV2.is_enabled() {
-            return false;
-        }
-
         self.is_waiting_for_session()
             || self.is_failed()
             || self.is_needs_github_auth()
