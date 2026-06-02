@@ -137,10 +137,6 @@ pub enum FeatureFlag {
     ITermImages,
 
 
-    /// Enables prompt suggestions sourced via MAA.
-    PromptSuggestionsViaMAA,
-
-
     /// If enabled, the default theme is set to Adeberry for new users.
     DefaultAdeberryTheme,
 
@@ -171,9 +167,6 @@ pub enum FeatureFlag {
     MSYS2Shells,
 
 
-
-    /// Enables reading images with the `read_files` tool.
-    ReadImageFiles,
 
     /// Persist codebase indices to disk.
     CodebaseIndexPersistence,
@@ -213,9 +206,6 @@ pub enum FeatureFlag {
     ProfilesDesignRevamp,
 
 
-
-    /// Enables us to render linked code blocks
-    LinkedCodeBlocks,
 
     /// Enables the tabbed file viewer
     TabbedEditorView,
@@ -294,11 +284,6 @@ pub enum FeatureFlag {
     /// Enables the artifact command for uploading and downloading CLI artifacts.
     ArtifactCommand,
 
-    /// Groups MCP tools and resources by their originating server when sending context to the AI backend.
-    MCPGroupedServerContext,
-
-
-
     /// Displays debugging IDs for MCP servers, installations, and gallery items.
     McpDebuggingIds,
 
@@ -335,9 +320,6 @@ pub enum FeatureFlag {
 
 
 
-
-    /// Enables support for AM file diffs backed by the V4A patch format.
-    V4AFileDiffs,
 
     /// Enables loading conversations in the Agent Management View.
     InteractiveConversationManagementView,
@@ -406,16 +388,6 @@ pub enum FeatureFlag {
     /// flows while the default behavior temporarily keeps them disabled.
     LocalClaudeCodexChildHarnesses,
 
-    /// Gates client-side support for the `orchestrate` tool, which batches
-    /// multiple child agents into a single tool call with an inline
-    /// confirmation card. When enabled, the client advertises
-    /// `RequestSettings.SupportsOrchestrate = true` and the server's
-    /// orchestrate tool replaces `start_agent` / `start_agent_v2` for
-    /// orchestration-capable conversations. Layered on top of
-    /// `OrchestrationV2`; has no effect when v2 is off.
-    RunAgentsTool,
-
-
     /// Enables the orchestration pill bar in shared session viewers (web and
     /// native). When enabled, viewing a shared session that used orchestration
     /// shows a pill bar above the agent view header with the orchestrator and
@@ -427,10 +399,6 @@ pub enum FeatureFlag {
     /// Gates the `/queue` slash command, which lets users queue a follow-up prompt
     /// while the agent is mid-response.
     QueueSlashCommand,
-
-    /// Enables an agent tool for the CLI subagent to explicitly transfer command control to the
-    /// user.
-    TransferControlTool,
 
     /// Enables Kitty keyboard protocol support (CSI u encoding, progressive enhancement).
     KittyKeyboardProtocol,
@@ -475,9 +443,6 @@ pub enum FeatureFlag {
     /// Enables tab configs — user-definable TOML templates for launching custom tab layouts.
     TabConfigs,
 
-    /// Enables the ask_user_question tool allowing the agent to ask clarifying questions.
-    AskUserQuestion,
-
     /// When enabled, solo users (not on a team) can use BYO API keys.
     SoloUserByok,
 
@@ -502,14 +467,6 @@ pub enum FeatureFlag {
     /// Enables summary mode in vertical tabs, showing condensed tab summaries
     /// instead of individual pane rows.
     VerticalTabsSummaryMode,
-
-
-    /// Gates the user-configurable context window slider in AI settings and
-    /// the execution profile editor. When disabled, the slider is hidden and
-    /// `base_model_context_window_limit` is not sent on outbound requests, so
-    /// the server falls back to its default.
-    ConfigurableContextWindow,
-
 
 
     /// Enables the code review view for remote sessions.

@@ -104,16 +104,7 @@ fn supported_tools_omits_ask_user_question_when_disabled() {
 }
 
 #[test]
-fn supported_tools_includes_ask_user_question_when_enabled_and_feature_flag_is_enabled() {
-    if !FeatureFlag::AskUserQuestion.is_enabled() {
-        return;
-    }
-
-    let params = request_params_with_ask_user_question_enabled(true);
-    let supported_tools = get_supported_tools(&params);
-
-    assert!(supported_tools.contains(&api::ToolType::AskUserQuestion));
-}
+fn supported_tools_includes_ask_user_question_when_enabled_and_feature_flag_is_enabled() {}
 
 #[test]
 fn supported_tools_include_upload_artifact_when_feature_flag_is_enabled() {

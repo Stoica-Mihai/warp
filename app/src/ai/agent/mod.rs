@@ -33,7 +33,6 @@ use serde::{Deserialize, Serialize};
 use task::TaskId;
 pub use telemetry::AIIdentifiers;
 use uuid::Uuid;
-use warp_core::features::FeatureFlag;
 use warp_editor::render::model::LineCount;
 use warp_multi_agent_api::{diff_hunk as diff_hunk_api, AgentEvent, AgentType};
 
@@ -2956,13 +2955,6 @@ impl AIAgentExchange {
         self.input
             .iter()
             .any(|input| input.auto_code_diff_query().is_some())
-            || (FeatureFlag::PromptSuggestionsViaMAA.is_enabled()
-                && self.has_passive_request()
-                && self.output_status.output().is_some_and(|output| {
-                    output.get().actions().any(|action| {
-                        matches!(action.action, AIAgentActionType::RequestFileEdits { .. })
-                    })
-                }))
     }
 
     pub fn passive_suggestion_trigger(&self) -> Option<&PassiveSuggestionTrigger> {

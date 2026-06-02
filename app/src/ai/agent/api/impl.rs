@@ -68,13 +68,7 @@ pub async fn generate_multi_agent_output(
                 base: params.model.into(),
                 cli_agent: params.cli_agent_model.into(),
                 computer_use_agent: params.computer_use_model.into(),
-                base_model_context_window_limit: if FeatureFlag::ConfigurableContextWindow
-                    .is_enabled()
-                {
-                    params.context_window_limit.unwrap_or(0)
-                } else {
-                    0
-                },
+                base_model_context_window_limit: 0,
                 ..Default::default()
             }),
             rules_enabled: params.is_memory_enabled,
@@ -88,10 +82,10 @@ pub async fn generate_multi_agent_output(
             supports_long_running_commands: true,
             should_preserve_file_content_in_history: true,
             supports_todos_ui: true,
-            supports_linked_code_blocks: FeatureFlag::LinkedCodeBlocks.is_enabled(),
+            supports_linked_code_blocks: false,
             supports_started_child_task_message: true,
             supports_suggest_prompt: true,
-            supports_read_image_files: FeatureFlag::ReadImageFiles.is_enabled(),
+            supports_read_image_files: false,
             supports_reasoning_message: true,
             api_keys,
             autonomy_level: params.autonomy_level.into(),
@@ -101,7 +95,7 @@ pub async fn generate_multi_agent_output(
                 .into_iter()
                 .map(Into::into)
                 .collect(),
-            supports_v4a_file_diffs: FeatureFlag::V4AFileDiffs.is_enabled(),
+            supports_v4a_file_diffs: false,
             supports_summarization_via_message_replacement:
                 FeatureFlag::SummarizationViaMessageReplacement.is_enabled(),
             supports_bundled_skills: FeatureFlag::BundledSkills.is_enabled(),
@@ -243,14 +237,7 @@ fn get_supported_tools(params: &RequestParams) -> Vec<api::ToolType> {
         } else {
             api::ToolType::StartAgent
         });
-        if FeatureFlag::RunAgentsTool.is_enabled() && FeatureFlag::OrchestrationV2.is_enabled() {
-            supported_tools.push(api::ToolType::RunAgents);
-        }
         supported_tools.push(api::ToolType::SendMessageToAgent);
-    }
-
-    if FeatureFlag::AskUserQuestion.is_enabled() && params.ask_user_question_enabled {
-        supported_tools.push(api::ToolType::AskUserQuestion);
     }
 
     supported_tools
@@ -264,10 +251,6 @@ fn get_supported_cli_agent_tools(params: &RequestParams) -> Vec<api::ToolType> {
         api::ToolType::FileGlob,
         api::ToolType::FileGlobV2,
     ];
-
-    if FeatureFlag::TransferControlTool.is_enabled() {
-        supported_cli_agent_tools.push(api::ToolType::TransferShellCommandControlToUser);
-    }
 
     match params.session_context.session_type() {
         None | Some(SessionType::Local) => {

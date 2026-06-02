@@ -79,9 +79,7 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::ImeMarkedText,
         #[cfg(feature = "iterm_images")]
         FeatureFlag::ITermImages,
-        #[cfg(feature = "prompt_suggestions_via_maa")]
-        FeatureFlag::PromptSuggestionsViaMAA,
-        #[cfg(all(not(windows), feature = "kitty_images"))]
+#[cfg(all(not(windows), feature = "kitty_images"))]
         FeatureFlag::KittyImages,
         #[cfg(feature = "default_adeberry_theme")]
         FeatureFlag::DefaultAdeberryTheme,
@@ -107,9 +105,7 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::EditableMarkdownMermaid,
         #[cfg(feature = "msys2_shells")]
         FeatureFlag::MSYS2Shells,
-        #[cfg(feature = "read_image_files")]
-        FeatureFlag::ReadImageFiles,
-        #[cfg(feature = "codebase_index_persistence")]
+#[cfg(feature = "codebase_index_persistence")]
         FeatureFlag::CodebaseIndexPersistence,
         #[cfg(feature = "ai_context_menu")]
         FeatureFlag::AIContextMenuEnabled,
@@ -127,9 +123,7 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::TabCloseButtonOnLeft,
         #[cfg(feature = "profiles_design_revamp")]
         FeatureFlag::ProfilesDesignRevamp,
-        #[cfg(feature = "linked_code_blocks")]
-        FeatureFlag::LinkedCodeBlocks,
-        #[cfg(feature = "tabbed_editor_view")]
+#[cfg(feature = "tabbed_editor_view")]
         FeatureFlag::TabbedEditorView,
         #[cfg(feature = "undo_closed_panes")]
         FeatureFlag::UndoClosedPanes,
@@ -171,9 +165,7 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::UIZoom,
         #[cfg(feature = "auto_open_code_review_pane")]
         FeatureFlag::AutoOpenCodeReviewPane,
-        #[cfg(feature = "mcp_grouped_server_context")]
-        FeatureFlag::MCPGroupedServerContext,
-        #[cfg(feature = "global_search")]
+#[cfg(feature = "global_search")]
         FeatureFlag::GlobalSearch,
         #[cfg(feature = "embedded_code_review_comments")]
         FeatureFlag::EmbeddedCodeReviewComments,
@@ -183,9 +175,7 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::AgentManagementView,
         #[cfg(feature = "agent_view")]
         FeatureFlag::AgentView,
-        #[cfg(feature = "v4a_file_diffs")]
-        FeatureFlag::V4AFileDiffs,
-        #[cfg(feature = "interactive_conversation_management_view")]
+#[cfg(feature = "interactive_conversation_management_view")]
         FeatureFlag::InteractiveConversationManagementView,
         #[cfg(feature = "agent_mode_computer_use")]
         FeatureFlag::AgentModeComputerUse,
@@ -211,9 +201,7 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::AsyncFind,
         #[cfg(feature = "list_skills")]
         FeatureFlag::ListSkills,
-        #[cfg(feature = "ask_user_question")]
-        FeatureFlag::AskUserQuestion,
-        #[cfg(feature = "bundled_skills")]
+#[cfg(feature = "bundled_skills")]
         FeatureFlag::BundledSkills,
         #[cfg(feature = "new_tab_styling")]
         FeatureFlag::NewTabStyling,
@@ -225,9 +213,7 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::OrchestrationV2,
         #[cfg(feature = "orchestration_viewer_pill_bar")]
         FeatureFlag::OrchestrationViewerPillBar,
-        #[cfg(feature = "run_agents_tool")]
-        FeatureFlag::RunAgentsTool,
-        #[cfg(feature = "queue_slash_command")]
+#[cfg(feature = "queue_slash_command")]
         FeatureFlag::QueueSlashCommand,
         #[cfg(feature = "kitty_keyboard_protocol")]
         FeatureFlag::KittyKeyboardProtocol,
@@ -249,9 +235,7 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::HOANotifications,
         #[cfg(feature = "open_code_notifications")]
         FeatureFlag::OpenCodeNotifications,
-        #[cfg(feature = "transfer_control_tool")]
-        FeatureFlag::TransferControlTool,
-        #[cfg(feature = "solo_user_byok")]
+#[cfg(feature = "solo_user_byok")]
         FeatureFlag::SoloUserByok,
         #[cfg(feature = "git_operations_in_code_review")]
         FeatureFlag::GitOperationsInCodeReview,
@@ -259,9 +243,7 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::CodexNotifications,
         #[cfg(feature = "trim_trailing_blank_lines")]
         FeatureFlag::TrimTrailingBlankLines,
-        #[cfg(feature = "configurable_context_window")]
-        FeatureFlag::ConfigurableContextWindow,
-        #[cfg(feature = "remote_code_review")]
+#[cfg(feature = "remote_code_review")]
         FeatureFlag::RemoteCodeReview,
         #[cfg(feature = "custom_inference_endpoints")]
         FeatureFlag::CustomInferenceEndpoints,
