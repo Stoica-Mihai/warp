@@ -4504,7 +4504,6 @@ impl Input {
 
     fn should_block_cloud_mode_setup_submission(&self, _app: &AppContext) -> bool {
         false
-    })
     }
 
     /// Freeze the editor and put it in a loading state.
