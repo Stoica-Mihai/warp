@@ -330,6 +330,12 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - Step 5 (`97a134ef`): `input_model.rs` (795 LoC) deleted → `input_model_stubs.rs`. detect_and_set_input_type no-op; InputConfig/InputType kept real. 3-gate 0/0/0.
 - Step 6 (`125c0f72`): `history_model.rs` (2858 LoC) + `history_model_tests.rs` (2532 LoC) + `conversation_loader.rs` (663 LoC) deleted → `history_model_stubs.rs`. 81 methods no-op; `#[path]` redirect keeps 72 external `::history_model::` imports unchanged. 3-gate 0/0/0.
 
+**CURRENT STATE (2026-06-02 session 17 in progress):**
+- 3-gate: **0/0/0**
+- Binary: **758.9 MB** (758,922,616 B; −0.63 MB vs session 16 end)
+- Session 17 commit so far: `2a4ddb9b` (cloud_agent_capacity_modal + free_tier_limit_hit_modal + codex_modal, −1,496 net LoC, −0.63 MB)
+- Session 17 next: AIRequestUsageModel callers (request_usage_modal.rs or similar), or ResourceCenter strip
+
 **CURRENT STATE (2026-06-02 session 16 complete):**
 - 3-gate: **0/0/0**
 - Binary: **759.6 MB** (−2.97 MB total this session: −1.17 MB conversation_list + −1.02 MB launch_modals + −0.81 MB build_plan_migration_modal; 759,553,848 B measured)
