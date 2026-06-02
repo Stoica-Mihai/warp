@@ -17,11 +17,6 @@ fn test_keybinding_name_to_display_string() {
                     WorkspaceAction::ShowSettings,
                 )
                 .with_key_binding("cmd-,"),
-                EditableBinding::new(
-                    "workspace:toggle_resource_center",
-                    "Toggle Resource Center",
-                    WorkspaceAction::ToggleResourceCenter,
-                ),
             ]);
 
             let displayed_keybinding = if OperatingSystem::get().is_mac() {
@@ -32,11 +27,6 @@ fn test_keybinding_name_to_display_string() {
             assert_eq!(
                 Some(displayed_keybinding),
                 keybinding_name_to_display_string("workspace:show_settings", ctx).as_deref()
-            );
-
-            assert_eq!(
-                None,
-                keybinding_name_to_display_string("workspace:toggle_resource_center", ctx)
             );
 
             ctx.set_custom_trigger(
@@ -52,22 +42,6 @@ fn test_keybinding_name_to_display_string() {
             assert_eq!(
                 Some(displayed_keybinding),
                 keybinding_name_to_display_string("workspace:show_settings", ctx).as_deref()
-            );
-
-            ctx.set_custom_trigger(
-                "workspace:toggle_resource_center".to_owned(),
-                Trigger::Keystrokes(vec![Keystroke::parse("cmd-alt-/").unwrap()]),
-            );
-
-            let expected_keybinding = if OperatingSystem::get().is_mac() {
-                "⌥⌘/"
-            } else {
-                "Alt Logo /"
-            };
-            assert_eq!(
-                Some(expected_keybinding),
-                keybinding_name_to_display_string("workspace:toggle_resource_center", ctx)
-                    .as_deref()
             );
         });
     });

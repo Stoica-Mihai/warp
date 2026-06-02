@@ -1,27 +1,19 @@
 use std::collections::HashSet;
 
-use chrono::{DateTime, FixedOffset};
 use settings::Setting as _;
 
 use crate::report_if_error;
 use crate::terminal::general_settings::GeneralSettings;
 use crate::util::bindings::trigger_to_keystroke;
 
-mod main_page;
-pub mod utils;
-pub use main_page::{ResourceCenterMainEvent, ResourceCenterMainView};
 mod keybindings_page;
 pub use keybindings_page::KeybindingsView;
-mod section_views;
-pub use section_views::{ChangelogSectionView, ContentSectionView, FeatureSectionView};
-pub mod sections;
-mod view;
+pub mod utils;
+pub mod section_views;
+
 use serde::{Deserialize, Serialize};
-pub use view::{ResourceCenterAction, ResourceCenterEvent, ResourceCenterPage, ResourceCenterView};
 use warpui::keymap::Keystroke;
 use warpui::{AppContext, Entity, SingletonEntity};
-
-use self::section_views::feature_section::FeatureSection;
 
 #[derive(
     Clone,
@@ -46,7 +38,6 @@ pub enum Tip {
     Action(TipAction),
 }
 
-// Tips that aren't clickable to dispatch an action
 #[derive(
     Clone,
     Copy,
@@ -66,7 +57,6 @@ pub enum TipHint {
     BlockAction,
 }
 
-// Tips that are clickable and dispatch an action
 #[derive(
     Clone,
     Copy,
@@ -89,14 +79,8 @@ pub enum TipAction {
     AiCommandSearch,
     SaveNewLaunchConfig,
     WarpAI,
-    // This toggles Warp Drive rather than opening it. This enum can't directly be
-    // renamed because we serialize it into the welcome tips.
     OpenWarpDrive,
     Changelog,
-    // Note that this item has been deprecated from the UI and is not in any section.
-    // We are leaving it in this enum to ensure that we don't re-use `Workflows` as a
-    // value. Since old clients will have this value in their user defaults, we want
-    // to prevent future usage of this enum value.
     Workflows,
 }
 
@@ -112,8 +96,6 @@ impl TipAction {
             TipAction::SaveNewLaunchConfig => "workspace:open_launch_config_save_modal",
             TipAction::WarpAI => "workspace:toggle_ai_assistant",
             TipAction::OpenWarpDrive => "workspace:toggle_left_panel",
-            // Slash commands are also registered as editable bindings, so callers can look them up here
-            // the same way they do regular app actions.
             TipAction::Changelog => "/changelog",
             TipAction::Workflows => "input:toggle_workflows",
         }
@@ -126,84 +108,6 @@ impl TipAction {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-
-// Section item that dispatches an action within the app
-pub struct FeatureItem {
-    pub title: &'static str,
-    pub description: &'static str,
-    pub feature: Tip,
-    pub editable_binding_name: Option<&'static str>,
-    pub shortcut: Option<Keystroke>,
-}
-
-impl FeatureItem {
-    pub fn new(
-        title: &'static str,
-        description: &'static str,
-        feature: Tip,
-        ctx: &mut AppContext,
-    ) -> Self {
-        let editable_binding_name;
-        let shortcut;
-
-        match feature {
-            Tip::Hint(_) => {
-                editable_binding_name = None;
-                shortcut = None;
-            }
-            Tip::Action(tip) => {
-                editable_binding_name = Some(tip.editable_binding_name());
-                shortcut = tip.keyboard_shortcut(ctx);
-            }
-        }
-
-        Self {
-            title,
-            description,
-            feature,
-            editable_binding_name,
-            shortcut,
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-// Section item that links to an external URL
-pub struct ContentItem {
-    pub title: &'static str,
-    pub description: &'static str,
-    pub url: &'static str,
-    pub button_label: &'static str,
-}
-
-pub enum Section {
-    Feature(FeatureSectionData),
-    Content(ContentSectionData),
-    Changelog(),
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct FeatureSectionData {
-    pub section_name: FeatureSection,
-    pub items: Vec<FeatureItem>,
-}
-
-#[derive(Clone)]
-pub struct ContentSectionData {
-    pub section_name: FeatureSection,
-    pub items: Vec<ContentItem>,
-}
-
-#[derive(Clone)]
-pub struct ChangelogSectionData {
-    pub section_name: FeatureSection,
-    pub date: DateTime<FixedOffset>,
-    pub new_features_markdown: String,
-    pub improvements_markdown: String,
-    pub coming_soon_markdown: String,
-}
-
 #[derive(Default)]
 pub struct TipsCompleted {
     pub features_used: HashSet<Tip>,
@@ -213,21 +117,6 @@ pub struct TipsCompleted {
 
 impl Entity for TipsCompleted {
     type Event = ();
-}
-
-impl FeatureSectionData {
-    pub fn is_section_completed(&self, tips_completed: &TipsCompleted) -> bool {
-        self.items
-            .iter()
-            .all(|item| tips_completed.features_used.contains(&item.feature))
-    }
-
-    pub fn tips_completed_count(&self, tips_completed: &TipsCompleted) -> usize {
-        self.items
-            .iter()
-            .filter(|item| tips_completed.features_used.contains(&item.feature))
-            .count()
-    }
 }
 
 /// Marks the welcome tip as used, writes their current state to a cloud synced preference.
@@ -251,21 +140,8 @@ pub fn mark_feature_used_and_write_to_user_defaults(
     }
 }
 
-/// Updates the model to reflect welcome tips are skipped, writes to user defaults, and sends telemetry.
+/// Updates the model to reflect welcome tips are skipped, writes to user defaults.
 pub fn skip_tips_and_write_to_user_defaults(
-    tips_completed: &mut TipsCompleted,
-    ctx: &mut AppContext,
-) {
-    tips_completed.skipped_or_completed = true;
-    GeneralSettings::handle(ctx).update(ctx, |general_settings, ctx| {
-        report_if_error!(general_settings
-            .welcome_tips_skipped_or_completed
-            .set_value(true, ctx));
-    });
-}
-
-/// Updates the model to reflect welcome tips are skipped, writes to user defaults, and sends telemetry.
-pub fn complete_tips_and_write_to_user_defaults(
     tips_completed: &mut TipsCompleted,
     ctx: &mut AppContext,
 ) {
@@ -290,7 +166,6 @@ impl TipsCompleted {
     pub fn mark_feature_used(&mut self, feature: Tip) -> bool {
         let is_new_value = self.features_used.insert(feature);
 
-        // Check if all gamified tips are completed
         if let Some(total_tips) = self.gamified_tips_count {
             if is_new_value && self.features_used.len() == total_tips {
                 self.skipped_or_completed = true;

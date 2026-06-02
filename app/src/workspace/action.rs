@@ -219,9 +219,7 @@ pub enum WorkspaceAction {
     OpenLaunchConfigSaveModal,
     SelectTabConfig(TabConfig),
     DispatchToSettingsTab(SettingsTabAction),
-    ToggleResourceCenter,
     ToggleUserMenu,
-    ToggleKeybindingsPage,
     ShowCommandSearch(CommandSearchOptions),
     CreatePersonalNotebook,
     CreateTeamNotebook,
@@ -735,10 +733,8 @@ impl WorkspaceAction {
             | SetA11yVerbosityLevel(_)
             | ToggleNotifications
             | DispatchToSettingsTab { .. }
-            | ToggleResourceCenter
             | ToggleUserMenu
             | OpenCloudAgentSetupGuide
-            | ToggleKeybindingsPage
             | ShowCommandSearch(_)
             | ToggleMouseReporting
             | ToggleScrollReporting

@@ -742,14 +742,6 @@ pub fn init(app: &mut AppContext) {
         )
         .with_custom_action(CustomAction::MoveTabRight),
         EditableBinding::new(
-            "workspace:toggle_keybindings_page",
-            "Toggle keyboard shortcuts",
-            WorkspaceAction::ToggleKeybindingsPage,
-        )
-        .with_group(bindings::BindingGroup::KeyboardShortcuts.as_str())
-        .with_context_predicate(id!("Workspace") & !id!("Workspace_TextOpen"))
-        .with_custom_action(CustomAction::ToggleKeybindingsPage),
-        EditableBinding::new(
             "workspace:show_keybinding_settings",
             "Open keybindings editor",
             WorkspaceAction::ConfigureKeybindingSettings {
@@ -936,17 +928,6 @@ pub fn init(app: &mut AppContext) {
     )
     .with_group(bindings::BindingGroup::Settings.as_str())
     .with_context_predicate(id!("Workspace") & !id!("IsAnonymousUser"))]);
-
-    if !FeatureFlag::AvatarInTabBar.is_enabled() {
-        app.register_editable_bindings([EditableBinding::new(
-            "workspace:toggle_resource_center",
-            "Toggle resource center",
-            WorkspaceAction::ToggleResourceCenter,
-        )
-        .with_group(bindings::BindingGroup::Navigation.as_str())
-        .with_context_predicate(id!("Workspace"))
-        .with_custom_action(CustomAction::ToggleResourceCenter)]);
-    }
 
     if cfg!(not(target_family = "wasm")) {
         app.register_editable_bindings([EditableBinding::new(
