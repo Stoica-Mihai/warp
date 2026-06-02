@@ -25,7 +25,6 @@ use crate::pane_group::TerminalViewResources;
 use crate::terminal::view::rich_content::{RichContentInsertionPosition, RichContentMetadata};
 use crate::terminal::view::{Event as TerminalViewEvent, TerminalView};
 use crate::terminal::CLIAgent;
-use crate::workspace::view::cloud_agent_capacity_modal::CloudAgentCapacityModalVariant;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 
 const CHILD_AGENT_GITHUB_AUTH_REQUIRED_BLOCKED_ACTION: &str =
@@ -58,19 +57,9 @@ impl TerminalView {
     }
 
     pub(in crate::terminal::view) fn show_out_of_credits_modal(&self, ctx: &mut ViewContext<Self>) {
-        let is_on_paid_plan = UserWorkspaces::as_ref(ctx)
-            .current_workspace()
-            .is_some_and(|workspace| workspace.billing_metadata.is_user_on_paid_plan());
-
-        if is_on_paid_plan {
-            ctx.emit(crate::terminal::view::Event::ShowCloudAgentCapacityModal {
-                variant: CloudAgentCapacityModalVariant::OutOfCredits,
-            });
-        } else {
-            AIRequestUsageModel::handle(ctx).update(ctx, |model, ctx| {
-                model.refresh_request_usage_async(ctx);
-            });
-        }
+        AIRequestUsageModel::handle(ctx).update(ctx, |model, ctx| {
+            model.refresh_request_usage_async(ctx);
+        });
     }
 
     /// Handles ambient agent view model events.
@@ -176,18 +165,6 @@ impl TerminalView {
 
                 // Re-render to show the error state.
                 ctx.emit(TerminalViewEvent::TerminalViewStateChanged);
-                ctx.notify();
-            }
-            AmbientAgentViewModelEvent::ShowCloudAgentCapacityModal => {
-                if FeatureFlag::CloudMode.is_enabled()
-                    && ambient_agent_view_model.as_ref(ctx).is_ambient_agent()
-                    && !self.model.lock().is_shared_ambient_agent_session()
-                {
-                    ctx.emit(crate::terminal::view::Event::ShowCloudAgentCapacityModal {
-                        variant: CloudAgentCapacityModalVariant::ConcurrentLimit,
-                    });
-                }
-
                 ctx.notify();
             }
             AmbientAgentViewModelEvent::ShowAICreditModal => {

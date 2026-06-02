@@ -324,15 +324,6 @@ pub fn init(app: &mut AppContext) {
     );
 
     app.add_global_action(
-        "root_view:open_codex_in_new_window",
-        open_codex_in_new_window,
-    );
-    app.add_action(
-        "root_view:open_codex_in_existing_window",
-        RootView::open_codex_in_existing_window,
-    );
-
-    app.add_global_action(
         "root_view:open_linear_issue_work_in_new_window",
         open_linear_issue_work_in_new_window,
     );
@@ -866,22 +857,6 @@ fn open_mcp_settings_in_new_window(args: &OpenMCPSettingsArgs, ctx: &mut AppCont
                         autoinstall.as_deref(),
                         ctx,
                     )
-                });
-            });
-        }
-    });
-}
-
-/// Opens a new window and shows the Codex modal.
-fn open_codex_in_new_window(_: &(), ctx: &mut AppContext) {
-    let root_handle = open_new_window_get_handles(None, ctx).1;
-    root_handle.update(ctx, |root_view, ctx| {
-        let workspace_view_handle = &root_view.workspace;
-        {
-            let initial_load_complete = UpdateManager::as_ref(ctx).initial_load_complete();
-            workspace_view_handle.update(ctx, |_, ctx| {
-                let _ = ctx.spawn(initial_load_complete, move |workspace, _, ctx| {
-                    workspace.open_codex_modal(ctx)
                 });
             });
         }
@@ -1852,19 +1827,6 @@ impl RootView {
                 });
             });
             let window_id = ctx.window_id();
-            ctx.windows().show_window_and_focus_app(window_id);
-        }
-        true
-    }
-
-    /// Opens the Codex modal in an existing window.
-    pub fn open_codex_in_existing_window(&mut self, _: &(), ctx: &mut ViewContext<Self>) -> bool {
-        let window_id = ctx.window_id();
-        let handle = &self.workspace;
-        {
-            handle.update(ctx, |workspace, ctx| {
-                workspace.open_codex_modal(ctx);
-            });
             ctx.windows().show_window_and_focus_app(window_id);
         }
         true

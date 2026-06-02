@@ -69,7 +69,6 @@ pub enum AgentViewEntryOrigin {
     CreateEnvironment,
     Keybinding,
     CodeReviewContext,
-    CodexModal,
     InlineHistoryMenu,
     InlineConversationMenu,
     OnboardingCallout,
