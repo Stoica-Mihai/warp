@@ -20,14 +20,9 @@ use crate::terminal::input::inline_menu::{
     InlineMenuAction, InlineMenuClickBehavior, InlineMenuType,
 };
 use crate::terminal::model::session::active_session::ActiveSession;
-use crate::ai::agent::conversation::AIConversationId;
 
 #[derive(Clone, Debug)]
 pub enum AcceptHistoryItem {
-    Conversation {
-        conversation_id: AIConversationId,
-        title: String,
-    },
     Command {
         command: String,
         linked_workflow_data: Option<LinkedWorkflowData>,
@@ -36,10 +31,8 @@ pub enum AcceptHistoryItem {
 
 impl AcceptHistoryItem {
     pub fn buffer_replacement_text(&self) -> Option<&String> {
-        match self {
-            AcceptHistoryItem::Command { command, .. } => Some(command),
-            AcceptHistoryItem::Conversation { .. } => None,
-        }
+        let AcceptHistoryItem::Command { command, .. } = self;
+        Some(command)
     }
 }
 
@@ -47,10 +40,7 @@ impl InlineMenuAction for AcceptHistoryItem {
     const MENU_TYPE: InlineMenuType = InlineMenuType::InlineHistoryMenu;
 
     fn click_behavior(&self) -> InlineMenuClickBehavior {
-        match self {
-            AcceptHistoryItem::Conversation { .. } => InlineMenuClickBehavior::AcceptOnClick,
-            AcceptHistoryItem::Command { .. } => InlineMenuClickBehavior::SelectOnClick,
-        }
+        InlineMenuClickBehavior::SelectOnClick
     }
 }
 

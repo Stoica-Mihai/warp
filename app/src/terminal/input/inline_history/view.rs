@@ -8,7 +8,6 @@ use warp_core::ui::theme::Fill;
 use warpui::elements::ChildView;
 use warpui::{AppContext, Element, Entity, EntityId, ModelHandle, View, ViewContext, ViewHandle};
 
-use crate::ai::agent::conversation::AIConversationId;
 use crate::features::FeatureFlag;
 use crate::search::data_source::{Query, QueryFilter};
 use crate::search::mixer::{SearchMixer, SearchMixerEvent};
@@ -32,9 +31,6 @@ use crate::workspace::WorkspaceAction;
 
 #[derive(Debug, Clone)]
 pub enum InlineHistoryMenuEvent {
-    NavigateToConversation {
-        conversation_id: AIConversationId,
-    },
     AcceptCommand {
         command: String,
         linked_workflow_data: Option<LinkedWorkflowData>,
@@ -43,9 +39,6 @@ pub enum InlineHistoryMenuEvent {
         command: String,
         linked_workflow_data: Option<LinkedWorkflowData>,
     },
-    /// Emitted when a conversation row becomes selected so any previously
-    /// previewed command or prompt text is cleared from the input buffer.
-    SelectConversation,
     NoResults,
     /// Emitted when the inline menu should be closed and additionally restore the
     /// original input buffer contents.
@@ -56,33 +49,19 @@ pub enum InlineHistoryMenuEvent {
 /// Identifies a history item well enough to reselect the same logical item
 /// after rerunning the current query.
 enum HistoryItemIdentity {
-    Conversation(AIConversationId),
     Command(String),
 }
 
 impl HistoryItemIdentity {
     fn from_item(item: &AcceptHistoryItem) -> Self {
-        match item {
-            AcceptHistoryItem::Conversation {
-                conversation_id, ..
-            } => Self::Conversation(*conversation_id),
-            AcceptHistoryItem::Command { command, .. } => Self::Command(command.clone()),
-        }
+        let AcceptHistoryItem::Command { command, .. } = item;
+        Self::Command(command.clone())
     }
 
     fn matches(&self, item: &AcceptHistoryItem) -> bool {
-        match (self, item) {
-            (
-                Self::Conversation(expected_id),
-                AcceptHistoryItem::Conversation {
-                    conversation_id, ..
-                },
-            ) => *expected_id == *conversation_id,
-            (Self::Command(expected_command), AcceptHistoryItem::Command { command, .. }) => {
-                expected_command == command
-            }
-            _ => false,
-        }
+        let Self::Command(expected_command) = self;
+        let AcceptHistoryItem::Command { command, .. } = item;
+        expected_command == command
     }
 }
 
@@ -302,38 +281,20 @@ impl InlineHistoryMenuView {
         );
 
         ctx.subscribe_to_view(&menu_view, |me, _, event, ctx| match event {
-            InlineMenuEvent::AcceptedItem { item, .. } => match item {
-                AcceptHistoryItem::Conversation {
-                    conversation_id, ..
-                } => {
-                    ctx.emit(InlineHistoryMenuEvent::NavigateToConversation {
-                        conversation_id: *conversation_id,
-                    });
-                }
-                AcceptHistoryItem::Command {
-                    command,
-                    linked_workflow_data,
-                } => {
-                    ctx.emit(InlineHistoryMenuEvent::AcceptCommand {
-                        command: command.clone(),
-                        linked_workflow_data: linked_workflow_data.clone(),
-                    });
-                }
-            },
-            InlineMenuEvent::SelectedItem { item } => match item {
-                AcceptHistoryItem::Command {
-                    command,
-                    linked_workflow_data,
-                } => {
-                    ctx.emit(InlineHistoryMenuEvent::SelectCommand {
-                        command: command.clone(),
-                        linked_workflow_data: linked_workflow_data.clone(),
-                    });
-                }
-                AcceptHistoryItem::Conversation { .. } => {
-                    ctx.emit(InlineHistoryMenuEvent::SelectConversation);
-                }
-            },
+            InlineMenuEvent::AcceptedItem { item, .. } => {
+                let AcceptHistoryItem::Command { command, linked_workflow_data } = item;
+                ctx.emit(InlineHistoryMenuEvent::AcceptCommand {
+                    command: command.clone(),
+                    linked_workflow_data: linked_workflow_data.clone(),
+                });
+            }
+            InlineMenuEvent::SelectedItem { item } => {
+                let AcceptHistoryItem::Command { command, linked_workflow_data } = item;
+                ctx.emit(InlineHistoryMenuEvent::SelectCommand {
+                    command: command.clone(),
+                    linked_workflow_data: linked_workflow_data.clone(),
+                });
+            }
             InlineMenuEvent::Dismissed => {
                 ctx.emit(InlineHistoryMenuEvent::Close);
             }
