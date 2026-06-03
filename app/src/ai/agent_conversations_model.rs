@@ -77,11 +77,8 @@ enum TaskFetchState {
     /// when it failed so we can back off for [`PERMANENT_FETCH_FAILURE_COOLDOWN`] before
     /// retrying. We don't refuse forever in case permissions change mid-session.
     /// The `String` carries a human-readable description of the failure for display in the UI.
-    PermanentlyFailed { at: Instant, message: String },
-    /// The retry chain just exhausted on a transient error; remember when it failed so we
-    /// can back off for [`TRANSIENT_FETCH_FAILURE_COOLDOWN`] before retrying.
-    /// The `String` carries a human-readable description of the failure for display in the UI.
-    TransientlyFailed { at: Instant, message: String },
+    PermanentlyFailed { at: Instant },
+    TransientlyFailed { at: Instant },
 }
 
 
@@ -103,24 +100,6 @@ pub enum StatusFilter {
     Failed,
 }
 
-impl StatusFilter {
-    /// Returns `true` if a status transition from `prev_bucket` to `new_bucket` flips
-    /// whether an item is included by this filter. `All` matches every bucket so it
-    /// is never crossed; the other variants are crossed when exactly one of the buckets
-    /// equals this filter.
-    pub(crate) fn is_membership_crossed(
-        self,
-        prev_bucket: StatusFilter,
-        new_bucket: StatusFilter,
-    ) -> bool {
-        match self {
-            StatusFilter::All => false,
-            StatusFilter::Working | StatusFilter::Done | StatusFilter::Failed => {
-                (prev_bucket == self) != (new_bucket == self)
-            }
-        }
-    }
-}
 
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize)]
 pub enum SourceFilter {
@@ -213,27 +192,6 @@ pub struct AgentManagementFilters {
     pub harness: HarnessFilter,
 }
 
-impl AgentManagementFilters {
-    pub fn reset_all_but_owner(&mut self) {
-        self.status = StatusFilter::default();
-        self.source = SourceFilter::default();
-        self.created_on = CreatedOnFilter::default();
-        self.creator = CreatorFilter::default();
-        self.artifact = ArtifactFilter::default();
-        self.environment = EnvironmentFilter::default();
-        self.harness = HarnessFilter::default();
-    }
-
-    pub fn is_filtering(&self) -> bool {
-        self.status != StatusFilter::default()
-            || self.source != SourceFilter::default()
-            || self.created_on != CreatedOnFilter::default()
-            || self.creator != CreatorFilter::default() && self.owners != OwnerFilter::PersonalOnly
-            || self.artifact != ArtifactFilter::default()
-            || self.environment != EnvironmentFilter::default()
-            || self.harness != HarnessFilter::default()
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AgentRunDisplayStatus {
@@ -278,18 +236,6 @@ impl AgentRunDisplayStatus {
             | AmbientAgentTaskState::Blocked
             | AmbientAgentTaskState::Cancelled
             | AmbientAgentTaskState::Unknown => Self::from_task_state(task),
-        }
-    }
-
-    pub fn from_conversation_status(status: &ConversationStatus) -> Self {
-        match status {
-            ConversationStatus::InProgress => Self::ConversationInProgress,
-            ConversationStatus::Success => Self::ConversationSucceeded,
-            ConversationStatus::Error => Self::ConversationError,
-            ConversationStatus::Cancelled => Self::ConversationCancelled,
-            ConversationStatus::Blocked { blocked_action } => Self::ConversationBlocked {
-                blocked_action: blocked_action.clone(),
-            },
         }
     }
 
@@ -556,10 +502,6 @@ impl AgentConversationsModel {
             model.has_finished_initial_load = true;
         }
         model
-    }
-
-    pub fn is_loading(&self) -> bool {
-        !self.has_finished_initial_load
     }
 
     fn handle_network_status_changed(
@@ -980,18 +922,6 @@ impl AgentConversationsModel {
         self.tasks.get(task_id).cloned()
     }
 
-    /// Returns the error message when the most recent fetch for `task_id` ended in a
-    /// permanent or transient failure and the cooldown has not yet elapsed. The caller
-    /// can use this to display an error state in the details panel.
-    pub fn task_fetch_error(&self, task_id: &AmbientAgentTaskId) -> Option<&str> {
-        match self.task_fetch_state.get(task_id) {
-            Some(
-                TaskFetchState::PermanentlyFailed { message, .. }
-                | TaskFetchState::TransientlyFailed { message, .. },
-            ) => Some(message),
-            _ => None,
-        }
-    }
 
     /// Get raw task data by task ID, fetching from server if not in memory.
     /// If the task is already in memory, returns it immediately.
@@ -1077,11 +1007,10 @@ impl AgentConversationsModel {
                 }
                 RequestState::RequestFailed(e) => {
                     let now = Instant::now();
-                    let message = format!("{e}");
                     let new_state = if is_transient_http_error(&e) {
-                        TaskFetchState::TransientlyFailed { at: now, message }
+                        TaskFetchState::TransientlyFailed { at: now }
                     } else {
-                        TaskFetchState::PermanentlyFailed { at: now, message }
+                        TaskFetchState::PermanentlyFailed { at: now }
                     };
                     model.task_fetch_state.insert(task_id_clone, new_state);
                     report_error!(e);
