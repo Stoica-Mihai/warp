@@ -2,7 +2,6 @@ pub mod ai;
 pub mod auth;
 pub mod block;
 pub mod harness_support;
-pub mod integrations;
 pub mod managed_secrets;
 pub(crate) mod presigned_upload;
 pub mod referral;
@@ -1384,10 +1383,6 @@ impl ServerApiProvider {
     }
 
     pub fn get_ai_client(&self) -> Arc<dyn AIClient> {
-        self.server_api.clone()
-    }
-
-    pub fn get_integrations_client(&self) -> Arc<dyn integrations::IntegrationsClient> {
         self.server_api.clone()
     }
 
