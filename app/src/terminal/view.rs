@@ -273,7 +273,7 @@ use crate::server::ids::{ObjectUid, SyncId};
 use crate::server::server_api::ServerApi;
 use crate::server::telemetry::{
     AgentModeRewindEntrypoint, AnonymousUserSignupEntrypoint,
-    LinkOpenMethod, NotificationAgentVariant, PaletteSource, PromptSuggestionViewType,
+    LinkOpenMethod, NotificationAgentVariant, PaletteSource,
     SaveAsWorkflowModalSource, ToggleBlockFilterSource,
 };
 use crate::session_management::{CommandContext, SessionNavigationPromptElements};
@@ -6129,11 +6129,6 @@ impl TerminalView {
         });
     }
 
-    /// Returns the view type for prompt suggestion telemetry based on whether agent view is active.
-    fn prompt_suggestion_view_type(&self, _ctx: &ViewContext<Self>) -> PromptSuggestionViewType {
-        PromptSuggestionViewType::TerminalView
-    }
-
     fn resolve_prompt_suggestion(
         &mut self,
         _resolution: PromptSuggestionResolution,
@@ -6141,9 +6136,6 @@ impl TerminalView {
     ) -> bool {
         false
     }
-
-
-
 
     fn associate_and_promote_block_for_conversation(
         &mut self,

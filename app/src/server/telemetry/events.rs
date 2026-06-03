@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::cloud_object::model::generic_string_model::GenericStringObjectId;
-use crate::cloud_object::{GenericStringObjectFormat, ObjectType, Space};
+use crate::cloud_object::{GenericStringObjectFormat, Space};
 use crate::drive::CloudObjectTypeAndId;
-use crate::server::ids::{ObjectUid, ServerId};
+use crate::server::ids::ServerId;
 
 // For use when recording what type of cloud object a particular telemetry is for.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -129,14 +129,6 @@ pub enum CLIAgentType {
     Hermes,
     Vibe,
     Unknown,
-}
-
-/// The kind of plugin chip shown or dismissed (for telemetry purposes).
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum PluginChipTelemetryKind {
-    Install,
-    Update,
 }
 
 /// Identifies the agent variant that triggered a notification (for telemetry purposes).
@@ -270,12 +262,6 @@ pub enum InteractionSource {
     Keybinding,
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-pub enum PromptSuggestionViewType {
-    TerminalView,
-    AgentView,
-}
-
 /// The entrypoint from which the rewind dialog was opened.
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum AgentModeRewindEntrypoint {
@@ -285,47 +271,6 @@ pub enum AgentModeRewindEntrypoint {
     ContextMenu,
     /// The /rewind slash command.
     SlashCommand,
-}
-
-/// Reasons why we fell back to a prompt suggestion from a suggested code diff.
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-pub enum PromptSuggestionFallbackReason {
-    /// Code file had too many lines, hence we stopped triggering the suggested code diff.
-    #[serde(rename = "file_too_many_lines")]
-    FileTooManyLines,
-    /// Code file had too many bytes, hence we stopped triggering the suggested code diff.
-    #[serde(rename = "file_too_many_bytes")]
-    FileTooManyBytes,
-    /// Missing file, when looking up filepaths in local file system.
-    #[serde(rename = "missing_file")]
-    MissingFile,
-    /// Failed to retrieve file from local file system.
-    #[serde(rename = "failed_to_retrieve_file")]
-    FailedToRetrieveFile,
-    /// In an SSH/remote session.
-    #[serde(rename = "ssh_remote_session")]
-    SSHRemoteSession,
-    /// No read files permission.
-    #[serde(rename = "no_read_files_permission")]
-    NoReadFilesPermission,
-    /// AI query timeout.
-    #[serde(rename = "ai_query_timeout")]
-    AIQueryTimeout,
-    /// Failed to send AI request.
-    #[serde(rename = "failed_to_send_ai_request")]
-    FailedToSendAIRequest,
-}
-
-/// Entrypoints to toggle the input auto-detection setting for Agent Mode.
-/// Payload for the [`AgentModePotentialAutodetectionFalsePositive`] event.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum AgentModeAutoDetectionFalsePositivePayload {
-    /// Payload includes input text for dogfood channels.
-    InternalDogfoodUsers { input_text: String },
-
-    /// Do not include the misclassified input text in stable channels due to privacy concerns.
-    ExternalUsers,
 }
 
 /// How the user triggered the [`AgentModeCodeFilesNavigated`] event.
@@ -341,22 +286,6 @@ pub enum AddTabWithShellSource {
 pub enum CodeContextDestination {
     Pty,
     RichInput,
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub enum AgentModeCitation {
-    WarpDriveObject {
-        object_type: ObjectType,
-        uid: ObjectUid,
-    },
-    WarpDocs {
-        page: String,
-    },
-    WebPage {
-        // Don't serialize the URL to avoid leaking sensitive information.
-        #[serde(skip_serializing)]
-        url: String,
-    },
 }
 
 #[derive(Clone, Copy, Debug, Serialize)]
