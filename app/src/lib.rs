@@ -1223,7 +1223,6 @@ pub(crate) fn initialize_app(
         // Not using the *Provider types isn't ideal, but it's worth it for the ability to move managed secrets to a separate crate.
         ManagedSecretManager::new(
             server_api_provider.as_ref(ctx).get_managed_secrets_client(),
-            auth_state.clone(),
         )
     });
 

@@ -20,7 +20,6 @@ use warpui::SingletonEntity;
 use warpui::{Entity, ModelContext};
 
 use crate::config::{lsp_uri_to_path, LanguageId};
-use crate::server_repo_watcher::LspRepoWatcher;
 use crate::supported_servers::LSPServerType;
 use crate::types::{
     DefinitionLocation, DocumentVersion, HoverResult, Location, ReferenceLocation,
@@ -100,8 +99,7 @@ pub struct LspServerModel {
     // Tasks are keyed by their progress token and removed when they finish.
     in_progress_tasks: HashMap<String, BackgroundTaskInfo>,
     diagnostics_by_path: HashMap<PathBuf, DocumentDiagnostics>,
-    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
-    pub(crate) repo_watcher: LspRepoWatcher,
+
 }
 
 #[derive(Debug, Clone)]
@@ -174,13 +172,7 @@ impl LspServerModel {
             config,
             in_progress_tasks: HashMap::new(),
             diagnostics_by_path: HashMap::new(),
-            repo_watcher: LspRepoWatcher::new(),
         }
-    }
-
-    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
-    pub(crate) fn repo_watcher_mut(&mut self) -> &mut LspRepoWatcher {
-        &mut self.repo_watcher
     }
 
     /// Returns the unique identifier for this language server instance.

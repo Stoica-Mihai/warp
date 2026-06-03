@@ -9,32 +9,18 @@ use warp_graphql::queries::task_secrets::ManagedSecretValue as GqlManagedSecretV
 use warpui::{Entity, SingletonEntity};
 
 use crate::ManagedSecretValue;
-use crate::client::{
-    IdentityTokenOptions, ManagedSecretConfigs, ManagedSecretsClient, SecretOwner,
-    TaskIdentityToken,
-};
+use crate::client::{IdentityTokenOptions, ManagedSecretsClient, SecretOwner, TaskIdentityToken};
 use crate::gcp::{self, GcpWorkloadIdentityFederationError, GcpWorkloadIdentityFederationToken};
 
 /// Singleton model for working with Warp-managed secrets.
 pub struct ManagedSecretManager {
     client: Arc<dyn ManagedSecretsClient>,
-    actor_provider: Arc<dyn ActorProvider>,
-}
-
-pub trait ActorProvider: Send + Sync + 'static {
-    fn actor_uid(&self) -> Option<String>;
 }
 
 impl ManagedSecretManager {
-    pub fn new(
-        client: Arc<dyn ManagedSecretsClient>,
-        actor_provider: Arc<dyn ActorProvider>,
-    ) -> Self {
+    pub fn new(client: Arc<dyn ManagedSecretsClient>) -> Self {
         crate::envelope::init();
-        Self {
-            client,
-            actor_provider,
-        }
+        Self { client }
     }
 
     pub fn create_secret(
@@ -176,25 +162,6 @@ impl ManagedSecretManager {
     }
 }
 
-/// Find the public upload key corresponding to `owner`.
-/// Returns an error if there's no such key in `configs`.
-fn owner_public_key<'a>(
-    configs: &'a ManagedSecretConfigs,
-    owner: &SecretOwner,
-) -> Result<&'a str, anyhow::Error> {
-    match owner {
-        SecretOwner::CurrentUser => configs
-            .user_secrets
-            .as_ref()
-            .and_then(|config| config.public_key.as_deref())
-            .ok_or_else(|| anyhow::anyhow!("No public key for user")),
-        SecretOwner::Team { team_uid } => configs
-            .team_secrets
-            .get(team_uid)
-            .and_then(|config| config.public_key.as_deref())
-            .ok_or_else(|| anyhow::anyhow!("No public key for team {team_uid}")),
-    }
-}
 
 impl Entity for ManagedSecretManager {
     type Event = ();
