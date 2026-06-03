@@ -23,8 +23,6 @@ use warpui::ui_components::components::{Coords, UiComponent, UiComponentStyles};
 use warpui::ui_components::text_input::TextInput;
 use warpui::{AppContext, SingletonEntity, ViewHandle};
 
-use crate::ai::agent::conversation::ConversationStatus;
-use crate::ai::conversation_status_ui::{render_status_element, STATUS_ELEMENT_PADDING};
 use crate::appearance::Appearance;
 /// Tab module contains structures related to Tabs (such as TabData or TabComponent) that simplify
 /// the rendering and management of tabs in general.
@@ -578,9 +576,6 @@ enum Indicator {
     Maximized,
     /// We should show a shell indicator for the tab.
     Shell(ShellIndicatorType),
-    Agent {
-        conversation_status: Option<ConversationStatus>,
-    },
     AmbientAgent,
 }
 
@@ -852,7 +847,7 @@ impl<'a> TabComponent<'a> {
 
     /// Check if the given indicator is an agent task indicator
     fn is_agent_task_indicator(indicator: &Indicator) -> bool {
-        matches!(indicator, Indicator::Agent { .. } | Indicator::AmbientAgent)
+        matches!(indicator, Indicator::AmbientAgent)
     }
 
     /// Get the current working directory for the tooltip if this is an agent task
@@ -1094,21 +1089,6 @@ impl<'a> TabComponent<'a> {
                     .to_warpui_icon(internal_colors::neutral_5(self.appearance.theme()).into())
                     .finish(),
             ),
-            Indicator::Agent {
-                conversation_status,
-            } => {
-                if let Some(status) = conversation_status {
-                    if FeatureFlag::NewTabStyling.is_enabled() {
-                        let icon_size = 22.0 - STATUS_ELEMENT_PADDING * 2.;
-                        Some(render_status_element(status, icon_size, self.appearance))
-                    } else {
-                        Some(status.render_icon(self.appearance).finish())
-                    }
-                } else {
-                    let icon_color = self.appearance.theme().nonactive_ui_text_color();
-                    Some(Icon::Oz.to_warpui_icon(icon_color).finish())
-                }
-            }
             Indicator::AmbientAgent => {
                 // Always use the active tab font color for the ambient agent cloud icon, with a safe fallback.
                 let active_styles = self.styles.default.merge(self.styles.active);
