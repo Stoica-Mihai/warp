@@ -9,7 +9,6 @@ use crate::ai::agent::AIAgentExchangeId;
 use crate::search::data_source::{Query, QueryResult};
 use crate::search::mixer::DataSourceRunErrorWrapper;
 use crate::search::SyncDataSource;
-use crate::terminal::input::user_query::search_item::UserQuerySearchItem;
 
 /// Action emitted when a query is selected in the user query menu.
 #[derive(Clone, Debug)]

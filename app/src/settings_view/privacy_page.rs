@@ -8,7 +8,6 @@ use pathfinder_geometry::vector::vec2f;
 use regex::Regex;
 use settings::Setting as _;
 use warp_core::context_flag::ContextFlag;
-use warp_core::features::FeatureFlag;
 use warp_core::ui::theme::color::internal_colors;
 use warp_core::ui::theme::WarpTheme;
 use warpui::elements::{
@@ -41,7 +40,7 @@ use crate::auth::auth_manager::AuthManager;
 use crate::channel::ChannelState;
 use crate::modal::{Modal, ModalEvent, ModalViewState};
 use crate::report_if_error;
-use crate::settings::{AISettings, CustomSecretRegex, PrivacySettings, RegexDisplayInfo};
+use crate::settings::{CustomSecretRegex, PrivacySettings, RegexDisplayInfo};
 use crate::settings_view::privacy::AddRegexModalViewState;
 use crate::settings_view::render_body_item_label;
 use crate::settings_view::settings_page::CONTENT_FONT_SIZE;

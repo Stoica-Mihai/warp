@@ -22,7 +22,6 @@ use warpui::{
 };
 
 use crate::ai::agent::conversation::AIConversationId;
-use crate::terminal::view::agent_view_state::AgentViewEntryOrigin;
 use crate::ai::document::ai_document_model::{
     AIDocumentId, AIDocumentInstance, AIDocumentModel, AIDocumentModelEvent, AIDocumentSaveStatus,
     AIDocumentUpdateSource, AIDocumentUserEditStatus, AIDocumentVersion,

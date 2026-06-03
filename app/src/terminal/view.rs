@@ -22,7 +22,6 @@ pub use init_project::{
     ProjectScopedRulesResult,
 };
 
-use crate::ai::block_context::BlockContext;
 #[cfg(feature = "local_fs")]
 use crate::ai::skills::SkillOpenOrigin;
 use crate::global_resource_handles::GlobalResourceHandlesProvider;
@@ -63,7 +62,6 @@ pub use action::TerminalAction;
 use ai::api_keys::{ApiKeyManager, AwsCredentialsState};
 use ai::index::full_source_code_embedding::manager::{BuildSource, CodebaseIndexManager};
 use async_channel::{Receiver, Sender};
-use base64::Engine as _;
 use block_banner::{render_warpification_banner, WarpificationMode, WarpifyBannerState};
 pub use block_banner::{WithinBlockBanner, BLOCK_BANNER_HEIGHT};
 use bookmarks::render_floating_block_snapshot;
@@ -210,7 +208,7 @@ use crate::ai::agent::{
 use crate::ai::agent::{CurrentHead, DiffBase};
 use crate::ai::agent_conversations_model::{AgentConversationsModel, AgentConversationsModelEvent};
 use crate::ai::ambient_agents::{
-    conversation_output_status_from_conversation, AmbientAgentTaskId, AmbientConversationStatus,
+    AmbientAgentTaskId, AmbientConversationStatus,
 };
 use crate::context_chips::toolbar::AgentToolbarItemKind;
 use crate::terminal::view::agent_view_state::{

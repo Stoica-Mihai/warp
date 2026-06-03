@@ -22,7 +22,6 @@ use crate::view_components::DismissibleToast;
 use crate::workspace::{ToastStack, WorkspaceAction};
 
 pub mod buttons;
-pub use buttons::{ArtifactButtonsRow, ArtifactButtonsRowEvent};
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
 #[serde(tag = "artifact_type", content = "data")]

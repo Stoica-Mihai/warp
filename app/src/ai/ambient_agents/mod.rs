@@ -71,44 +71,4 @@ pub enum AmbientConversationStatus {
     },
 }
 
-/// Derive an [`AmbientConversationStatus`] from the given conversation, if it has
-/// reached a terminal state that we care about for ambient agents.
-pub fn conversation_output_status_from_conversation(
-    conversation: &AIConversation,
-) -> Option<AmbientConversationStatus> {
-    if let ConversationStatus::Blocked { blocked_action } = conversation.status() {
-        return Some(AmbientConversationStatus::Blocked {
-            blocked_action: blocked_action.clone(),
-        });
-    }
-    if let ConversationStatus::Error = conversation.status() {
-        if let Some(error_message) = conversation.status_error_message() {
-            return Some(AmbientConversationStatus::Error {
-                error: RenderableAIError::Other {
-                    error_message: error_message.to_string(),
-                    will_attempt_resume: false,
-                    waiting_for_network: false,
-                },
-            });
-        }
-    }
 
-    if let Some(last_exchange) = conversation.root_task_exchanges().last() {
-        if let AIAgentOutputStatus::Finished { finished_output } = &last_exchange.output_status {
-            let status = match finished_output {
-                FinishedAIAgentOutput::Cancelled { output: _, reason } => {
-                    AmbientConversationStatus::Cancelled { reason: *reason }
-                }
-                FinishedAIAgentOutput::Error { output: _, error } => {
-                    AmbientConversationStatus::Error {
-                        error: error.clone(),
-                    }
-                }
-                FinishedAIAgentOutput::Success { output: _ } => AmbientConversationStatus::Success,
-            };
-            return Some(status);
-        }
-    }
-
-    None
-}

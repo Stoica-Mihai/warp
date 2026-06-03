@@ -12,7 +12,7 @@ use super::AmbientAgentProgressUIState;
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::extract_user_query_mode;
 use crate::ai::ambient_agents::github_auth_notifier::{GitHubAuthEvent, GitHubAuthNotifier};
-use crate::ai::ambient_agents::spawn::{spawn_task, submit_run_followup, AmbientAgentEvent};
+use crate::ai::ambient_agents::spawn::{spawn_task, AmbientAgentEvent};
 use crate::ai::ambient_agents::task::{HarnessAuthSecretsConfig, HarnessConfig};
 use crate::ai::ambient_agents::{
     github_auth_url, AmbientAgentTaskId, OUT_OF_CREDITS_TASK_FAILURE_MESSAGE,

@@ -17,9 +17,7 @@ use super::{
     TERMINAL_VIEW_PADDING_LEFT,
 };
 use crate::appearance::Appearance;
-use crate::context_chips::spacing;
 use crate::editor::TextColors;
-use crate::features::FeatureFlag;
 use crate::terminal::cli_agent_sessions::CLIAgentSessionsModel;
 use crate::terminal::view::TerminalAction;
 

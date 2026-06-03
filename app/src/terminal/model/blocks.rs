@@ -16,7 +16,7 @@ use warp_terminal::model::{KeyboardModes, KeyboardModesApplyBehavior};
 use warpui::color::ColorU;
 use warpui::r#async::executor::Background;
 use warpui::units::{IntoLines, IntoPixels, Lines};
-use warpui::{record_trace_event, AppContext, EntityId, ViewHandle};
+use warpui::{record_trace_event, AppContext, EntityId};
 
 use super::ansi::{Handler, InputBufferValue};
 use super::block::{BlockId, BlockSize, BlockState, SerializedAIMetadata};

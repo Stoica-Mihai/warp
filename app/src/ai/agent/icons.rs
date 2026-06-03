@@ -11,12 +11,7 @@ pub fn todo_list_icon(appearance: &Appearance) -> warpui::elements::Icon {
     )
 }
 
-pub fn pending_icon(appearance: &Appearance) -> warpui::elements::Icon {
-    warpui::elements::Icon::new(
-        Icon::Queued.into(),
-        blended_colors::neutral_5(appearance.theme()),
-    )
-}
+
 
 pub fn in_progress_icon(appearance: &Appearance) -> warpui::elements::Icon {
     warpui::elements::Icon::new(
@@ -32,12 +27,7 @@ pub fn succeeded_icon(appearance: &Appearance) -> warpui::elements::Icon {
     )
 }
 
-pub fn addressed_comment_icon(appearance: &Appearance) -> warpui::elements::Icon {
-    warpui::elements::Icon::new(
-        Icon::AddressedComment.into(),
-        AnsiColorIdentifier::Green.to_ansi_color(&appearance.theme().terminal_colors().normal),
-    )
-}
+
 
 pub fn failed_icon(appearance: &Appearance) -> warpui::elements::Icon {
     warpui::elements::Icon::new(
@@ -54,21 +44,9 @@ pub fn gray_stop_icon(appearance: &Appearance) -> warpui::elements::Icon {
     )
 }
 
-/// Agent is waiting for user to follow-up with next prompt.
-pub fn gray_clock_icon(appearance: &Appearance) -> warpui::elements::Icon {
-    warpui::elements::Icon::new(
-        Icon::ClockSnooze.into(),
-        blended_colors::neutral_5(appearance.theme()),
-    )
-}
 
-/// Loading but not actionable yet.
-pub fn gray_circle_icon(appearance: &Appearance) -> warpui::elements::Icon {
-    warpui::elements::Icon::new(
-        Icon::Circle.into(),
-        blended_colors::neutral_5(appearance.theme()),
-    )
-}
+
+
 
 /// Not running, requires user's attention
 pub fn yellow_stop_icon(appearance: &Appearance) -> warpui::elements::Icon {
@@ -86,7 +64,4 @@ pub fn yellow_running_icon(appearance: &Appearance) -> warpui::elements::Icon {
     )
 }
 
-/// Used for buttons that stop the current task
-pub fn red_stop_icon(appearance: &Appearance) -> warpui::elements::Icon {
-    warpui::elements::Icon::new(Icon::StopFilled.into(), appearance.theme().ansi_fg_red())
-}
+

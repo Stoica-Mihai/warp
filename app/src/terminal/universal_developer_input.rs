@@ -16,7 +16,7 @@ use warp_core::ui::theme;
 use warp_core::ui::theme::color::internal_colors;
 use warpui::elements::{
     ChildView, Clipped, Container, CornerRadius, CrossAxisAlignment, Fill, Flex, MainAxisAlignment,
-    MainAxisSize, ParentElement, Radius, Rect, Shrinkable,
+    MainAxisSize, ParentElement, Radius, Rect,
 };
 use warpui::ui_components::components::UiComponentStyles;
 use warpui::ui_components::segmented_control::{

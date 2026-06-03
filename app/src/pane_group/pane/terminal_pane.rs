@@ -21,12 +21,10 @@ use crate::ai::llms::LLMPreferences;
 use crate::ai::skills::SkillManager;
 use crate::app_state::{AmbientAgentPaneSnapshot, LeafContents, TerminalPaneSnapshot};
 use crate::code::buffer_location::LocalOrRemotePath;
-use crate::features::FeatureFlag;
-use crate::pane_group::child_agent::{
-    create_error_child_agent_conversation, ErrorChildAgentConversationRequest,
-};
+
 #[cfg(feature = "local_fs")]
 use crate::pane_group::CodeSource;
+use crate::features::FeatureFlag;
 use crate::pane_group::Event::OpenConversationHistory;
 use crate::pane_group::{self, Direction, PaneGroup};
 use crate::persistence::{BlockCompleted, ModelEvent};
@@ -35,7 +33,6 @@ use crate::terminal::cli_agent_sessions::CLIAgentSessionsModel;
 use crate::terminal::general_settings::GeneralSettings;
 #[cfg(not(target_family = "wasm"))]
 use crate::terminal::shared_session::SharedSessionSource;
-use crate::terminal::view::ambient_agent::should_disable_snapshot;
 use crate::terminal::view::Event;
 use crate::terminal::{TerminalManager, TerminalView};
 use crate::view_components::ToastFlavor;

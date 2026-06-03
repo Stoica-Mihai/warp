@@ -40,14 +40,14 @@ use super::proto::{
     CodebaseIndexStatus, CodebaseIndexStatusUpdated, CodebaseIndexStatusesSnapshot,
     CodebaseResyncMode, DeleteFile, DeleteFileResponse, DeleteFileSuccess, DiscardFilesError,
     DiscardFilesResponse, DiscardFilesSuccess, DropCodebaseIndex, ErrorCode, ErrorResponse,
-    FailedFileRead, FileContextProto, FileOperationError,
+    FileOperationError,
     FragmentMetadata as ProtoFragmentMetadata,
     FragmentMetadataLookupError as ProtoFragmentMetadataLookupError,
     FragmentMetadataLookupErrorCode, GetBranchesError, GetBranchesResponse, GetBranchesSuccess,
     GetDiffStateResponse, GetFragmentMetadataFromHash, GetFragmentMetadataFromHashResponse,
     GetFragmentMetadataFromHashSuccess, IndexCodebase, Initialize, InitializeResponse,
     MissingFragmentMetadata, NavigatedToDirectory, NavigatedToDirectoryResponse, OpenBuffer,
-    OpenBufferResponse, ReadFileContextResponse, ResolveConflict, ResolveConflictResponse,
+    OpenBufferResponse, ResolveConflict, ResolveConflictResponse,
     ResolveConflictSuccess, ResyncCodebase, RunCommandError, RunCommandErrorCode,
     RunCommandRequest, RunCommandResponse, RunCommandSuccess, SaveBuffer, SaveBufferResponse,
     SaveBufferSuccess, ServerMessage, SessionBootstrapped, TextEdit, UploadHandoffSnapshot,
@@ -69,7 +69,6 @@ const MAX_BRANCH_COUNT_CAP: usize = 500;
 /// Unique identifier for a connected proxy session in daemon mode.
 pub type ConnectionId = uuid::Uuid;
 use super::protocol::RequestId;
-use crate::ai::agent::FileLocations;
 use crate::ai::blocklist::handoff::snapshot::upload_result_to_proto;
 use crate::auth::auth_state::{AuthState, AuthStateProvider};
 use crate::features::FeatureFlag;

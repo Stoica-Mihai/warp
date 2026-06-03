@@ -8,7 +8,6 @@ use warpui::prelude::Container;
 use warpui::text_layout::ClipConfig;
 use warpui::ui_components::components::UiComponent;
 #[cfg(not(target_arch = "wasm32"))]
-use warpui::ui_components::components::UiComponentStyles;
 use warpui::{
     AppContext, Element, ModelHandle, SingletonEntity, TypedActionView, ViewContext,
     WeakModelHandle,

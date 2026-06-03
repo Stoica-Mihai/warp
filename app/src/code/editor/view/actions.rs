@@ -24,7 +24,6 @@ use warpui::{AppContext, TypedActionView, ViewContext, WeakViewHandle};
 
 use crate::cmd_or_ctrl_shift;
 use crate::code::editor::line::EditorLineLocation;
-use crate::code::editor::model::CodeEditorModel;
 use crate::code::editor::view::{CodeEditorEvent, CodeEditorView, VimMode};
 use crate::code_review::comments::CommentId;
 use crate::editor::InteractionState;

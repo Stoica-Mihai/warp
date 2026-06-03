@@ -19,13 +19,11 @@ use super::loading_screen::{
 };
 use super::{AmbientAgentEntryBlock, AmbientAgentViewModel, AmbientAgentViewModelEvent};
 use crate::ai::agent::conversation::{AIConversationId, ConversationStatus};
-use crate::ai::agent::display_user_query_with_mode;
 use crate::ai::AIRequestUsageModel;
 use crate::pane_group::TerminalViewResources;
 use crate::terminal::view::rich_content::{RichContentInsertionPosition, RichContentMetadata};
 use crate::terminal::view::{Event as TerminalViewEvent, TerminalView};
 use crate::terminal::CLIAgent;
-use crate::workspaces::user_workspaces::UserWorkspaces;
 
 const CHILD_AGENT_GITHUB_AUTH_REQUIRED_BLOCKED_ACTION: &str =
     "GitHub authentication required before starting the child agent.";

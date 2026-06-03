@@ -10,10 +10,8 @@ pub(crate) use driver::{
     AgentEventSource, AgentEventSourceItem, DEFAULT_AGENT_EVENT_FAILURES_BEFORE_ERROR_LOG,
     DEFAULT_AGENT_EVENT_RECONNECT_BACKOFF_STEPS, DEFAULT_PERMANENT_ERROR_BACKOFF_STEPS,
 };
-pub(crate) use driver::{
-    run_agent_event_driver, AgentEventConsumer, AgentEventConsumerControlFlow,
-    AgentEventDriverConfig, AgentMessageEventMetadata, ServerApiAgentEventSource,
-};
+
+
 pub(crate) use message_hydrator::MessageHydrator;
 
 #[cfg(test)]

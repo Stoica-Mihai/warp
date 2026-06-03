@@ -8,7 +8,7 @@ pub(crate) mod request_input;
 pub(crate) mod response_stream_id;
 pub(crate) mod session_context;
 pub(crate) use request_input::RequestInput;
-pub(crate) use response_stream_id::{ClientIdentifiers, ResponseStreamId};
+pub(crate) use response_stream_id::{ResponseStreamId};
 pub(crate) use session_context::SessionContext;
 pub mod history_model {}
 mod input_config;
@@ -73,13 +73,11 @@ mod input_stubs {
 pub use permissions::BlocklistAIPermissions;
 #[cfg(test)]
 pub use permissions::CommandExecutionPermissionAllowedReason;
-#[cfg_attr(target_family = "wasm", allow(unused))]
-pub(crate) use persistence::PersistedAIInputType;
+
 pub(crate) use persistence::{PersistedAIInput, SerializedBlockListItem};
-pub use view_util::error_color;
 pub(crate) use view_util::{
     ai_brand_color, ai_indicator_height, format_credits,
     get_ai_block_overflow_menu_element_position_id, get_attached_blocks_chip_element_position_id,
-    render_ai_agent_mode_icon, render_ai_follow_up_icon, ATTACH_AS_AGENT_MODE_CONTEXT_TEXT,
+    render_ai_agent_mode_icon, ATTACH_AS_AGENT_MODE_CONTEXT_TEXT,
     CLAUDE_ORANGE, NEW_AGENT_PANE_LABEL,
 };

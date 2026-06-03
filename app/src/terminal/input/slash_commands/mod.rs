@@ -10,25 +10,19 @@ use ai::skills::SkillReference;
 pub use cloud_mode_v2_view::{CloudModeV2SlashCommandView, Section as CloudModeV2Section};
 pub use data_source::*;
 pub use view::{CloseReason, InlineSlashCommandView, SlashCommandsEvent};
-#[cfg(not(target_family = "wasm"))]
-use warp_cli::agent::Harness;
 use warp_core::features::FeatureFlag;
-use warp_core::ui::appearance::Appearance;
 use warp_core::ui::theme::AnsiColorIdentifier;
 #[cfg(feature = "local_fs")]
 use warp_util::path::{CleanPathResult, LineAndColumnArg};
-use warpui::clipboard::ClipboardContent;
 use warpui::{AppContext, SingletonEntity, ViewContext};
 
 #[cfg(not(target_family = "wasm"))]
 use crate::ai::agent::conversation::AIConversationId;
-#[cfg(not(target_family = "wasm"))]
-use crate::ai::agent_conversations_model::AgentConversationsModel;
+
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
 use crate::ai::ambient_agents::telemetry::HandoffEntryPoint;
 use crate::terminal::view::agent_view_state::AgentViewEntryOrigin;
-#[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-use crate::ai::blocklist::handoff::PendingCloudLaunch;
+
 use crate::ai::blocklist::InputTypeAutoDetectionSource;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::code_review::telemetry_event::CodeReviewPaneEntrypoint;
@@ -40,7 +34,6 @@ use crate::settings::AISettings;
 use crate::tab::SelectedTabColor;
 use crate::terminal::input::decorations::InputBackgroundJobOptions;
 use crate::terminal::input::inline_menu::{InlineMenuAction, InlineMenuType};
-use crate::terminal::input::message_bar::Message;
 use crate::terminal::input::slash_command_model::{
     SlashCommandEntryState, UpdatedSlashCommandModel,
 };
@@ -53,7 +46,7 @@ use crate::terminal::view::TerminalAction;
 use crate::ui_components::color_dot;
 use crate::view_components::DismissibleToast;
 use crate::workflows::{WorkflowSelectionSource, WorkflowSource, WorkflowType};
-use crate::workspace::{ForkedConversationDestination, ToastStack, WorkspaceAction};
+use crate::workspace::{ToastStack, WorkspaceAction};
 
 #[derive(Debug, Clone)]
 pub enum AcceptSlashCommandOrSavedPrompt {

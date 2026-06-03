@@ -13,7 +13,6 @@ pub use convert_from::{
     MaybeAIAgentOutputMessage, MessageToAIAgentOutputMessageError,
 };
 use futures_lite::Stream;
-pub use r#impl::generate_multi_agent_output;
 use serde::Serialize;
 use warp_core::channel::ChannelState;
 use warp_core::execution_mode::AppExecutionMode;

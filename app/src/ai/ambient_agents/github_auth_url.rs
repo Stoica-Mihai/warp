@@ -42,13 +42,7 @@ pub fn auth_url_with_next(
     let scheme = oauth_next_scheme();
     build_auth_url_with_next(base_auth_url, target, &scheme, auth_source)
 }
-pub fn settings_environments_auth_url_with_next(base_auth_url: &str) -> String {
-    auth_url_with_next(
-        base_auth_url,
-        GithubAuthRedirectTarget::SettingsEnvironments,
-        AuthSource::Settings,
-    )
-}
+
 
 pub fn cloud_setup_auth_url_with_next(base_auth_url: &str) -> String {
     auth_url_with_next(

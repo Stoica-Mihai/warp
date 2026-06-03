@@ -41,7 +41,7 @@ use crate::ai::conversation_navigation::ConversationNavigationData;
 use crate::auth::AuthStateProvider;
 use crate::cloud_object::CloudObjectLookup as _;
 use crate::network::{NetworkStatus, NetworkStatusEvent, NetworkStatusKind};
-use crate::server::cloud_objects::update_manager::{UpdateManager, UpdateManagerEvent};
+use crate::server::cloud_objects::update_manager::{UpdateManagerEvent};
 use crate::server::ids::{ServerId, SyncId};
 use crate::server::retry_strategies::{
     is_transient_http_error, OUT_OF_BAND_REQUEST_RETRY_STRATEGY, PERIODIC_POLL_RETRY_STRATEGY,

@@ -23,7 +23,6 @@ use warp_graphql::billing::{
     UsageVisibilityPolicy as GqlUsageVisibilityPolicy, WarpAiPolicy as GqlWarpAiPolicy,
 };
 use warp_graphql::object::CloudObjectWithDescendants;
-use warp_graphql::queries::get_conversation_usage as gql_usage;
 use warp_graphql::queries::get_workspaces_metadata_for_user::User as GqlUser;
 use warp_graphql::user::{DiscoverableTeamData as GqlDiscoverableTeamData, PublicUserProfile};
 use warp_graphql::workspace::{

@@ -30,13 +30,11 @@ use std::fmt::Write;
 use std::ops::Range;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
 use ai::skills::SkillReference;
 use async_channel::Sender;
-use base64::Engine as _;
 #[cfg(feature = "local_fs")]
 use diesel::SqliteConnection;
 use futures::stream::AbortHandle;
@@ -49,13 +47,11 @@ use parking_lot::FairMutex;
 use parking_lot::Mutex;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use session_sharing_protocol::common::{AgentAttachment, ServerConversationToken};
 use settings::{Setting as _, ToggleableSetting};
 use string_offset::{ByteOffset, CharOffset};
 use vec1::Vec1;
 use vim::vim::{VimHandler, VimMode};
-use warp_cli::agent::Harness;
 use warp_completer::completer::{
     self, CompleterOptions, CompletionContext, CompletionsFallbackStrategy, Description, Match,
     MatchStrategy, MatchType, PathSeparators, SuggestionResults,
@@ -64,7 +60,6 @@ use warp_completer::meta::{HasSpan, Spanned};
 use warp_completer::parsers::simple::command_at_cursor_position;
 use warp_completer::parsers::LiteCommand;
 use warp_completer::signatures::CommandRegistry;
-use warp_completer::util::parse_current_commands_and_tokens;
 use warp_core::context_flag::ContextFlag;
 use warp_core::ui::theme::color::internal_colors;
 use warp_core::ui::theme::AnsiColorIdentifier;
@@ -77,7 +72,7 @@ use warpui::clipboard_utils::CLIPBOARD_IMAGE_MIME_TYPES;
 use warpui::color::ColorU;
 use warpui::elements::{
     resizable_state_handle, Align, AnchorPair, ChildAnchor, Clipped, ConstrainedBox, Container,
-    CornerRadius, CrossAxisAlignment, DispatchEventResult, DropTargetData, Element, EventHandler,
+    CornerRadius, DispatchEventResult, DropTargetData, Element, EventHandler,
     Flex, MainAxisAlignment, MainAxisSize, MouseStateHandle, OffsetPositioning, OffsetType,
     ParentAnchor, ParentElement, PositionedElementOffsetBounds, PositioningAxis, Radius,
     ResizableStateHandle, SavePosition, SelectionHandle, Text, Wrap, XAxisAnchor, YAxisAnchor,

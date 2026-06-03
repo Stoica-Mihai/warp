@@ -55,7 +55,6 @@ use warp_core::ui::Icon;
 use warp_editor::editor::NavigationKey;
 use warp_util::path::{user_friendly_path, LineAndColumnArg};
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-use warp_util::standardized_path::StandardizedPath;
 use warpui::accessibility::{
     AccessibilityContent, AccessibilityVerbosity, ActionAccessibilityContent, WarpA11yRole,
 };
@@ -66,7 +65,7 @@ use warpui::elements::{
     Align, Border, CacheOption, ChildAnchor, ChildView, Clipped, ConstrainedBox, Container,
     CornerRadius, CrossAxisAlignment, Dismiss, DispatchEventResult, DraggableState, DropTarget,
     Element, Empty, EventHandler, Expanded, Fill as ElementFill, Flex, Highlight, Hoverable,
-    Icon as WarpUiIcon, Image, MainAxisAlignment, MainAxisSize, MouseInBehavior, MouseStateHandle,
+    Image, MainAxisAlignment, MainAxisSize, MouseInBehavior, MouseStateHandle,
     OffsetPositioning, ParentAnchor, ParentElement, ParentOffsetBounds, PositionedElementAnchor,
     PositionedElementOffsetBounds, Radius, Rect, SavePosition, Shrinkable, Stack, Text,
 };

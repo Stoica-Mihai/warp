@@ -21,7 +21,6 @@ use crate::terminal::input::inline_menu::{
     InlineMenuAction, InlineMenuClickBehavior, InlineMenuType,
 };
 use crate::terminal::model::session::active_session::ActiveSession;
-use crate::terminal::model::session::SessionId;
 use crate::ai::agent::conversation::{AIConversationId, ConversationStatus};
 
 #[derive(Clone, Debug)]

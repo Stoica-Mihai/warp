@@ -8,8 +8,6 @@ use ai::skills::SkillProvider;
 use fuzzy_match::FuzzyMatchResult;
 use ordered_float::OrderedFloat;
 pub(crate) use saved_prompts::*;
-#[cfg(not(target_family = "wasm"))]
-use warp_cli::agent::Harness;
 use warp_core::features::FeatureFlag;
 use warp_core::ui::appearance::Appearance;
 use warp_core::ui::Icon as WarpIcon;
