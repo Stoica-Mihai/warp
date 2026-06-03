@@ -34,14 +34,12 @@ use crate::terminal::cli_agent_sessions::{
 };
 use crate::terminal::model::session::active_session::{ActiveSession, ActiveSessionEvent};
 use crate::terminal::model::session::SessionType;
-use crate::terminal::view::ambient_agent::AmbientAgentViewModel;
 use crate::workspaces::user_workspaces::{UserWorkspaces, UserWorkspacesEvent};
 
 pub struct DataSourceArgs {
     pub active_session: ModelHandle<ActiveSession>,
     pub cli_subagent_controller: ModelHandle<CLISubagentController>,
     pub terminal_view_id: EntityId,
-    pub ambient_agent_view_model: Option<ModelHandle<AmbientAgentViewModel>>,
 }
 
 /// Context needed to decide which slash commands are enabled.
@@ -62,7 +60,6 @@ pub struct SlashCommandDataSource {
     terminal_view_id: EntityId,
     active_commands_by_id: HashMap<SlashCommandId, StaticCommand>,
     active_repo_root: Option<PathBuf>,
-    ambient_agent_view_model: Option<ModelHandle<AmbientAgentViewModel>>,
     is_cloud_mode_v2: bool,
 }
 
@@ -80,7 +77,6 @@ impl SlashCommandDataSource {
             active_session,
             cli_subagent_controller,
             terminal_view_id,
-            ambient_agent_view_model,
         } = args;
         ctx.subscribe_to_model(&active_session, |me, event, ctx| match event {
             ActiveSessionEvent::UpdatedPwd | ActiveSessionEvent::Bootstrapped => {
@@ -161,7 +157,6 @@ impl SlashCommandDataSource {
             terminal_view_id,
             active_commands_by_id: Default::default(),
             active_repo_root: None,
-            ambient_agent_view_model,
             is_cloud_mode_v2,
         };
         me.recompute_active_commands(ctx);
@@ -493,39 +488,6 @@ impl InlineItem {
             name: saved_prompt.model().data.name().to_owned(),
             description: None,
             font_family: appearance.ui_font_family(),
-            name_match_result: None,
-            description_match_result: None,
-            score: OrderedFloat(f64::MIN),
-            compact_layout: false,
-        }
-    }
-
-    pub(super) fn from_skill(skill: &SkillDescriptor, app: &AppContext) -> Self {
-        let appearance = Appearance::handle(app).as_ref(app);
-        // Use icon_override if set (e.g. Figma skills), otherwise derive from provider.
-        let icon = if let Some(override_icon) = skill.icon_override {
-            override_icon
-        } else {
-            match skill.provider {
-                SkillProvider::Warp => WarpIcon::Warp,
-                SkillProvider::Claude => WarpIcon::ClaudeLogo,
-                SkillProvider::Codex => WarpIcon::OpenAILogo,
-                SkillProvider::Gemini => WarpIcon::GeminiLogo,
-                SkillProvider::Droid => WarpIcon::DroidLogo,
-                SkillProvider::OpenCode => WarpIcon::OpenCodeLogo,
-                _ => WarpIcon::Warp,
-            }
-        };
-
-        Self {
-            action: AcceptSlashCommandOrSavedPrompt::Skill {
-                reference: skill.reference.clone(),
-                name: skill.name.clone(),
-            },
-            icon_path: icon.into(),
-            name: format!("/{}", &skill.name),
-            description: Some(skill.description.clone()),
-            font_family: appearance.monospace_font_family(),
             name_match_result: None,
             description_match_result: None,
             score: OrderedFloat(f64::MIN),

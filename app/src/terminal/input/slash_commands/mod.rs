@@ -101,6 +101,7 @@ impl SlashCommandTrigger {
             }
         )
     }
+
 }
 
 #[cfg(feature = "local_fs")]
