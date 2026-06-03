@@ -3212,16 +3212,6 @@ impl PaneGroup {
     ) {
     }
 
-    /// Load conversation data into a specific transcript viewer terminal view.
-    fn load_data_into_transcript_viewer(
-        &mut self,
-        _terminal_view: ViewHandle<TerminalView>,
-        _cloud_conversation: (),
-        _ambient_agent_task_id: Option<AmbientAgentTaskId>,
-        _ctx: &mut ViewContext<Self>,
-    ) {
-    }
-
     fn handle_windowing_state_update(
         &mut self,
         _handle: ModelHandle<WindowManager>,
@@ -3381,9 +3371,7 @@ impl PaneGroup {
     }
 
     /// Creates a cloud-mode pane that lives off-tree as a child agent pane.
-    /// Unlike `create_ambient_agent_pane`, this leaves the new terminal view
-    /// uninitialized so callers can create and select the child conversation
-    /// explicitly before the deferred shared-session viewer binds to it.
+    /// Inserts `pane` into `pane_contents` and attaches it (so subscriptions,
     fn insert_ambient_agent_pane_hidden_for_child_agent(
         &mut self,
         _base_pane_id: PaneId,
@@ -3396,8 +3384,6 @@ impl PaneGroup {
             model_event_sender: self.model_event_sender.clone(),
         };
         let view_bounds = Self::estimated_view_bounds(ctx);
-        // Per-child cloud-mode pane: the parent already polls for
-        // descendants, so disable polling on this child.
         let (view, terminal_manager) =
             Self::create_cloud_mode_terminal(resources, view_bounds.size(), false, ctx);
         let pane_data = TerminalPane::new(
@@ -3412,7 +3398,6 @@ impl PaneGroup {
         new_pane_id
     }
 
-    /// Inserts `pane` into `pane_contents` and attaches it (so subscriptions,
     /// focus handle, etc. are wired up) without adding it to the layout tree.
     /// Used for child agent panes which only enter the tree later via the
     /// pill bar's swap or split-off paths.
@@ -4466,77 +4451,6 @@ impl PaneGroup {
         }
 
         success
-    }
-
-    fn ambient_agent_task_id(_cloud_conversation: &()) -> Option<AmbientAgentTaskId> {
-        None
-    }
-
-    fn replace_loading_pane_with_restored_ambient_cloud_mode_pane(
-        &mut self,
-        loading_pane_id: PaneId,
-        _cloud_conversation: (),
-        task_id: AmbientAgentTaskId,
-        ctx: &mut ViewContext<Self>,
-    ) -> bool {
-        let resources = TerminalViewResources {
-            tips_completed: self.tips_completed.clone(),
-            server_api: self.server_api.clone(),
-            model_event_sender: self.model_event_sender.clone(),
-        };
-        let view_bounds = Self::estimated_view_bounds(ctx);
-        let (terminal_view, terminal_manager) =
-            Self::create_cloud_mode_terminal(resources, view_bounds.size(), true, ctx);
-        let terminal_view_id = terminal_view.id();
-
-        Self::load_data_into_restored_ambient_cloud_mode_view(
-            terminal_view.clone(),
-            (),
-            task_id,
-            ctx,
-        );
-
-        let pane_data = TerminalPane::new(
-            Uuid::new_v4().as_bytes().to_vec(),
-            terminal_manager,
-            terminal_view,
-            self.model_event_sender.clone(),
-            ctx,
-        );
-
-        let success = self.replace_pane(loading_pane_id, pane_data, false, ctx);
-        if success {
-            let new_pane_id = self
-                .find_pane_id_for_terminal_view(terminal_view_id, ctx)
-                .unwrap_or(loading_pane_id);
-            self.restore_missing_child_agent_panes_for_terminal_pane_if_needed(new_pane_id, ctx);
-        }
-
-        success
-    }
-
-    fn load_data_into_restored_ambient_cloud_mode_view(
-        terminal_view: ViewHandle<TerminalView>,
-        _cloud_conversation: (),
-        task_id: AmbientAgentTaskId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        // URL-loaded conversation transcripts (e.g. Warp-on-Web deep links)
-        // restore from conversation data before the ambient task cache is
-        // guaranteed to contain this task. Native continuation usually reaches
-        // this path after task-backed navigation, but the restored cloud-mode
-        // pane still needs task ownership/harness data to resolve the correct
-        // inline follow-up or tombstone CTA. Request the task and let
-        // TerminalView's TasksUpdated subscription re-resolve once it arrives.
-        AgentConversationsModel::handle(ctx).update(ctx, |model, ctx| {
-            model.get_or_async_fetch_task_data(&task_id, ctx);
-        });
-        terminal_view.update(ctx, |view, _ctx| {
-            view.model
-                .lock()
-                .block_list_mut()
-                .set_is_executing_oz_environment_startup_commands(false);
-        });
     }
 
     /// Clear all panes that were hidden due to being closed (for undo functionality)
@@ -6607,29 +6521,6 @@ impl PaneGroup {
         ctx.emit(Event::AppStateChanged);
 
         self.start_agent_mode_in_new_pane(initial_query, ctx);
-    }
-
-    /// Creates an ambient agent pane with the given initial prompt.
-    fn create_ambient_agent_pane(&self, ctx: &mut ViewContext<Self>) -> TerminalPane {
-        let uuid = Uuid::new_v4();
-        let resources = TerminalViewResources {
-            tips_completed: self.tips_completed.clone(),
-            server_api: self.server_api.clone(),
-            model_event_sender: self.model_event_sender.clone(),
-        };
-
-        let view_bounds = Self::estimated_view_bounds(ctx);
-
-        let (terminal_view, terminal_manager) =
-            Self::create_ambient_agent_terminal(resources, view_bounds.size(), ctx);
-
-        TerminalPane::new(
-            uuid.into_bytes().to_vec(),
-            terminal_manager,
-            terminal_view,
-            self.model_event_sender.clone(),
-            ctx,
-        )
     }
 
     /// Add and focus a cloud mode pane.
