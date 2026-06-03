@@ -1,11 +1,7 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-
-use futures_util::StreamExt;
 use warp_core::features::FeatureFlag;
 use warp_multi_agent_api as api;
 
-use super::{ConvertToAPITypeError, RequestParams, ResponseStream};
+use super::RequestParams;
 use crate::terminal::model::session::SessionType;
 
 

@@ -1,10 +1,6 @@
-use std::sync::Arc;
-
 use crate::secret_redaction::{find_secrets_in_text, SECRET_REDACTION_REPLACEMENT_CHARACTER};
 use crate::ai::agent::{
-    AIAgentActionResultType, AIAgentAttachment, AIAgentContext, AIAgentInput, AnyFileContent,
-    AskUserQuestionAnswerItem, AskUserQuestionResult, BlockContext, PassiveSuggestionResultType,
-    PassiveSuggestionTrigger, RequestCommandOutputResult, TransferShellCommandControlToUserResult,
+    AIAgentAttachment, AIAgentContext, AskUserQuestionAnswerItem, AskUserQuestionResult, BlockContext,
 };
 
 /// Redact all detected secrets in-place within the given string.

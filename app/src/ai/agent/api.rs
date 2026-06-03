@@ -6,7 +6,6 @@ mod r#impl;
 use std::pin::Pin;
 use std::sync::Arc;
 
-pub use ai::agent::convert::ConvertToAPITypeError;
 use ai::api_keys::ApiKeyManager;
 pub use convert_from::{
     user_inputs_from_messages, ConversionParams, ConvertAPIMessageToClientOutputMessage,
