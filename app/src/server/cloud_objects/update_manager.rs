@@ -13,10 +13,6 @@ use warpui::{
     SingletonEntity,
 };
 
-use crate::ai::ambient_agents::scheduled::{
-    CloudScheduledAmbientAgentModel, ScheduledAmbientAgent,
-};
-use crate::ai::cloud_environments::{AmbientAgentEnvironment, CloudAmbientAgentEnvironmentModel};
 use crate::ai::facts::{AIFact, CloudAIFactModel};
 #[cfg(not(target_family = "wasm"))]
 use crate::ai::mcp::templatable::{CloudTemplatableMCPServerModel, TemplatableMCPServer};
@@ -820,81 +816,6 @@ impl UpdateManager {
         );
     }
 
-    #[cfg_attr(target_family = "wasm", allow(dead_code))]
-    pub fn create_ambient_agent_environment(
-        &mut self,
-        ambient_agent_environment: AmbientAgentEnvironment,
-        client_id: ClientId,
-        owner: Owner,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        self.create_object(
-            CloudAmbientAgentEnvironmentModel::new(ambient_agent_environment),
-            owner,
-            client_id,
-            Default::default(),
-            false,
-            None,
-            // When adding the initiated_by parameter to this function call, InitiatedBy::User was set as a default value.
-            // This can be changed to InitiatedBy::System if this action was automatically kicked off by the system and we do not want a user facing toast.
-            InitiatedBy::User,
-            ctx,
-        )
-    }
-
-    #[cfg_attr(target_family = "wasm", allow(dead_code))]
-    pub fn create_ambient_agent_environment_online(
-        &mut self,
-        ambient_agent_environment: AmbientAgentEnvironment,
-        client_id: ClientId,
-        owner: Owner,
-        ctx: &mut ModelContext<Self>,
-    ) -> impl Future<Output = anyhow::Result<ServerId>> {
-        self.create_object_online(
-            CloudAmbientAgentEnvironmentModel::new(ambient_agent_environment),
-            owner,
-            client_id,
-            Default::default(),
-            false,
-            None,
-            ctx,
-        )
-    }
-
-    #[cfg_attr(target_family = "wasm", allow(dead_code))]
-    pub fn create_scheduled_ambient_agent_online(
-        &mut self,
-        scheduled_ambient_agent: ScheduledAmbientAgent,
-        client_id: ClientId,
-        owner: Owner,
-        ctx: &mut ModelContext<Self>,
-    ) -> impl Future<Output = anyhow::Result<ServerId>> {
-        self.create_object_online(
-            CloudScheduledAmbientAgentModel::new(scheduled_ambient_agent),
-            owner,
-            client_id,
-            Default::default(),
-            false,
-            None,
-            ctx,
-        )
-    }
-
-    #[cfg_attr(target_family = "wasm", allow(dead_code))]
-    pub fn update_scheduled_ambient_agent_online(
-        &mut self,
-        scheduled_ambient_agent: ScheduledAmbientAgent,
-        scheduled_ambient_agent_id: SyncId,
-        revision_ts: Option<Revision>,
-        ctx: &mut ModelContext<Self>,
-    ) -> impl Future<Output = anyhow::Result<()>> {
-        self.update_object_online(
-            CloudScheduledAmbientAgentModel::new(scheduled_ambient_agent),
-            scheduled_ambient_agent_id,
-            revision_ts,
-            ctx,
-        )
-    }
 
     #[allow(clippy::too_many_arguments)]
     pub fn create_notebook(
@@ -1105,61 +1026,6 @@ impl UpdateManager {
 
     }
 
-    /// Create a new cloud object as an online-only operation.
-    ///
-    /// Local-only: no server; returns an error immediately.
-    #[allow(clippy::too_many_arguments)]
-    fn create_object_online<K, M>(
-        &mut self,
-        _model: M,
-        _owner: Owner,
-        _client_id: ClientId,
-        _entrypoint: CloudObjectEventEntrypoint,
-        _force_expand: bool,
-        _initial_folder_id: Option<SyncId>,
-        _ctx: &mut ModelContext<Self>,
-    ) -> impl Future<Output = anyhow::Result<ServerId>>
-    where
-        K: HashableId
-            + ToServerId
-            + std::fmt::Debug
-            + Into<String>
-            + Clone
-            + Copy
-            + Send
-            + Sync
-            + 'static,
-        M: CloudModelType<IdType = K, CloudObjectType = GenericCloudObject<K, M>> + 'static,
-    {
-        let (tx, rx) = oneshot::channel();
-        let _ = tx.send(Err(anyhow::anyhow!("local-only build: no server")));
-        async move { rx.await? }
-    }
-
-    /// Local-only: no server; returns an error immediately.
-    pub fn update_object_online<K, M>(
-        &mut self,
-        _model: M,
-        _object_id: SyncId,
-        _revision_ts: Option<Revision>,
-        _ctx: &mut ModelContext<Self>,
-    ) -> impl Future<Output = anyhow::Result<()>>
-    where
-        K: HashableId
-            + ToServerId
-            + std::fmt::Debug
-            + Into<String>
-            + Clone
-            + Copy
-            + Send
-            + Sync
-            + 'static,
-        M: CloudModelType<IdType = K, CloudObjectType = GenericCloudObject<K, M>> + 'static,
-    {
-        let (tx, rx) = oneshot::channel();
-        let _ = tx.send(Err(anyhow::anyhow!("local-only build: no server")));
-        async move { rx.await? }
-    }
 
     /// Generic function for updating a cloud object with a new model.
     pub fn update_object<K, M>(
