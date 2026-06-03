@@ -10,15 +10,10 @@ use ai::skills::{
 };
 use lazy_static::lazy_static;
 use siphasher::sip::SipHasher;
-use warp_core::ui::appearance::Appearance;
-use warp_core::ui::theme::color::internal_colors;
 use warp_core::ui::Icon;
-use warpui::prelude::MouseStateHandle;
-use warpui::{AppContext, Element, EventContext, SingletonEntity};
 
-use super::{SkillDescriptor, SkillManager};
-use crate::ai::agent::conversation::AIConversationId;
-use crate::ai::blocklist::view_util::render_provider_icon_button;
+use super::SkillDescriptor;
+
 use crate::warp_managed_paths_watcher::warp_managed_skill_dirs;
 
 lazy_static! {
@@ -82,52 +77,6 @@ pub(crate) fn unique_skills(
     }
 
     dedup_map.into_values().collect()
-}
-
-/// Returns the list of skills if they have changed since the last time we sent them to the server.
-/// Skills are always included except when the current list matches the last list sent.
-pub fn list_skills_if_changed(
-    working_directory: Option<&Path>,
-    _conversation_id: Option<AIConversationId>,
-    app: &AppContext,
-) -> Option<Vec<SkillDescriptor>> {
-    let current_skills =
-        SkillManager::as_ref(app).get_skills_for_working_directory(working_directory, app);
-
-    Some(current_skills)
-}
-
-/// Renders an 'open skill' button for blocklist AI actions and the code diff view.
-pub fn render_skill_button<F>(
-    button_label: &str,
-    button_handle: MouseStateHandle,
-    appearance: &Appearance,
-    skill_provider: SkillProvider,
-    icon_override: Option<Icon>,
-    on_click: F,
-) -> Box<dyn Element>
-where
-    F: FnMut(&mut EventContext) + 'static,
-{
-    let theme = appearance.theme();
-    let logo_fill = internal_colors::fg_overlay_6(theme);
-
-    let icon = icon_override.unwrap_or_else(|| skill_provider.icon());
-
-    let color = if icon_override.is_some() {
-        logo_fill
-    } else {
-        skill_provider.icon_fill(logo_fill)
-    };
-
-    render_provider_icon_button(
-        button_label,
-        button_handle,
-        appearance,
-        icon,
-        color,
-        on_click,
-    )
 }
 
 /// Returns a branded icon override for well-known skill names.

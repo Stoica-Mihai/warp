@@ -3,21 +3,11 @@ use std::sync::LazyLock;
 
 use pathfinder_color::ColorU;
 use warp_core::ui::appearance::Appearance;
-use warpui::elements::{
-    ConstrainedBox, Container, CrossAxisAlignment, Flex, MainAxisAlignment,
-    MainAxisSize, MouseStateHandle, ParentElement,
-};
-use warpui::fonts::Weight;
-use warpui::ui_components::button::ButtonVariant;
-use warpui::ui_components::components::{UiComponent, UiComponentStyles};
-use warpui::ui_components::text::Span;
-use warpui::{AppContext, Element, EntityId, EventContext, SingletonEntity};
+use warpui::elements::{ConstrainedBox, Container};
+use warpui::{AppContext, Element, EntityId, SingletonEntity};
 
 use crate::themes::theme::{AnsiColorIdentifier, Fill, WarpTheme};
 use crate::ui_components::icons::Icon;
-
-const PROVIDER_BUTTON_ICON_SIZE: f32 = 14.;
-const PROVIDER_BUTTON_ICON_TEXT_GAP: f32 = 8.;
 
 /// Text to use as a label throughout the app for user interactions that will attach selected
 /// block(s) or text selections to a new AI query.
@@ -90,77 +80,4 @@ pub fn get_ai_block_overflow_menu_element_position_id(view_id: EntityId) -> Stri
     format!("aiblock:{view_id}.overflow_menu_position")
 }
 
-/// Formats credit count to display as whole numbers when the value is effectively a whole number,
-/// otherwise displays with one decimal place.
-/// Returns a formatted string with proper pluralization ("credit" vs "credits").
-pub fn format_credits(credits: f32) -> String {
-    // If the first part of the decimal is 0, we just display the whole number.
-    if credits.fract() < 0.1 {
-        let whole = credits.trunc() as i32;
-        if whole == 1 {
-            format!("{whole} credit")
-        } else {
-            format!("{whole} credits")
-        }
-    } else {
-        format!("{credits:.1} credits")
-    }
-}
 
-/// Renders a secondary button with an MCP/skill provider icon and a text label.
-pub(crate) fn render_provider_icon_button<F>(
-    button_label: &str,
-    button_handle: MouseStateHandle,
-    appearance: &Appearance,
-    icon: Icon,
-    color: Fill,
-    on_click: F,
-) -> Box<dyn Element>
-where
-    F: FnMut(&mut EventContext) + 'static,
-{
-    let theme = appearance.theme();
-    let font_color = theme.foreground().into_solid();
-    let mut label_children = vec![ConstrainedBox::new(icon.to_warpui_icon(color).finish())
-        .with_width(PROVIDER_BUTTON_ICON_SIZE)
-        .with_height(PROVIDER_BUTTON_ICON_SIZE)
-        .finish()];
-    label_children.push(
-        Container::new(
-            Span::new(
-                button_label.to_string(),
-                UiComponentStyles {
-                    font_family_id: Some(appearance.ui_font_family()),
-                    font_size: Some(appearance.ui_font_size()),
-                    font_weight: Some(Weight::Semibold),
-                    font_color: Some(font_color),
-                    ..Default::default()
-                },
-            )
-            .build()
-            .finish(),
-        )
-        .with_padding_left(PROVIDER_BUTTON_ICON_TEXT_GAP)
-        .finish(),
-    );
-    let label = Flex::row()
-        .with_children(label_children)
-        .with_cross_axis_alignment(CrossAxisAlignment::Center)
-        .with_main_axis_alignment(MainAxisAlignment::Center)
-        .with_main_axis_size(MainAxisSize::Min)
-        .finish();
-    let mut on_click = on_click;
-    appearance
-        .ui_builder()
-        .button(ButtonVariant::Secondary, button_handle)
-        .with_custom_label(label)
-        .with_style(UiComponentStyles {
-            font_weight: Some(Weight::Semibold),
-            ..Default::default()
-        })
-        .build()
-        .on_click(move |ctx, _, _| {
-            on_click(ctx);
-        })
-        .finish()
-}
