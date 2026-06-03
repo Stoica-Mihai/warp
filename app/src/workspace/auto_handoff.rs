@@ -6,7 +6,7 @@ use warpui::{
 };
 
 use super::{AutoCloudHandoffTrigger, Workspace, WorkspaceAction, WorkspaceRegistry};
-use crate::ai::agent::conversation::{AIConversation, AIConversationId};
+use crate::ai::agent::conversation::AIConversationId;
 use crate::settings::AISettings;
 use crate::system::{SystemStats, SystemStatsEvent};
 use crate::terminal::view::TerminalView;
@@ -39,21 +39,6 @@ pub(crate) struct AutoCloudHandoffEligibility {
 }
 
 impl AutoCloudHandoffEligibility {
-    pub(crate) fn from_conversation(
-        conversation: &AIConversation,
-        can_handoff_to_cloud: bool,
-        already_attempted: bool,
-    ) -> Self {
-        Self {
-            is_empty: conversation.is_empty(),
-            is_in_progress: conversation.status().is_in_progress(),
-            has_server_conversation_token: conversation.server_conversation_token().is_some(),
-            is_viewing_shared_session: conversation.is_viewing_shared_session(),
-            can_handoff_to_cloud,
-            already_attempted,
-        }
-    }
-
     pub(crate) fn skip_reason(self) -> Option<AutoCloudHandoffSkipReason> {
         if self.already_attempted {
             return Some(AutoCloudHandoffSkipReason::AlreadyAttempted);
@@ -113,11 +98,6 @@ impl AutoCloudHandoffController {
         }
     }
 
-    #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-    pub(crate) fn record_handoff_succeeded(&mut self, conversation_id: AIConversationId) {
-        self.attempted_conversation_ids
-            .insert(conversation_id, AutoCloudHandoffAttemptState::Succeeded);
-    }
     #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
     pub(crate) fn record_handoff_failed(&mut self, conversation_id: AIConversationId) {
         self.attempted_conversation_ids.remove(&conversation_id);
