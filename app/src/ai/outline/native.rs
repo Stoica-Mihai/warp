@@ -190,11 +190,6 @@ impl RepoOutlines {
         None
     }
 
-    pub fn is_directory_indexed(&self, directory: &Path) -> bool {
-        self.get_outline(directory)
-            .is_some_and(|(status, _)| matches!(status, OutlineStatus::Complete(_)))
-    }
-
     /// Computes the outline for the repo containing the next path in the queue, if any.
     fn compute_next_outline(&mut self, ctx: &mut ModelContext<Self>) {
         if self.should_build_outlines(ctx) && self.active_outline_task.is_none() {

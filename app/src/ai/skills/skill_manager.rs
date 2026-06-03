@@ -119,12 +119,6 @@ impl SkillManager {
         }
     }
 
-    /// Marks this manager as running in a cloud environment, enabling all
-    /// directory skills to be in scope regardless of the current working directory.
-    pub fn set_cloud_environment(&mut self, value: bool) {
-        self.is_cloud_environment = value;
-    }
-
     /// Returns skills available for the given working directory.
     pub fn get_skills_for_working_directory(
         &self,
@@ -219,38 +213,6 @@ impl SkillManager {
             .unwrap_or_default()
     }
 
-    /// Returns the currently-known directories which have skills registered.
-    /// This includes both repo roots and subdirectories with skills.
-    pub fn directories_with_skills(&self) -> Vec<PathBuf> {
-        let mut dirs: Vec<PathBuf> = self.directory_skills.keys().cloned().collect();
-        dirs.sort();
-        dirs
-    }
-
-    /// Returns skill file paths that are under `scope_dir`.
-    ///
-    /// This is used for skill resolution when the agent is invoked in a directory
-    /// above a series of repos—we need skills in those repos to be in scope.
-    ///
-    /// Example: If `scope_dir` is `/code` and there are skills at:
-    /// - `/code/repo-a/.agents/skills/deploy/SKILL.md`
-    /// - `/code/repo-b/.agents/skills/test/SKILL.md`
-    /// Both will be returned.
-    pub fn skill_paths_in_scope(&self, scope_dir: &Path) -> Vec<PathBuf> {
-        let mut paths = HashSet::new();
-
-        for (dir, skill_paths) in &self.directory_skills {
-            // Include skills from directories that are under scope_dir
-            if dir.starts_with(scope_dir) {
-                paths.extend(skill_paths.iter().cloned());
-            }
-        }
-
-        let mut paths: Vec<PathBuf> = paths.into_iter().collect();
-        paths.sort();
-        paths
-    }
-
     /// Returns true if the skill (or any of its provider-path variants) exists in
     /// a folder matching one of the given `providers`. This handles the deduplication
     /// edge case where a skill is present in multiple provider folders (e.g. both
@@ -317,19 +279,6 @@ impl SkillManager {
     /// Returns a reference to a parsed skill for a specific SKILL.md file path, if it is cached.
     pub fn skill_by_path(&self, skill_path: &Path) -> Option<&ParsedSkill> {
         self.skills_by_path.get(skill_path)
-    }
-
-    /// Returns the appropriate `SkillReference` for a skill at the given path.
-    /// For bundled skills, returns `BundledSkillId`; otherwise returns `Path`.
-    pub fn reference_for_skill_path(&self, skill_path: &Path) -> SkillReference {
-        // Check if this path belongs to a bundled skill.
-        for (id, bundled) in &self.bundled_skills {
-            if bundled.skill.path == skill_path {
-                return SkillReference::BundledSkillId(id.clone());
-            }
-        }
-        // Default to path-based reference.
-        SkillReference::Path(skill_path.to_path_buf())
     }
 
     /// Get the definition of a skill, if it is cached.
@@ -493,24 +442,6 @@ impl SkillManager {
         self.skills_by_name.entry(name).or_default().insert(path);
     }
 
-    /// Adds a bundled skill to the skill manager for testing purposes.
-    #[cfg(test)]
-    pub fn add_bundled_skill_for_testing(
-        &mut self,
-        id: impl Into<String>,
-        skill: ParsedSkill,
-        activation: BundledSkillActivation,
-    ) {
-        let id = id.into();
-        self.bundled_skills.insert(
-            id.clone(),
-            BundledSkill {
-                skill,
-                activation,
-                icon: icon_for_bundled_skill(&id),
-            },
-        );
-    }
 }
 
 /// Read bundled skill definitions from the specified directory.
