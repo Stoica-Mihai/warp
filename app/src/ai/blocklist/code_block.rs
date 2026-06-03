@@ -33,14 +33,7 @@ pub struct CodeSnippetButtonHandles {
     pub insert_button: MouseStateHandle,
 }
 
-impl CodeSnippetButtonHandles {
-    // Resets the hover state of all buttons that trigger a focus change.
-    pub fn reset_hover_state_on_focus_change(&self) {
-        if let Ok(mut state) = self.open_button.lock() {
-            state.reset_hover_state();
-        }
-    }
-}
+impl CodeSnippetButtonHandles {}
 
 pub type HandleCode = Box<dyn FnMut(String, &mut EventContext)>;
 

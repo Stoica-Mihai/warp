@@ -18,13 +18,11 @@ impl TaskExt for api::Task {
 pub trait MessageExt {
     fn todos_op(&self) -> Option<&api::message::update_todos::Operation>;
     fn tool_call(&self) -> Option<&api::message::ToolCall>;
-    fn tool_call_mut(&mut self) -> Option<&mut api::message::ToolCall>;
     fn tool_call_result(&self) -> Option<&api::message::ToolCallResult>;
 }
 
 pub trait ToolCallExt {
     fn subagent(&self) -> Option<&api::message::tool_call::Subagent>;
-    fn subagent_mut(&mut self) -> Option<&mut api::message::tool_call::Subagent>;
 }
 
 pub trait ToolExt {
@@ -62,16 +60,6 @@ impl MessageExt for api::Message {
         })
     }
 
-    fn tool_call_mut(&mut self) -> Option<&mut api::message::ToolCall> {
-        self.message.as_mut().and_then(|message| {
-            if let api::message::Message::ToolCall(tool_call) = message {
-                Some(tool_call)
-            } else {
-                None
-            }
-        })
-    }
-
     fn tool_call_result(&self) -> Option<&api::message::ToolCallResult> {
         self.message.as_ref().and_then(|message| {
             if let api::message::Message::ToolCallResult(result) = message {
@@ -91,12 +79,6 @@ impl ToolCallExt for api::message::ToolCall {
         }
     }
 
-    fn subagent_mut(&mut self) -> Option<&mut api::message::tool_call::Subagent> {
-        match self.tool.as_mut() {
-            Some(api::message::tool_call::Tool::Subagent(subagent)) => Some(subagent),
-            _ => None,
-        }
-    }
 }
 
 impl ToolExt for api::message::tool_call::Tool {

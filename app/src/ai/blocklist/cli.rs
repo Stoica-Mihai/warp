@@ -5,10 +5,6 @@ pub enum CLISubagentViewEvent {}
 
 pub struct CLISubagentView;
 
-impl CLISubagentView {
-    pub fn clear_all_selections(&mut self, _app: &AppContext) {}
-    pub fn selected_text(&self, _app: &AppContext) -> Option<String> { None }
-}
 
 impl Entity for CLISubagentView {
     type Event = CLISubagentViewEvent;

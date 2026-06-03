@@ -15,7 +15,6 @@ use crate::server::server_api::ServerApi;
 
 pub(crate) const DEFAULT_AGENT_EVENT_RECONNECT_BACKOFF_STEPS: &[u64] = &[1, 2, 5, 10];
 pub(crate) const DEFAULT_PERMANENT_ERROR_BACKOFF_STEPS: &[u64] = &[30];
-pub(crate) const DEFAULT_AGENT_EVENT_PROACTIVE_RECONNECT: Duration = Duration::from_secs(14 * 60);
 pub(crate) const DEFAULT_AGENT_EVENT_FAILURES_BEFORE_ERROR_LOG: usize = 5;
 
 /// Configuration for the shared agent-event stream driver.
@@ -42,21 +41,6 @@ pub(crate) struct AgentEventDriverConfig {
     pub failures_before_error_log: usize,
 }
 
-impl AgentEventDriverConfig {
-    /// Build the production reconnecting configuration used by long-lived
-    /// orchestration and harness listeners.
-    pub(crate) fn retry_forever(run_ids: Vec<String>, since_sequence: i64) -> Self {
-        Self {
-            run_ids,
-            since_sequence,
-            reconnect_backoff_steps: DEFAULT_AGENT_EVENT_RECONNECT_BACKOFF_STEPS,
-            permanent_error_backoff_steps: DEFAULT_PERMANENT_ERROR_BACKOFF_STEPS,
-            proactive_reconnect_after: Some(DEFAULT_AGENT_EVENT_PROACTIVE_RECONNECT),
-            failures_before_error_log: DEFAULT_AGENT_EVENT_FAILURES_BEFORE_ERROR_LOG,
-        }
-    }
-}
-
 /// Tells the shared driver whether to continue or stop after a handled event.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum AgentEventConsumerControlFlow {
@@ -81,27 +65,6 @@ pub(crate) enum AgentEventDriverState {
     /// A healthy stream was intentionally recycled after
     /// `proactive_reconnect_after`.
     ProactiveReconnect,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct AgentMessageEventMetadata {
-    pub sequence: i64,
-    pub message_id: String,
-    pub occurred_at: String,
-}
-
-impl AgentMessageEventMetadata {
-    pub(crate) fn from_event(event: &AgentRunEvent) -> Option<Self> {
-        if event.event_type != "new_message" {
-            return None;
-        }
-
-        Some(Self {
-            sequence: event.sequence,
-            message_id: event.ref_id.clone()?,
-            occurred_at: event.occurred_at.clone(),
-        })
-    }
 }
 
 /// Parsed items emitted by an [`AgentEventSource`].
