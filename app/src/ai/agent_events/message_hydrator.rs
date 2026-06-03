@@ -16,7 +16,7 @@ use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::server::server_api::ai::{AIClient, AgentRunEvent, ReadAgentMessageResponse};
 #[cfg(not(target_family = "wasm"))]
 use crate::server::server_api::presigned_upload::HttpStatusError;
-use crate::server::server_api::ServerApi;
+
 
 pub(crate) const DEFAULT_AGENT_MESSAGE_FETCH_TIMEOUT: Duration = Duration::from_secs(5);
 const DEFAULT_AGENT_MESSAGE_RETRY_DELAY: Duration = Duration::from_millis(50);
@@ -26,7 +26,6 @@ const DEFAULT_AGENT_MESSAGE_RETRY_DELAY: Duration = Duration::from_millis(50);
 #[derive(Clone)]
 pub(crate) struct MessageHydrator {
     ai_client: Arc<dyn AIClient>,
-    task_scoped_server_api: Option<Arc<ServerApi>>,
     task_id: Option<AmbientAgentTaskId>,
     #[cfg_attr(target_family = "wasm", allow(dead_code))]
     fetch_timeout: Duration,
@@ -47,7 +46,6 @@ impl MessageHydrator {
     ) -> Self {
         Self {
             ai_client,
-            task_scoped_server_api: None,
             task_id: None,
             fetch_timeout,
             retry_delay,
@@ -60,7 +58,6 @@ impl MessageHydrator {
     ) -> Self {
         Self {
             ai_client,
-            task_scoped_server_api: None,
             task_id: None,
             fetch_timeout,
             retry_delay: DEFAULT_AGENT_MESSAGE_RETRY_DELAY,
@@ -68,15 +65,8 @@ impl MessageHydrator {
     }
 
     async fn read_message(&self, message_id: &str) -> Result<ReadAgentMessageResponse> {
-        match (self.task_scoped_server_api.as_ref(), self.task_id) {
-            (Some(server_api), Some(task_id)) => {
-                server_api
-                    .read_agent_message_for_task(&task_id, message_id)
-                    .await
-            }
-            _ => self.ai_client.read_agent_message(message_id).await,
-        }
-        .with_context(|| format!("Failed to read agent message {message_id}"))
+        self.ai_client.read_agent_message(message_id).await
+            .with_context(|| format!("Failed to read agent message {message_id}"))
     }
 
     pub(crate) async fn hydrate_event_for_recipient(
@@ -175,15 +165,8 @@ impl MessageHydrator {
     }
 
     pub(crate) async fn mark_message_delivered(&self, message_id: &str) -> Result<()> {
-        match (self.task_scoped_server_api.as_ref(), self.task_id) {
-            (Some(server_api), Some(task_id)) => {
-                server_api
-                    .mark_message_delivered_for_task(&task_id, message_id)
-                    .await
-            }
-            _ => self.ai_client.mark_message_delivered(message_id).await,
-        }
-        .with_context(|| format!("Failed to mark agent message {message_id} as delivered"))
+        self.ai_client.mark_message_delivered(message_id).await
+            .with_context(|| format!("Failed to mark agent message {message_id} as delivered"))
     }
 
     pub(crate) async fn mark_messages_delivered_best_effort<'a, I>(
