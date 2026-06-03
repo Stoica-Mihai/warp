@@ -209,34 +209,6 @@ impl AgentSource {
         }
     }
 
-    pub fn display_name(&self) -> &str {
-        match self {
-            AgentSource::Linear => "Linear",
-            AgentSource::AgentWebhook => "API",
-            AgentSource::Slack => "Slack",
-            AgentSource::Cli => "CLI",
-            AgentSource::ScheduledAgent => "Scheduled",
-            AgentSource::Interactive | AgentSource::CloudMode => "Warp App",
-            AgentSource::WebApp => "Oz Web",
-            AgentSource::GitHubAction => "GitHub Action",
-        }
-    }
-
-    /// Returns true if this source represents a user-initiated conversation
-    /// (as opposed to automated/programmatic sources like CLI or scheduled runs).
-    pub fn is_user_initiated(&self) -> bool {
-        match self {
-            AgentSource::Linear
-            | AgentSource::Slack
-            | AgentSource::Interactive
-            | AgentSource::WebApp
-            | AgentSource::CloudMode => true,
-            AgentSource::Cli
-            | AgentSource::ScheduledAgent
-            | AgentSource::AgentWebhook
-            | AgentSource::GitHubAction => false,
-        }
-    }
 }
 
 fn deserialize_ambient_agent_source<'de, D>(
@@ -362,10 +334,6 @@ pub fn normalize_orchestrator_agent_name(raw: &str) -> Option<String> {
 }
 
 impl AmbientAgentTask {
-    pub fn run_id(&self) -> AmbientAgentTaskId {
-        self.task_id
-    }
-
     /// Returns the short label for this task: trimmed `agent_config_snapshot.name`,
     /// trimmed `title`, or `"Agent"`.
     pub fn display_name(&self) -> &str {
@@ -450,10 +418,6 @@ impl AmbientAgentTask {
         self.creator.as_ref().and_then(|c| c.display_name.clone())
     }
 
-    /// Principal the run executed as, formatted for user-facing surfaces.
-    pub fn executor_display_name(&self) -> Option<String> {
-        self.executor.as_ref().and_then(|e| e.display_name.clone())
-    }
 
 }
 
