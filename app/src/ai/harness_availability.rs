@@ -130,16 +130,6 @@ impl HarnessAvailabilityModel {
             .unwrap_or_else(|| harness_display::display_name(harness))
     }
 
-    /// Whether the harness selector should be shown (>1 known harness, including disabled).
-    pub fn should_show_harness_selector(&self) -> bool {
-        false
-    }
-
-    /// Whether any harness is available at all (at least one enabled).
-    pub fn has_any_enabled_harness(&self) -> bool {
-        self.harnesses.iter().any(|h| h.enabled)
-    }
-
     /// Whether a harness is both known and enabled.
     pub fn is_harness_enabled(&self, harness: Harness) -> bool {
         self.harnesses

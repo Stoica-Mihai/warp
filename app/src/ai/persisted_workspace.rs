@@ -772,53 +772,6 @@ impl PersistedWorkspace {
         }
     }
 
-    /// Triggers an incremental sync for the codebase context when a new conversation starts.
-    /// This ensures that the codebase index is up-to-date before the conversation begins.
-    fn trigger_incremental_sync_for_conversation(
-        &mut self,
-        terminal_view_id: warpui::EntityId,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        if !UserWorkspaces::as_ref(ctx).is_codebase_context_enabled(ctx) {
-            return;
-        }
-
-        // Get the current working directory for the terminal view that started the conversation
-        // Collect window IDs first to avoid borrowing conflicts
-        let window_ids: Vec<_> = ctx.window_ids().collect();
-
-        for window_id in window_ids {
-            let terminal_views = ctx.views_of_type::<TerminalView>(window_id);
-
-            for terminal_view in terminal_views.into_iter().flatten() {
-                let terminal_view_ref = terminal_view.as_ref(ctx);
-                if terminal_view_ref.view_id() == terminal_view_id {
-                    if terminal_view_ref.active_session_is_local(ctx) != Some(true) {
-                        log::info!(
-                            "Skipping local codebase incremental sync for non-local agent conversation"
-                        );
-                        return;
-                    }
-
-                    let pwd = terminal_view_ref.pwd();
-                    if let Some(pwd) = pwd {
-                        let directory_path = PathBuf::from(pwd);
-
-                        // Trigger an incremental sync through the CodebaseIndexManager
-                        CodebaseIndexManager::handle(ctx).update(ctx, |codebase_manager, ctx| {
-                            if let Err(e) = codebase_manager
-                                .trigger_incremental_sync_for_path(&directory_path, ctx)
-                            {
-                                log::warn!("Failed to trigger incremental sync {e}");
-                            }
-                        });
-                    }
-                    return; // Found the terminal view, exit both loops
-                }
-            }
-        }
-    }
-
     fn clean_up_expired_metadata(
         &self,
         indices_to_remove: Arc<Vec<PathBuf>>,
@@ -859,13 +812,6 @@ impl PersistedWorkspace {
                 repo_path: path.to_path_buf(),
             })
         }));
-    }
-
-    #[cfg(feature = "local_fs")]
-    fn clean_up_deleted_indices(&self, ctx: &mut ModelContext<Self>) {
-        CodebaseIndexManager::handle(ctx).update(ctx, |codebase_manager, ctx| {
-            codebase_manager.clean_up_deleted_indices(ctx);
-        });
     }
 
     fn save_to_db(&self, events: impl IntoIterator<Item = ModelEvent>) {
