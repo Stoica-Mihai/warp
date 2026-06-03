@@ -1,9 +1,7 @@
 use warp_core::features::FeatureFlag;
 use warp_multi_agent_api as api;
 
-use super::{
-    api_keys_with_warp_credit_fallback_setting, get_supported_cli_agent_tools, get_supported_tools,
-};
+use super::{api_keys_with_warp_credit_fallback_setting, get_supported_tools};
 use crate::ai::agent::api::RequestParams;
 use crate::ai::blocklist::SessionContext;
 use crate::ai::llms::LLMId;

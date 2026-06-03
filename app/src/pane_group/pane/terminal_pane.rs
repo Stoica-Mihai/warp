@@ -23,6 +23,7 @@ use crate::code::buffer_location::LocalOrRemotePath;
 
 #[cfg(feature = "local_fs")]
 use crate::pane_group::CodeSource;
+#[cfg(test)]
 use crate::features::FeatureFlag;
 use crate::pane_group::Event::OpenConversationHistory;
 use crate::pane_group::{self, Direction, PaneGroup};

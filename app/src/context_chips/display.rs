@@ -12,7 +12,9 @@ use warpui::{
 
 use super::display_chip::{DisplayChip, DisplayChipConfig, PromptDisplayChipEvent};
 use super::prompt_type::PromptType;
-use super::{git_line_changes_from_chips, ChipResult, ContextChipKind};
+use super::{git_line_changes_from_chips, ChipResult};
+#[cfg(feature = "integration_tests")]
+use super::ContextChipKind;
 use crate::ai::blocklist::{BlocklistAIInputEvent, BlocklistAIInputModel};
 use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentVersion};
 use crate::completer::SessionContext;

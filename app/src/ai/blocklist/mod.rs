@@ -70,9 +70,8 @@ mod input_stubs {
         pub fn unlocked_if_autodetection_enabled(self, _: bool, _: &warpui::AppContext) -> InputConfig { self.input_config }
     }
 }
-pub use permissions::BlocklistAIPermissions;
 #[cfg(test)]
-pub use permissions::CommandExecutionPermissionAllowedReason;
+pub use permissions::{BlocklistAIPermissions, CommandExecutionPermissionAllowedReason};
 
 pub(crate) use persistence::{PersistedAIInput, SerializedBlockListItem};
 pub(crate) use view_util::{

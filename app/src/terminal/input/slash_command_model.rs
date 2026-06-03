@@ -1,6 +1,5 @@
 use ai::skills::SkillReference;
 use input_classifier::InputType;
-use settings::Setting as _;
 use warpui::{AppContext, Entity, ModelContext, ModelHandle, SingletonEntity};
 
 use crate::ai::blocklist::{

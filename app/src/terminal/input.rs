@@ -147,9 +147,8 @@ use crate::ai::skills::SkillManager;
 use crate::ai::AIRequestUsageModel;
 use crate::appearance::{Appearance, AppearanceEvent};
 use crate::cloud_object::model::actions::ObjectActionType;
-use crate::cloud_object::model::generic_string_model::StringModel;
 use crate::cloud_object::model::persistence::CloudModel;
-use crate::cloud_object::{CloudObject, CloudObjectLookup as _, Space};
+use crate::cloud_object::{CloudObject, Space};
 #[cfg(feature = "local_fs")]
 use crate::code::editor_management::CodeSource;
 use crate::code_review::diff_state::DiffMode;
@@ -186,7 +185,9 @@ use crate::resource_center::{
 use crate::search::ai_context_menu::mixer::AIContextMenuSearchableAction;
 use crate::search::ai_context_menu::search::is_valid_search_query;
 use crate::search::ai_context_menu::view::AIContextMenuAction;
-use crate::search::slash_command_menu::static_commands::commands::{self, COMMAND_REGISTRY};
+use crate::search::slash_command_menu::static_commands::commands::COMMAND_REGISTRY;
+#[cfg(test)]
+use crate::search::slash_command_menu::static_commands::commands;
 use crate::search::QueryFilter;
 use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::ids::SyncId;

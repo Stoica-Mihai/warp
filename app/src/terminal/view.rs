@@ -150,7 +150,7 @@ use warpui::windowing::WindowManager;
 use warpui::{
     end_trace_after_next, record_trace_event, windowing, AccessibilityData, AppContext,
     BlurContext, CursorInfo, Element, Entity, EntityId, EventContext, FocusContext, ModelAsRef,
-    ModelHandle, SingletonEntity, Tracked, TypedActionView, View, ViewAsRef, ViewContext,
+    ModelHandle, SingletonEntity, Tracked, TypedActionView, View, ViewContext,
     ViewHandle, WeakModelHandle, WeakViewHandle, WindowId,
 };
 
@@ -272,7 +272,7 @@ use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::ids::{ObjectUid, SyncId};
 use crate::server::server_api::ServerApi;
 use crate::server::telemetry::{
-    self, AgentModeRewindEntrypoint, AnonymousUserSignupEntrypoint,
+    AgentModeRewindEntrypoint, AnonymousUserSignupEntrypoint,
     LinkOpenMethod, NotificationAgentVariant, PaletteSource, PromptSuggestionViewType,
     SaveAsWorkflowModalSource, ToggleBlockFilterSource,
 };

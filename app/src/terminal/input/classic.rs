@@ -261,7 +261,6 @@ impl Input {
             .as_ref(app)
             .is_inline_model_selector();
         let is_prompts_menu = self.suggestions_mode_model.as_ref(app).is_prompts_menu();
-        let is_skill_menu = self.suggestions_mode_model.as_ref(app).is_skill_menu();
         let is_inline_history_menu = FeatureFlag::InlineHistoryMenu.is_enabled()
             && self
                 .suggestions_mode_model
