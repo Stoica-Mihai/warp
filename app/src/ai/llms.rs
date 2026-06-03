@@ -254,20 +254,6 @@ impl<'de> Deserialize<'de> for LLMInfo {
     }
 }
 
-/// Deduplicates a list of LLMInfo choices by base_model_name and returns an alphabetically sorted
-/// list of display names.
-pub fn dedupe_model_display_names<'a>(
-    choices: impl IntoIterator<Item = &'a LLMInfo>,
-) -> Vec<String> {
-    let names: HashSet<String> = choices
-        .into_iter()
-        .map(|choice| choice.base_model_name.clone())
-        .collect();
-    let mut sorted: Vec<String> = names.into_iter().collect();
-    sorted.sort();
-    sorted
-}
-
 impl LLMInfo {
     /// Returns the display name for the LLM, to be used in the LLM selector menu.
     pub fn menu_display_name(&self) -> String {
@@ -279,18 +265,6 @@ impl LLMInfo {
             Some(desc) => format!("{} ({})", self.display_name, desc),
             None => self.display_name.clone(),
         }
-    }
-
-    /// Returns the given model's base name.
-    /// For non-reasoning models, this is the same as the display name.
-    /// E.g. gpt-5.1 (low reasoning) -> gpt-5.1
-    pub fn base_model_name(&self) -> &str {
-        &self.base_model_name
-    }
-
-    /// Returns true if this model has a reasoning level configured.
-    pub fn has_reasoning_level(&self) -> bool {
-        self.reasoning_level.is_some()
     }
 
     /// Returns the reasoning level label formatted for display.
@@ -422,15 +396,6 @@ pub struct ModelsByFeature {
     pub computer_use: Option<AvailableLLMs>,
 }
 
-impl ModelsByFeature {
-    /// Returns the info about the LLM identified by `id`, if we have it.
-    ///
-    /// For models that are available across multiple features,
-    /// any one of the metadata will be returned.
-    fn info_for_id(&self, id: &LLMId) -> Option<&LLMInfo> {
-        self.agent_mode.info_for_id(id)
-    }
-}
 
 /// Returns the default AvailableLLMs for computer use.
 /// Used both in `ModelsByFeature::default()` and as a fallback in `get_computer_use_available()`.
@@ -660,14 +625,6 @@ impl LLMPreferences {
             .unwrap_or_else(|| self.models_by_feature.agent_mode.default_llm_info())
     }
 
-    pub fn get_active_coding_model<'a>(
-        &'a self,
-        app: &'a AppContext,
-        terminal_view_id: Option<EntityId>,
-    ) -> &'a LLMInfo {
-        self.get_preferred_coding_model(app, terminal_view_id)
-    }
-
     /// Returns `LLMInfo` for user's preferred coding model.
     fn get_preferred_coding_model(
         &self,
@@ -798,7 +755,7 @@ impl LLMPreferences {
     /// id (e.g. when it's a `config_key` UUID).
     pub fn get_llm_info(&self, id: &LLMId) -> Option<&LLMInfo> {
         self.models_by_feature
-            .info_for_id(id)
+            .agent_mode.info_for_id(id)
             .or_else(|| self.custom_llm_info_for_id(id))
     }
 
