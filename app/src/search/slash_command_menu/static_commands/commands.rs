@@ -633,10 +633,6 @@ fn all_commands() -> Vec<StaticCommand> {
         commands.extend([EDIT.clone(), EXPORT_TO_FILE.clone()]);
     }
 
-    if FeatureFlag::ListSkills.is_enabled() && !cfg!(target_family = "wasm") {
-        commands.push(EDIT_SKILL.clone());
-        commands.push(INVOKE_SKILL.clone());
-    }
 
     if FeatureFlag::PRCommentsSlashCommand.is_enabled()
         && !FeatureFlag::PRCommentsSkill.is_enabled()

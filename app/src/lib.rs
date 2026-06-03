@@ -426,9 +426,7 @@ impl LaunchMode {
             LaunchMode::CommandLine { command, .. } => {
                 matches!(command, CliCommand::Agent(AgentCommand::Run { .. }))
             }
-            LaunchMode::RemoteServerDaemon { .. } => {
-                FeatureFlag::RemoteCodebaseIndexing.is_enabled()
-            }
+            LaunchMode::RemoteServerDaemon { .. } => false,
             LaunchMode::App { .. } | LaunchMode::Test { .. } => true,
             LaunchMode::RemoteServerProxy => false,
         }

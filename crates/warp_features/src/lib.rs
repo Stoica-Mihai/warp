@@ -152,8 +152,6 @@ pub enum FeatureFlag {
     /// Enables full source code embedding of repos when using codebase context.
     FullSourceCodeEmbedding,
 
-    /// Enables codebase indexing inside remote server daemon processes.
-    RemoteCodebaseIndexing,
 
     /// If enabled, command palette searches will use Tantivy search instead of the default fuzzy search.
     UseTantivySearch,
@@ -340,10 +338,6 @@ pub enum FeatureFlag {
     /// External programs can trigger system and in-app notifications.
     PluggableNotifications,
 
-    /// Enables sending the server a list of Skills that the client has access to.
-    ///
-    /// If disabled, the server will send None as the SkillsContext.
-    ListSkills,
 
 
 
@@ -507,7 +501,6 @@ pub const DOGFOOD_FLAGS: &[FeatureFlag] = &[
     #[cfg(not(windows))]
     FeatureFlag::SshRemoteServer,
     FeatureFlag::DragTabsToWindows,
-    FeatureFlag::RemoteCodebaseIndexing,
 ];
 
 /// Features enabled for feature preview build users (e.g.: Friends of Warp).

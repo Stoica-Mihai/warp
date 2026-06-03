@@ -8,7 +8,6 @@ use ai::skills::SkillProvider;
 use fuzzy_match::FuzzyMatchResult;
 use ordered_float::OrderedFloat;
 pub(crate) use saved_prompts::*;
-use warp_core::features::FeatureFlag;
 use warp_core::ui::appearance::Appearance;
 use warp_core::ui::Icon as WarpIcon;
 use warpui::fonts::FamilyId;
@@ -417,58 +416,6 @@ impl SyncDataSource for SlashCommandDataSource {
             }
         }
 
-        // Also search skills — when CLI agent input is open, filter to natively supported providers.
-        // Skills are invoked by the agent, so they're hidden entirely when AI is globally off.
-        if FeatureFlag::ListSkills.is_enabled() && AISettings::as_ref(app).is_any_ai_enabled(app) {
-            let cli_agent_providers = self.active_cli_agent_providers(app);
-            let cwd = self.active_session.as_ref(app).current_working_directory();
-            let cwd_path = cwd.as_ref().map(std::path::Path::new);
-            let skills = SkillManager::handle(app)
-                .as_ref(app)
-                .get_skills_for_working_directory(cwd_path, app);
-
-            let skill_manager = SkillManager::as_ref(app);
-            for mut skill in skills {
-                // In CLI agent input mode, only show skills that exist in a supported
-                // provider folder. We check all paths (not just the deduplicated
-                // provider) because deduplication may have picked a higher-priority
-                // provider even when the skill also exists in the CLI agent's folder.
-                if let Some(providers) = &cli_agent_providers {
-                    if !skill_manager.skill_exists_for_any_provider(&skill, providers) {
-                        continue;
-                    }
-                    // Re-map the provider to the best supported one so the icon
-                    // reflects the active CLI agent's native provider.
-                    skill.provider = skill_manager.best_supported_provider(&skill, providers);
-                }
-                if let Some(fuzzy_result) = SlashCommandFuzzyMatchResult::try_match(
-                    &query_text,
-                    &skill.name,
-                    Some(&skill.description),
-                ) {
-                    let score = fuzzy_result.score();
-
-                    // Only include results with score > 25 once the user has started typing a query
-                    if query_text.len() > 1 && score <= 25.0 {
-                        continue;
-                    }
-
-                    let prefix_boost = prefix_match_bonus(&query_text, &skill.name);
-
-                    results.push(QueryResult::from(
-                        InlineItem::from_skill(&skill, app)
-                            .with_name_match_result(fuzzy_result.name_match_result)
-                            .with_description_match_result(fuzzy_result.description_match_result)
-                            .with_compact_layout(self.is_cloud_mode_v2)
-                            .with_score(
-                                OrderedFloat(score) * SCORE_MULTIPLIER
-                                    + OrderedFloat(prefix_boost) * SCORE_MULTIPLIER
-                                    + OrderedFloat(1. / skill.name.len() as f64),
-                            ),
-                    ));
-                }
-            }
-        }
 
         Ok(results)
     }

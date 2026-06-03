@@ -671,8 +671,7 @@ impl InputSuggestionsMode {
                 | Self::UserQueryMenu { .. }
                 | Self::InlineHistoryMenu { .. }
                 | Self::PlanMenu { .. }
-        ) || (FeatureFlag::ListSkills.is_enabled() && matches!(self, Self::SkillMenu))
-            || (FeatureFlag::InlineRepoMenu.is_enabled() && matches!(self, Self::IndexedReposMenu))
+        ) || (FeatureFlag::InlineRepoMenu.is_enabled() && matches!(self, Self::IndexedReposMenu))
     }
 
     /// Whether this mode should snapshot the input buffer on open and restore it on dismiss.
@@ -3387,37 +3386,9 @@ impl Input {
         ctx.notify();
     }
 
-    fn open_skill_selector(&mut self, ctx: &mut ViewContext<Self>) {
-        if !FeatureFlag::ListSkills.is_enabled() {
-            return;
-        }
+    fn open_skill_selector(&mut self, _ctx: &mut ViewContext<Self>) {}
 
-        self.skill_selector_should_invoke = false;
-        self.inline_skill_selector_view.update(ctx, |view, ctx| {
-            view.set_include_bundled(false, ctx);
-        });
-        self.suggestions_mode_model.update(ctx, |model, ctx| {
-            model.set_mode(InputSuggestionsMode::SkillMenu, ctx);
-        });
-
-        ctx.notify();
-    }
-
-    fn open_invoke_skill_selector(&mut self, ctx: &mut ViewContext<Self>) {
-        if !FeatureFlag::ListSkills.is_enabled() {
-            return;
-        }
-
-        self.skill_selector_should_invoke = true;
-        self.inline_skill_selector_view.update(ctx, |view, ctx| {
-            view.set_include_bundled(true, ctx);
-        });
-        self.suggestions_mode_model.update(ctx, |model, ctx| {
-            model.set_mode(InputSuggestionsMode::SkillMenu, ctx);
-        });
-
-        ctx.notify();
-    }
+    fn open_invoke_skill_selector(&mut self, _ctx: &mut ViewContext<Self>) {}
 
     pub fn open_plan_menu(
         &mut self,

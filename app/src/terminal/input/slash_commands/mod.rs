@@ -625,22 +625,10 @@ impl Input {
                 ctx.dispatch_typed_action(&TerminalAction::OpenRulesPane);
             }
             _edit_skill if command.name == commands::EDIT_SKILL.name => {
-                if !FeatureFlag::ListSkills.is_enabled() {
-                    return false;
-                }
-                // Open the skill selector menu - user will select a skill from the inline menu
-                self.open_skill_selector(ctx);
+                return false;
             }
             _invoke_skill if command.name == commands::INVOKE_SKILL.name => {
-                if !FeatureFlag::ListSkills.is_enabled() {
-                    return false;
-                }
-                if false {
-                    self.apply_v2_slash_section_filter(CloudModeV2Section::Skills, ctx);
-                    return true;
-                }
-                // Open the skill selector menu for invocation - skill command will be inserted into buffer
-                self.open_invoke_skill_selector(ctx);
+                return false;
             }
             _host if command.name == commands::HOST.name => {
                 if !false {

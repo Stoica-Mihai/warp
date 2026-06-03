@@ -1,5 +1,4 @@
 use warp_core::features::FeatureFlag;
-use warp_core::HostId;
 use warp_multi_agent_api as api;
 
 use super::{
@@ -8,7 +7,6 @@ use super::{
 use crate::ai::agent::api::RequestParams;
 use crate::ai::blocklist::SessionContext;
 use crate::ai::llms::LLMId;
-use crate::terminal::model::session::SessionType;
 
 fn request_params_with_ask_user_question_enabled(ask_user_question_enabled: bool) -> RequestParams {
     let model = LLMId::from("test-model");
@@ -48,14 +46,6 @@ fn request_params_with_ask_user_question_enabled(ask_user_question_enabled: bool
     }
 }
 
-fn request_params_for_remote(host_id: Option<HostId>) -> RequestParams {
-    let mut params = request_params_with_ask_user_question_enabled(false);
-    params.session_context =
-        SessionContext::new_with_session_type_for_test(Some(SessionType::WarpifiedRemote {
-            host_id,
-        }));
-    params
-}
 
 #[test]
 fn api_keys_with_warp_credit_fallback_setting_returns_none_without_keys_or_fallback() {
@@ -124,34 +114,3 @@ fn supported_tools_omit_upload_artifact_when_feature_flag_is_disabled() {
     assert!(!supported_tools.contains(&api::ToolType::UploadFileArtifact));
 }
 
-#[test]
-fn remote_supported_tools_include_search_codebase_when_connected_and_feature_flag_is_enabled() {
-    let _flag = FeatureFlag::RemoteCodebaseIndexing.override_enabled(true);
-    let params = request_params_for_remote(Some(HostId::new("host".to_string())));
-    let supported_tools = get_supported_tools(&params);
-    let supported_cli_agent_tools = get_supported_cli_agent_tools(&params);
-
-    assert!(supported_tools.contains(&api::ToolType::SearchCodebase));
-    assert!(supported_cli_agent_tools.contains(&api::ToolType::SearchCodebase));
-}
-#[test]
-fn remote_supported_tools_omit_search_codebase_when_feature_flag_is_disabled() {
-    let _flag = FeatureFlag::RemoteCodebaseIndexing.override_enabled(false);
-    let params = request_params_for_remote(Some(HostId::new("host".to_string())));
-    let supported_tools = get_supported_tools(&params);
-    let supported_cli_agent_tools = get_supported_cli_agent_tools(&params);
-
-    assert!(!supported_tools.contains(&api::ToolType::SearchCodebase));
-    assert!(!supported_cli_agent_tools.contains(&api::ToolType::SearchCodebase));
-}
-
-#[test]
-fn remote_supported_tools_omit_search_codebase_when_remote_is_not_connected() {
-    let _flag = FeatureFlag::RemoteCodebaseIndexing.override_enabled(true);
-    let params = request_params_for_remote(None);
-    let supported_tools = get_supported_tools(&params);
-    let supported_cli_agent_tools = get_supported_cli_agent_tools(&params);
-
-    assert!(!supported_tools.contains(&api::ToolType::SearchCodebase));
-    assert!(!supported_cli_agent_tools.contains(&api::ToolType::SearchCodebase));
-}

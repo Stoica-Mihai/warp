@@ -199,17 +199,9 @@ impl GetRelevantFilesController {
             GetRelevantFilesRequestTarget::Local { directory } => {
                 self.send_local_request(&directory, query, partial_path_segments, action_id, ctx)
             }
-            GetRelevantFilesRequestTarget::Remote {
-                session_context,
-                requested_codebase_path,
-            } => self.send_remote_request(
-                session_context,
-                requested_codebase_path,
-                query,
-                partial_path_segments.cloned(),
-                action_id,
-                ctx,
-            ),
+            GetRelevantFilesRequestTarget::Remote { .. } => {
+                self.send_remote_request(action_id, ctx)
+            }
         }
     }
 
@@ -329,21 +321,10 @@ impl GetRelevantFilesController {
 
     fn send_remote_request(
         &mut self,
-        session_context: SessionContext,
-        requested_codebase_path: Option<String>,
-        query: String,
-        partial_path_segments: Option<Vec<String>>,
         action_id: AIAgentActionId,
         ctx: &mut ModelContext<Self>,
     ) -> Result<(), GetRelevantFilesError> {
-        match remote_search::send_request(
-            query,
-            partial_path_segments,
-            session_context,
-            requested_codebase_path,
-            action_id.clone(),
-            ctx,
-        ) {
+        match remote_search::send_request() {
             #[cfg(not(target_family = "wasm"))]
             remote_search::RemoteSearchRequest::Pending(abort_handle) => {
                 self.pending_requests

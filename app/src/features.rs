@@ -87,8 +87,7 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::CommandCorrectionKey,
         #[cfg(feature = "full_source_code_embedding")]
         FeatureFlag::FullSourceCodeEmbedding,
-        #[cfg(feature = "remote_codebase_indexing")]
-        FeatureFlag::RemoteCodebaseIndexing,
+
         #[cfg(feature = "use_tantivy_search")]
         FeatureFlag::UseTantivySearch,
         #[cfg(feature = "mcp_server")]
@@ -195,8 +194,7 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::PluggableNotifications,
         #[cfg(feature = "async_find")]
         FeatureFlag::AsyncFind,
-        #[cfg(feature = "list_skills")]
-        FeatureFlag::ListSkills,
+
 #[cfg(feature = "bundled_skills")]
         FeatureFlag::BundledSkills,
         #[cfg(feature = "new_tab_styling")]
