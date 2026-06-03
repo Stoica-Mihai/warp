@@ -1,12 +1,10 @@
 use std::collections::HashMap;
 use std::ffi::OsString;
-use std::path::PathBuf;
 
 use warp_cli::agent::Harness;
 use warpui::{EntityId, SingletonEntity, ViewContext, ViewHandle};
 
 use crate::ai::agent::conversation::AIConversationId;
-use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::llms::LLMPreferences;
 use crate::pane_group::{PaneGroup, PaneId};
 use crate::terminal::shared_session::IsSharedSessionCreator;
@@ -18,10 +16,7 @@ pub(crate) struct HiddenChildAgentConversation {
     pub conversation_id: AIConversationId,
 }
 #[derive(Clone, Debug)]
-pub(crate) struct HiddenChildAgentTaskContext {
-    pub task_id: AmbientAgentTaskId,
-    pub working_dir: Option<PathBuf>,
-}
+pub(crate) struct HiddenChildAgentTaskContext;
 
 pub(crate) struct HiddenChildAgentConversationRequest {
     pub parent_pane_id: PaneId,
@@ -36,14 +31,6 @@ pub(crate) struct HiddenChildAgentConversationRequest {
     /// terminal's own shared-session state (gated on
     /// `FeatureFlag::OrchestrationViewerPillBar`).
     pub is_shared_session_creator: IsSharedSessionCreator,
-}
-
-pub(crate) struct ErrorChildAgentConversationRequest {
-    pub parent_pane_id: PaneId,
-    pub name: String,
-    pub parent_conversation_id: AIConversationId,
-    pub orchestration_harness: Option<Harness>,
-    pub error_message: String,
 }
 
 pub(crate) fn apply_hidden_child_agent_task_context(
@@ -142,74 +129,3 @@ pub(crate) fn create_hidden_child_agent_conversation(
     })
 }
 
-fn create_error_child_agent_conversation_context(
-    group: &mut PaneGroup,
-    parent_pane_id: PaneId,
-    name: String,
-    parent_conversation_id: AIConversationId,
-    orchestration_harness: Option<Harness>,
-    ctx: &mut ViewContext<PaneGroup>,
-) -> Option<(Option<ViewHandle<TerminalView>>, EntityId, AIConversationId)> {
-    if let Some(HiddenChildAgentConversation {
-        terminal_view,
-        terminal_view_id,
-        conversation_id,
-        ..
-    }) = create_hidden_child_agent_conversation(
-        group,
-        HiddenChildAgentConversationRequest {
-            parent_pane_id,
-            name: name.clone(),
-            parent_conversation_id,
-            orchestration_harness,
-            env_vars: HashMap::new(),
-            task_context: None,
-            is_shared_session_creator: IsSharedSessionCreator::No,
-        },
-        ctx,
-    ) {
-        return Some((Some(terminal_view), terminal_view_id, conversation_id));
-    }
-
-    let parent_terminal_view = group.terminal_view_from_pane_id(parent_pane_id, ctx)?;
-    let parent_terminal_view_id = parent_terminal_view.id();
-    let conversation_id = start_new_child_conversation(
-        parent_terminal_view_id,
-        name,
-        parent_conversation_id,
-        orchestration_harness,
-        ctx,
-    );
-    Some((None, parent_terminal_view_id, conversation_id))
-}
-
-pub(crate) fn create_error_child_agent_conversation(
-    group: &mut PaneGroup,
-    request: ErrorChildAgentConversationRequest,
-    ctx: &mut ViewContext<PaneGroup>,
-) -> Option<AIConversationId> {
-    let ErrorChildAgentConversationRequest {
-        parent_pane_id,
-        name,
-        parent_conversation_id,
-        orchestration_harness,
-        error_message,
-    } = request;
-    let Some((_terminal_view, _terminal_view_id, conversation_id)) =
-        create_error_child_agent_conversation_context(
-            group,
-            parent_pane_id,
-            name,
-            parent_conversation_id,
-            orchestration_harness,
-            ctx,
-        )
-    else {
-        log::error!(
-            "Failed to surface local child harness error for parent conversation {parent_conversation_id:?}: {error_message}"
-        );
-        return None;
-    };
-
-    Some(conversation_id)
-}

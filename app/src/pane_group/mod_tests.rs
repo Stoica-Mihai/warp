@@ -715,10 +715,7 @@ fn test_hidden_child_creation_applies_ambient_task_id_to_controller() {
                     parent_conversation_id,
                     orchestration_harness: None,
                     env_vars: HashMap::new(),
-                    task_context: Some(HiddenChildAgentTaskContext {
-                        task_id,
-                        working_dir: None,
-                    }),
+                    task_context: Some(HiddenChildAgentTaskContext),
                     is_shared_session_creator: IsSharedSessionCreator::No,
                 },
                 ctx,

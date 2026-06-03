@@ -2681,16 +2681,9 @@ impl PaneGroup {
         if child_conversation.is_remote_child() {
             return;
         }
-        let child_task_context =
-            child_conversation
-                .task_id()
-                .map(|task_id| HiddenChildAgentTaskContext {
-                    task_id,
-                    working_dir: child_conversation
-                        .current_working_directory()
-                        .or_else(|| child_conversation.initial_working_directory())
-                        .map(PathBuf::from),
-                });
+        let child_task_context = child_conversation
+            .task_id()
+            .map(|_| HiddenChildAgentTaskContext);
         // Restored hidden child panes don't inherit the host's shared
         // session — the host's share decision is handled at original
         // dispatch time, not on subsequent restores.
