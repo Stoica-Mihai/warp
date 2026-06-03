@@ -574,8 +574,6 @@ const SELECT_ALL_BINDING_NAME: &str = "editor_view:select_all";
 const MOVE_LINE_START_BINDING_NAME: &str = "editor_view:move_to_line_start";
 const MOVE_LINE_END_BINDING_NAME: &str = "editor_view:move_to_line_end";
 
-const DEFAULT_AI_BLOCK_HEIGHT: f32 = 96.;
-
 pub const DEFAULT_ASK_AI_AUTOSUGGESTION_TEXT: &str = "What happened here?";
 
 const WARP_MD_PATH: &str = "WARP.md";
