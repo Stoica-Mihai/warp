@@ -171,11 +171,6 @@ impl Entity for AIRequestUsageModel {
 
 pub enum AIRequestUsageModelEvent {
     RequestUsageUpdated,
-    RequestBonusRefunded {
-        requests_refunded: i32,
-        server_conversation_id: String,
-        request_id: String,
-    },
 }
 
 impl AIRequestUsageModel {
