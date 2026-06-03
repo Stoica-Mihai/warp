@@ -59,7 +59,6 @@ pub enum AmbientAgentEvent {
     /// The task was successfully spawned with the given task ID and run ID.
     TaskSpawned {
         task_id: AmbientAgentTaskId,
-        run_id: String,
     },
     /// The task state changed.
     StateChanged {
@@ -100,15 +99,15 @@ pub fn spawn_task(
     // See https://github.com/tokio-rs/async-stream/issues/63.
     async_stream::stream! {
         // First, spawn the ambient agent task.
-        let (task_id, run_id, at_capacity) = match ai_client.spawn_agent(request).await {
-            Ok(response) => (response.task_id, response.run_id, response.at_capacity),
+        let (task_id, at_capacity) = match ai_client.spawn_agent(request).await {
+            Ok(response) => (response.task_id, response.at_capacity),
             Err(err) => {
                 yield Err(err);
                 return;
             },
         };
 
-        yield Ok(AmbientAgentEvent::TaskSpawned { task_id, run_id });
+        yield Ok(AmbientAgentEvent::TaskSpawned { task_id });
 
         // Emit AtCapacity event if the server indicates capacity limit reached.
         if at_capacity {

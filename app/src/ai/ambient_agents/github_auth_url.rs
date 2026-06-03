@@ -4,16 +4,12 @@ use crate::ChannelState;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum GithubAuthRedirectTarget {
-    SettingsEnvironments,
     FocusCloudMode,
 }
 
 impl GithubAuthRedirectTarget {
     fn next_path(self) -> &'static str {
-        match self {
-            Self::SettingsEnvironments => "settings/environments",
-            Self::FocusCloudMode => "action/focus_cloud_mode",
-        }
+        "action/focus_cloud_mode"
     }
 }
 
@@ -122,21 +118,8 @@ fn build_next_url(
             let mut url = Url::parse(&ChannelState::server_root_url()).ok()?;
             url.set_query(None);
 
-            match target {
-                GithubAuthRedirectTarget::SettingsEnvironments => {
-                    url.set_path("/settings/environments");
-                    {
-                        let mut pairs = url.query_pairs_mut();
-                        pairs.append_pair("oauth", "github");
-                        if matches!(auth_source, AuthSource::CloudSetup) {
-                            pairs.append_pair("source", crate::uri::CLOUD_SETUP_SOURCE);
-                        }
-                    }
-                }
-                GithubAuthRedirectTarget::FocusCloudMode => {
-                    url.set_path("/action/focus_cloud_mode");
-                }
-            }
+            let GithubAuthRedirectTarget::FocusCloudMode = target;
+            url.set_path("/action/focus_cloud_mode");
 
             Some(url.to_string())
         }

@@ -1174,7 +1174,7 @@ impl AmbientAgentViewModel {
         ctx: &mut ModelContext<Self>,
     ) {
         match event {
-            AmbientAgentEvent::TaskSpawned { task_id, run_id: _ } => {
+            AmbientAgentEvent::TaskSpawned { task_id } => {
                 self.task_id = Some(task_id);
                 if matches!(self.status, Status::Cancelled { .. }) {
                     log::info!(
