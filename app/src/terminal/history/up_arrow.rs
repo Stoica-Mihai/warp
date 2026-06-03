@@ -73,7 +73,7 @@ fn sort_and_dedupe_suggestions<'a>(
 impl History {
     pub(crate) fn up_arrow_suggestions_for_terminal_view<'a>(
         &'a self,
-        terminal_view_id: EntityId,
+        _terminal_view_id: EntityId,
         session_id: Option<SessionId>,
         config: UpArrowHistoryConfig,
         app: &'a AppContext,

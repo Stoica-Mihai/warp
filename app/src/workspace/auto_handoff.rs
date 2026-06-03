@@ -168,20 +168,7 @@ impl AutoCloudHandoffController {
             return None;
         }
 
-        return None;
-
-        self.attempted_conversation_ids
-            .insert(conversation_id, AutoCloudHandoffAttemptState::InFlight);
-
-        log::info!(
-            "Triggering auto handoff to cloud for conversation {conversation_id:?} in window {window_id:?} via {trigger:?}"
-        );
-        Some(AutoCloudHandoffRequest {
-            workspace,
-            terminal_view_id,
-            conversation_id,
-            trigger,
-        })
+        None
     }
 
     fn last_focused_local_conversation(

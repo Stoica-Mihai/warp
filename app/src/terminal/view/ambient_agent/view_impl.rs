@@ -34,7 +34,7 @@ impl TerminalView {
     }
 
     fn active_ambient_agent_conversation_is_child(&self, ctx: &AppContext) -> bool {
-        let Some(conversation_id) = self.active_ambient_agent_conversation_id(ctx) else {
+        let Some(_conversation_id) = self.active_ambient_agent_conversation_id(ctx) else {
             return false;
         };
 
@@ -47,7 +47,7 @@ impl TerminalView {
         error_message: Option<String>,
         ctx: &mut ViewContext<Self>,
     ) {
-        let Some(conversation_id) = self.active_ambient_agent_conversation_id(ctx) else {
+        let Some(_conversation_id) = self.active_ambient_agent_conversation_id(ctx) else {
             return;
         };
 

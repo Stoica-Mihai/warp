@@ -44,18 +44,16 @@ impl TerminalView {
 
     pub(super) fn resolve_prompt_suggestion_diff(
         &mut self,
-        action: impl Into<CodeDiffAction>,
-        ctx: &mut ViewContext<Self>,
+        _action: impl Into<CodeDiffAction>,
+        _ctx: &mut ViewContext<Self>,
     ) -> bool {
-        return false;
-        #[allow(unreachable_code)]
-        let action = action.into(); let _ = action; false
+        false
     }
 
     fn resolve_unit_test_suggestion(
         &mut self,
-        resolution: PromptSuggestionResolution,
-        ctx: &mut ViewContext<Self>,
+        _resolution: PromptSuggestionResolution,
+        _ctx: &mut ViewContext<Self>,
     ) -> bool {
         false
     }

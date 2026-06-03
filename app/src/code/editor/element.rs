@@ -1343,9 +1343,6 @@ impl<V: EditorView> Element for EditorWrapper<V> {
         let gutter_width = self.size_buffer().x();
         let gutter_bounds = RectF::new(origin, vec2f(gutter_width, wrapper_size.y()));
 
-        // Track the offset and height of the gutter element under which we should render the
-        // inline comment box.
-        let mut inline_comment_gutter_element: Option<(f32, f32)> = None;
         // Track the offset and height of the gutter element for find references anchor.
         let mut find_references_gutter_element: Option<(f32, f32)> = None;
 
@@ -1420,16 +1417,6 @@ impl<V: EditorView> Element for EditorWrapper<V> {
                     element.element_type,
                     GutterElementType::HiddenSection { .. }
                 ) {
-                    // If this is the gutter element for the inline comment box,
-                    // save its position for later rendering.
-                    if self
-                        .comment_box
-                        .as_ref()
-                        .is_some_and(|cb| element.line == cb.line)
-                    {
-                        inline_comment_gutter_element = Some((gutter_y, element.height));
-                    }
-
                     // If this is the gutter element for find references anchor,
                     // save its position for caching.
                     if self
