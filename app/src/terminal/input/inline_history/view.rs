@@ -39,15 +39,9 @@ pub enum InlineHistoryMenuEvent {
         command: String,
         linked_workflow_data: Option<LinkedWorkflowData>,
     },
-    AcceptAIPrompt {
-        query_text: String,
-    },
     SelectCommand {
         command: String,
         linked_workflow_data: Option<LinkedWorkflowData>,
-    },
-    SelectAIPrompt {
-        query_text: String,
     },
     /// Emitted when a conversation row becomes selected so any previously
     /// previewed command or prompt text is cleared from the input buffer.
@@ -64,7 +58,6 @@ pub enum InlineHistoryMenuEvent {
 enum HistoryItemIdentity {
     Conversation(AIConversationId),
     Command(String),
-    AIPrompt(String),
 }
 
 impl HistoryItemIdentity {
@@ -74,7 +67,6 @@ impl HistoryItemIdentity {
                 conversation_id, ..
             } => Self::Conversation(*conversation_id),
             AcceptHistoryItem::Command { command, .. } => Self::Command(command.clone()),
-            AcceptHistoryItem::AIPrompt { query_text } => Self::AIPrompt(query_text.clone()),
         }
     }
 
@@ -88,9 +80,6 @@ impl HistoryItemIdentity {
             ) => *expected_id == *conversation_id,
             (Self::Command(expected_command), AcceptHistoryItem::Command { command, .. }) => {
                 expected_command == command
-            }
-            (Self::AIPrompt(expected_query), AcceptHistoryItem::AIPrompt { query_text }) => {
-                expected_query == query_text
             }
             _ => false,
         }
@@ -160,7 +149,6 @@ pub struct InlineHistoryMenuView {
     model: ModelHandle<InlineMenuModel<AcceptHistoryItem, HistoryTab>>,
     buffer_model: ModelHandle<InputBufferModel>,
     pending_tab_switch_selection: Option<HistoryItemIdentity>,
-    caller_supplied_tabs: bool,
     pending_initial_buffer_sync: bool,
 }
 
@@ -182,7 +170,6 @@ impl InlineHistoryMenuView {
             positioner,
             buffer_model,
             tab_configs,
-            /* caller_supplied_tabs */ false,
             ctx,
         )
     }
@@ -204,7 +191,6 @@ impl InlineHistoryMenuView {
             positioner,
             buffer_model,
             tab_configs,
-            /* caller_supplied_tabs */ true,
             ctx,
         )
     }
@@ -217,7 +203,6 @@ impl InlineHistoryMenuView {
         positioner: &ModelHandle<InlineMenuPositioner>,
         buffer_model: ModelHandle<InputBufferModel>,
         tab_configs: Vec<InlineMenuTabConfig<HistoryTab>>,
-        caller_supplied_tabs: bool,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
         let data_source = ctx
@@ -334,11 +319,6 @@ impl InlineHistoryMenuView {
                         linked_workflow_data: linked_workflow_data.clone(),
                     });
                 }
-                AcceptHistoryItem::AIPrompt { query_text } => {
-                    ctx.emit(InlineHistoryMenuEvent::AcceptAIPrompt {
-                        query_text: query_text.clone(),
-                    });
-                }
             },
             InlineMenuEvent::SelectedItem { item } => match item {
                 AcceptHistoryItem::Command {
@@ -348,11 +328,6 @@ impl InlineHistoryMenuView {
                     ctx.emit(InlineHistoryMenuEvent::SelectCommand {
                         command: command.clone(),
                         linked_workflow_data: linked_workflow_data.clone(),
-                    });
-                }
-                AcceptHistoryItem::AIPrompt { query_text } => {
-                    ctx.emit(InlineHistoryMenuEvent::SelectAIPrompt {
-                        query_text: query_text.clone(),
                     });
                 }
                 AcceptHistoryItem::Conversation { .. } => {
@@ -398,7 +373,6 @@ impl InlineHistoryMenuView {
             model,
             buffer_model,
             pending_tab_switch_selection: None,
-            caller_supplied_tabs,
             pending_initial_buffer_sync: false,
         }
     }

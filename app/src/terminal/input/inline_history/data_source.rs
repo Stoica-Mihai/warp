@@ -6,12 +6,11 @@
 //! - Commands are deduplicated, keeping the most recent occurrence
 //! - The result is that current session items appear at the bottom (closer to input)
 
-use chrono::{DateTime, Local};
-use fuzzy_match::FuzzyMatchResult;
+use chrono::Local;
 use ordered_float::OrderedFloat;
 use warpui::{AppContext, Entity, EntityId, ModelHandle, SingletonEntity};
 
-use crate::input_suggestions::{HistoryInputSuggestion, HistoryOrder};
+use crate::input_suggestions::HistoryInputSuggestion;
 use crate::search::data_source::{Query, QueryFilter, QueryResult};
 use crate::search::mixer::DataSourceRunErrorWrapper;
 use crate::search::SyncDataSource;
@@ -21,7 +20,7 @@ use crate::terminal::input::inline_menu::{
     InlineMenuAction, InlineMenuClickBehavior, InlineMenuType,
 };
 use crate::terminal::model::session::active_session::ActiveSession;
-use crate::ai::agent::conversation::{AIConversationId, ConversationStatus};
+use crate::ai::agent::conversation::AIConversationId;
 
 #[derive(Clone, Debug)]
 pub enum AcceptHistoryItem {
@@ -33,16 +32,12 @@ pub enum AcceptHistoryItem {
         command: String,
         linked_workflow_data: Option<LinkedWorkflowData>,
     },
-    AIPrompt {
-        query_text: String,
-    },
 }
 
 impl AcceptHistoryItem {
     pub fn buffer_replacement_text(&self) -> Option<&String> {
         match self {
             AcceptHistoryItem::Command { command, .. } => Some(command),
-            AcceptHistoryItem::AIPrompt { query_text } => Some(query_text),
             AcceptHistoryItem::Conversation { .. } => None,
         }
     }
@@ -54,9 +49,7 @@ impl InlineMenuAction for AcceptHistoryItem {
     fn click_behavior(&self) -> InlineMenuClickBehavior {
         match self {
             AcceptHistoryItem::Conversation { .. } => InlineMenuClickBehavior::AcceptOnClick,
-            AcceptHistoryItem::Command { .. } | AcceptHistoryItem::AIPrompt { .. } => {
-                InlineMenuClickBehavior::SelectOnClick
-            }
+            AcceptHistoryItem::Command { .. } => InlineMenuClickBehavior::SelectOnClick,
         }
     }
 }
@@ -75,60 +68,8 @@ impl InlineHistoryMenuDataSource {
         }
     }
 
-    fn build_conversation_entries(&self, _trimmed_query: &str, _app: &AppContext) -> Vec<MenuEntry> {
-        Vec::new()
-    }
 }
 
-#[derive(Clone)]
-struct MenuEntry {
-    order: HistoryOrder,
-    sort_timestamp: DateTime<Local>,
-    item: MenuItem,
-}
-
-#[derive(Clone)]
-enum MenuItem {
-    Conversation {
-        conversation_id: AIConversationId,
-        title: String,
-        status: ConversationStatus,
-        match_result: Option<FuzzyMatchResult>,
-        display_timestamp: DateTime<Local>,
-    },
-    Command {
-        command: String,
-        linked_workflow_data: Option<LinkedWorkflowData>,
-        display_timestamp: DateTime<Local>,
-        prefix_match_len: usize,
-    },
-}
-
-fn interleave_conversations(base: Vec<MenuEntry>, conversations: Vec<MenuEntry>) -> Vec<MenuEntry> {
-    let current_start_idx = base
-        .iter()
-        .position(|e| e.order == HistoryOrder::CurrentSession)
-        .unwrap_or(base.len());
-
-    let mut merged: Vec<MenuEntry> = Vec::with_capacity(base.len() + conversations.len());
-    merged.extend(base.iter().take(current_start_idx).cloned());
-
-    let base_current = base.into_iter().skip(current_start_idx).collect::<Vec<_>>();
-    let mut conversations = conversations;
-    conversations.sort_by(|a, b| a.sort_timestamp.cmp(&b.sort_timestamp));
-
-    let mut i = 0;
-    for conv in conversations {
-        while i < base_current.len() && base_current[i].sort_timestamp < conv.sort_timestamp {
-            merged.push(base_current[i].clone());
-            i += 1;
-        }
-        merged.push(conv);
-    }
-    merged.extend(base_current.into_iter().skip(i));
-
-    merged
-}
 
 impl SyncDataSource for InlineHistoryMenuDataSource {
     type Action = AcceptHistoryItem;
@@ -145,89 +86,38 @@ impl SyncDataSource for InlineHistoryMenuDataSource {
 
         let include_commands =
             query.filters.is_empty() || query.filters.contains(&QueryFilter::Commands);
-        let include_conversations =
-            query.filters.is_empty() || query.filters.contains(&QueryFilter::Conversations);
 
         let history = History::handle(app).as_ref(app);
-        let all_live_session_ids = history.all_live_session_ids();
-
-        let command_entries = if include_commands {
-            history
-                .up_arrow_suggestions_for_terminal_view(
-                    self.terminal_view_id,
-                    session_id,
-                    UpArrowHistoryConfig {
-                        include_commands: true,
-                        include_prompts: false,
-                    },
-                    app,
-                )
-                .into_iter()
-                .filter_map(|suggestion| {
-                    let HistoryInputSuggestion::Command { entry } = &suggestion;
-
-                    let command = entry.command.trim();
-                    if command.is_empty() {
-                        return None;
-                    }
-                    if !trimmed_query.is_empty() && !command.starts_with(trimmed_query) {
-                        return None;
-                    }
-
-                    let order = suggestion.history_order(session_id, &all_live_session_ids);
-                    let sort_timestamp = entry.start_ts.unwrap_or_default();
-                    let display_timestamp = entry.start_ts.unwrap_or_else(Local::now);
-
-                    Some(MenuEntry {
-                        order,
-                        sort_timestamp,
-                        item: MenuItem::Command {
-                            command: command.to_string(),
-                            linked_workflow_data: entry.linked_workflow_data(),
-                            display_timestamp,
-                            prefix_match_len,
-                        },
-                    })
-                })
-                .collect::<Vec<_>>()
-        } else {
-            Vec::new()
-        };
-
-        let conversation_entries = if include_conversations {
-            self.build_conversation_entries(trimmed_query, app)
-        } else {
-            Vec::new()
-        };
-        let merged_entries = interleave_conversations(command_entries, conversation_entries);
 
         let mut results: Vec<QueryResult<AcceptHistoryItem>> = Vec::new();
-        for entry in merged_entries {
-            let score = OrderedFloat(results.len() as f64);
-            let search_item = match entry.item {
-                MenuItem::Conversation {
-                    conversation_id,
-                    title,
-                    status,
-                    match_result,
-                    display_timestamp,
-                } => InlineHistoryItem::conversation(
-                    conversation_id,
-                    title,
-                    status,
+        if include_commands {
+            for suggestion in history.up_arrow_suggestions_for_terminal_view(
+                self.terminal_view_id,
+                session_id,
+                UpArrowHistoryConfig {
+                    include_commands: true,
+                    include_prompts: false,
+                },
+                app,
+            ) {
+                let HistoryInputSuggestion::Command { entry } = &suggestion;
+                let command = entry.command.trim();
+                if command.is_empty() {
+                    continue;
+                }
+                if !trimmed_query.is_empty() && !command.starts_with(trimmed_query) {
+                    continue;
+                }
+                let display_timestamp = entry.start_ts.unwrap_or_else(Local::now);
+                let search_item = InlineHistoryItem::command(
+                    command.to_string(),
+                    entry.linked_workflow_data(),
                     display_timestamp,
                 )
-                .with_name_match_result(match_result),
-                MenuItem::Command {
-                    command,
-                    linked_workflow_data,
-                    display_timestamp,
-                    prefix_match_len,
-                } => InlineHistoryItem::command(command, linked_workflow_data, display_timestamp)
-                    .with_prefix_match_len(prefix_match_len),
-            };
-
-            results.push(QueryResult::from(search_item.with_score(score)));
+                .with_prefix_match_len(prefix_match_len);
+                let score = OrderedFloat(results.len() as f64);
+                results.push(QueryResult::from(search_item.with_score(score)));
+            }
         }
 
         Ok(results)

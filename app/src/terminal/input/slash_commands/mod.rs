@@ -38,7 +38,7 @@ use crate::terminal::input::slash_command_model::{
     SlashCommandEntryState, UpdatedSlashCommandModel,
 };
 use crate::terminal::input::{
-    CompletionsTrigger, Event, Input, InputAction, InputSuggestionsMode, UserQueryMenuAction,
+    CompletionsTrigger, Event, Input, InputSuggestionsMode, UserQueryMenuAction,
 };
 #[cfg(feature = "local_fs")]
 use crate::terminal::model::session::Session;
@@ -400,21 +400,7 @@ impl Input {
                 });
             }
             _conversations if command.name == commands::CONVERSATIONS.name => {
-                if false {
-                    self.suggestions_mode_model.update(ctx, |model, ctx| {
-                        model.set_mode(InputSuggestionsMode::Closed, ctx);
-                    });
-                    self.clear_buffer_and_reset_undo_stack(ctx);
-                    if let Some(view) = self.cloud_mode_v2_history_menu_view.clone() {
-                        view.update(ctx, |v, ctx| {
-                            v.arm_initial_buffer_sync(ctx);
-                        });
-                    }
-                    ctx.dispatch_typed_action_deferred(InputAction::OpenInlineHistoryMenu);
-                    return true;
-                } else {
-                    ctx.dispatch_typed_action(&TerminalAction::OpenConversationsPalette);
-                }
+                ctx.dispatch_typed_action(&TerminalAction::OpenConversationsPalette);
             }
             _rename_tab if command.name == commands::RENAME_TAB.name => {
                 let Some(name) = argument
