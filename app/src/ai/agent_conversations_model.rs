@@ -4,7 +4,7 @@ pub mod entry;
 use std::collections::{HashMap, HashSet};
 use std::time::Duration;
 
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use clap::ValueEnum;
 pub use entry::{
     AgentConversationEntry, AgentConversationEntryId, AgentConversationNavigationSubject,
@@ -51,8 +51,6 @@ use crate::ui_components::icons::Icon;
 use crate::workspace::{RestoreConversationLayout, WorkspaceAction};
 
 const POLLING_INTERVAL: Duration = Duration::from_secs(30);
-const RTC_TASK_REFRESH_THROTTLE: Duration = Duration::from_secs(5);
-const INITIAL_TASK_AMOUNT: i32 = 100;
 
 /// How long to skip refetching a task that just failed with a transient error
 /// (5xx / 408 / 429 / network). Short cooldown — `spawn_with_retry_on_error_when` already
@@ -86,40 +84,8 @@ enum TaskFetchState {
     TransientlyFailed { at: Instant, message: String },
 }
 
-/// Tracks the cooldown window for RTC-triggered task-list refreshes. Pending events keep
-/// the earliest timestamp in the burst because `updated_after` is a lower bound; using the
-/// latest timestamp could skip tasks that changed earlier in the same window.
-#[derive(Default)]
-enum RtcTaskRefreshThrottleState {
-    #[default]
-    Idle,
-    CoolingDown {
-        pending_timestamp: Option<DateTime<Utc>>,
-        timer_abort_handle: AbortHandle,
-    },
-}
 
-fn record_earliest_rtc_task_refresh_timestamp(
-    pending_timestamp: &mut Option<DateTime<Utc>>,
-    timestamp: DateTime<Utc>,
-) {
-    match pending_timestamp {
-        Some(existing_timestamp) if timestamp < *existing_timestamp => {
-            *existing_timestamp = timestamp;
-        }
-        None => {
-            *pending_timestamp = Some(timestamp);
-        }
-        Some(_) => {}
-    }
-}
 
-/// Protected eviction: we'll always keep at least 200 personal tasks in the model.
-/// This is so that whenever we evict stale tasks, we do not evict relevant, recent personal tasks
-/// (e.g. if I load in 500 team Slack tasks from today, we should _not_ evict my personal conversation
-/// from yesterday).
-const MAX_PERSONAL_TASKS: usize = 200;
-const MAX_TEAM_TASKS: usize = 300;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum SessionStatus {
@@ -515,10 +481,6 @@ pub struct AgentConversationsModel {
     /// the meaning of each variant. Tasks that have been successfully fetched live in `tasks`
     /// and are absent from this map.
     task_fetch_state: HashMap<AmbientAgentTaskId, TaskFetchState>,
-    rtc_task_refresh_throttle_state: RtcTaskRefreshThrottleState,
-    /// Earliest RTC timestamp received while no list surface was open.
-    /// On next `register_view_open`, triggers a single `fetch_tasks_updated_after`.
-    dirty_since: Option<DateTime<Utc>>,
 }
 
 pub enum AgentConversationsModelEvent {
@@ -565,8 +527,7 @@ impl AgentConversationsModel {
                 active_data_consumers_per_window: HashMap::new(),
                 has_finished_initial_load: true,
                 task_fetch_state: HashMap::new(),
-                rtc_task_refresh_throttle_state: RtcTaskRefreshThrottleState::default(),
-                dirty_since: None,
+
             };
         }
 
@@ -584,8 +545,6 @@ impl AgentConversationsModel {
             active_data_consumers_per_window: HashMap::new(),
             has_finished_initial_load: false,
             task_fetch_state: HashMap::new(),
-            rtc_task_refresh_throttle_state: RtcTaskRefreshThrottleState::default(),
-            dirty_since: None,
         };
 
         // Only sync local conversations if we're not in CLI mode. Server-side data
@@ -632,104 +591,6 @@ impl AgentConversationsModel {
     }
 
 
-    // Handle RTC invalidations for list views, respecting the refresh throttling.
-    fn handle_rtc_for_list_views(
-        &mut self,
-        timestamp: DateTime<Utc>,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        match std::mem::take(&mut self.rtc_task_refresh_throttle_state) {
-            RtcTaskRefreshThrottleState::Idle => {
-                self.fetch_tasks_updated_after(timestamp, ctx);
-                self.start_rtc_task_refresh_throttle_timer(ctx);
-            }
-            RtcTaskRefreshThrottleState::CoolingDown {
-                mut pending_timestamp,
-                timer_abort_handle,
-            } => {
-                record_earliest_rtc_task_refresh_timestamp(&mut pending_timestamp, timestamp);
-                self.rtc_task_refresh_throttle_state = RtcTaskRefreshThrottleState::CoolingDown {
-                    pending_timestamp,
-                    timer_abort_handle,
-                };
-            }
-        }
-    }
-
-    fn start_rtc_task_refresh_throttle_timer(&mut self, ctx: &mut ModelContext<Self>) {
-        let future_handle = ctx.spawn(
-            async move {
-                Timer::after(RTC_TASK_REFRESH_THROTTLE).await;
-            },
-            |model, _, ctx| {
-                let pending_timestamp =
-                    match std::mem::take(&mut model.rtc_task_refresh_throttle_state) {
-                        RtcTaskRefreshThrottleState::Idle => None,
-                        RtcTaskRefreshThrottleState::CoolingDown {
-                            pending_timestamp, ..
-                        } => pending_timestamp,
-                    };
-
-                if let Some(timestamp) = pending_timestamp {
-                    model.fetch_tasks_updated_after(timestamp, ctx);
-                    model.start_rtc_task_refresh_throttle_timer(ctx);
-                }
-            },
-        );
-        self.rtc_task_refresh_throttle_state = RtcTaskRefreshThrottleState::CoolingDown {
-            pending_timestamp: None,
-            timer_abort_handle: future_handle.abort_handle(),
-        };
-    }
-
-    fn abort_rtc_task_refresh_throttle(&mut self) {
-        if let RtcTaskRefreshThrottleState::CoolingDown {
-            timer_abort_handle, ..
-        } = std::mem::take(&mut self.rtc_task_refresh_throttle_state)
-        {
-            timer_abort_handle.abort();
-        }
-    }
-
-    /// Fetch tasks updated after the given timestamp (minus 1 second buffer since server uses `>` not `>=`).
-    fn fetch_tasks_updated_after(
-        &mut self,
-        timestamp: DateTime<Utc>,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let ai_client = ServerApiProvider::as_ref(ctx).get_ai_client();
-
-        // Subtract 1 second to give buffer for clock differences with server
-        let updated_after = timestamp - chrono::Duration::seconds(1);
-        // Reset `dirty_since` now that we are doing a fetch.
-        self.dirty_since = None;
-
-        ctx.spawn_with_retry_on_error(
-            move || {
-                let ai_client = ai_client.clone();
-                async move {
-                    ai_client
-                        .list_ambient_agent_tasks(
-                            INITIAL_TASK_AMOUNT,
-                            TaskListFilter {
-                                updated_after: Some(updated_after),
-                                ..Default::default()
-                            },
-                        )
-                        .await
-                }
-            },
-            OUT_OF_BAND_REQUEST_RETRY_STRATEGY,
-            |model, result, ctx| {
-                if let RequestState::RequestSucceeded(tasks) = result {
-                    model.update_model_with_new_tasks(tasks, ctx);
-                } else if let RequestState::RequestFailed(e) = result {
-                    report_error!(e);
-                }
-            },
-        );
-    }
-
     /// Sync all conversations to the AgentConversationsModel.
     ///
     /// This function will loop through all active panes, recently closed panes, and historical
@@ -764,11 +625,6 @@ impl AgentConversationsModel {
             .or_default()
             .insert(view_id);
         self.update_polling_state(ctx);
-
-        // Flush dirty tasks accumulated while no list surface was open.
-        if let Some(dirty_since) = self.dirty_since.take() {
-            self.fetch_tasks_updated_after(dirty_since, ctx);
-        }
     }
 
     /// Called when a view that consumes this model's data becomes hidden.
@@ -1372,99 +1228,14 @@ impl AgentConversationsModel {
         }
     }
 
-    /// Fetches tasks matching the given filters from the server, merges them into the model,
-    /// and enforces the task cap. Called when user changes filters in AgentManagementView.
-    pub fn fetch_tasks_for_filters(
-        &mut self,
-        filters: &AgentManagementFilters,
-        current_user_uid: &str,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let ai_client = ServerApiProvider::handle(ctx).as_ref(ctx).get_ai_client();
-        let task_filter = self.build_task_list_filter(filters, current_user_uid);
-        let current_user_uid = current_user_uid.to_string();
-
-        ctx.spawn_with_retry_on_error(
-            move || {
-                let ai_client = ai_client.clone();
-                let task_filter = task_filter.clone();
-                async move {
-                    ai_client
-                        .list_ambient_agent_tasks(INITIAL_TASK_AMOUNT, task_filter)
-                        .await
-                }
-            },
-            OUT_OF_BAND_REQUEST_RETRY_STRATEGY,
-            move |model, result, ctx| {
-                if let RequestState::RequestSucceeded(tasks) = result {
-                    // Merge results into model
-                    let mut has_new_tasks = false;
-                    let mut has_updated_tasks = false;
-
-                    for task in tasks {
-                        let task_id = task.task_id;
-                        match model.tasks.get(&task_id) {
-                            Some(existing_task) => {
-                                if existing_task != &task {
-                                    has_updated_tasks = true;
-                                }
-                            }
-                            None => has_new_tasks = true,
-                        };
-                        model.tasks.insert(task_id, task);
-                    }
-
-                    // Enforce task cap
-                    model.enforce_task_cap(&current_user_uid);
-
-                    // Emit appropriate event
-                    if has_new_tasks {
-                        ctx.emit(AgentConversationsModelEvent::NewTasksReceived);
-                    } else if has_updated_tasks {
-                        ctx.emit(AgentConversationsModelEvent::TasksUpdated);
-                    }
-                } else if let RequestState::RequestFailed(e) = result {
-                    report_error!(e);
-                }
-            },
-        );
-    }
-
-    /// Enforces cap on tasks stored in the model so it doesn't grow without bound.
-    /// We always keep at least 200 personal tasks around so an influx of team tasks
-    /// doesn't result in evicting personal task data.
-    fn enforce_task_cap(&mut self, current_user_uid: &str) {
-        let total_cap = MAX_PERSONAL_TASKS + MAX_TEAM_TASKS;
-        if self.tasks.len() <= total_cap {
-            return;
-        }
-
-        let (mut personal, mut team): (Vec<_>, Vec<_>) =
-            self.tasks.drain().partition(|(_, task)| {
-                task.creator
-                    .as_ref()
-                    .is_some_and(|c| c.uid == current_user_uid)
-            });
-
-        // Sort each by updated_at (newest first), truncate
-        personal.sort_by(|a, b| b.1.updated_at.cmp(&a.1.updated_at));
-        team.sort_by(|a, b| b.1.updated_at.cmp(&a.1.updated_at));
-        personal.truncate(MAX_PERSONAL_TASKS);
-        team.truncate(MAX_TEAM_TASKS);
-
-        self.tasks = personal.into_iter().chain(team).collect();
-    }
-
     /// Clears all stored conversation and task data in memory.
     /// This is used when logging out to ensure no conversation history persists across users.
     pub(crate) fn reset(&mut self) {
         self.tasks.clear();
         self.conversations.clear();
         self.abort_existing_poll();
-        self.abort_rtc_task_refresh_throttle();
         self.active_data_consumers_per_window.clear();
         self.task_fetch_state.clear();
-        self.dirty_since = None;
         // Reset the initial load flag so that we can retry the initial sync with the new logged in user
         self.has_finished_initial_load = false;
     }
