@@ -194,8 +194,8 @@ use super::{cli_agent, CLIAgent, GridType};
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::conversation::{AIConversation, AIConversationId};
 use crate::ai::agent::{
-    AIAgentActionId, AIAgentExchangeId, AIAgentOutputStatus, AIAgentPtyWriteMode,
-    AgentReviewCommentBatch, FileLocations, FinishedAIAgentOutput, RenderableAIError,
+    AIAgentActionId, AIAgentExchangeId, AIAgentPtyWriteMode,
+    AgentReviewCommentBatch, FileLocations,
     ServerOutputId,
 };
 #[cfg(feature = "local_fs")]
@@ -18314,12 +18314,6 @@ impl View for TerminalView {
     }
 }
 
-/// Readable summary for an AI block.
-struct AIBlockNotificationSummary {
-    title: String,
-    description: String,
-    success: bool,
-}
 
 /// A menu positioning provider for when the input is rendered within the terminal.
 struct TerminalViewMenuPositioningProvider {
@@ -18625,57 +18619,6 @@ fn is_rich_input_chip_in_cli_toolbar(app: &AppContext) -> bool {
         .iter()
         .chain(sel.right_items().iter())
         .any(|item| matches!(item, AgentToolbarItemKind::RichInput))
-}
-
-pub(crate) fn fork_from_last_known_good_state_exchange_id(
-    active_conversation: &AIConversation,
-    terminal_model: &TerminalModel,
-) -> Option<AIAgentExchangeId> {
-    if !should_fork_from_last_known_good_state(active_conversation, terminal_model) {
-        return None;
-    }
-
-    active_conversation
-        .exchanges_reversed()
-        .filter(|exchange| exchange.has_user_query())
-        .skip(1)
-        .find(|exchange| exchange.output_status.is_finished_and_successful())
-        .map(|exchange| exchange.id)
-}
-
-fn should_fork_from_last_known_good_state(
-    active_conversation: &AIConversation,
-    terminal_model: &TerminalModel,
-) -> bool {
-    if terminal_model.is_conversation_transcript_viewer()
-        || active_conversation.is_viewing_shared_session()
-    {
-        return false;
-    }
-
-    let Some(latest_exchange) = active_conversation.latest_exchange() else {
-        return false;
-    };
-
-    let error = match &latest_exchange.output_status {
-        AIAgentOutputStatus::Finished {
-            finished_output: FinishedAIAgentOutput::Error { error, .. },
-        } => error,
-        _ => return false,
-    };
-
-    match error {
-        RenderableAIError::QuotaLimit { .. }
-        | RenderableAIError::ServerOverloaded
-        | RenderableAIError::ContextWindowExceeded(_)
-        | RenderableAIError::InvalidApiKey { .. }
-        | RenderableAIError::AwsBedrockCredentialsExpiredOrInvalid { .. } => false,
-        RenderableAIError::InternalWarpError => true,
-        RenderableAIError::Other {
-            will_attempt_resume,
-            ..
-        } => !will_attempt_resume,
-    }
 }
 
 #[cfg(test)]
