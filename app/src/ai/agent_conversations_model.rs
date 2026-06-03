@@ -554,21 +554,6 @@ impl AgentConversationsModel {
         ctx.emit(AgentConversationsModelEvent::ConversationsLoaded);
     }
 
-    /// Called when a view that consumes this model's data becomes visible.
-    /// Uses view_id to make registration idempotent.
-    pub fn register_view_open(
-        &mut self,
-        window_id: WindowId,
-        view_id: EntityId,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        self.active_data_consumers_per_window
-            .entry(window_id)
-            .or_default()
-            .insert(view_id);
-        self.update_polling_state(ctx);
-    }
-
     /// Called when a view that consumes this model's data becomes hidden.
     /// Uses view_id to make unregistration idempotent.
     pub fn register_view_closed(

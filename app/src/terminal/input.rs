@@ -404,7 +404,6 @@ const CLOUD_HANDOFF_INPUT_PREFIX: &str = "&";
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum InputPrefixMode {
     None,
-    Shell,
     CloudHandoff,
 }
 
@@ -7815,15 +7814,6 @@ impl Input {
             InputPrefixMode::CloudHandoff => {
                 self.exit_cloud_handoff_compose(ctx);
                 ctx.notify();
-                return;
-            }
-            InputPrefixMode::Shell => {
-                let is_cli_agent_input_open =
-                    CLIAgentSessionsModel::as_ref(ctx).is_input_open(self.terminal_view_id);
-                if is_cli_agent_input_open {
-                    self.exit_shell_mode_to_ai(ctx);
-                    ctx.notify();
-                }
                 return;
             }
             InputPrefixMode::None => {}
