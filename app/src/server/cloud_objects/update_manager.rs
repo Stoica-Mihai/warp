@@ -3,7 +3,7 @@ use std::future::Future;
 use std::sync::mpsc::SyncSender;
 use std::sync::Arc;
 
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use futures::channel::oneshot::{self, Receiver};
 use regex::Regex;
 use warp_graphql::scalars::time::ServerTimestamp;
@@ -16,7 +16,6 @@ use warpui::{
 use crate::ai::ambient_agents::scheduled::{
     CloudScheduledAmbientAgentModel, ScheduledAmbientAgent,
 };
-use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::cloud_environments::{AmbientAgentEnvironment, CloudAmbientAgentEnvironmentModel};
 use crate::ai::facts::{AIFact, CloudAIFactModel};
 #[cfg(not(target_family = "wasm"))]
@@ -93,10 +92,14 @@ pub enum UpdateManagerEvent {
     ObjectOperationComplete {
         result: ObjectOperationResult,
     },
-    AmbientTaskUpdated {
-        task_id: AmbientAgentTaskId,
-        timestamp: DateTime<Utc>,
-    },
+}
+
+impl UpdateManagerEvent {
+    pub fn result(&self) -> &ObjectOperationResult {
+        match self {
+            UpdateManagerEvent::ObjectOperationComplete { result } => result,
+        }
+    }
 }
 
 /// An enum for choosing the behavior of the fetch_single_cloud_object function.
@@ -348,21 +351,6 @@ impl UpdateManager {
         self.update_object(
             CloudEnvVarCollectionModel::new(env_var_collection),
             env_var_collection_id,
-            revision_ts,
-            ctx,
-        );
-    }
-
-    pub fn update_ambient_agent_environment(
-        &mut self,
-        environment: AmbientAgentEnvironment,
-        environment_id: SyncId,
-        revision_ts: Option<Revision>,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        self.update_object(
-            CloudAmbientAgentEnvironmentModel::new(environment),
-            environment_id,
             revision_ts,
             ctx,
         );

@@ -384,9 +384,7 @@ impl CloudViewModel {
         event: &UpdateManagerEvent,
         ctx: &mut ModelContext<Self>,
     ) {
-        let UpdateManagerEvent::ObjectOperationComplete { result } = event else {
-            return;
-        };
+        let result = event.result();
 
         if result.success_type != OperationSuccessType::Success {
             return;

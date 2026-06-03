@@ -283,9 +283,7 @@ impl AIDocumentModel {
         event: &UpdateManagerEvent,
         ctx: &mut ModelContext<Self>,
     ) {
-        let UpdateManagerEvent::ObjectOperationComplete { result } = event else {
-            return;
-        };
+        let result = event.result();
         if !matches!(result.operation, ObjectOperation::Create { .. })
             || result.success_type != OperationSuccessType::Success
         {

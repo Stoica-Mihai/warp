@@ -109,9 +109,7 @@ impl ActiveNotebookData {
         event: &UpdateManagerEvent,
         ctx: &mut ModelContext<Self>,
     ) {
-        let UpdateManagerEvent::ObjectOperationComplete { result } = event else {
-            return;
-        };
+        let result = event.result();
 
         match (&result.operation, &result.success_type) {
             (ObjectOperation::Create { .. }, OperationSuccessType::Success) => {

@@ -41,7 +41,6 @@ use crate::ai::conversation_navigation::ConversationNavigationData;
 use crate::auth::AuthStateProvider;
 use crate::cloud_object::CloudObjectLookup as _;
 use crate::network::{NetworkStatus, NetworkStatusEvent, NetworkStatusKind};
-use crate::server::cloud_objects::update_manager::{UpdateManagerEvent};
 use crate::server::ids::{ServerId, SyncId};
 use crate::server::retry_strategies::{
     is_transient_http_error, OUT_OF_BAND_REQUEST_RETRY_STRATEGY, PERIODIC_POLL_RETRY_STRATEGY,
@@ -632,31 +631,6 @@ impl AgentConversationsModel {
         }
     }
 
-    fn handle_update_manager_event(
-        &mut self,
-        event: &UpdateManagerEvent,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let UpdateManagerEvent::AmbientTaskUpdated {
-            task_id: _,
-            timestamp,
-        } = event
-        else {
-            return;
-        };
-
-        let has_list_consumers = self
-            .active_data_consumers_per_window
-            .values()
-            .any(|views| !views.is_empty());
-        if has_list_consumers {
-            // (a) If management view or conversation list is open, throttled list-fetch.
-            self.handle_rtc_for_list_views(*timestamp, ctx);
-        } else {
-            // No list surface open: record earliest timestamp for flush on next view open.
-            record_earliest_rtc_task_refresh_timestamp(&mut self.dirty_since, *timestamp);
-        }
-    }
 
     // Handle RTC invalidations for list views, respecting the refresh throttling.
     fn handle_rtc_for_list_views(
