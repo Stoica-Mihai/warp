@@ -4,7 +4,6 @@ use crate::cloud_object::model::generic_string_model::GenericStringObjectId;
 use crate::cloud_object::{GenericStringObjectFormat, ObjectType, Space};
 use crate::drive::CloudObjectTypeAndId;
 use crate::server::ids::{ObjectUid, ServerId};
-use crate::workflows::{WorkflowId, WorkflowSelectionSource, WorkflowSource};
 
 // For use when recording what type of cloud object a particular telemetry is for.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -63,18 +62,6 @@ pub struct CloudObjectTelemetryMetadata {
     /// If the object is owned by a team, this is the owning team's UID. For shared objects, the
     /// user might not be on the team.
     pub team_uid: Option<ServerId>,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct WorkflowTelemetryMetadata {
-    pub workflow_categories: Option<Vec<String>>,
-    pub workflow_source: WorkflowSource,
-    pub workflow_space: Option<TelemetrySpace>,
-    pub workflow_selection_source: WorkflowSelectionSource,
-    // This field is only populated for cloud workflows that have been synced to the server
-    pub workflow_id: Option<WorkflowId>,
-    // Any referenced workflow enums that have been synced to the cloud
-    pub enum_ids: Vec<GenericStringObjectId>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]

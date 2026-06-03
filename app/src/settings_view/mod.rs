@@ -80,10 +80,6 @@ pub(crate) mod settings_page;
 mod show_blocks_view;
 mod warpify_page;
 
-#[cfg(not(target_family = "wasm"))]
-pub(crate) fn cli_agent_settings_widget_id() -> &'static str {
-    "cli_agent_settings"
-}
 pub fn create_discount_badge(discount: u32, appearance: &Appearance) -> Box<dyn Element> {
     use warpui::elements::{CornerRadius, Radius, Text};
     if discount == 0 {

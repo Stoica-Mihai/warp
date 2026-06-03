@@ -219,9 +219,7 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::DirectoryTabColors,
         #[cfg(feature = "open_warp_new_settings_modes")]
         FeatureFlag::OpenWarpNewSettingsModes,
-        #[cfg(feature = "hoa_code_review")]
-        FeatureFlag::HoaCodeReview,
-        #[cfg(feature = "vertical_tabs")]
+#[cfg(feature = "vertical_tabs")]
         FeatureFlag::VerticalTabs,
         #[cfg(feature = "vertical_tabs_summary_mode")]
         FeatureFlag::VerticalTabsSummaryMode,

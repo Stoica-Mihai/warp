@@ -12,7 +12,3 @@ pub(crate) fn local_child_harness_disabled_message(harness: Harness) -> Option<&
         Harness::Oz | Harness::OpenCode | Harness::Gemini | Harness::Unknown => None,
     }
 }
-
-pub(crate) fn local_child_harness_is_enabled(harness: Harness) -> bool {
-    local_child_harness_disabled_message(harness).is_none()
-}

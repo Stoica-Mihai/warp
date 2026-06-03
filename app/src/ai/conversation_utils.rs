@@ -13,12 +13,3 @@ pub fn delete_conversation(
         model.sync_conversations(ctx);
     });
 }
-
-/// Remove an ephemeral/empty conversation.
-pub fn remove_conversation(
-    _conversation_id: AIConversationId,
-    _terminal_view_id: EntityId,
-    _delete_from_cloud: bool,
-    _ctx: &mut AppContext,
-) {
-}

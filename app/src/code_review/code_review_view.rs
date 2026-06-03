@@ -2981,7 +2981,6 @@ impl CodeReviewView {
         if file.file_diff.is_binary {
             None
         } else {
-            let self_handle = ctx.handle();
             let code_editor_view = ctx.add_typed_action_view(|ctx| {
                 let mut editor_view = CodeEditorView::new(
                     None,
@@ -3023,16 +3022,8 @@ impl CodeReviewView {
             });
 
             let local_code_view = ctx.add_typed_action_view(|ctx| {
-                let mut local_code_view =
+                let local_code_view =
                     LocalCodeEditorView::new(code_editor_view, None, false, None, ctx);
-                if FeatureFlag::HoaCodeReview.is_enabled() {
-                    local_code_view =
-                        local_code_view.with_selection_as_context(Box::new(move |_, app| {
-                            self_handle.upgrade(app).and_then(|code_review_view| {
-                                code_review_view.as_ref(app).terminal_view(app)
-                            })
-                        }));
-                }
                 // Deleted files have no file backing — no FileModel, no GlobalBufferModel.
                 // file_id() will be None for these editors; no downstream code in code_review
                 // relies on file_id for deleted entries (save/conflict flows early-return on None).

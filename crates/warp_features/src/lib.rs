@@ -413,12 +413,6 @@ pub enum FeatureFlag {
     /// Enables vertical tab layout as an alternative to the horizontal tab bar.
     VerticalTabs,
 
-    /// Enables attaching code review comments, diff hunk, and attach as context
-    /// from code review + code editor for House Of Agents work
-    HoaCodeReview,
-
-
-
     /// Enables the upgraded CLI agent session tracking and notifications infrastructure.
     HOANotifications,
 
