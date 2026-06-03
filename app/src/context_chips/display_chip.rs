@@ -1004,7 +1004,7 @@ impl DisplayChip {
         row.finish()
     }
 
-    pub fn should_render(&self, app: &AppContext) -> bool {
+    pub fn should_render(&self, _app: &AppContext) -> bool {
         match &self.display_chip_kind {
             _ => true,
         }

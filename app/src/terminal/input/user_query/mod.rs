@@ -2,7 +2,6 @@
 //! Used by the `/fork-from` slash command to let users select which query to fork from.
 
 mod data_source;
-mod search_item;
 mod view;
 
 pub use data_source::SelectUserQuery;

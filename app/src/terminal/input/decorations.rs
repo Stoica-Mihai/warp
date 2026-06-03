@@ -149,7 +149,7 @@ impl Input {
             return;
         }
 
-        let mut mode = mode;
+        let mode = mode;
 
         match self.completion_session_context_or_empty_context(ctx) {
             CompletionSessionContext::Session(completion_context) => {

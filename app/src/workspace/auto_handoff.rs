@@ -151,9 +151,9 @@ impl AutoCloudHandoffController {
             return None;
         }
 
-        let (terminal_view_id, conversation_id) = Self::last_focused_local_conversation(ctx)?;
+        let (terminal_view_id, _conversation_id) = Self::last_focused_local_conversation(ctx)?;
 
-        let (window_id, workspace, terminal_view) =
+        let (_window_id, _workspace, terminal_view) =
             Self::find_workspace_and_terminal(terminal_view_id, ctx)?;
 
         if terminal_view

@@ -4,7 +4,6 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use warp_cli::agent::Harness;
-use warp_core::features::FeatureFlag;
 use warp_core::ui::appearance::Appearance;
 use warp_terminal::model::BlockId;
 use warpui::elements::Align;
@@ -349,8 +348,8 @@ impl TerminalView {
     /// agent view has exited so the resulting rich content is scoped to the terminal-level.
     pub(in crate::terminal::view) fn enter_cloud_mode_from_session(
         &mut self,
-        initial_prompt: Option<String>,
-        ctx: &mut ViewContext<Self>,
+        _initial_prompt: Option<String>,
+        _ctx: &mut ViewContext<Self>,
     ) {
         return;
     }

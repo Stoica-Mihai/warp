@@ -278,7 +278,7 @@ impl TerminalView {
         ai_block_view_id: EntityId,
         ai_exchange_id: AIAgentExchangeId,
         ai_conversation_id: AIConversationId,
-        is_restored: bool,
+        _is_restored: bool,
         ctx: &mut ViewContext<Self>,
     ) {
         let mut menu_items = {

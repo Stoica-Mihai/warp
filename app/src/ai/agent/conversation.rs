@@ -716,8 +716,8 @@ impl AIConversation {
         &mut self,
         status: ConversationStatus,
         error_message: Option<String>,
-        terminal_view_id: EntityId,
-        ctx: &mut ModelContext<()>,
+        _terminal_view_id: EntityId,
+        _ctx: &mut ModelContext<()>,
     ) {
         self.status_error_message = if matches!(&status, ConversationStatus::Error) {
             error_message.filter(|message| !message.trim().is_empty())
@@ -1179,8 +1179,8 @@ impl AIConversation {
         &mut self,
         exchange_id: AIAgentExchangeId,
         is_hidden: bool,
-        terminal_view_id: EntityId,
-        ctx: &mut ModelContext<()>,
+        _terminal_view_id: EntityId,
+        _ctx: &mut ModelContext<()>,
     ) {
         // If the status is not being modified, return.
         if is_hidden == self.hidden_exchanges.contains(&exchange_id) {
@@ -1307,7 +1307,7 @@ impl AIConversation {
     pub fn add_artifact(
         &mut self,
         artifact: Artifact,
-        terminal_view_id: EntityId,
+        _terminal_view_id: EntityId,
         ctx: &mut ModelContext<()>,
     ) {
         self.artifacts.push(artifact.clone());
@@ -1319,7 +1319,7 @@ impl AIConversation {
         &mut self,
         document_uid: AIDocumentId,
         notebook_uid: NotebookId,
-        terminal_view_id: Option<EntityId>,
+        _terminal_view_id: Option<EntityId>,
         ctx: &mut ModelContext<()>,
     ) {
         let document_uid = document_uid.to_string();
@@ -1448,8 +1448,8 @@ impl AIConversation {
         &mut self,
         request_input: RequestInput,
         stream_id: ResponseStreamId,
-        terminal_view_id: EntityId,
-        ctx: &mut ModelContext<()>,
+        _terminal_view_id: EntityId,
+        _ctx: &mut ModelContext<()>,
     ) -> Result<(), UpdateConversationError> {
         if let Some(request_info) = self.added_exchanges_by_response.remove(&stream_id) {
             log::error!(
@@ -1513,8 +1513,8 @@ impl AIConversation {
         &mut self,
         response_stream_id: &ResponseStreamId,
         exchange: AIAgentExchange,
-        terminal_view_id: EntityId,
-        ctx: &mut ModelContext<()>,
+        _terminal_view_id: EntityId,
+        _ctx: &mut ModelContext<()>,
     ) -> Result<(), UpdateConversationError> {
         let root_task_id = self.task_store.root_task_id().clone();
         let exchange_id = exchange.id;
@@ -1611,8 +1611,8 @@ impl AIConversation {
         &mut self,
         stream_id: &ResponseStreamId,
         init_event: warp_multi_agent_api::response_event::StreamInit,
-        terminal_view_id: EntityId,
-        ctx: &mut ModelContext<()>,
+        _terminal_view_id: EntityId,
+        _ctx: &mut ModelContext<()>,
     ) -> Result<(), UpdateConversationError> {
         let Some(new_exchanges) = self.added_exchanges_by_response.get(stream_id).cloned() else {
             return Err(UpdateConversationError::NoPendingRequest);
@@ -2209,7 +2209,7 @@ impl AIConversation {
                 } else {
                     let root_task_id = self.task_store.root_task_id().clone();
                     if let Some(mut root_task) = self.task_store.remove(&root_task_id) {
-                        let old_id = root_task.id().clone();
+                        let _old_id = root_task.id().clone();
                         root_task = root_task.into_server_created_task(
                             task,
                             None,
@@ -2664,8 +2664,8 @@ impl AIConversation {
     pub fn create_optimistic_cli_subagent_task(
         &mut self,
         block_id: &BlockId,
-        terminal_view_id: EntityId,
-        ctx: &mut ModelContext<()>,
+        _terminal_view_id: EntityId,
+        _ctx: &mut ModelContext<()>,
     ) -> TaskId {
         if self.optimistic_cli_subagent_subtask_id.take().is_some() {
             log::error!(
@@ -2805,7 +2805,7 @@ impl AIConversation {
             return;
         }
 
-        let Some(sqlite_sender) = GlobalResourceHandlesProvider::as_ref(ctx)
+        let Some(_sqlite_sender) = GlobalResourceHandlesProvider::as_ref(ctx)
             .get()
             .model_event_sender
             .clone()

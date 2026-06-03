@@ -1,8 +1,5 @@
-use itertools::Itertools;
-use warpui::{AppContext, SingletonEntity};
+use warpui::AppContext;
 
-use super::AIQuerySearchResultItem;
-use crate::search::ai_queries::fuzzy_match::FuzzyMatchAIQueryResults;
 use crate::search::command_search::searcher::CommandSearchItemAction;
 use crate::search::data_source::{Query, QueryResult};
 use crate::search::mixer::{DataSourceRunErrorWrapper, SyncDataSource};

@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::time::Duration;
 
 use ai::index::full_source_code_embedding::manager::CodebaseIndexManager;
 use chrono::Local;
@@ -9,8 +8,6 @@ use repo_metadata::watcher::DirectoryWatcher;
 use repo_metadata::RepoMetadataModel;
 use smol_str::SmolStr;
 use unindent::Unindent;
-#[cfg(feature = "voice_input")]
-use voice_input::VoiceInputToggledFrom;
 use warp_completer::completer::{
     EngineFileType, Match, MatchStrategy, MatchedSuggestion, Priority, Suggestion,
     SuggestionResults, SuggestionType,
@@ -19,7 +16,7 @@ use warp_completer::meta::Span;
 use warp_util::user_input::UserInput;
 use warpui::platform::WindowStyle;
 use warpui::text::SelectionType;
-use warpui::{App, ReadModel, UpdateView, WindowId};
+use warpui::{App, UpdateView, WindowId};
 use watcher::HomeDirectoryWatcher;
 use workflows::workflow::{Argument, ArgumentType, Workflow};
 
@@ -41,14 +38,14 @@ use crate::auth::AuthStateProvider;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::context_chips::prompt::Prompt;
 use crate::editor::{DisplayPoint, EditorAction, Point, TextStyleOperation};
-use crate::input_suggestions::{HistoryOrder, Item};
+use crate::input_suggestions::Item;
 use crate::network::NetworkStatus;
 use crate::pricing::PricingInfoModel;
 use crate::search::files::model::FileSearchModel;
 use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::server_api::ServerApiProvider;
 use crate::settings::import::model::ImportedConfigModel;
-use crate::settings::{AliasExpansionSettings, AppEditorSettings, InputBoxType, PrivacySettings};
+use crate::settings::{AliasExpansionSettings, AppEditorSettings, PrivacySettings};
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
 #[cfg(windows)]
 use crate::system::SystemInfo;

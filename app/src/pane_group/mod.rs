@@ -2074,7 +2074,7 @@ impl PaneGroup {
     /// This enforces the UI invariant that only one AI document pane should be visible at a time.
     fn set_ai_document_pane_visibility(
         &mut self,
-        conversation_id: AIConversationId,
+        _conversation_id: AIConversationId,
         document_id: AIDocumentId,
         document_version: AIDocumentVersion,
         action: AIDocumentPaneVisibilityAction,
@@ -2522,7 +2522,7 @@ impl PaneGroup {
     /// other pane or tab are left alone.
     fn restore_missing_child_agent_panes_for_parent(
         &mut self,
-        parent_conversation_id: AIConversationId,
+        _parent_conversation_id: AIConversationId,
         parent_pane_id: PaneId,
         ctx: &mut ViewContext<Self>,
     ) {
@@ -3842,7 +3842,7 @@ impl PaneGroup {
     fn child_pane_ids_for_parent(
         &self,
         parent_terminal_view_id: EntityId,
-        ctx: &AppContext,
+        _ctx: &AppContext,
     ) -> Vec<(AIConversationId, PaneId)> {
         let _ = parent_terminal_view_id;
         vec![]
@@ -6244,7 +6244,7 @@ impl PaneGroup {
             let Some(terminal_pane_id) = pane_id.as_terminal_pane_id() else {
                 continue;
             };
-            let Some(terminal_view) = self.terminal_view_from_pane_id(pane_id, ctx) else {
+            let Some(_terminal_view) = self.terminal_view_from_pane_id(pane_id, ctx) else {
                 continue;
             };
             let active_id: Option<AIConversationId> = None;

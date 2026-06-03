@@ -21,7 +21,6 @@ use crate::server::server_api::ServerApiProvider;
 use crate::view_components::DismissibleToast;
 use crate::workspace::{ToastStack, WorkspaceAction};
 
-pub mod buttons;
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
 #[serde(tag = "artifact_type", content = "data")]

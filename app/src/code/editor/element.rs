@@ -1100,7 +1100,7 @@ impl<V: EditorView> EditorWrapper<V> {
         current_line: Option<usize>,
         line_number_config: &LineNumberConfig,
         should_show_diff_hunk_icons: bool,
-        should_show_comment_button: bool,
+        _should_show_comment_button: bool,
         is_active_comment_on_current_line: bool,
         attached_comment: Option<SavedComment>,
         line_height: f32,
@@ -1280,7 +1280,7 @@ impl<V: EditorView> Element for EditorWrapper<V> {
         let mut gutter_elements = self.gutter_elements(app);
         if let Some(gutter_elements) = &mut gutter_elements {
             for gutter_element in gutter_elements {
-                let gutter_element_size = gutter_element.element.layout(constraint, ctx, app);
+                let _gutter_element_size = gutter_element.element.layout(constraint, ctx, app);
 
             }
         }

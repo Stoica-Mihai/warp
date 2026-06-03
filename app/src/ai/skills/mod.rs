@@ -25,7 +25,6 @@ cfg_if::cfg_if! {
     if #[cfg(feature = "local_fs")] {
         mod skill_manager;
         pub use skill_manager::SkillManager;
-        #[cfg(test)]
-        pub use skill_manager::BundledSkillActivation;
+        
     }
 }

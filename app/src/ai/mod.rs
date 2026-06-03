@@ -16,7 +16,6 @@ pub(crate) mod block_context;
 pub(crate) mod blocklist;
 #[cfg(any(feature = "local_fs", not(target_family = "wasm")))]
 pub(crate) mod codebase_auto_indexing;
-pub mod control_code_parser;
 pub(crate) mod conversation_navigation;
 pub(crate) mod conversation_status_ui;
 pub(crate) mod conversation_utils;
@@ -45,7 +44,6 @@ pub(crate) mod loading;
 pub mod mcp;
 pub mod outline;
 
-pub(crate) use ai::paths;
 
 pub fn init(app: &mut AppContext) {
     crate::terminal::view::keyboard_navigable_buttons::init(app);

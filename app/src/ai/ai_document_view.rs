@@ -213,7 +213,7 @@ impl AIDocumentView {
                 }
                 AIDocumentModelEvent::DocumentUserEditStatusUpdated {
                     document_id: id,
-                    status,
+                    status: _,
                 } => {
                     if *id != document_id {
                         return;
@@ -345,9 +345,9 @@ impl AIDocumentView {
 
         // Create the orchestration config block if there's an active config
         // for this document's conversation.
-        let doc_conversation_id =
+        let _doc_conversation_id =
             AIDocumentModel::as_ref(ctx).get_conversation_id_for_document_id(&document_id);
-        let has_orchestration_config: Option<crate::ai::agent::conversation::AIConversationId> = None;
+        let _has_orchestration_config: Option<crate::ai::agent::conversation::AIConversationId> = None;
         let mut me = Self {
             document_id,
             document_version,
@@ -448,7 +448,7 @@ impl AIDocumentView {
     /// Returns true if the conversation associated with this document is actively streaming.
     fn is_conversation_streaming(&self, ctx: &AppContext) -> bool {
         let document_model = AIDocumentModel::handle(ctx);
-        let Some(conversation_id) = document_model
+        let Some(_conversation_id) = document_model
             .as_ref(ctx)
             .get_conversation_id_for_document_id(&self.document_id)
         else {
@@ -947,8 +947,8 @@ impl View for AIDocumentView {
         "AIDocumentView"
     }
 
-    fn render(&self, app: &AppContext) -> Box<dyn warpui::Element> {
-        let has_orchestration_config = false;
+    fn render(&self, _app: &AppContext) -> Box<dyn warpui::Element> {
+        let _has_orchestration_config = false;
 
         let mut content_column =
             Flex::column().with_cross_axis_alignment(CrossAxisAlignment::Stretch);

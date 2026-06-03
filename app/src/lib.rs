@@ -170,7 +170,6 @@ pub mod workflows;
 pub mod workspace;
 
 use std::borrow::Cow;
-use std::collections::HashSet;
 use std::ops::Deref;
 #[cfg(feature = "local_fs")]
 use std::path::PathBuf;
@@ -216,7 +215,6 @@ use workflows::manager::WorkflowManager;
 use workspace::sync_inputs::SyncedInputState;
 
 use self::features::FeatureFlag;
-use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::connected_self_hosted_workers::ConnectedSelfHostedWorkersModel;
 use crate::ai::document::ai_document_model::AIDocumentModel;
 use crate::ai::facts::manager::AIFactManager;
@@ -249,7 +247,6 @@ use crate::notebooks::manager::NotebookManager;
 use crate::notebooks::CloudNotebook;
 use crate::notification::NotificationContext;
 use crate::palette::PaletteMode;
-use crate::persistence::model::AgentConversationData;
 use crate::persistence::PersistenceWriter;
 use crate::projects::ProjectManagementModel;
 use crate::root_view::{

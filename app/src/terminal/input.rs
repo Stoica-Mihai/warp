@@ -125,36 +125,27 @@ use super::view::{
 use super::warpify::SubshellSource;
 use super::{prompt, History, HistoryEntry, SizeInfo, TerminalModel, UpArrowHistoryConfig};
 use crate::ai::agent::conversation::AIConversationId;
-use crate::ai::agent::{AIAgentContext, AIAgentExchangeId, CancellationReason, EntrypointType};
-use crate::ai::agent_conversations_model::{
-    AgentConversationNavigationSubject, AgentConversationsModel,
-};
+use crate::ai::agent::{AIAgentExchangeId, CancellationReason};
 use crate::ai::ambient_agents::telemetry::HandoffEntryPoint;
-use crate::ai::attachment_utils::MAX_ATTACHMENT_SIZE_BYTES;
-use crate::ai::block_context::BlockContext;
 use crate::ai::blocklist::cli_controller::CLISubagentController;
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
 use crate::ai::blocklist::handoff::touched_repos::{
     pick_handoff_overlap_env, resolve_repo_for_path, sort_environments_by_recency, TouchedWorkspace,
 };
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-use crate::ai::blocklist::handoff::{HandoffLaunchAttachments, PendingCloudLaunch};
+use crate::ai::blocklist::handoff::HandoffLaunchAttachments;
 use crate::ai::blocklist::{
     ai_indicator_height, render_ai_agent_mode_icon,
     BlocklistAIInputEvent, BlocklistAIInputModel, InputConfig, InputType,
     InputTypeAutoDetectionSource,
 };
-use crate::ai::cloud_agent_settings::CloudAgentSettings;
 use crate::ai::cloud_environments::CloudAmbientAgentEnvironment;
 use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentVersion};
-use crate::ai::harness_availability::HarnessAvailabilityModel;
 use crate::ai::llms::{LLMPreferences, LLMPreferencesEvent};
 use crate::ai::mcp::TemplatableMCPServerManager;
 use crate::ai::skills::SkillManager;
 use crate::ai::AIRequestUsageModel;
-use crate::ai::execution_context::WarpAiExecutionContext;
 use crate::appearance::{Appearance, AppearanceEvent};
-use crate::channel::ChannelState;
 use crate::cloud_object::model::actions::ObjectActionType;
 use crate::cloud_object::model::generic_string_model::StringModel;
 use crate::cloud_object::model::persistence::CloudModel;
@@ -183,7 +174,6 @@ use crate::input_suggestions::{
     Event as InputSuggestionsEvent, HistoryInputSuggestion, InputSuggestions,
     TabCompletionsPreselectOption,
 };
-use crate::network::NetworkStatus;
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::pane_group::PaneGroupAction;
 #[cfg(feature = "local_fs")]
@@ -201,18 +191,15 @@ use crate::search::QueryFilter;
 use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::ids::SyncId;
 
-#[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-use crate::server::server_api::ai::AttachmentInput;
 use crate::server::server_api::ServerApi;
 use crate::server::telemetry::{
-    AICommandSearchEntrypoint, AgentModeAutoDetectionFalsePositivePayload,
+    AICommandSearchEntrypoint,
     AnonymousUserSignupEntrypoint, CommandXRayTrigger, EnvVarTelemetryMetadata, PaletteSource,
 };
 use crate::session_management::SessionNavigationPromptElements;
 use crate::settings::{
     AISettings, AISettingsChangedEvent, AliasExpansionSettings, AppEditorSettings,
-    AppEditorSettingsChangedEvent, InputModeSettings, InputSettings, InputSettingsChangedEvent,
-    PrivacySettings, MAX_TIMES_TO_SHOW_AUTOSUGGESTION_HINT,
+    AppEditorSettingsChangedEvent, InputModeSettings, InputSettings, InputSettingsChangedEvent, MAX_TIMES_TO_SHOW_AUTOSUGGESTION_HINT,
 };
 use crate::settings_view::{flags, SettingsSection};
 use crate::suggestions::ignored_suggestions_model::{
@@ -235,7 +222,7 @@ use crate::terminal::input::prompts::{InlinePromptsMenuEvent, InlinePromptsMenuV
 use crate::terminal::input::repos::{InlineReposMenuEvent, InlineReposMenuView};
 use crate::terminal::input::rewind::{RewindMenuEvent, RewindMenuView};
 use crate::terminal::input::skills::{InlineSkillSelectorEvent, InlineSkillSelectorView};
-use crate::terminal::input::slash_command_model::{SlashCommandEntryState, SlashCommandModel};
+use crate::terminal::input::slash_command_model::SlashCommandModel;
 use crate::terminal::input::slash_commands::{
     CloudModeV2SlashCommandView, InlineSlashCommandView, SlashCommandDataSource,
     SlashCommandTrigger,
@@ -250,8 +237,8 @@ use crate::terminal::package_installers::command_at_cursor_has_common_package_in
 use crate::terminal::universal_developer_input::AtContextMenuDisabledReason;
 use crate::terminal::view::agent_view_state::AgentViewEntryOrigin;
 use crate::terminal::view::ambient_agent::{
-    AuthSecretFtuxView, AuthSecretFtuxViewEvent, AuthSecretSelector, AuthSecretSelectorEvent,
-    HarnessSelector, HarnessSelectorEvent, HostSelector, HostSelectorEvent, NakedHeaderButtonTheme,
+    AuthSecretFtuxView, AuthSecretSelector,
+    HarnessSelector, HarnessSelectorEvent, HostSelector,
 };
 use crate::terminal::view::CodeDiffAction;
 use crate::terminal::CLIAgent;
@@ -281,10 +268,8 @@ use crate::workflows::workflow_enum::EnumVariants;
 use crate::workflows::{self, WorkflowSelectionSource, WorkflowSource, WorkflowType};
 use crate::workspace::sync_inputs::SyncedInputState;
 use crate::workspace::{
-    CommandSearchOptions, ForkFromExchange, ForkedConversationDestination, InitContent,
-    RestoreConversationLayout, ToastStack, WorkspaceAction,
+    CommandSearchOptions, ForkFromExchange, ForkedConversationDestination, InitContent, ToastStack, WorkspaceAction,
 };
-use crate::workspaces::user_workspaces::{UserWorkspaces, UserWorkspacesEvent};
 #[allow(unused_imports)]
 use crate::ASSETS;
 use crate::{cmd_or_ctrl_shift, report_if_error};
@@ -1866,7 +1851,7 @@ impl Input {
             ctx.notify();
         });
 
-        let footer_display_chip_config = DisplayChipConfig {
+        let _footer_display_chip_config = DisplayChipConfig {
             ai_input_model: ai_input_model.clone(),
             terminal_view_id,
             menu_positioning_provider: menu_positioning_provider.clone(),
@@ -1980,7 +1965,7 @@ impl Input {
                 me.handle_universal_developer_input_button_bar_event(event, ctx);
             },
         );
-        let mut ambient_agent_view_state =
+        let ambient_agent_view_state =
             ambient_agent_view_model
                 .as_ref()
                 .map(|view_model| AmbientAgentViewState {
@@ -2079,7 +2064,7 @@ impl Input {
             let prompt_render_helper_clone = prompt_render_helper.clone();
             let model_clone = model.clone();
             // Clone used in keymap_context_modifier closure below.
-            let terminal_model_for_keymap_context = model.clone();
+            let _terminal_model_for_keymap_context = model.clone();
             let input_render_state_model_handle_clone = input_render_state_model_handle.clone();
 
             let ai_input_model = ai_input_model.clone();
@@ -3767,12 +3752,12 @@ impl Input {
     fn execute_skill_command(
         &mut self,
         reference: SkillReference,
-        user_query: Option<String>,
+        _user_query: Option<String>,
         is_queued_prompt: bool,
         ctx: &mut ViewContext<Self>,
     ) -> bool {
         // Resolve the skill from SkillManager
-        let skill = match SkillManager::handle(ctx)
+        let _skill = match SkillManager::handle(ctx)
             .as_ref(ctx)
             .active_skill_by_reference(&reference, ctx)
         {
@@ -4187,14 +4172,14 @@ impl Input {
             UniversalDeveloperInputButtonBarEvent::ToggleVoiceInput(from) => {
                 self.toggle_voice_input(from, ctx);
             }
-            UniversalDeveloperInputButtonBarEvent::InputTypeSelected(input_type) => {
+            UniversalDeveloperInputButtonBarEvent::InputTypeSelected(_input_type) => {
                 if self.is_input_mode_toggle_disabled(ctx) {
                     return;
                 }
 
                 self.focus_input_box(ctx);
 
-                let is_input_buffer_empty = self.editor.as_ref(ctx).buffer_text(ctx).is_empty();
+                let _is_input_buffer_empty = self.editor.as_ref(ctx).buffer_text(ctx).is_empty();
 
                 // AI input type is always Shell; no model to update.
             }
@@ -6766,7 +6751,7 @@ impl Input {
         self.check_slash_menu_disabled_state(ctx);
 
         // AI input type is always Shell; NL autosuggestions never trigger.
-        let is_ai_input_enabled = false;
+        let _is_ai_input_enabled = false;
 
         match event {
             EditorEvent::Edited(edit_origin) => {
@@ -6940,7 +6925,7 @@ impl Input {
                 // Don't run NLD autodetection when an inline menu is open (slash commands,
                 // conversation menu, model selector), as the buffer contents are being used as
                 // a search query for the menu rather than as a command/prompt.
-                let is_inline_menu_open = self
+                let _is_inline_menu_open = self
                     .suggestions_mode_model
                     .as_ref(ctx)
                     .is_inline_menu_open();
@@ -9767,7 +9752,7 @@ impl Input {
         });
 
 
-        let has_requests_remaining = AIRequestUsageModel::as_ref(ctx).has_requests_remaining();
+        let _has_requests_remaining = AIRequestUsageModel::as_ref(ctx).has_requests_remaining();
 
 
 

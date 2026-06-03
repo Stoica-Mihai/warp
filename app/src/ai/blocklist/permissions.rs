@@ -5,7 +5,6 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use warp_completer::parsers::simple::decompose_command;
 use warp_core::execution_mode::AppExecutionMode;
-use warp_core::features::FeatureFlag;
 use warp_core::settings::Setting;
 use warp_core::user_preferences::GetUserPreferences;
 use warp_util::path::EscapeChar;
@@ -468,7 +467,7 @@ impl BlocklistAIPermissions {
 
     pub fn can_write_to_pty(
         &self,
-        conversation_id: &AIConversationId,
+        _conversation_id: &AIConversationId,
         terminal_view_id: Option<EntityId>,
         ctx: &AppContext,
     ) -> WriteToPtyPermission {
@@ -726,7 +725,7 @@ impl BlocklistAIPermissions {
     /// Returns whether or not Agent Mode can automatically write to files.
     pub fn can_write_files(
         &self,
-        conversation_id: &AIConversationId,
+        _conversation_id: &AIConversationId,
         paths: &[PathBuf],
         terminal_view_id: Option<EntityId>,
         ctx: &AppContext,
@@ -813,7 +812,7 @@ impl BlocklistAIPermissions {
     #[cfg(not(target_family = "wasm"))]
     fn can_use_mcp_server(
         &self,
-        conversation_id: &AIConversationId,
+        _conversation_id: &AIConversationId,
         uuid_of_mcp_server: Option<uuid::Uuid>,
         terminal_view_id: Option<EntityId>,
         ctx: &AppContext,
@@ -860,11 +859,11 @@ impl BlocklistAIPermissions {
     /// Returns whether or not Agent Mode can auto-execute the given command.
     pub fn can_autoexecute_command(
         &self,
-        conversation_id: &AIConversationId,
+        _conversation_id: &AIConversationId,
         command: &str,
         escape_char: EscapeChar,
         is_read_only: bool,
-        is_risky: Option<bool>,
+        _is_risky: Option<bool>,
         terminal_view_id: Option<EntityId>,
         ctx: &AppContext,
     ) -> CommandExecutionPermission {
@@ -1165,7 +1164,7 @@ impl BlocklistAIPermissions {
     /// Returns whether the agent can ask the user a question in the given conversation.
     pub fn can_ask_user_question(
         &self,
-        conversation_id: &AIConversationId,
+        _conversation_id: &AIConversationId,
         terminal_view_id: Option<EntityId>,
         ctx: &AppContext,
     ) -> bool {

@@ -1,10 +1,8 @@
 use warpui::elements::Empty;
 use warpui::keymap::FixedBinding;
-use warpui::{AppContext, Element, Entity, EntityId, TypedActionView, View, ViewContext};
+use warpui::{AppContext, Element, Entity, TypedActionView, View, ViewContext};
 
-pub struct AgentTodosPopupView {
-    terminal_view_id: EntityId,
-}
+pub struct AgentTodosPopupView {}
 
 #[derive(Debug, Clone, Copy)]
 pub enum AgentTodosPopupAction {
@@ -26,12 +24,6 @@ pub fn init(app: &mut AppContext) {
 }
 
 impl AgentTodosPopupView {
-    pub fn new(terminal_view_id: EntityId, _ctx: &mut ViewContext<Self>) -> Self {
-        Self { terminal_view_id }
-    }
-
-    pub fn scroll_to_in_progress_item(&self) {}
-
     fn close(&mut self, ctx: &mut ViewContext<Self>) {
         ctx.emit(AgentTodosPopupEvent::Close);
     }

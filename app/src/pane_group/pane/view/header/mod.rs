@@ -2,11 +2,10 @@ use std::fmt::Debug;
 
 use pathfinder_geometry::rect::RectF;
 use pathfinder_geometry::vector::{vec2f, Vector2F};
-use warp_core::features::FeatureFlag;
 use warp_core::settings::Setting;
 use warpui::elements::{
     AcceptedByDropTarget, Align, Border, ChildAnchor, Clipped, ConstrainedBox, Container,
-    CornerRadius, CrossAxisAlignment, Dismiss, Draggable, DraggableState, Empty, Flex, Hoverable,
+    CornerRadius, CrossAxisAlignment, Draggable, DraggableState, Empty, Flex, Hoverable,
     Icon, MainAxisAlignment, MainAxisSize, MouseStateHandle, OffsetPositioning, ParentAnchor,
     ParentElement, ParentOffsetBounds, PositionedElementAnchor, PositionedElementOffsetBounds,
     Radius, SavePosition, Shrinkable, Stack, Text,
@@ -364,7 +363,7 @@ impl<P: BackingView> PaneHeader<P> {
         )
     }
 
-    fn render_toolbelt_buttons(&self, app: &AppContext) -> Box<dyn Element> {
+    fn render_toolbelt_buttons(&self, _app: &AppContext) -> Box<dyn Element> {
         let mut flex = Flex::row();
         for toolbelt_button in &self.toolbelt_buttons {
             flex.add_child(
@@ -381,7 +380,7 @@ impl<P: BackingView> PaneHeader<P> {
         let container = Container::new(flex.finish()).with_margin_left(2.).finish();
 
         // Create Stack with the container as the first child
-        let mut stack = Stack::new().with_child(container);
+        let stack = Stack::new().with_child(container);
 
         // Check if tooltip has been dismissed already.
         // We should only trigger this if we are in a git repository,

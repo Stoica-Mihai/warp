@@ -299,7 +299,7 @@ pub enum AgentRunDisplayStatus {
 }
 
 impl AgentRunDisplayStatus {
-    pub fn from_task(task: &AmbientAgentTask, app: &AppContext) -> Self {
+    pub fn from_task(task: &AmbientAgentTask, _app: &AppContext) -> Self {
         match &task.state {
             AmbientAgentTaskState::Queued
             | AmbientAgentTaskState::Pending

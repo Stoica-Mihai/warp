@@ -1,12 +1,9 @@
 use std::cmp::Ordering;
-use std::collections::HashSet;
 
-use chrono::TimeZone;
-use warpui::{AppContext, EntityId, SingletonEntity, WindowId};
+use warpui::{AppContext, EntityId, WindowId};
 
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::conversation::{AIConversation, AIConversationId};
-use crate::terminal::view::blocklist_filter;
 use crate::workspace::{PaneViewLocator};
 
 /// Result from matching a conversation.

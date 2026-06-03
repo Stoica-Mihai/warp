@@ -119,19 +119,11 @@ use super::util::{
 use super::{util, ActiveSession, TabBarDropTargetData, TabBarLocation, WorkspaceRegistry};
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::conversation::{AIConversation, AIConversationId};
-#[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-use crate::ai::agent::CancellationReason;
-use crate::ai::agent::EntrypointType;
 #[cfg(target_family = "wasm")]
 use crate::ai::agent_conversations_model::AgentConversationsModelEvent;
-use crate::ai::agent_conversations_model::{
-    AgentConversationNavigationSubject, AgentConversationsModel,
-};
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
 use crate::ai::ambient_agents::telemetry::HandoffEntryPoint;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
-#[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-use crate::ai::blocklist::handoff;
 use crate::ai::blocklist::SerializedBlockListItem;
 use crate::ai::cloud_agent_settings::CloudAgentSettings;
 use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentModel};
@@ -139,7 +131,7 @@ use crate::ai::facts::view::AIFactPage;
 use crate::ai::facts::{AIFactManager, AIFactView, AIFactViewEvent};
 use crate::ai::llms::LLMPreferences;
 use crate::ai::persisted_workspace::PersistedWorkspace;
-use crate::ai::{conversation_utils, AIRequestUsageModel};
+use crate::ai::conversation_utils;
 use crate::ai::execution_context::WarpAiExecutionContext;
 use crate::terminal::view::AskAIType;
 use crate::app_state::{
@@ -217,7 +209,7 @@ use crate::resource_center::{
     TipAction, TipsCompleted,
 };
 use crate::reward_view::{RewardEvent, RewardKind, RewardView};
-use crate::root_view::{quake_mode_window_id, NewWorkspaceSource, OpenLaunchConfigArg};
+use crate::root_view::{NewWorkspaceSource, OpenLaunchConfigArg};
 use crate::search::command_palette::view::{
     Event as CommandPaletteEvent, NavigationMode, View as CommandPalette,
 };
@@ -245,7 +237,7 @@ use crate::settings::{
     AccessibilitySettings, AliasExpansionSettings, AppEditorSettings, BlockVisibilitySettings,
     CodeSettings, CodeSettingsChangedEvent, CtrlTabBehavior, CursorBlink,
     DebugSettings, DefaultSessionMode, FontSettings, GPUSettings, InputModeSettings, InputSettings,
-    MonospaceFontSize, PaneSettings, PrivacySettings, SelectionSettings, Settings, SshSettings,
+    MonospaceFontSize, PaneSettings, PrivacySettings, SelectionSettings, SshSettings,
     ThemeSettings,
 };
 use crate::settings_view::keybindings::{KeybindingChangedEvent, KeybindingChangedNotifier};
@@ -284,7 +276,6 @@ use crate::terminal::model::blockgrid::BlockGrid;
 #[cfg(feature = "local_fs")]
 use crate::terminal::model::session::Session;
 use crate::terminal::model::session::SessionId;
-use crate::terminal::model::terminal_model::ConversationTranscriptViewerStatus;
 use crate::terminal::resizable_data::{
     ModalSizes, ModalType, ResizableData, DEFAULT_LEFT_PANEL_WIDTH, DEFAULT_RIGHT_PANEL_WIDTH,
 };
@@ -296,10 +287,6 @@ use crate::terminal::session_settings::{
 use crate::terminal::settings::{SpacingMode, TerminalSettings};
 use crate::terminal::shell::ShellType;
 use crate::terminal::view::ambient_agent::{AuthSecretFtuxView, AuthSecretFtuxViewEvent};
-#[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-use crate::terminal::view::ambient_agent::{
-    HandoffSubmissionState, PendingHandoff, SnapshotUploadStatus,
-};
 use crate::terminal::view::ssh_file_upload::FileUploadId;
 use crate::terminal::view::{
     ConversationRestorationInNewPaneType, LeftPanelTargetView, SyncEvent, SyncInputType,
@@ -327,7 +314,7 @@ use crate::user_config::{
 };
 use crate::user_config::{WarpConfig, WarpConfigUpdateEvent};
 use crate::util::bindings::{
-    keybinding_name_to_display_string, keybinding_name_to_keystroke, trigger_to_keystroke,
+    keybinding_name_to_display_string, keybinding_name_to_keystroke,
 };
 #[cfg(feature = "local_fs")]
 use crate::util::file::external_editor::settings::OpenConversationPreference;
@@ -347,7 +334,7 @@ use crate::view_components::callout_bubble::{
     render_callout_bubble, CalloutArrowDirection, CalloutArrowPosition, CalloutBubbleConfig,
 };
 use crate::view_components::{
-    AgentToast, AgentToastStack, DismissibleToast, DismissibleToastStack, ToastLink,
+    AgentToastStack, DismissibleToast, DismissibleToastStack, ToastLink,
 };
 #[cfg(target_family = "wasm")]
 use crate::wasm_nux_dialog::WasmNUXDialog;
@@ -2927,9 +2914,9 @@ impl Workspace {
     /// Load the conversation into a transcript viewer in a new tab (with no input/backing shell)
     pub fn load_cloud_conversation_into_new_transcript_viewer(
         &mut self,
-        conversation_id: ServerConversationToken,
-        ambient_agent_task_id: Option<AmbientAgentTaskId>,
-        ctx: &mut ViewContext<Self>,
+        _conversation_id: ServerConversationToken,
+        _ambient_agent_task_id: Option<AmbientAgentTaskId>,
+        _ctx: &mut ViewContext<Self>,
     ) {
     }
 
@@ -8887,42 +8874,42 @@ impl Workspace {
     #[allow(clippy::too_many_arguments)]
     fn fork_ai_conversation(
         &mut self,
-        conversation_id: AIConversationId,
-        fork_from_exchange: Option<ForkFromExchange>,
-        summarize_after_fork: bool,
-        summarization_prompt: Option<String>,
-        initial_prompt: Option<String>,
-        destination: ForkedConversationDestination,
-        ctx: &mut ViewContext<Self>,
+        _conversation_id: AIConversationId,
+        _fork_from_exchange: Option<ForkFromExchange>,
+        _summarize_after_fork: bool,
+        _summarization_prompt: Option<String>,
+        _initial_prompt: Option<String>,
+        _destination: ForkedConversationDestination,
+        _ctx: &mut ViewContext<Self>,
     ) {
     }
 
     #[allow(clippy::too_many_arguments)]
     fn create_local_fork(
         &mut self,
-        source_conversation: Box<AIConversation>,
-        conversation_id: AIConversationId,
-        fork_from_exchange: Option<ForkFromExchange>,
-        summarize_after_fork: bool,
-        summarization_prompt: Option<String>,
-        initial_prompt: Option<String>,
-        destination: ForkedConversationDestination,
-        has_initial_query: bool,
-        source_terminal_view_id: Option<EntityId>,
-        server_forked_conversation_id: Option<String>,
-        window_id: WindowId,
-        ctx: &mut ViewContext<Self>,
+        _source_conversation: Box<AIConversation>,
+        _conversation_id: AIConversationId,
+        _fork_from_exchange: Option<ForkFromExchange>,
+        _summarize_after_fork: bool,
+        _summarization_prompt: Option<String>,
+        _initial_prompt: Option<String>,
+        _destination: ForkedConversationDestination,
+        _has_initial_query: bool,
+        _source_terminal_view_id: Option<EntityId>,
+        _server_forked_conversation_id: Option<String>,
+        _window_id: WindowId,
+        _ctx: &mut ViewContext<Self>,
     ) {
     }
 
     /// Handle sending summarize and/or initial prompt to a forked conversation.
     fn handle_forked_conversation_prompts(
-        terminal_view: ViewHandle<TerminalView>,
+        _terminal_view: ViewHandle<TerminalView>,
         summarize_after_fork: bool,
-        summarization_prompt: Option<String>,
+        _summarization_prompt: Option<String>,
         initial_prompt: Option<String>,
-        forked_conversation_id: AIConversationId,
-        ctx: &mut ViewContext<Self>,
+        _forked_conversation_id: AIConversationId,
+        _ctx: &mut ViewContext<Self>,
     ) {
         if !summarize_after_fork && initial_prompt.is_none() {
             return;
@@ -8949,18 +8936,18 @@ impl Workspace {
 
     /// Show a toast notification for a forked conversation.
     fn show_fork_toast(
-        conversation_id: AIConversationId,
-        window_id: WindowId,
-        ctx: &mut ViewContext<Self>,
+        _conversation_id: AIConversationId,
+        _window_id: WindowId,
+        _ctx: &mut ViewContext<Self>,
     ) {
     }
 
     fn summarize_active_ai_conversation(
         &mut self,
-        prompt: Option<String>,
+        _prompt: Option<String>,
         ctx: &mut ViewContext<Self>,
     ) {
-        let Some(terminal_view) = self
+        let Some(_terminal_view) = self
             .active_tab_pane_group()
             .as_ref(ctx)
             .active_session_view(ctx)
@@ -9855,10 +9842,10 @@ impl Workspace {
 
     #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
     fn restore_source_handoff_draft(
-        source_view: &ViewHandle<TerminalView>,
+        _source_view: &ViewHandle<TerminalView>,
         
-        environment_id: Option<SyncId>,
-        ctx: &mut ViewContext<Self>,
+        _environment_id: Option<SyncId>,
+        _ctx: &mut ViewContext<Self>,
     ) {
     }
 
@@ -9924,10 +9911,10 @@ impl Workspace {
     #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
     fn start_fresh_cloud_launch(
         &mut self,
-        source_view: ViewHandle<TerminalView>,
+        _source_view: ViewHandle<TerminalView>,
         
-        environment_id: Option<SyncId>,
-        ctx: &mut ViewContext<Self>,
+        _environment_id: Option<SyncId>,
+        _ctx: &mut ViewContext<Self>,
     ) {
     }
 
@@ -9937,9 +9924,9 @@ impl Workspace {
     fn start_local_to_cloud_handoff(
         &mut self,
         
-        environment_id: Option<SyncId>,
-        entry_point: HandoffEntryPoint,
-        ctx: &mut ViewContext<Self>,
+        _environment_id: Option<SyncId>,
+        _entry_point: HandoffEntryPoint,
+        _ctx: &mut ViewContext<Self>,
     ) {
     }
 
@@ -9969,9 +9956,9 @@ impl Workspace {
     #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
     fn start_local_to_cloud_handoff_from_source(
         &mut self,
-        source_view: ViewHandle<TerminalView>,
+        _source_view: ViewHandle<TerminalView>,
         
-        environment_id: Option<SyncId>,
+        _environment_id: Option<SyncId>,
         intent: LocalToCloudHandoffIntent,
         ctx: &mut ViewContext<Self>,
     ) {
@@ -9983,8 +9970,8 @@ impl Workspace {
     #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
     fn complete_local_to_cloud_handoff_open(
         &mut self,
-        source_view: ViewHandle<TerminalView>,
-        source_conversation: AIConversation,
+        _source_view: ViewHandle<TerminalView>,
+        _source_conversation: AIConversation,
         params: LocalToCloudHandoffOpenParams,
         ctx: &mut ViewContext<Self>,
     ) {
@@ -10250,7 +10237,7 @@ impl Workspace {
             pane_group::Event::OpenCodeReviewPane(arg) => {
                 self.open_code_review_panel_from_arg(arg, pane_group.clone(), ctx);
             }
-            pane_group::Event::ToggleCodeReviewPane(arg) => {
+            pane_group::Event::ToggleCodeReviewPane(_arg) => {
                 self.toggle_right_panel(&pane_group, ctx);
             }
             pane_group::Event::RunWorkflow {
@@ -16076,10 +16063,10 @@ impl TypedActionView for Workspace {
             }
             FixSettingsWithOz { error_description } => {
                 use crate::ai::skills::SkillManager;
-                let modify_settings_skill = SkillManager::as_ref(ctx)
+                let _modify_settings_skill = SkillManager::as_ref(ctx)
                     .active_bundled_skill("modify-settings", ctx)
                     .cloned();
-                let query = format!(
+                let _query = format!(
                     "My settings.toml file has an error: {error_description}. Please fix it."
                 );
                 self.active_tab_pane_group().update(ctx, |pane_group, ctx| {

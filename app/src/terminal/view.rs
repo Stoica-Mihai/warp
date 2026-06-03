@@ -127,7 +127,7 @@ use warpui::elements::new_scrollable::{
 };
 use warpui::elements::shimmering_text::ShimmeringTextStateHandle;
 use warpui::elements::{
-    get_rich_content_position_id, Align, Border, ChildAnchor, ChildView, Clipped,
+    get_rich_content_position_id, Align, ChildAnchor, ChildView, Clipped,
     ClippedScrollStateHandle, ConstrainedBox, Container, CornerRadius, CrossAxisAlignment,
     DispatchEventResult, DropTarget, DropTargetData, Empty, EventHandler, Expanded, Fill, Flex,
     Hoverable, Icon, LiveElement, MouseStateHandle, NewScrollable, OffsetPositioning, ParentAnchor,
@@ -192,45 +192,29 @@ use super::warpify::trigger_state::{SshBlockState, WarpifyState};
 use super::warpify::WarpificationSource;
 use super::{cli_agent, CLIAgent, GridType};
 use crate::ai::agent::api::ServerConversationToken;
-use crate::ai::agent::conversation::{AIConversation, AIConversationId, ConversationStatus};
-use crate::ai::agent::redaction::redact_secrets;
-use crate::ai::agent::todos::popup::{AgentTodosPopupEvent, AgentTodosPopupView};
-#[cfg(any(test, feature = "integration_tests"))]
-use crate::ai::agent::UserQueryMode;
+use crate::ai::agent::conversation::{AIConversation, AIConversationId};
 use crate::ai::agent::{
-    AIAgentActionId, AIAgentActionType, AIAgentCitation, AIAgentContext, AIAgentExchangeId,
-    AIAgentInput, AIAgentOutputStatus, AIAgentPtyWriteMode, AIAgentTextSection,
-    AgentReviewCommentBatch, CancellationReason, FileLocations, FinishedAIAgentOutput,
-    PassiveSuggestionTrigger, RenderableAIError,
-    ServerOutputId, ShellCommandCompletedTrigger,
+    AIAgentActionId, AIAgentExchangeId, AIAgentOutputStatus, AIAgentPtyWriteMode,
+    AgentReviewCommentBatch, FileLocations, FinishedAIAgentOutput, RenderableAIError,
+    ServerOutputId,
 };
 #[cfg(feature = "local_fs")]
 use crate::ai::agent::{CurrentHead, DiffBase};
-use crate::ai::agent_conversations_model::{AgentConversationsModel, AgentConversationsModelEvent};
-use crate::ai::ambient_agents::{
-    AmbientAgentTaskId, AmbientConversationStatus,
-};
+use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::context_chips::toolbar::AgentToolbarItemKind;
 use crate::terminal::view::agent_view_state::{
-    agent_view_bg_fill, get_agent_view_entry_block_position_id, AgentViewDisplayMode,
+    get_agent_view_entry_block_position_id,
     AgentViewEntryOrigin, ENTER_OR_EXIT_CONFIRMATION_WINDOW,
-};
-use crate::ai::blocklist::cli::CLISubagentView;
-use crate::ai::blocklist::cli_controller::{
-    CLISubagentController, CLISubagentEvent, UserTakeOverReason,
 };
 use crate::ai::blocklist::{
     ai_brand_color,
     get_ai_block_overflow_menu_element_position_id, get_attached_blocks_chip_element_position_id,
-    BlocklistAIInputEvent, BlocklistAIInputModel,
-    InputConfig, InputType,
+    InputConfig,
     InputTypeAutoDetectionSource,
     ATTACH_AS_AGENT_MODE_CONTEXT_TEXT,
 };
-use crate::ai::conversation_utils;
-use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentModel, AIDocumentVersion};
-use crate::ai::execution_profiles::profiles::{AIExecutionProfilesModel, ClientProfileId};
-use crate::ai::get_relevant_files::controller::GetRelevantFilesController;
+use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentVersion};
+use crate::ai::execution_profiles::profiles::ClientProfileId;
 use crate::ai::llms::{LLMId, LLMModelHost, LLMPreferences};
 use crate::ai::loading::shimmering_warp_loading_text;
 #[cfg(feature = "local_fs")]
@@ -244,7 +228,6 @@ use crate::banner::{
     DismissalType,
 };
 use crate::cloud_object::model::actions::ObjectActionType;
-use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::{CloudObject, GenericStringObjectFormat, JsonObjectType};
 #[cfg(feature = "local_fs")]
 use crate::code::editor_management::CodeSource;
@@ -252,11 +235,7 @@ use crate::code_review::comments::{
     convert_insert_review_comments, AttachedReviewComment, PendingImportedReviewComment,
 };
 #[cfg(feature = "local_fs")]
-use crate::code_review::context::{
-    convert_file_diffs_to_diffset_hunks, create_attachment_reference_and_key,
-};
-#[cfg(feature = "local_fs")]
-use crate::code_review::diff_state::LocalDiffStateModel;
+use crate::code_review::context::create_attachment_reference_and_key;
 use crate::code_review::diff_state::{DiffMode, GitDeltaPreference};
 #[cfg(feature = "local_fs")]
 use crate::code_review::git_status_update::{
@@ -280,7 +259,7 @@ use crate::features::FeatureFlag;
 use crate::menu::{Event as MenuEvent, Menu, MenuItem, MenuItemFields};
 use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::pane_group::{
-    CodeReviewPanelArg, PaneConfiguration, PaneEvent, PaneGroupAction, PaneHeaderAction,
+    CodeReviewPanelArg, PaneConfiguration, PaneEvent, PaneGroupAction,
     SplitPaneState, TerminalViewResources,
 };
 use crate::persistence::{self, FinishedCommandMetadata};
@@ -289,15 +268,13 @@ use crate::remote_server::manager::{RemoteServerManager, RemoteServerManagerEven
 use crate::resource_center::{
     mark_feature_used_and_write_to_user_defaults, Tip, TipHint, TipsCompleted,
 };
-use crate::search::slash_command_menu::static_commands::commands;
 use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::ids::{ObjectUid, SyncId};
 use crate::server::server_api::ServerApi;
 use crate::server::telemetry::{
-    self, AgentModeRewindEntrypoint, AnonymousUserSignupEntrypoint, InteractionSource,
+    self, AgentModeRewindEntrypoint, AnonymousUserSignupEntrypoint,
     LinkOpenMethod, NotificationAgentVariant, PaletteSource, PromptSuggestionViewType,
     SaveAsWorkflowModalSource, ToggleBlockFilterSource,
-    WorkflowTelemetryMetadata,
 };
 use crate::session_management::{CommandContext, SessionNavigationPromptElements};
 use crate::settings::ai::FocusedTerminalInfo;
@@ -337,13 +314,12 @@ use crate::terminal::cli_agent_sessions::event::{
     CLI_AGENT_NOTIFICATION_SENTINEL,
 };
 use crate::terminal::cli_agent_sessions::listener::{
-    agent_supports_rich_status, is_agent_supported, CLIAgentSessionListener,
+    is_agent_supported, CLIAgentSessionListener,
 };
 #[cfg(not(target_family = "wasm"))]
 use crate::terminal::cli_agent_sessions::plugin_manager::{plugin_manager_for, PluginModalKind};
 use crate::terminal::cli_agent_sessions::{
-    CLIAgentInputEntrypoint, CLIAgentInputState, CLIAgentRichInputCloseReason, CLIAgentSession,
-    CLIAgentSessionContext, CLIAgentSessionStatus, CLIAgentSessionsModel,
+    CLIAgentInputState, CLIAgentSessionStatus, CLIAgentSessionsModel,
     CLIAgentSessionsModelEvent,
 };
 use crate::terminal::color::List;
@@ -371,7 +347,7 @@ use crate::terminal::local_tty::shell::ShellStarter;
 use crate::terminal::local_tty::windows::get_user_and_system_env_variable;
 use crate::terminal::model::ansi::{ClearMode, Handler};
 use crate::terminal::model::block::{
-    AgentInteractionMetadata, Block, BlockId, BlockMetadata, LONG_RUNNING_BOTTOM_PADDING_LINES,
+    Block, BlockId, BlockMetadata, LONG_RUNNING_BOTTOM_PADDING_LINES,
 };
 use crate::terminal::model::blocks::{
     BlockFilter, BlockHeight, BlockHeightItem, BlockHeightSummary, BlockList, BlockListPoint, Gap,
@@ -416,7 +392,6 @@ use crate::terminal::view::ssh_remote_server_choice_view::{
 use crate::terminal::view::ssh_remote_server_failed_banner::{
     SshRemoteServerFailedBanner, SshRemoteServerFailedBannerEvent,
 };
-use crate::terminal::view::telemetry::PromptSuggestionFallbackReason;
 use crate::terminal::warpify::render::render_subshell_separator;
 use crate::terminal::warpify::settings::WarpifySettings;
 use crate::terminal::warpify::SubshellSource;
@@ -450,21 +425,17 @@ use crate::util::file::external_editor::{settings::EditorLayout, EditorSettings}
 #[cfg(feature = "local_fs")]
 use crate::util::openable_file_type::{is_markdown_file, resolve_file_target, FileTarget};
 use crate::util::repo_detection::{detect_possible_git_repo, RepoDetectionSessionType};
-use crate::util::truncation::truncate_from_end;
-use crate::view_components::action_button::{ActionButton, ButtonSize, KeystrokeSource};
 use crate::view_components::find::{Event as FindEvent, Find, FindDirection, FindWithinBlockState};
 use crate::view_components::{DismissibleToast, ToastFlavor};
 use crate::workflows::workflow::Workflow;
-use crate::workflows::WorkflowSelectionSource;
 use crate::workspace::sync_inputs::SyncedInputState;
 use crate::workspace::{
     CommandSearchOptions, ForkAIConversationParams, ForkFromExchange,
     ForkedConversationDestination, ToastStack, WorkspaceAction,
 };
 use crate::workspaces::user_workspaces::{UserWorkspaces, UserWorkspacesEvent};
-use crate::workspaces::workspace::CustomerType;
 use crate::{
-    report_if_error, safe_error, safe_warn, AIAgentActionResultType, AIRequestUsageModel,
+    report_if_error, safe_warn,
     ActiveSession as WindowActiveSession,
 };
 
@@ -3225,7 +3196,7 @@ impl TerminalView {
             }
         });
 
-        let terminal_view_id = ctx.view_id();
+        let _terminal_view_id = ctx.view_id();
 
 
         let window_id = ctx.window_id();
@@ -3870,7 +3841,7 @@ impl TerminalView {
 
     fn handle_continue_conversation(
         &mut self,
-        conversation_id: &AIConversationId,
+        _conversation_id: &AIConversationId,
         ctx: &mut ViewContext<Self>,
     ) {
         self.redetermine_global_focus(ctx);
@@ -3989,16 +3960,16 @@ impl TerminalView {
 
     #[cfg(feature = "local_fs")]
     fn handle_attach_diffset_context(&mut self, diff_mode: DiffMode, ctx: &mut ViewContext<Self>) {
-        let Some(repo_path) = self.current_local_repo_path().map(Path::to_path_buf) else {
+        let Some(_repo_path) = self.current_local_repo_path().map(Path::to_path_buf) else {
             return;
         };
 
         // Get branch information from the per-repo sub-model.
         let metadata = self.git_status_metadata(ctx);
         let current_branch = metadata.map(|m| m.current_branch_name.clone());
-        let current = current_branch.map(CurrentHead::BranchName);
+        let _current = current_branch.map(CurrentHead::BranchName);
 
-        let base = match &diff_mode {
+        let _base = match &diff_mode {
             DiffMode::Head => DiffBase::UncommittedChanges,
             DiffMode::MainBranch => metadata
                 .map(|m| DiffBase::BranchName(m.main_branch_name.clone()))
@@ -4008,7 +3979,7 @@ impl TerminalView {
 
         // Create attachment reference and key using the shared function
         let main_branch_name = metadata.map(|m| m.main_branch_name.clone());
-        let (attachment_reference, diff_set_key) = create_attachment_reference_and_key(
+        let (attachment_reference, _diff_set_key) = create_attachment_reference_and_key(
             &DiffSetScope::All,
             &diff_mode,
             main_branch_name.as_deref(),
@@ -4484,7 +4455,7 @@ impl TerminalView {
 
         let active_command_block = model.block_list().active_block();
         let is_active_and_long_running = active_command_block.is_active_and_long_running();
-        let is_oz_env_startup_command = active_command_block.is_oz_environment_startup_command();
+        let _is_oz_env_startup_command = active_command_block.is_oz_environment_startup_command();
         let is_running_in_band_command =
             model.block_list().is_writing_or_executing_in_band_command();
 
@@ -4733,7 +4704,7 @@ impl TerminalView {
     fn ctrl_c_to_active_block(
         &mut self,
         is_long_running: bool,
-        is_agent_in_control_of_command: bool,
+        _is_agent_in_control_of_command: bool,
         ctx: &mut ViewContext<Self>,
     ) {
         if is_long_running {
@@ -6647,7 +6618,7 @@ impl TerminalView {
         }
     }
 
-    fn on_user_block_completed(&mut self, block_id: &BlockId, ctx: &mut ViewContext<Self>) {
+    fn on_user_block_completed(&mut self, block_id: &BlockId, _ctx: &mut ViewContext<Self>) {
         {
             self.model
                 .lock()
@@ -6657,7 +6628,7 @@ impl TerminalView {
 
         // If the block that just ended was an agent-requested long running command for which the user took over control,
         // and the user exited the command, we should resume the conversation.
-        let conversation_id_to_resume = {
+        let _conversation_id_to_resume = {
             let model = self.model.lock();
             let ai_metadata = model
                 .block_list()
@@ -8738,7 +8709,7 @@ impl TerminalView {
 
     fn init_project(
         &mut self,
-        open_code_review_pane_after_rule_generation: bool,
+        _open_code_review_pane_after_rule_generation: bool,
         ctx: &mut ViewContext<Self>,
     ) {
         if self.has_active_init_project(ctx) {
@@ -10958,8 +10929,8 @@ impl TerminalView {
     /// Updates the [`BlocklistAIContextModel`]'s pending context to match currently selected blocks.
     /// Be careful about calling `set_pending_context_block_ids` outside of this function, as invoking
     /// `set_pending_context_block_ids` in multiple places will increase the likelihood of desync.
-    fn sync_pending_context_block_ids(&mut self, ctx: &mut ViewContext<Self>) {
-        let selected_block_ids = {
+    fn sync_pending_context_block_ids(&mut self, _ctx: &mut ViewContext<Self>) {
+        let _selected_block_ids = {
             let model = self.model.lock();
             self.selected_blocks
                 .to_block_ids(model.block_list())
@@ -11402,8 +11373,8 @@ impl TerminalView {
 
     fn toggle_rich_content_secret(
         &mut self,
-        tooltip_info: RichContentSecretTooltipInfo,
-        show_secret: bool,
+        _tooltip_info: RichContentSecretTooltipInfo,
+        _show_secret: bool,
         ctx: &mut ViewContext<Self>,
     ) {
 
@@ -11520,7 +11491,7 @@ impl TerminalView {
             return;
         }
 
-        let is_inverted_blocklist = self.is_inverted_blocklist(ctx);
+        let _is_inverted_blocklist = self.is_inverted_blocklist(ctx);
         let terminal_model = self.model.lock();
         let block_list = terminal_model.block_list();
         let mut block_cursor = block_list
@@ -11528,7 +11499,7 @@ impl TerminalView {
             .cursor::<BlockHeight, BlockHeightSummary>();
         block_cursor.seek(&BlockHeight::from(0.), SeekBias::Right);
 
-        let selection_start_total_index = {
+        let _selection_start_total_index = {
             let mut click_cursor = block_list
                 .block_heights()
                 .cursor::<BlockHeight, BlockHeightSummary>();
@@ -11766,7 +11737,7 @@ impl TerminalView {
         self.input.as_ref(app).create_prompt_elements(app)
     }
 
-    pub fn session_command_context(&self, app: &AppContext) -> CommandContext {
+    pub fn session_command_context(&self, _app: &AppContext) -> CommandContext {
         let model = self.model.lock();
         let block_list = model.block_list();
 
@@ -13157,7 +13128,7 @@ impl TerminalView {
             }
             InputEvent::ClearSelectedBlock => self.clear_selected_blocks(ctx),
             InputEvent::SelectRecentBlocks { count } => {
-                let is_first_selection = self.selected_blocks.is_empty();
+                let _is_first_selection = self.selected_blocks.is_empty();
                 self.select_most_recent_blocks(*count, ctx)
             }
             InputEvent::Copy => self.copy(ctx),
@@ -14113,7 +14084,7 @@ impl TerminalView {
 
     pub fn send_inline_review(
         &mut self,
-        review_comments: AgentReviewCommentBatch,
+        _review_comments: AgentReviewCommentBatch,
         ctx: &mut ViewContext<Self>,
     ) -> anyhow::Result<()> {
         // Treat sending an inline review like executing a command/AI query for scrolling purposes.
@@ -15762,8 +15733,8 @@ impl TerminalView {
 
     fn rewind_ai_conversation(
         &mut self,
-        ai_block_view_id: EntityId,
-        exchange_id: AIAgentExchangeId,
+        _ai_block_view_id: EntityId,
+        _exchange_id: AIAgentExchangeId,
         conversation_id: AIConversationId,
         ctx: &mut ViewContext<Self>,
     ) {
@@ -17180,7 +17151,7 @@ impl TypedActionView for TerminalView {
             FocusInputAndClearSelection => self.focus_input_and_clear_selections(ctx),
             ShowFindBar => self.show_find_bar(ctx),
             SelectPriorBlock => {
-                let is_first_selection = self.selected_blocks.is_empty();
+                let _is_first_selection = self.selected_blocks.is_empty();
                 match input_mode {
                     InputMode::PinnedToBottom | InputMode::Waterfall => {
                         self.select_less_recent_block(false /* is_shift_down */, ctx)

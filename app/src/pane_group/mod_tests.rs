@@ -70,7 +70,6 @@ use crate::terminal::cli_agent_sessions::CLIAgentSessionsModel;
 use crate::terminal::history::History;
 use crate::terminal::keys::TerminalKeybindings;
 use crate::terminal::local_tty::spawner::PtySpawner;
-use crate::terminal::model::terminal_model::ConversationTranscriptViewerStatus;
 use crate::terminal::resizable_data::ResizableData;
 use crate::terminal::shared_session::IsSharedSessionCreator;
 use crate::test_util::settings::initialize_settings_for_tests;
@@ -491,9 +490,9 @@ fn create_already_fullscreen_parent_pane_data(
 }
 
 fn request_ambient_agent_task_id_for_hidden_child(
-    panes: &PaneGroup,
-    child_pane_id: PaneId,
-    ctx: &mut ViewContext<PaneGroup>,
+    _panes: &PaneGroup,
+    _child_pane_id: PaneId,
+    _ctx: &mut ViewContext<PaneGroup>,
 ) -> Option<AmbientAgentTaskId> {
     None
 }
@@ -689,7 +688,7 @@ fn test_insert_hidden_ambient_child_agent_pane_suppresses_details_auto_open() {
             let child_pane_id =
                 panes.insert_ambient_agent_pane_hidden_for_child_agent(parent_pane_id, ctx);
 
-            let terminal_view = panes
+            let _terminal_view = panes
                 .terminal_view_from_pane_id(child_pane_id, ctx)
                 .expect("hidden ambient child pane should have a terminal view");
         });
@@ -811,7 +810,7 @@ fn test_restored_remote_hidden_child_pane_enters_existing_ambient_session() {
             );
             assert_eq!(active_conversation_id, Some(child_conversation_id));
 
-            let terminal_view = panes
+            let _terminal_view = panes
                 .terminal_view_from_pane_id(child_pane_id, ctx)
                 .expect("remote child pane should have a terminal view");
         });
@@ -1297,11 +1296,11 @@ fn test_ensure_hidden_child_agent_pane_materializes_restored_remote_child_linked
 
         pane_group.update(&mut app, |panes, ctx| {
             let parent_pane_id = get_newly_created_pane_id(panes, &[]);
-            let parent_terminal_view_id = panes
+            let _parent_terminal_view_id = panes
                 .terminal_view_from_pane_id(parent_pane_id, ctx)
                 .expect("parent pane should have a terminal view")
                 .id();
-            let parent_conversation_id = start_parent_conversation(panes, parent_pane_id, ctx);
+            let _parent_conversation_id = start_parent_conversation(panes, parent_pane_id, ctx);
             let child_conversation_id = AIConversationId::new();
             let parent_run_id = new_ambient_agent_task_id().to_string();
             let task_id = new_ambient_agent_task_id();
@@ -1402,7 +1401,7 @@ fn test_ensure_hidden_child_agent_pane_skips_child_owned_by_another_pane_group()
             let parent_pane_id = get_newly_created_pane_id(panes, &[]);
             start_parent_conversation(panes, parent_pane_id, ctx)
         });
-        let (child_conversation_id, child_owner_terminal_view_id) =
+        let (child_conversation_id, _child_owner_terminal_view_id) =
             other_pane_group.update(&mut app, |panes, ctx| {
                 let child_pane_id = get_newly_created_pane_id(panes, &[]);
                 let child_conversation_id =
@@ -1444,7 +1443,7 @@ fn test_entering_parent_agent_view_skips_child_owned_by_another_pane_group() {
                 let parent_conversation_id = start_parent_conversation(panes, parent_pane_id, ctx);
                 (parent_conversation_id, parent_pane_id)
             });
-        let (child_conversation_id, child_owner_terminal_view_id) =
+        let (child_conversation_id, _child_owner_terminal_view_id) =
             other_pane_group.update(&mut app, |panes, ctx| {
                 let child_pane_id = get_newly_created_pane_id(panes, &[]);
                 let child_conversation_id =
@@ -1463,7 +1462,7 @@ fn test_entering_parent_agent_view_skips_child_owned_by_another_pane_group() {
             initial_pane_count
         });
 
-        parent_pane_group.update(&mut app, |panes, ctx| {
+        parent_pane_group.update(&mut app, |panes, _ctx| {
             assert!(!panes.child_agent_panes.contains_key(&child_conversation_id));
             assert_eq!(panes.pane_count(), initial_pane_count);
         });

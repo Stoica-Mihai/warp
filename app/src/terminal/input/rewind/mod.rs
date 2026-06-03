@@ -2,7 +2,6 @@
 //! Used by the `/rewind` slash command to let users select which point to rewind to.
 
 mod data_source;
-mod search_item;
 mod view;
 
 pub use data_source::SelectRewindPoint;

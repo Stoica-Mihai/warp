@@ -110,7 +110,6 @@ use crate::settings::{
     InputSettings, SelectionSettings,
 };
 use crate::settings_view::flags;
-use crate::suggestions::ignored_suggestions_model::{IgnoredSuggestionsModel, SuggestionType};
 use crate::terminal::grid_size_util::grid_cell_dimensions;
 use crate::terminal::model::block::BlockId;
 use crate::themes::theme::Fill;
@@ -4193,7 +4192,7 @@ impl EditorView {
 
         // If there is a pending passive ai block, we don't want ctrl+c to clear the buffer.
         let is_pending_passive_ai_block = terminal_view.is_some_and(|terminal_view| {
-            let terminal_model = terminal_view.as_ref(ctx).model.lock();
+            let _terminal_model = terminal_view.as_ref(ctx).model.lock();
             false
         });
 
@@ -5088,7 +5087,7 @@ impl EditorView {
                     processed_pending_images,
                 )
             },
-            move |this, (num_oversized_images, num_unprocessed_images, pending_images), ctx| {
+            move |this, (num_oversized_images, num_unprocessed_images, _pending_images), ctx| {
                 // Future was aborted
                 if this.process_attached_images_future_handle.is_none() {
                     return;

@@ -4,10 +4,6 @@ use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use uuid::{NonNilUuid, Uuid};
 
-use crate::ai::agent::conversation::{AIConversation, ConversationStatus};
-use crate::ai::agent::{
-    AIAgentOutputStatus, CancellationReason, FinishedAIAgentOutput, RenderableAIError,
-};
 
 pub mod github_auth_notifier;
 pub mod github_auth_url;
@@ -53,22 +49,4 @@ impl From<AmbientAgentTaskId> for cynic::Id {
         Self::new(id.to_string())
     }
 }
-
-/// High-level outcome of an ambient agent conversation.
-#[derive(Clone, Debug)]
-pub enum AmbientConversationStatus {
-    Success,
-    Error {
-        error: RenderableAIError,
-    },
-    #[allow(dead_code)]
-    Cancelled {
-        reason: CancellationReason,
-    },
-    #[allow(dead_code)]
-    Blocked {
-        blocked_action: String,
-    },
-}
-
 

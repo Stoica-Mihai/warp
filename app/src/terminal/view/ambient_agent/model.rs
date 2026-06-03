@@ -3,7 +3,6 @@ use std::time::Duration;
 use instant::Instant;
 use session_sharing_protocol::common::SessionId;
 use warp_cli::agent::Harness;
-use warp_core::features::FeatureFlag;
 use warp_terminal::model::BlockId;
 use warpui::r#async::{SpawnedFutureHandle, Timer};
 use warpui::{AppContext, Entity, EntityId, ModelContext, SingletonEntity};
@@ -1175,7 +1174,7 @@ impl AmbientAgentViewModel {
         ctx: &mut ModelContext<Self>,
     ) {
         match event {
-            AmbientAgentEvent::TaskSpawned { task_id, run_id } => {
+            AmbientAgentEvent::TaskSpawned { task_id, run_id: _ } => {
                 self.task_id = Some(task_id);
                 if matches!(self.status, Status::Cancelled { .. }) {
                     log::info!(

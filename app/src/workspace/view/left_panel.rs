@@ -109,7 +109,7 @@ mod active_view_state {
         new_view: ToolPanelView,
         ctx: &mut ViewContext<super::LeftPanelView>,
     ) {
-        let previous = left_panel.active_view.0;
+        let _previous = left_panel.active_view.0;
         left_panel.active_view.0 = new_view;
         left_panel.update_button_active_states();
         ctx.notify();

@@ -5675,9 +5675,9 @@ impl CodeReviewView {
                 }
 
                 // Use the shared function to convert diff data with relative paths
-                let file_diffs = convert_file_diffs_to_diffset_hunks(files_to_process.into_iter());
+                let _file_diffs = convert_file_diffs_to_diffset_hunks(files_to_process.into_iter());
 
-                let base = match self.get_diff_base(ctx) {
+                let _base = match self.get_diff_base(ctx) {
                     Ok(base) => base,
                     Err(err) => {
                         log::error!(
@@ -5689,7 +5689,7 @@ impl CodeReviewView {
 
                 // Create attachment reference and key based on scope
                 let main_branch_name = self.diff_state_model.as_ref(ctx).get_main_branch_name(ctx);
-                let (attachment_reference, attachment_key) = create_attachment_reference_and_key(
+                let (attachment_reference, _attachment_key) = create_attachment_reference_and_key(
                     &scope,
                     &self.diff_state_model.as_ref(ctx).diff_mode(ctx),
                     main_branch_name.as_deref(),
@@ -5857,7 +5857,7 @@ impl CodeReviewView {
                 };
 
                 // Create the DiffHunk attachment
-                let attachment = AIAgentAttachment::DiffHunk {
+                let _attachment = AIAgentAttachment::DiffHunk {
                     file_path: filename.clone(),
                     line_range: line_range.clone(),
                     diff_content,

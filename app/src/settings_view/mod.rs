@@ -1529,7 +1529,7 @@ impl SettingsView {
         if self.settings_page(page_section).is_none() {
             return;
         }
-        let previous_section = self.current_settings_page;
+        let _previous_section = self.current_settings_page;
 
         ctx.enable_key_bindings_dispatching();
 

@@ -4,7 +4,6 @@ use std::time::Duration;
 use instant::Instant;
 use serde::{Deserialize, Serialize};
 use warp_cli::agent::Harness;
-use warp_core::features::FeatureFlag;
 use warp_core::user_preferences::GetUserPreferences;
 use warp_managed_secrets::client::SecretOwner;
 use warp_managed_secrets::{ManagedSecretManager, ManagedSecretValue};
