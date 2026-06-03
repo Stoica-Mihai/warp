@@ -554,23 +554,6 @@ impl AgentConversationsModel {
         ctx.emit(AgentConversationsModelEvent::ConversationsLoaded);
     }
 
-    /// Called when a view that consumes this model's data becomes hidden.
-    /// Uses view_id to make unregistration idempotent.
-    pub fn register_view_closed(
-        &mut self,
-        window_id: WindowId,
-        view_id: EntityId,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        if let Some(views) = self.active_data_consumers_per_window.get_mut(&window_id) {
-            views.remove(&view_id);
-            if views.is_empty() {
-                self.active_data_consumers_per_window.remove(&window_id);
-            }
-        }
-        self.update_polling_state(ctx);
-    }
-
     /// Updates the polling state based on whether the active window has the view open.
     fn update_polling_state(&mut self, ctx: &mut ModelContext<Self>) {
         let should_poll = self.should_be_polling(ctx);
