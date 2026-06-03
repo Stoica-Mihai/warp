@@ -470,15 +470,8 @@ const MOBILE_OVERLAY_SCRIM_ALPHA: u8 = 128;
 pub const NEW_TAB_BUTTON_POSITION_ID: &str = "new_tab_button";
 pub const NEW_SESSION_MENU_BUTTON_POSITION_ID: &str = "new_session_menu_button";
 
-// The max length of the title of a fork toast (after which we truncate it).
-const MAX_FORK_TOAST_TITLE_LENGTH: usize = 100;
-
 // The max length of the window title (matching conversation title truncation).
 const MAX_WINDOW_TITLE_LENGTH: usize = 80;
-
-#[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-const AUTO_CLOUD_HANDOFF_PROMPT: &str =
-    "Continue this local Warp Agent task in the cloud from the current conversation state.";
 
 /// The default display name used for the user if they have no associated display name.
 pub const DEFAULT_USER_DISPLAY_NAME: &str = "User";
@@ -561,32 +554,17 @@ pub struct TabPaneGroupIdentifiers {
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum LocalToCloudHandoffIntent {
-    UserInitiated(HandoffEntryPoint),
     Automatic {
         trigger: AutoCloudHandoffTrigger,
         conversation_id: AIConversationId,
     },
 }
-#[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-struct LocalToCloudHandoffOpenParams {
-    forked_conversation_id: String,
-    environment_id: Option<SyncId>,
-    intent: LocalToCloudHandoffIntent,
-}
 
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
 impl LocalToCloudHandoffIntent {
-    fn shows_user_feedback(self) -> bool {
-        matches!(self, Self::UserInitiated(_))
-    }
-
     fn expected_conversation_id(self) -> Option<AIConversationId> {
-        match self {
-            Self::UserInitiated(_) => None,
-            Self::Automatic {
-                conversation_id, ..
-            } => Some(conversation_id),
-        }
+        let Self::Automatic { conversation_id, .. } = self;
+        Some(conversation_id)
     }
 }
 
@@ -9965,19 +9943,6 @@ impl Workspace {
     }
 
     /// Finishes the handoff after the fork RPC returns by restoring the forked
-    /// conversation in a cloud pane and starting snapshot prep.
-    #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-    fn complete_local_to_cloud_handoff_open(
-        &mut self,
-        _source_view: ViewHandle<TerminalView>,
-        _source_conversation: AIConversation,
-        params: LocalToCloudHandoffOpenParams,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let LocalToCloudHandoffOpenParams { forked_conversation_id: _, environment_id: _, intent } = params;
-        Self::record_automatic_handoff_failed(intent, ctx);
-    }
-
     pub(crate) fn handle_file_tree_event(
         &mut self,
         pane_group: ViewHandle<PaneGroup>,
@@ -11932,9 +11897,7 @@ impl Workspace {
         event: &UpdateManagerEvent,
         ctx: &mut ViewContext<Self>,
     ) {
-        let UpdateManagerEvent::ObjectOperationComplete { result } = event else {
-            return;
-        };
+        let result = event.result();
 
         let cloud_model = CloudModel::as_ref(ctx);
 
