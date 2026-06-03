@@ -39,17 +39,6 @@ impl MessageHydrator {
         Self::with_fetch_timeout(ai_client, DEFAULT_AGENT_MESSAGE_FETCH_TIMEOUT)
     }
 
-    pub(crate) fn for_task(server_api: Arc<ServerApi>, task_id: AmbientAgentTaskId) -> Self {
-        let ai_client: Arc<dyn AIClient> = server_api.clone();
-        Self {
-            ai_client,
-            task_scoped_server_api: Some(server_api),
-            task_id: Some(task_id),
-            fetch_timeout: DEFAULT_AGENT_MESSAGE_FETCH_TIMEOUT,
-            retry_delay: DEFAULT_AGENT_MESSAGE_RETRY_DELAY,
-        }
-    }
-
     #[cfg(test)]
     pub(crate) fn with_fetch_timing(
         ai_client: Arc<dyn AIClient>,
