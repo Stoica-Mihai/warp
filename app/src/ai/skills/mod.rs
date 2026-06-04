@@ -9,8 +9,6 @@ cfg_if::cfg_if! {
 }
 
 
-#[cfg(not(target_family = "wasm"))]
-mod global_skills;
 
 mod listed_skill;
 pub use listed_skill::SkillDescriptor;
