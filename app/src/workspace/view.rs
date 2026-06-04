@@ -118,7 +118,7 @@ use super::util::{
 };
 use super::{util, ActiveSession, TabBarDropTargetData, TabBarLocation, WorkspaceRegistry};
 use crate::ai::agent::api::ServerConversationToken;
-use crate::ai::agent::conversation::{AIConversation, AIConversationId};
+use crate::ai::agent::conversation::AIConversationId;
 #[cfg(target_family = "wasm")]
 use crate::ai::agent_conversations_model::AgentConversationsModelEvent;
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
@@ -129,7 +129,6 @@ use crate::ai::cloud_agent_settings::CloudAgentSettings;
 use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentModel};
 use crate::ai::facts::view::AIFactPage;
 use crate::ai::facts::{AIFactManager, AIFactView, AIFactViewEvent};
-use crate::ai::llms::LLMPreferences;
 use crate::ai::persisted_workspace::PersistedWorkspace;
 use crate::ai::conversation_utils;
 use crate::ai::execution_context::WarpAiExecutionContext;
@@ -8857,64 +8856,6 @@ impl Workspace {
         _summarization_prompt: Option<String>,
         _initial_prompt: Option<String>,
         _destination: ForkedConversationDestination,
-        _ctx: &mut ViewContext<Self>,
-    ) {
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn create_local_fork(
-        &mut self,
-        _source_conversation: Box<AIConversation>,
-        _conversation_id: AIConversationId,
-        _fork_from_exchange: Option<ForkFromExchange>,
-        _summarize_after_fork: bool,
-        _summarization_prompt: Option<String>,
-        _initial_prompt: Option<String>,
-        _destination: ForkedConversationDestination,
-        _has_initial_query: bool,
-        _source_terminal_view_id: Option<EntityId>,
-        _server_forked_conversation_id: Option<String>,
-        _window_id: WindowId,
-        _ctx: &mut ViewContext<Self>,
-    ) {
-    }
-
-    /// Handle sending summarize and/or initial prompt to a forked conversation.
-    fn handle_forked_conversation_prompts(
-        _terminal_view: ViewHandle<TerminalView>,
-        summarize_after_fork: bool,
-        _summarization_prompt: Option<String>,
-        initial_prompt: Option<String>,
-        _forked_conversation_id: AIConversationId,
-        _ctx: &mut ViewContext<Self>,
-    ) {
-        if !summarize_after_fork && initial_prompt.is_none() {
-            return;
-        }
-
-    }
-
-    /// Copy the model selection and execution profile from the source terminal view to a new terminal view.
-    fn copy_model_and_profile_to_terminal_view(
-        source_terminal_view_id: EntityId,
-        new_terminal_view_id: EntityId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        // Copy the LLM preference from source to new terminal view
-        let source_llm_id = LLMPreferences::as_ref(ctx)
-            .get_active_base_model(ctx, Some(source_terminal_view_id))
-            .id
-            .clone();
-        LLMPreferences::handle(ctx).update(ctx, |prefs, ctx| {
-            prefs.update_preferred_agent_mode_llm(&source_llm_id, new_terminal_view_id, ctx);
-        });
-
-    }
-
-    /// Show a toast notification for a forked conversation.
-    fn show_fork_toast(
-        _conversation_id: AIConversationId,
-        _window_id: WindowId,
         _ctx: &mut ViewContext<Self>,
     ) {
     }

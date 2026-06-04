@@ -3,12 +3,12 @@ use std::path::Path;
 
 use warp_core::ui::theme::Fill;
 use warpui::elements::{
-    Border, ChildView, ConstrainedBox, Container, CornerRadius, CrossAxisAlignment, Empty,
+    Border, ConstrainedBox, Container, CornerRadius, CrossAxisAlignment, Empty,
     Expanded, Flex, HighlightedRange, MainAxisAlignment, MainAxisSize, MouseStateHandle,
     ParentElement, Radius, Shrinkable, Text,
 };
 use warpui::ui_components::components::UiComponent;
-use warpui::{AppContext, Element, EventContext, SingletonEntity, ViewHandle};
+use warpui::{AppContext, Element, EventContext, SingletonEntity};
 
 use crate::ai::agent::ProgrammingLanguage;
 use crate::terminal::view::inline_action_header::{
@@ -16,7 +16,6 @@ use crate::terminal::view::inline_action_header::{
 };
 use crate::terminal::view::inline_action_icons::icon_size;
 use crate::appearance::Appearance;
-use crate::code::editor::view::CodeEditorView;
 use crate::code::editor_management::CodeSource;
 use crate::search::files::icon::icon_from_file_path;
 use crate::search::ItemHighlightState;
@@ -92,18 +91,6 @@ pub struct CodeBlockOptions {
     pub footer_element: Option<Box<dyn Element>>,
     pub mouse_handles: Option<CodeSnippetButtonHandles>,
     pub file_path: Option<String>,
-}
-
-pub fn render_code_block_with_warp_text(
-    options: CodeBlockOptions,
-    view: &ViewHandle<CodeEditorView>,
-    app: &AppContext,
-    source: Option<CodeSource>,
-) -> Box<dyn Element> {
-    let code = view.as_ref(app).text(app);
-    let code_element = ChildView::new(view).finish();
-
-    render_code_block_internal(code.as_str(), code_element, options, app, source, true)
 }
 
 pub fn render_code_block_plain(
