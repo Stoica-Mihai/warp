@@ -4,7 +4,6 @@ pub mod entry;
 use std::collections::{HashMap, HashSet};
 use std::time::Duration;
 
-use chrono::Utc;
 use clap::ValueEnum;
 pub use entry::{
     AgentConversationEntry, AgentConversationEntryId, AgentConversationNavigationSubject,
@@ -12,13 +11,11 @@ pub use entry::{
 };
 use futures::stream::AbortHandle;
 use instant::Instant;
-use itertools::Itertools;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use warp_cli::agent::Harness;
 use warp_core::execution_mode::AppExecutionMode;
 use warp_core::features::FeatureFlag;
 use warp_core::report_error;
-use warp_core::ui::theme::color::internal_colors;
 use warp_core::ui::theme::WarpTheme;
 use warpui::color::ColorU;
 use warpui::r#async::Timer;
@@ -36,12 +33,8 @@ use crate::ai::ambient_agents::{
 };
 use crate::ai::artifacts::Artifact;
 
-use crate::ai::cloud_environments::CloudAmbientAgentEnvironment;
 use crate::ai::conversation_navigation::ConversationNavigationData;
-use crate::auth::AuthStateProvider;
-use crate::cloud_object::CloudObjectLookup as _;
 use crate::network::{NetworkStatus, NetworkStatusEvent, NetworkStatusKind};
-use crate::server::ids::{ServerId, SyncId};
 use crate::server::retry_strategies::{
     is_transient_http_error, OUT_OF_BAND_REQUEST_RETRY_STRATEGY, PERIODIC_POLL_RETRY_STRATEGY,
 };
@@ -210,15 +203,7 @@ pub enum AgentRunDisplayStatus {
     },
     TaskCancelled,
     TaskUnknown,
-    /// Conversation-derived lifecycle states, used for interactive conversations and for
-    /// in-progress ambient tasks after they can be resolved to their shadowed local conversation.
-    ConversationInProgress,
     ConversationSucceeded,
-    ConversationError,
-    ConversationBlocked {
-        blocked_action: String,
-    },
-    ConversationCancelled,
 }
 
 impl AgentRunDisplayStatus {
@@ -265,8 +250,7 @@ impl AgentRunDisplayStatus {
             AgentRunDisplayStatus::TaskQueued
             | AgentRunDisplayStatus::TaskPending
             | AgentRunDisplayStatus::TaskClaimed
-            | AgentRunDisplayStatus::TaskInProgress
-            | AgentRunDisplayStatus::ConversationInProgress => StatusFilter::Working,
+            | AgentRunDisplayStatus::TaskInProgress => StatusFilter::Working,
             AgentRunDisplayStatus::TaskSucceeded | AgentRunDisplayStatus::ConversationSucceeded => {
                 StatusFilter::Done
             }
@@ -274,10 +258,7 @@ impl AgentRunDisplayStatus {
             | AgentRunDisplayStatus::TaskError
             | AgentRunDisplayStatus::TaskBlocked { .. }
             | AgentRunDisplayStatus::TaskCancelled
-            | AgentRunDisplayStatus::TaskUnknown
-            | AgentRunDisplayStatus::ConversationError
-            | AgentRunDisplayStatus::ConversationBlocked { .. }
-            | AgentRunDisplayStatus::ConversationCancelled => StatusFilter::Failed,
+            | AgentRunDisplayStatus::TaskUnknown => StatusFilter::Failed,
         }
     }
 
@@ -286,24 +267,19 @@ impl AgentRunDisplayStatus {
             AgentRunDisplayStatus::TaskQueued
             | AgentRunDisplayStatus::TaskPending
             | AgentRunDisplayStatus::TaskClaimed
-            | AgentRunDisplayStatus::TaskInProgress
-            | AgentRunDisplayStatus::ConversationInProgress => ConversationStatus::InProgress,
+            | AgentRunDisplayStatus::TaskInProgress => ConversationStatus::InProgress,
             AgentRunDisplayStatus::TaskSucceeded | AgentRunDisplayStatus::ConversationSucceeded => {
                 ConversationStatus::Success
             }
             AgentRunDisplayStatus::TaskFailed
             | AgentRunDisplayStatus::TaskError
-            | AgentRunDisplayStatus::TaskUnknown
-            | AgentRunDisplayStatus::ConversationError => ConversationStatus::Error,
-            AgentRunDisplayStatus::TaskBlocked { blocked_action }
-            | AgentRunDisplayStatus::ConversationBlocked { blocked_action } => {
+            | AgentRunDisplayStatus::TaskUnknown => ConversationStatus::Error,
+            AgentRunDisplayStatus::TaskBlocked { blocked_action } => {
                 ConversationStatus::Blocked {
                     blocked_action: blocked_action.clone(),
                 }
             }
-            AgentRunDisplayStatus::TaskCancelled | AgentRunDisplayStatus::ConversationCancelled => {
-                ConversationStatus::Cancelled
-            }
+            AgentRunDisplayStatus::TaskCancelled => ConversationStatus::Cancelled,
         }
     }
 
@@ -318,7 +294,6 @@ impl AgentRunDisplayStatus {
                 | AgentRunDisplayStatus::TaskPending
                 | AgentRunDisplayStatus::TaskClaimed
                 | AgentRunDisplayStatus::TaskInProgress
-                | AgentRunDisplayStatus::ConversationInProgress
         )
     }
 
@@ -327,8 +302,7 @@ impl AgentRunDisplayStatus {
             AgentRunDisplayStatus::TaskQueued
             | AgentRunDisplayStatus::TaskPending
             | AgentRunDisplayStatus::TaskClaimed
-            | AgentRunDisplayStatus::TaskInProgress
-            | AgentRunDisplayStatus::ConversationInProgress => {
+            | AgentRunDisplayStatus::TaskInProgress => {
                 (Icon::ClockLoader, theme.ansi_fg_magenta())
             }
             AgentRunDisplayStatus::TaskSucceeded | AgentRunDisplayStatus::ConversationSucceeded => {
@@ -336,19 +310,14 @@ impl AgentRunDisplayStatus {
             }
             AgentRunDisplayStatus::TaskFailed
             | AgentRunDisplayStatus::TaskError
-            | AgentRunDisplayStatus::TaskUnknown
-            | AgentRunDisplayStatus::ConversationError => (Icon::Triangle, theme.ansi_fg_red()),
-            AgentRunDisplayStatus::TaskBlocked { .. }
-            | AgentRunDisplayStatus::ConversationBlocked { .. } => {
+            | AgentRunDisplayStatus::TaskUnknown => (Icon::Triangle, theme.ansi_fg_red()),
+            AgentRunDisplayStatus::TaskBlocked { .. } => {
                 (Icon::StopFilled, theme.ansi_fg_yellow())
             }
             AgentRunDisplayStatus::TaskCancelled => (
                 Icon::Cancelled,
                 theme.disabled_text_color(theme.background()).into_solid(),
             ),
-            AgentRunDisplayStatus::ConversationCancelled => {
-                (Icon::StopFilled, internal_colors::neutral_5(theme))
-            }
         }
     }
 }
@@ -359,20 +328,14 @@ impl std::fmt::Display for AgentRunDisplayStatus {
             AgentRunDisplayStatus::TaskQueued => write!(f, "Queued"),
             AgentRunDisplayStatus::TaskPending => write!(f, "Pending"),
             AgentRunDisplayStatus::TaskClaimed => write!(f, "Claimed"),
-            AgentRunDisplayStatus::TaskInProgress
-            | AgentRunDisplayStatus::ConversationInProgress => write!(f, "In progress"),
+            AgentRunDisplayStatus::TaskInProgress => write!(f, "In progress"),
             AgentRunDisplayStatus::TaskSucceeded | AgentRunDisplayStatus::ConversationSucceeded => {
                 write!(f, "Done")
             }
             AgentRunDisplayStatus::TaskFailed => write!(f, "Failed"),
-            AgentRunDisplayStatus::TaskError | AgentRunDisplayStatus::ConversationError => {
-                write!(f, "Error")
-            }
-            AgentRunDisplayStatus::TaskBlocked { .. }
-            | AgentRunDisplayStatus::ConversationBlocked { .. } => write!(f, "Blocked"),
-            AgentRunDisplayStatus::TaskCancelled | AgentRunDisplayStatus::ConversationCancelled => {
-                write!(f, "Cancelled")
-            }
+            AgentRunDisplayStatus::TaskError => write!(f, "Error"),
+            AgentRunDisplayStatus::TaskBlocked { .. } => write!(f, "Blocked"),
+            AgentRunDisplayStatus::TaskCancelled => write!(f, "Cancelled"),
             AgentRunDisplayStatus::TaskUnknown => write!(f, "Failed"),
         }
     }
@@ -667,38 +630,6 @@ impl AgentConversationsModel {
     }
 
 
-    /// Returns normalized, owned entries for agent management/navigation surfaces.
-    pub fn get_entries(
-        &self,
-        filters: &AgentManagementFilters,
-        app: &AppContext,
-    ) -> Vec<AgentConversationEntry> {
-        let mut entries = Vec::new();
-        let mut attached_conversation_ids = HashSet::new();
-
-        for task in self.tasks.values() {
-            let entry = entry::entry_for_task(task, app);
-            if let Some(conversation_id) = entry.identity.local_conversation_id {
-                attached_conversation_ids.insert(conversation_id);
-            }
-            entries.push(entry);
-        }
-
-        for metadata in self.conversations.values() {
-            let conversation_id = metadata.nav_data.id;
-            if attached_conversation_ids.contains(&conversation_id) {
-                continue;
-            }
-            entries.push(entry::entry_for_conversation(metadata, app));
-        }
-
-        entries
-            .into_iter()
-            .filter(|entry| entry.matches_filters(filters, app))
-            .sorted_by(|a, b| b.display.last_updated.cmp(&a.display.last_updated))
-            .collect()
-    }
-
     pub fn get_entry_by_id(
         &self,
         id: &AgentConversationEntryId,
@@ -735,22 +666,6 @@ impl AgentConversationsModel {
                         conversation_id: server_token,
                     })
                 }),
-        }
-    }
-
-    pub fn resolve_copy_link(
-        subject: AgentConversationNavigationSubject,
-        app: &AppContext,
-    ) -> Option<String> {
-        let model = Self::as_ref(app);
-        match subject {
-            AgentConversationNavigationSubject::Entry(id) => model
-                .get_entry_by_id(&id, app)
-                .and_then(|entry| model.resolve_entry_copy_link(&entry)),
-            AgentConversationNavigationSubject::ServerToken(server_token) => model
-                .entry_for_server_token(&server_token, app)
-                .and_then(|entry| model.resolve_entry_copy_link(&entry))
-                .or_else(|| Some(server_token.conversation_link())),
         }
     }
 
@@ -809,28 +724,6 @@ impl AgentConversationsModel {
             })
     }
 
-    fn resolve_entry_copy_link(&self, entry: &AgentConversationEntry) -> Option<String> {
-        if let Some(task_id) = entry.identity.ambient_agent_task_id {
-            if let Some(session_link) = self.tasks.get(&task_id).and_then(|task| {
-                task.has_active_execution()
-                    .then(|| {
-                        task.active_run_execution()
-                            .session_link
-                            .map(ToString::to_string)
-                    })
-                    .flatten()
-            }) {
-                return Some(session_link);
-            }
-        }
-
-        entry
-            .identity
-            .server_conversation_token
-            .as_ref()
-            .map(ServerConversationToken::conversation_link)
-    }
-
     fn entry_for_server_token(
         &self,
         server_token: &ServerConversationToken,
@@ -854,13 +747,6 @@ impl AgentConversationsModel {
                 .is_some_and(|conversation_id| conversation_id == server_token.as_str())
                 .then_some(task.task_id)
         })
-    }
-
-    fn handle_history_event(
-        &mut self,
-        _event: &(),
-        _ctx: &mut ModelContext<Self>,
-    ) {
     }
 
     /// Get raw task data by task ID
@@ -969,138 +855,6 @@ impl AgentConversationsModel {
                 }
             },
         );
-    }
-
-    /// Returns all (name, uid) pairs for creators of tasks in the model.
-    ///
-    /// We use this function to populate the available creator filter list
-    /// based on the tasks we have.
-    pub fn get_all_creators(&self, app: &AppContext) -> Vec<(String, String)> {
-        let mut creators: Vec<(String, String)> = self
-            .tasks
-            .values()
-            .filter_map(|task| {
-                let name = entry::task_creator_name(task, app)?;
-                let uid = entry::task_creator_uid(task)?;
-                Some((name, uid))
-            })
-            .collect();
-
-        // Include the current user since they may have local conversations
-        let auth_state = AuthStateProvider::as_ref(app).get();
-        if let (Some(name), Some(uid)) = (auth_state.display_name(), auth_state.user_id()) {
-            creators.push((name, uid.to_string()));
-        }
-
-        creators.sort_by(|a, b| a.0.cmp(&b.0));
-        creators.dedup_by(|a, b| a.0 == b.0);
-
-        creators
-    }
-
-    /// Returns a mapping of environment IDs to display names.
-    ///
-    /// When multiple environments share the same name, each is disambiguated
-    /// as "<name> (<id>)".
-    pub fn get_all_environment_ids_and_names(&self, ctx: &AppContext) -> HashMap<String, String> {
-        let mut envs = HashMap::<String, String>::new();
-
-        for task in self.tasks.values() {
-            let Some(environment_id) = task
-                .agent_config_snapshot
-                .as_ref()
-                .and_then(|s| s.environment_id.as_deref())
-            else {
-                continue;
-            };
-
-            let Some(server_id) = ServerId::try_from(environment_id).ok() else {
-                continue;
-            };
-            let sync_id = SyncId::ServerId(server_id);
-            let Some(env) = CloudAmbientAgentEnvironment::get_by_id(&sync_id, ctx) else {
-                continue;
-            };
-            let env_model = &env.model().string_model;
-            envs.insert(environment_id.to_string(), env_model.name.clone());
-        }
-
-        // Disambiguate duplicate names by appending the environment ID.
-        let mut name_counts = HashMap::<String, usize>::new();
-        for name in envs.values() {
-            *name_counts.entry(name.clone()).or_default() += 1;
-        }
-        for (id, name) in &mut envs {
-            if name_counts.get(name.as_str()).copied().unwrap_or(0) > 1 {
-                *name = format!("{name} ({id})");
-            }
-        }
-
-        envs
-    }
-
-    /// Converts AgentManagementFilters to TaskListFilter for server API calls.
-    pub fn build_task_list_filter(
-        &self,
-        filters: &AgentManagementFilters,
-        current_user_uid: &str,
-    ) -> TaskListFilter {
-        let states = match filters.status {
-            StatusFilter::All => None,
-            StatusFilter::Working => Some(vec![
-                AmbientAgentTaskState::Queued,
-                AmbientAgentTaskState::Pending,
-                AmbientAgentTaskState::Claimed,
-                AmbientAgentTaskState::InProgress,
-            ]),
-            StatusFilter::Done => Some(vec![
-                AmbientAgentTaskState::Succeeded,
-                AmbientAgentTaskState::InProgress,
-            ]),
-            StatusFilter::Failed => Some(vec![
-                AmbientAgentTaskState::InProgress,
-                AmbientAgentTaskState::Failed,
-                AmbientAgentTaskState::Error,
-                AmbientAgentTaskState::Blocked,
-                AmbientAgentTaskState::Cancelled,
-                AmbientAgentTaskState::Unknown,
-            ]),
-        };
-
-        let source = match &filters.source {
-            SourceFilter::All => None,
-            SourceFilter::Specific(s) => Some(s.clone()),
-        };
-
-        let now = Utc::now();
-        let created_after = match filters.created_on {
-            CreatedOnFilter::All => None,
-            CreatedOnFilter::Last24Hours => Some(now - chrono::Duration::hours(24)),
-            CreatedOnFilter::Past3Days => Some(now - chrono::Duration::days(3)),
-            CreatedOnFilter::LastWeek => Some(now - chrono::Duration::days(7)),
-        };
-
-        let creator_uid = match filters.owners {
-            OwnerFilter::PersonalOnly => Some(current_user_uid.to_string()),
-            OwnerFilter::All => match &filters.creator {
-                CreatorFilter::All => None,
-                CreatorFilter::Specific { uid, .. } => Some(uid.clone()),
-            },
-        };
-
-        let environment_id = match &filters.environment {
-            EnvironmentFilter::All | EnvironmentFilter::NoEnvironment => None,
-            EnvironmentFilter::Specific(id) => Some(id.clone()),
-        };
-
-        TaskListFilter {
-            creator_uid,
-            states,
-            source,
-            created_after,
-            environment_id,
-            ..TaskListFilter::default()
-        }
     }
 
     /// Clears all stored conversation and task data in memory.
