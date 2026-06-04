@@ -50,61 +50,6 @@ pub(crate) fn download_destination(
     explicit_path.unwrap_or_else(|| PathBuf::from(default_download_filename(artifact)))
 }
 
-#[cfg(feature = "local_fs")]
-pub(crate) fn default_download_directory() -> Option<PathBuf> {
-    dirs::download_dir()
-}
-
-#[cfg(feature = "local_fs")]
-pub(crate) async fn download_artifact_bytes(
-    http_client: &http_client::Client,
-    artifact: &ArtifactDownloadResponse,
-    path: &Path,
-) -> anyhow::Result<()> {
-    use std::time::Duration;
-
-    use anyhow::{anyhow, Context as _};
-    use futures::TryStreamExt as _;
-    use tokio_util::io::StreamReader;
-
-    if let Some(parent) = path
-        .parent()
-        .filter(|parent| !parent.as_os_str().is_empty())
-    {
-        tokio::fs::create_dir_all(parent).await.with_context(|| {
-            format!("Failed to create download directory '{}'", parent.display())
-        })?;
-    }
-
-    let response = http_client
-        .get(artifact.download_url())
-        .timeout(Duration::from_secs(300))
-        .send()
-        .await
-        .with_context(|| {
-            format!(
-                "Failed to download artifact '{}' from signed URL",
-                artifact.artifact_uid()
-            )
-        })?;
-    let response = response
-        .error_for_status()
-        .map_err(|err| anyhow!("Artifact download failed: {err}"))?;
-
-    let mut file = tokio::fs::File::create(path)
-        .await
-        .with_context(|| format!("Failed to create download file '{}'", path.display()))?;
-    let mut response_stream =
-        StreamReader::new(response.bytes_stream().map_err(std::io::Error::other));
-    tokio::io::copy(&mut response_stream, &mut file)
-        .await
-        .with_context(|| format!("Failed to write download file '{}'", path.display()))?;
-    file.sync_data()
-        .await
-        .with_context(|| format!("Failed to sync download file '{}'", path.display()))?;
-
-    Ok(())
-}
 
 #[cfg(test)]
 mod tests {
