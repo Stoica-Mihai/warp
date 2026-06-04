@@ -2231,18 +2231,16 @@ impl RichTextEditorView {
                 let absolute_range = search_start + CharOffset::from(link_range.start)
                     ..search_start + CharOffset::from(link_range.end);
                 if absolute_range.contains(&char_offset) {
-                    if let DetectedLinkType::FilePath {
+                    let DetectedLinkType::FilePath {
                         absolute_path,
                         line_and_column_num,
-                    } = link_type
-                    {
-                        self.hovered_file_path = Some(SelectedFilePath {
-                            range: absolute_range,
-                            path: absolute_path,
-                            line_and_column_num,
-                        });
-                        break;
-                    }
+                    } = link_type;
+                    self.hovered_file_path = Some(SelectedFilePath {
+                        range: absolute_range,
+                        path: absolute_path,
+                        line_and_column_num,
+                    });
+                    break;
                 }
             }
         }
