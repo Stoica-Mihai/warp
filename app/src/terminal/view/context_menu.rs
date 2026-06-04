@@ -5,8 +5,8 @@ use super::{
     AIConversationId, AppContext, ChannelState,
     ClipboardContent, ContextMenuAction, ContextMenuState, ContextMenuType, EntityId,
     ForkAIConversationParams, ForkFromExchange, ForkedConversationDestination, MenuItem,
-    MenuItemFields, RichContentLink, ServerConversationToken, ServerOutputId,
-    TerminalAction, TerminalModel, TerminalView, Tip, TipHint, Vector2F, ViewContext,
+    MenuItemFields, RichContentLink,
+    TerminalAction, TerminalModel, TerminalView, Tip, TipHint, ViewContext,
     CONTEXT_MENU_WIDTH,
 };
 
@@ -153,54 +153,6 @@ impl TerminalView {
         );
     }
 
-    fn conversation_server_token(
-        &self,
-        _conversation_id: AIConversationId,
-        _ctx: &AppContext,
-    ) -> Option<ServerConversationToken> {
-        None
-    }
-
-    fn conversation_debug_request_id(
-        &self,
-        _conversation_id: AIConversationId,
-        _ctx: &AppContext,
-    ) -> Option<ServerOutputId> {
-        None
-    }
-
-    fn copy_debugging_menu_items(
-        &self,
-        conversation_token: ServerConversationToken,
-        server_output_id: Option<ServerOutputId>,
-    ) -> Vec<(String, ContextMenuAction)> {
-        if ChannelState::channel().is_dogfood() {
-            vec![
-                (
-                    "Copy debugging link".to_string(),
-                    ContextMenuAction::CopyAIDebuggingLink {
-                        conversation_token: conversation_token.clone(),
-                        request_id: server_output_id,
-                    },
-                ),
-                (
-                    "Copy conversation ID".to_string(),
-                    ContextMenuAction::CopyConversationId {
-                        conversation_id: conversation_token,
-                    },
-                ),
-            ]
-        } else {
-            vec![(
-                "Copy debugging ID".to_string(),
-                ContextMenuAction::CopyExternalDebuggingId {
-                    request_id: server_output_id,
-                    conversation_id: conversation_token,
-                },
-            )]
-        }
-    }
-
     pub(super) fn create_copy_debugging_menu_item(
         &self,
         _ai_exchange_id: AIAgentExchangeId,
@@ -208,69 +160,6 @@ impl TerminalView {
         _ctx: &mut ViewContext<Self>,
     ) -> Vec<(String, ContextMenuAction)> {
         Vec::new()
-    }
-
-    fn conversation_menu_items(
-        &self,
-        conversation_id: AIConversationId,
-        ctx: &mut ViewContext<Self>,
-    ) -> Vec<MenuItem<TerminalAction>> {
-        let mut items = Vec::new();
-
-        items.push(
-            MenuItemFields::new("Copy conversation text")
-                .with_on_select_action(TerminalAction::ContextMenu(
-                    ContextMenuAction::CopyConversationText { conversation_id },
-                ))
-                .into_item(),
-        );
-
-        items.push(
-            MenuItemFields::new("Fork")
-                .with_on_select_action(TerminalAction::ContextMenu(
-                    ContextMenuAction::ForkAIConversation { conversation_id },
-                ))
-                .into_item(),
-        );
-
-        if let Some(conversation_token) = self.conversation_server_token(conversation_id, ctx) {
-            let server_output_id = self.conversation_debug_request_id(conversation_id, ctx);
-            let debugging_items =
-                self.copy_debugging_menu_items(conversation_token, server_output_id);
-            if !debugging_items.is_empty() {
-                if !items.is_empty() {
-                    items.push(MenuItem::Separator);
-                }
-                for (button_text, action) in debugging_items {
-                    items.push(
-                        MenuItemFields::new(button_text)
-                            .with_on_select_action(TerminalAction::ContextMenu(action))
-                            .into_item(),
-                    );
-                }
-            }
-        }
-
-        items
-    }
-
-    pub(super) fn open_agent_view_entry_context_menu(
-        &mut self,
-        conversation_id: AIConversationId,
-        agent_view_entry_block_id: EntityId,
-        position: Vector2F,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.show_context_menu(
-            ContextMenuState {
-                menu_type: ContextMenuType::AgentViewEntryConversation {
-                    agent_view_entry_block_id,
-                    position,
-                },
-            },
-            self.conversation_menu_items(conversation_id, ctx),
-            ctx,
-        );
     }
 
     pub(super) fn open_ai_block_overflow_context_menu(

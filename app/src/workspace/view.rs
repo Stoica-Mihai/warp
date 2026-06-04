@@ -9758,84 +9758,6 @@ impl Workspace {
         }
     }
 
-    #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-    fn restore_source_handoff_draft(
-        _source_view: &ViewHandle<TerminalView>,
-        
-        _environment_id: Option<SyncId>,
-        _ctx: &mut ViewContext<Self>,
-    ) {
-    }
-
-    #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-    #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-    fn show_handoff_success_toast(ctx: &mut ViewContext<Self>) {
-        let window_id = ctx.window_id();
-        WorkspaceToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-            toast_stack.add_ephemeral_toast(
-                DismissibleToast::default(
-                    "Starting cloud environment for this session...".to_owned(),
-                ),
-                window_id,
-                ctx,
-            );
-        });
-    }
-
-    /// Resolves the terminal view that should receive the handoff cloud-mode
-    /// pane push and prepares it for the transition:
-    ///
-    /// 1. Finds the pane group that owns `source_view` (rather than the
-    ///    currently-active tab) so focus changes during an async fork RPC
-    ///    cannot mis-target the handoff.
-    /// 2. If the active session slot holds a swapped-in child agent, reverts
-    ///    the swap so the push lands on the orchestrator's PaneStack.
-    /// 3. If the resolved view's agent view is fullscreen, exits it so the
-    ///    cloud pane is visible at the terminal level.
-    #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-    fn prepare_handoff_target(
-        &mut self,
-        source_view: &ViewHandle<TerminalView>,
-        ctx: &mut ViewContext<Self>,
-    ) -> ViewHandle<TerminalView> {
-        let source_view_id = source_view.id();
-        let pane_group = self
-            .tabs
-            .iter()
-            .find(|tab| {
-                tab.pane_group
-                    .as_ref(ctx)
-                    .contains_terminal_view(source_view_id, ctx)
-            })
-            .map(|tab| tab.pane_group.clone())
-            .unwrap_or_else(|| self.active_tab_pane_group().clone());
-        let target = if let Some((original_pane_id, orchestrator_view)) =
-            pane_group.as_ref(ctx).original_session_if_swapped(ctx)
-        {
-            pane_group.update(ctx, |group, ctx| {
-                group.reveal_and_focus_pane(original_pane_id, ctx);
-            });
-            orchestrator_view
-        } else {
-            source_view.clone()
-        };
-
-        target
-    }
-
-    /// Opens a cloud pane without forking when there is no local conversation to hand off.
-    /// Still snapshots the source pane's pwd so the cloud agent receives the local repo's
-    /// branch info and uncommitted diffs.
-    #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-    fn start_fresh_cloud_launch(
-        &mut self,
-        _source_view: ViewHandle<TerminalView>,
-        
-        _environment_id: Option<SyncId>,
-        _ctx: &mut ViewContext<Self>,
-    ) {
-    }
-
     /// Opens a local-to-cloud handoff pane in place over the active local pane.
     /// Triggered by `/move-to-cloud`, `&` compose mode, and the handoff footer chip.
     #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
@@ -14930,12 +14852,6 @@ impl Workspace {
 
 
         panels_view.finish()
-    }
-
-    fn is_mailbox_on_left(config: &HeaderToolbarChipSelection) -> bool {
-        config
-            .left_items()
-            .contains(&HeaderToolbarItemKind::NotificationsMailbox)
     }
 
     fn tabs_panel_side(config: &HeaderToolbarChipSelection) -> PanelPosition {

@@ -91,21 +91,6 @@ impl RenderableAction {
         }
     }
 
-    pub fn new_with_formatted_text(formatted_text: FormattedTextElement, app: &AppContext) -> Self {
-        let appearance = Appearance::as_ref(app);
-        let theme = appearance.theme();
-        Self {
-            body: FormattedTextOrElement::FormattedText(Box::new(formatted_text)),
-            icon: None,
-            header: None,
-            footer: None,
-            action_button: None,
-            background_color: neutral_2(theme),
-            should_highlight_border: false,
-            should_override_with_content_item_spacing: false,
-        }
-    }
-
     pub fn new_with_element(element: Box<dyn Element>, app: &AppContext) -> Self {
         let appearance = Appearance::as_ref(app);
         let theme = appearance.theme();
@@ -131,26 +116,8 @@ impl RenderableAction {
         self
     }
 
-    pub fn with_footer(mut self, footer: Box<dyn Element>) -> Self {
-        self.footer = Some(footer);
-        self
-    }
-
-    pub fn with_font_color(mut self, color: ColorU) -> Self {
-        if let FormattedTextOrElement::FormattedText(formatted_text) = self.body {
-            self.body =
-                FormattedTextOrElement::FormattedText(Box::new(formatted_text.with_color(color)));
-        }
-        self
-    }
-
     pub fn with_background_color(mut self, color: ColorU) -> Self {
         self.background_color = color;
-        self
-    }
-
-    pub fn with_highlighted_border(mut self) -> Self {
-        self.should_highlight_border = true;
         self
     }
 
