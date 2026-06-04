@@ -2,7 +2,6 @@ mod action;
 pub mod agent_view_state;
 pub mod ambient_agent;
 mod block_banner;
-pub(crate) mod blocklist_filter;
 pub(crate) mod inline_action_icons;
 pub(crate) mod inline_action_header;
 pub(crate) mod requested_action;
