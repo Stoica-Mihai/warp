@@ -1,9 +1,8 @@
 use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, OnceLock};
+use std::sync::OnceLock;
 
 use ai::api_keys::{ApiKeyManager, ApiKeyManagerEvent, CustomEndpoint, CustomEndpointModel};
 pub use ai::LLMId;
-use parking_lot::FairMutex;
 use serde::{de, Deserialize, Serialize};
 use warp_core::features::FeatureFlag;
 use warp_core::ui::icons::Icon;
@@ -498,22 +497,10 @@ impl Default for ModelsByFeature {
     }
 }
 
-enum UpdatePopupVisibilityState {
-    WaitingToBeShown,
-    Visible(EntityId),
-    Hidden,
-}
-
-struct AvailableLLMsUpdate {
-    new_choices: Vec<LLMInfo>,
-    popup_visibility_state: Arc<FairMutex<UpdatePopupVisibilityState>>,
-}
-
 /// Singleton model holding user/workspace LLM preferences, including the set of LLMs available for
 /// use as well as the user's preferred LLM for Agent Mode.
 pub struct LLMPreferences {
     models_by_feature: ModelsByFeature,
-    last_update: Option<AvailableLLMsUpdate>,
     // Stores temporary model overrides for a given terminal view.
     // NOTE: We only store an override if the model selected by the user is different
     // from the base LLM for the active profile. This means that if the user selects the
@@ -573,7 +560,6 @@ impl LLMPreferences {
 
         let me = Self {
             models_by_feature,
-            last_update: None,
             base_llm_for_terminal_view,
             custom_llms,
         };
@@ -639,17 +625,6 @@ impl LLMPreferences {
             .chain(self.custom_llm_choices(app))
     }
 
-    /// Returns the set of LLMs available for coding.
-    pub fn get_coding_llm_choices(&self, app: &AppContext) -> impl Iterator<Item = &LLMInfo> {
-        // Don't show admin-disabled models in the dropdown
-        self.models_by_feature
-            .coding
-            .choices
-            .iter()
-            .filter(|llm| !matches!(llm.disable_reason, Some(DisableReason::AdminDisabled)))
-            .chain(self.custom_llm_choices(app))
-    }
-
     /// Returns the set of LLMs available for CLI agent.
     pub fn get_cli_agent_llm_choices(&self, app: &AppContext) -> impl Iterator<Item = &LLMInfo> {
         self.get_cli_agent_available()
@@ -679,44 +654,12 @@ impl LLMPreferences {
             .unwrap_or_else(|| available.default_llm_info())
     }
 
-    /// Returns the default CLI agent model as a fallback.
-    pub fn get_default_cli_agent_model(&self) -> &LLMInfo {
-        self.get_cli_agent_available().default_llm_info()
-    }
-
     /// Helper to get the AvailableLLMs for cli_agent, falling back to agent_mode.
     fn get_cli_agent_available(&self) -> &AvailableLLMs {
         self.models_by_feature
             .cli_agent
             .as_ref()
             .unwrap_or(&self.models_by_feature.agent_mode)
-    }
-
-    /// Returns the set of LLMs available for computer use agent.
-    pub fn get_computer_use_llm_choices(&self) -> impl Iterator<Item = &LLMInfo> {
-        self.get_computer_use_available().choices.iter()
-    }
-
-    /// Returns the `LLMInfo` for the computer use agent model.
-    pub fn get_active_computer_use_model<'a>(
-        &'a self,
-        app: &'a AppContext,
-        terminal_view_id: Option<EntityId>,
-    ) -> &'a LLMInfo {
-        let profile = AIExecutionProfilesModel::as_ref(app).active_profile(terminal_view_id, app);
-
-        let available = self.get_computer_use_available();
-        profile
-            .data()
-            .computer_use_model
-            .clone()
-            .and_then(|id| available.info_for_id(&id))
-            .unwrap_or_else(|| available.default_llm_info())
-    }
-
-    /// Returns the default computer use model as a fallback.
-    pub fn get_default_computer_use_model(&self) -> &LLMInfo {
-        self.get_computer_use_available().default_llm_info()
     }
 
     /// Helper to get the AvailableLLMs for computer_use.
@@ -727,15 +670,6 @@ impl LLMPreferences {
             .computer_use
             .as_ref()
             .unwrap_or_else(|| DEFAULT.get_or_init(default_computer_use_llms))
-    }
-
-    /// Returns metadata about an LLM, if the client knows about it.
-    /// Falls back to the user's custom-endpoint LLMs when the id isn't a server-known model
-    /// id (e.g. when it's a `config_key` UUID).
-    pub fn get_llm_info(&self, id: &LLMId) -> Option<&LLMInfo> {
-        self.models_by_feature
-            .agent_mode.info_for_id(id)
-            .or_else(|| self.custom_llm_info_for_id(id))
     }
 
     /// Resolves an `LLMId` against the user's custom-endpoint LLMs.
@@ -848,25 +782,6 @@ impl LLMPreferences {
         }
     }
 
-    /// Returns the default base model as a fallback.
-    pub fn get_default_base_model(&self) -> &LLMInfo {
-        self.models_by_feature.agent_mode.default_llm_info()
-    }
-
-    /// Returns the default coding model as a fallback.
-    pub fn get_default_coding_model(&self) -> &LLMInfo {
-        self.models_by_feature.coding.default_llm_info()
-    }
-
-    /// Returns the preferred Codex model, if set by the server.
-    pub fn get_preferred_codex_model(&self) -> Option<&LLMInfo> {
-        self.models_by_feature
-            .agent_mode
-            .preferred_codex_model_id
-            .as_ref()
-            .and_then(|id| self.models_by_feature.agent_mode.info_for_id(id))
-    }
-
     #[cfg(feature = "integration_tests")]
     pub fn is_available_agent_mode_llm(&self, id: &LLMId) -> bool {
         self.models_by_feature.agent_mode.info_for_id(id).is_some()
@@ -941,52 +856,6 @@ impl LLMPreferences {
         }
     }
 
-    pub fn new_choices_since_last_update(&self) -> Option<Vec<LLMInfo>> {
-        self.last_update.as_ref().map(|update| {
-            // We don't want to display new choices if they are warp branded.
-            let filter_choices: Vec<LLMInfo> = update
-                .new_choices
-                .clone()
-                .into_iter()
-                .filter(|choice| !choice.display_name.starts_with("lite"))
-                .collect();
-
-            filter_choices
-        })
-    }
-
-    pub fn should_show_new_choices_popup(&self, view_id: EntityId) -> bool {
-        self.last_update.as_ref().is_some_and(|update| {
-            let popup_state = &*update.popup_visibility_state.lock();
-            matches!(popup_state, UpdatePopupVisibilityState::WaitingToBeShown)
-                || matches!(
-                popup_state,
-                UpdatePopupVisibilityState::Visible(id) if *id == view_id)
-        })
-    }
-
-    pub fn mark_new_choices_popup_as_shown(&self, view_id: EntityId) {
-        if let Some(update) = self.last_update.as_ref() {
-            if matches!(
-                &*update.popup_visibility_state.lock(),
-                UpdatePopupVisibilityState::WaitingToBeShown
-            ) {
-                *update.popup_visibility_state.lock() =
-                    UpdatePopupVisibilityState::Visible(view_id);
-            }
-        }
-    }
-
-    pub fn hide_llm_popup(&self, view_id: EntityId) {
-        if !self.should_show_new_choices_popup(view_id) {
-            return;
-        }
-        let Some(last_update) = self.last_update.as_ref() else {
-            return;
-        };
-        *last_update.popup_visibility_state.lock() = UpdatePopupVisibilityState::Hidden;
-    }
-
     /// Fetches the latest set of models from the server for the currently logged in user, and updates the model.
     pub fn refresh_authed_models(&self, ctx: &mut ModelContext<Self>) {
         // Don't try to fetch auth'd models if the user is not logged in yet.
@@ -1022,9 +891,7 @@ impl LLMPreferences {
     }
 
     fn on_server_update(&mut self, update: ModelsByFeature, ctx: &mut ModelContext<Self>) {
-        let has_existing_persisted_config = get_cached_models(ctx).is_some();
-
-        let old = std::mem::replace(&mut self.models_by_feature, update);
+        self.models_by_feature = update;
 
         match serde_json::to_string(&self.models_by_feature) {
             Ok(serialized_update) => {
@@ -1041,22 +908,6 @@ impl LLMPreferences {
         }
 
         self.reconcile_disabled_model_preferences(ctx);
-
-        let new_choices =
-            get_new_agent_mode_choices(&old.agent_mode, &self.models_by_feature.agent_mode);
-        if !new_choices.is_empty() {
-            self.last_update = Some(AvailableLLMsUpdate {
-                new_choices,
-                // We shouldn't show the update for the initial LLM config creation.
-                popup_visibility_state: Arc::new(FairMutex::new(
-                    if has_existing_persisted_config {
-                        UpdatePopupVisibilityState::WaitingToBeShown
-                    } else {
-                        UpdatePopupVisibilityState::Hidden
-                    },
-                )),
-            });
-        }
 
         ctx.emit(LLMPreferencesEvent::UpdatedAvailableLLMs);
     }
@@ -1172,19 +1023,6 @@ impl Entity for LLMPreferences {
 }
 
 impl SingletonEntity for LLMPreferences {}
-
-fn get_new_agent_mode_choices(
-    old_config: &AvailableLLMs,
-    new_config: &AvailableLLMs,
-) -> Vec<LLMInfo> {
-    let old_ids: HashSet<_> = old_config.choices.iter().map(|info| &info.id).collect();
-    new_config
-        .choices
-        .iter()
-        .filter(|info| !old_ids.contains(&info.id))
-        .cloned()
-        .collect()
-}
 
 /// Builds synthetic [`LLMInfo`]s from the user's persisted custom endpoints.
 ///

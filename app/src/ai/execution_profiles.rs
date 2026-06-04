@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use warp_core::channel::ChannelState;
 use warpui::{AppContext, SingletonEntity as _};
 
-use crate::ai::llms::{LLMContextWindow, LLMId, LLMPreferences};
+use crate::ai::llms::LLMId;
 use crate::cloud_object::model::generic_string_model::{
     GenericStringModel, GenericStringObjectId, StringModel,
 };
@@ -292,21 +292,6 @@ impl AIExecutionProfile {
         }
     }
 
-    pub fn configurable_context_window(&self, app: &AppContext) -> Option<LLMContextWindow> {
-        let prefs = LLMPreferences::as_ref(app);
-        let cw = self
-            .base_model
-            .as_ref()
-            .and_then(|id| prefs.get_llm_info(id))
-            .map(|info| info.context_window.clone())
-            .unwrap_or_else(|| prefs.get_default_base_model().context_window.clone());
-        if cw.is_configurable && cw.max > 0 { Some(cw) } else { None }
-    }
-
-    pub fn context_window_display_value(&self, app: &AppContext) -> Option<u32> {
-        let cw = self.configurable_context_window(app)?;
-        Some(self.context_window_limit.unwrap_or(cw.default_max))
-    }
 }
 
 pub type CloudAIExecutionProfile =
