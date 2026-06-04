@@ -267,7 +267,6 @@ use crate::resource_center::{
 };
 use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::ids::{ObjectUid, SyncId};
-use crate::server::server_api::ServerApi;
 use crate::server::telemetry::{
     AgentModeRewindEntrypoint, AnonymousUserSignupEntrypoint,
     LinkOpenMethod, NotificationAgentVariant, PaletteSource,
@@ -2258,7 +2257,6 @@ pub struct TerminalView {
 
     mouse_states: TerminalViewMouseStates,
 
-    server_api: Arc<ServerApi>,
     auth_state: Arc<AuthState>,
 
     /// A sender used to handle messages for whenever the entire terminal view
@@ -2373,7 +2371,6 @@ pub struct TerminalView {
     /// The child views that represent rich content. These can be inserted into the block list with
     /// the `insert_rich_content` helper function.
     rich_content_views: Vec<RichContent>,
-    usage_footer_view_ids: HashMap<EntityId, EntityId>,
 
     /// The type of the subshell that we will bootstrap/"warpify"" on the next [`AfterBlockStarted`]
     /// terminal model event. Will only be `Some` with a [`ShellType`] we can bootstrap.
@@ -3171,7 +3168,6 @@ impl TerminalView {
             mouse_states: Default::default(),
             open_grid_link_tool_tip: None,
             open_rich_content_link_tool_tip: None,
-            server_api: resources.server_api.clone(),
             auth_state: AuthStateProvider::as_ref(ctx).get().clone(),
             find_bar,
             resize_tx,
@@ -3211,7 +3207,6 @@ impl TerminalView {
             block_filter_editor,
             active_filter_editor_block_index: None,
             rich_content_views: Vec::new(),
-            usage_footer_view_ids: Default::default(),
             pending_auto_bootstrap_shell_type: None,
             pending_env_var_collection: None,
             env_vars: Vec::new(),
@@ -3738,20 +3733,6 @@ impl TerminalView {
     
 
     
-
-    fn handle_continue_conversation(
-        &mut self,
-        _conversation_id: &AIConversationId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.redetermine_global_focus(ctx);
-    }
-
-    
-
-    
-
-    fn toggle_usage_footer(&mut self, _ctx: &mut ViewContext<Self>) {}
 
     /// Returns true if the window is wide enough to auto-open side panels.
     pub fn can_auto_open_panel(&self) -> bool {
@@ -10772,23 +10753,6 @@ impl TerminalView {
         ctx.emit(Event::SelectedBlocksChanged);
     }
 
-    // Additionally handles side effects of changing block selections (i.e. CMD + F results, etc.),
-    // but without re-syncing Agent Mode context. The field `self.selected_blocks` should only be
-    // mutated as part of a `change_block_selections` or `change_block_selections_to_match_ai_context`
-    // invocation.
-    fn change_block_selections_to_match_ai_context<F>(
-        &mut self,
-        change_selection: F,
-        ctx: &mut ViewContext<Self>,
-    ) where
-        F: FnOnce(&mut SelectedBlocks),
-    {
-        change_selection(&mut self.selected_blocks);
-        self.update_find_selection(ctx);
-
-        ctx.emit(Event::SelectedBlocksChanged);
-    }
-
     pub fn integration_test_change_block_selection_to_single(
         &mut self,
         block_index: BlockIndex,
@@ -16810,7 +16774,6 @@ impl TypedActionView for TerminalView {
             | AwsBedrockLoginBanner(_)
             | AwsCliNotInstalledBanner(_)
             | ExecuteRewindFromInlineMenu { .. }
-            | ToggleUsageFooter
             | RevealChildAgent { .. }
             | SwitchAgentViewToConversation { .. }
             | OpenChildAgentInNewPane { .. }
@@ -17491,9 +17454,6 @@ impl TypedActionView for TerminalView {
                     });
                 }
                 ctx.notify();
-            }
-            ToggleUsageFooter => {
-                self.toggle_usage_footer(ctx);
             }
             RevealChildAgent { conversation_id } => {
                 ctx.emit(Event::RevealChildAgent {
