@@ -55,7 +55,7 @@ use warp_graphql::queries::sync_merkle_tree::{
     SyncMerkleTree, SyncMerkleTreeInput, SyncMerkleTreeResult, SyncMerkleTreeVariables,
 };
 use super::auth::AuthClient;
-use super::harness_support::{UploadField, UploadTarget};
+use super::harness_support::UploadField;
 use super::ServerApi;
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::conversation::{AIAgentHarness, ServerAIConversationMetadata};
@@ -174,32 +174,6 @@ impl InitialSnapshotToken {
     }
 }
 
-/// Request body for `POST /agent/handoff/upload-snapshot`. Used by the local-to-cloud
-/// handoff flow to allocate a token and presigned upload URLs scoped to
-/// `handoff/{token}/` before any task exists.
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct UploadLocalHandoffSnapshotRequest {
-    pub files: Vec<SnapshotUploadFileInfo>,
-}
-
-/// Describes a single file the client wants to upload as part of a handoff snapshot.
-/// Wire-compatible with the server's `SnapshotUploadFileInfo` schema (also used by the
-/// existing harness-side `/harness-support/upload-snapshot` endpoint).
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct SnapshotUploadFileInfo {
-    pub filename: String,
-    pub mime_type: String,
-}
-
-/// Response body for `POST /agent/handoff/upload-snapshot`. The `uploads` array is aligned
-/// by index with the request `files` array; the client matches each `UploadTarget` back
-/// to the requested filename by index.
-#[derive(Debug, Clone, serde::Deserialize)]
-pub struct UploadLocalHandoffSnapshotResponse {
-    pub initial_snapshot_token: InitialSnapshotToken,
-    pub expires_at: String,
-    pub uploads: Vec<UploadTarget>,
-}
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct RunFollowupRequest {
@@ -207,26 +181,6 @@ pub struct RunFollowupRequest {
 }
 
 // --- Orchestrations V2 messaging types ---
-
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct SendAgentMessageRequest {
-    pub to: Vec<String>,
-    pub subject: String,
-    pub body: String,
-    pub sender_run_id: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct ListAgentMessagesRequest {
-    pub unread_only: bool,
-    pub since: Option<String>,
-    pub limit: i32,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct SendAgentMessageResponse {
-    pub message_ids: Vec<String>,
-}
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AgentMessageHeader {
@@ -353,18 +307,6 @@ pub struct FileArtifactUploadTargetInfo {
     pub fields: Vec<UploadField>,
 }
 
-/// A single git credential entry returned by `taskGitCredentials`.
-#[derive(Clone)]
-pub struct GitCredential {
-    /// The GitHub token (OAuth user token or App installation token).
-    pub token: String,
-    /// The GitHub username. `None` for service-account (installation token) principals.
-    pub username: Option<String>,
-    /// The GitHub email. `None` for service-account principals.
-    pub email: Option<String>,
-    /// The host (always `"github.com"` in V1).
-    pub host: String,
-}
 
 /// Filter parameters for listing ambient agent tasks.
 #[derive(Clone, Debug, Default)]
@@ -651,19 +593,6 @@ pub trait AIClient: 'static + Send + Sync {
         &self,
         task_id: &AmbientAgentTaskId,
     ) -> anyhow::Result<(), anyhow::Error>;
-
-    // --- Orchestrations V2 messaging ---
-
-    async fn send_agent_message(
-        &self,
-        request: SendAgentMessageRequest,
-    ) -> anyhow::Result<SendAgentMessageResponse, anyhow::Error>;
-
-    async fn list_agent_messages(
-        &self,
-        run_id: &str,
-        request: ListAgentMessagesRequest,
-    ) -> anyhow::Result<Vec<AgentMessageHeader>, anyhow::Error>;
 
     /// Persists the latest observed event sequence number for a run on the
     /// server. Used to keep the server-side cursor in sync with the client so
@@ -1035,35 +964,6 @@ impl AIClient for ServerApi {
             .post_public_api(&format!("agent/tasks/{task_id}/cancel"), &())
             .await?;
         Ok(())
-    }
-
-    // --- Orchestrations V2 messaging ---
-
-    async fn send_agent_message(
-        &self,
-        request: SendAgentMessageRequest,
-    ) -> anyhow::Result<SendAgentMessageResponse, anyhow::Error> {
-        let response: SendAgentMessageResponse =
-            self.post_public_api("agent/messages", &request).await?;
-        Ok(response)
-    }
-
-    async fn list_agent_messages(
-        &self,
-        run_id: &str,
-        request: ListAgentMessagesRequest,
-    ) -> anyhow::Result<Vec<AgentMessageHeader>, anyhow::Error> {
-        let mut params = vec![format!("limit={}", request.limit)];
-        if request.unread_only {
-            params.push("unread=true".to_string());
-        }
-        if let Some(since) = request.since {
-            params.push(format!("since={}", urlencoding::encode(&since)));
-        }
-
-        let path = format!("agent/messages/{run_id}?{}", params.join("&"));
-        let response: Vec<AgentMessageHeader> = self.get_public_api(&path).await?;
-        Ok(response)
     }
 
     async fn update_event_sequence_on_server(
