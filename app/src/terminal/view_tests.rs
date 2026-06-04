@@ -1,31 +1,17 @@
-use std::any::Any;
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::pin::pin;
 use std::rc::Rc;
-use std::sync::Arc;
 
-use chrono::Local;
-use parking_lot::FairMutex;
 use warpui::notification::UserNotification;
 use warpui::{App, Presenter, WindowInvalidation};
 
 use super::*;
-use crate::ai::agent::{
-    AIAgentExchange, AIAgentExchangeId, AIAgentInput, AIAgentOutputStatus,
-};
-use crate::ai::cloud_environments::{
-    AmbientAgentEnvironment, CloudAmbientAgentEnvironment, CloudAmbientAgentEnvironmentModel,
-};
-use crate::ai::llms::LLMId;
-use crate::cloud_object::model::persistence::CloudModel;
-use crate::cloud_object::{CloudObjectMetadata, CloudObjectPermissions};
 use crate::context_chips::prompt::Prompt;
 use crate::editor::{AutosuggestionLocation, AutosuggestionType};
 use crate::features::FeatureFlag;
 use crate::pane_group::focus_state::PaneGroupFocusState;
 use crate::pane_group::{BackingView, TerminalPaneId};
-use crate::server::ids::{ClientId, SyncId};
 use crate::settings::{AppEditorSettings, WarpPromptSeparator};
 use crate::terminal::alt_screen::should_intercept_mouse;
 use crate::terminal::block_list_element::{SnackbarPoint, SnackbarTranslationMode};
@@ -35,107 +21,15 @@ use crate::terminal::cli_agent_sessions::{
     CLIAgentSessionContext, CLIAgentSessionStatus, CLIAgentSessionsModel,
 };
 use crate::terminal::model::ansi::{self, BootstrappedValue, InitShellValue, PreexecValue};
-use crate::terminal::model::block::AgentViewVisibility;
 use crate::terminal::model::blocks::{insert_block, TotalIndex};
 use crate::terminal::model::grid::Dimensions as _;
 use crate::terminal::model::terminal_model::WithinBlock;
-use crate::terminal::{CLIAgent, MockTerminalManager, TerminalManager, TerminalModel};
+use crate::terminal::{CLIAgent, MockTerminalManager, TerminalModel};
 use crate::test_util::terminal::{
     add_window_with_id_and_terminal, initialize_app_for_terminal_view,
 };
 use crate::test_util::{add_window_with_terminal, assert_eventually};
 use crate::view_components::find::FindWithinBlockState;
-
-
-fn exchange_with_inputs(inputs: Vec<AIAgentInput>) -> AIAgentExchange {
-    AIAgentExchange {
-        id: AIAgentExchangeId::new(),
-        input: inputs,
-        output_status: AIAgentOutputStatus::Streaming { output: None },
-        added_message_ids: HashSet::new(),
-        start_time: Local::now(),
-        finish_time: None,
-        time_to_first_token_ms: None,
-        working_directory: None,
-        model_id: LLMId::from("test-model"),
-        request_cost: None,
-        coding_model_id: LLMId::from("test-coding-model"),
-        cli_agent_model_id: LLMId::from("test-cli-agent-model"),
-        computer_use_model_id: LLMId::from("test-computer-use-model"),
-    }
-}
-
-
-fn ai_block_count(view: &TerminalView) -> usize {
-    view.rich_content_views
-        .iter()
-        .filter(|rich_content| {
-            matches!(
-                rich_content.metadata(),
-                Some(RichContentMetadata::AIBlock(_))
-            )
-        })
-        .count()
-}
-
-fn agent_view_entry_count_for_conversation(
-    view: &TerminalView,
-    conversation_id: AIConversationId,
-) -> usize {
-    view.rich_content_views
-        .iter()
-        .filter(|rich_content| {
-            matches!(
-                rich_content.metadata(),
-                Some(RichContentMetadata::AgentViewEntry(params))
-                    if params.conversation_id == conversation_id
-            )
-        })
-        .count()
-}
-
-fn command_block_count_for_conversation(
-    view: &TerminalView,
-    conversation_id: AIConversationId,
-) -> usize {
-    view.model
-        .lock()
-        .block_list()
-        .blocks()
-        .iter()
-        .filter(|block| {
-            matches!(
-                block.agent_view_visibility(),
-                AgentViewVisibility::Agent {
-                    origin_conversation_id,
-                    ..
-                } if *origin_conversation_id == conversation_id
-            )
-        })
-        .count()
-}
-struct TestTerminalManager {
-    model: Arc<FairMutex<TerminalModel>>,
-    view: ViewHandle<TerminalView>,
-}
-
-impl TerminalManager for TestTerminalManager {
-    fn model(&self) -> Arc<FairMutex<TerminalModel>> {
-        self.model.clone()
-    }
-
-    fn view(&self) -> ViewHandle<TerminalView> {
-        self.view.clone()
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-}
 
 /// Test to verify that blocks created through normal execution
 /// have the correct local status set
@@ -239,49 +133,6 @@ fn command_first_word_and_suffix_handles_alias_without_args() {
 }
 
 
-
-
-#[test]
-fn root_cloud_mode_pane_sets_root_cloud_mode_context_key() {}
-
-#[test]
-fn cloud_mode_v1_agent_prefixed_query_spawns_cloud_agent() {}
-
-#[test]
-fn cloud_mode_v2_agent_prefixed_query_spawns_cloud_agent() {}
-
-/// Registers a stub `CloudAmbientAgentEnvironment` in the test `CloudModel` and
-/// returns its `SyncId` so the caller can attach it to an ambient view model.
-fn register_test_cloud_environment(app: &mut App) -> SyncId {
-    let sync_id = SyncId::ClientId(ClientId::new());
-    app.update(|ctx| {
-        let environment = AmbientAgentEnvironment::new(
-            "Test Environment".to_string(),
-            None,
-            vec![],
-            "ubuntu:latest".to_string(),
-            vec![],
-        );
-        let object = CloudAmbientAgentEnvironment::new(
-            sync_id,
-            CloudAmbientAgentEnvironmentModel::new(environment),
-            CloudObjectMetadata::mock(),
-            CloudObjectPermissions::mock_personal(),
-        );
-        CloudModel::handle(ctx).update(ctx, |model, ctx| {
-            model.create_object(sync_id, object, ctx);
-        });
-    });
-    sync_id
-}
-#[test]
-fn pending_cloud_followup_without_ambient_model_restores_prompt() {}
-
-#[test]
-fn cloud_mode_dispatched_agent_inserts_queued_user_query() {}
-
-#[test]
-fn cloud_mode_followup_dispatched_inserts_queued_user_query() {}
 
 
 
