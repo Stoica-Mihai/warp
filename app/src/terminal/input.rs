@@ -2405,7 +2405,6 @@ impl Input {
                 active_session: active_session.clone(),
                 cli_subagent_controller: cli_subagent_controller.clone(),
                 terminal_view_id,
-                ambient_agent_view_model: ambient_agent_view_model.clone(),
             };
             SlashCommandDataSource::new(args, ctx)
         });
