@@ -16,9 +16,6 @@ use warp_core::ui::theme::AnsiColorIdentifier;
 use warp_util::path::{CleanPathResult, LineAndColumnArg};
 use warpui::{AppContext, SingletonEntity, ViewContext};
 
-#[cfg(not(target_family = "wasm"))]
-use crate::ai::agent::conversation::AIConversationId;
-
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
 use crate::ai::ambient_agents::telemetry::HandoffEntryPoint;
 use crate::terminal::view::agent_view_state::AgentViewEntryOrigin;
@@ -73,12 +70,6 @@ pub enum SlashCommandTrigger {
 }
 
 impl SlashCommandTrigger {
-    fn cmd_or_ctrl_enter() -> Self {
-        Self::Input {
-            cmd_or_ctrl_enter: true,
-        }
-    }
-
     pub fn input() -> Self {
         Self::Input {
             cmd_or_ctrl_enter: false,
@@ -91,15 +82,6 @@ impl SlashCommandTrigger {
 
     pub fn is_keybinding(&self) -> bool {
         matches!(self, Self::Keybinding)
-    }
-
-    fn is_cmd_or_ctrl_enter(&self) -> bool {
-        matches!(
-            self,
-            Self::Input {
-                cmd_or_ctrl_enter: true
-            }
-        )
     }
 
 }
@@ -771,66 +753,6 @@ impl Input {
         true
     }
 
-    /// Handles cmd+enter (Mac) / ctrl+enter (Linux/Windows) for slash commands.
-    ///
-    /// Returns `true` if the keypress was handled.
-    pub(super) fn maybe_handle_cmd_or_ctrl_shift_enter_for_slash_command(
-        &mut self,
-        ctx: &mut ViewContext<Self>,
-    ) -> bool {
-        // If slash command menu is open, accept the selected item with cmd_or_ctrl_enter=true.
-        if matches!(
-            self.suggestions_mode_model.as_ref(ctx).mode(),
-            InputSuggestionsMode::SlashCommands
-        ) {
-            if false {
-                if let Some(view) = self.cloud_mode_v2_slash_commands_view.clone() {
-                    view.update(ctx, |view, ctx| {
-                        view.accept_selected_item(true, ctx);
-                    });
-                }
-            } else {
-                self.inline_slash_commands_view.update(ctx, |view, ctx| {
-                    view.accept_selected_item(true, ctx);
-                });
-            }
-            return true;
-        }
-
-        // If no menu but slash command detected in buffer, execute with cmd_or_ctrl_enter=true
-        match self.slash_command_model.as_ref(ctx).state() {
-            SlashCommandEntryState::SlashCommand(detected_command) => {
-                let command = detected_command.command.clone();
-                let argument = detected_command.argument.clone();
-                if !self.is_slash_command_available(&command, ctx) {
-                    return false;
-                }
-                self.execute_slash_command(
-                    &command,
-                    argument.as_ref(),
-                    SlashCommandTrigger::cmd_or_ctrl_enter(),
-                    /*is_queued_prompt*/ false,
-                    ctx,
-                )
-            }
-            SlashCommandEntryState::SkillCommand(_)
-                if false =>
-            {
-                false
-            }
-            SlashCommandEntryState::SkillCommand(detected_skill) => {
-                let reference = detected_skill.reference.clone();
-                let user_query = detected_skill.argument.clone();
-                self.execute_skill_command(
-                    reference, user_query, /*is_queued_prompt*/ false, ctx,
-                )
-            }
-            SlashCommandEntryState::None
-            | SlashCommandEntryState::Composing { .. }
-            | SlashCommandEntryState::DisabledUntilEmptyBuffer => false,
-        }
-    }
-
     fn apply_v2_slash_section_filter(
         &mut self,
         section: CloudModeV2Section,
@@ -931,18 +853,6 @@ impl Input {
             | SlashCommandEntryState::DisabledUntilEmptyBuffer => false,
         }
     }
-}
-
-/// Returns true when the conversation with `conversation_id` is associated with a cloud Oz
-/// `AmbientAgentTask`. Used as the defensive runtime gate for `/continue-locally` so a
-/// keybinding-triggered execution can't fall through onto a non-cloud-Oz conversation after
-/// the menu has been recomputed. Mirrors `SlashCommandDataSource::active_conversation_is_cloud_oz`.
-#[cfg(not(target_family = "wasm"))]
-fn conversation_is_cloud_oz_for_slash_command(
-    _conversation_id: AIConversationId,
-    _ctx: &AppContext,
-) -> bool {
-    false
 }
 
 #[cfg(test)]
