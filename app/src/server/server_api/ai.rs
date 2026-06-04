@@ -202,30 +202,6 @@ pub struct AgentRunEvent {
     pub sequence: i64,
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct AgentRunClientEventRequest {
-    pub event_uuid: String,
-    pub event_name: String,
-    pub timestamp: DateTime<Utc>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub payload: Option<AgentRunClientEventPayload>,
-}
-
-#[derive(Debug, Clone, serde::Serialize)]
-#[serde(untagged)]
-pub enum AgentRunClientEventPayload {
-    SetupMetric(AgentRunClientSetupMetricPayload),
-}
-
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct AgentRunClientSetupMetricPayload {
-    pub start_ts: DateTime<Utc>,
-    pub finish_ts: DateTime<Utc>,
-    pub latency_ms: i64,
-    pub is_error: bool,
-}
-
-
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ReadAgentMessageResponse {
     pub message_id: String,
@@ -594,41 +570,6 @@ pub trait AIClient: 'static + Send + Sync {
         task_id: &AmbientAgentTaskId,
     ) -> anyhow::Result<(), anyhow::Error>;
 
-    /// Persists the latest observed event sequence number for a run on the
-    /// server. Used to keep the server-side cursor in sync with the client so
-    /// that driver/cloud restores can resume without replaying events the
-    /// parent has already acted on.
-    async fn update_event_sequence_on_server(
-        &self,
-        run_id: &str,
-        sequence: i64,
-    ) -> anyhow::Result<(), anyhow::Error>;
-
-    async fn post_agent_run_client_event(
-        &self,
-        run_id: &AmbientAgentTaskId,
-        request: AgentRunClientEventRequest,
-    ) -> anyhow::Result<(), anyhow::Error>;
-
-    async fn mark_message_delivered(&self, message_id: &str) -> anyhow::Result<(), anyhow::Error>;
-
-    async fn read_agent_message(
-        &self,
-        message_id: &str,
-    ) -> anyhow::Result<ReadAgentMessageResponse, anyhow::Error>;
-
-    /// Fetch a normalized conversation by conversation ID.
-    async fn get_public_conversation(
-        &self,
-        conversation_id: &str,
-    ) -> anyhow::Result<serde_json::Value, anyhow::Error>;
-
-    /// Fetch a normalized conversation by run ID.
-    async fn get_run_conversation(
-        &self,
-        run_id: &str,
-    ) -> anyhow::Result<serde_json::Value, anyhow::Error>;
-
     /// Generates AI copy for code-review flows: commit messages at dialog-open
     /// time and PR titles / bodies at confirm time. `output_type` in the
     /// request picks which of the three the server returns.
@@ -964,72 +905,6 @@ impl AIClient for ServerApi {
             .post_public_api(&format!("agent/tasks/{task_id}/cancel"), &())
             .await?;
         Ok(())
-    }
-
-    async fn update_event_sequence_on_server(
-        &self,
-        run_id: &str,
-        sequence: i64,
-    ) -> anyhow::Result<(), anyhow::Error> {
-        #[derive(serde::Serialize)]
-        struct UpdateBody {
-            sequence: i64,
-        }
-
-        self.patch_public_api_unit(
-            &format!("agent/runs/{run_id}/event-sequence"),
-            &UpdateBody { sequence },
-        )
-        .await
-    }
-
-    async fn post_agent_run_client_event(
-        &self,
-        run_id: &AmbientAgentTaskId,
-        request: AgentRunClientEventRequest,
-    ) -> anyhow::Result<(), anyhow::Error> {
-        self.post_public_api_response_for_task(
-            run_id,
-            &format!("agent/runs/{run_id}/client-events"),
-            &request,
-        )
-        .await?;
-        Ok(())
-    }
-
-    async fn mark_message_delivered(&self, message_id: &str) -> anyhow::Result<(), anyhow::Error> {
-        self.post_public_api_unit(&format!("agent/messages/{message_id}/delivered"), &())
-            .await
-    }
-
-    async fn read_agent_message(
-        &self,
-        message_id: &str,
-    ) -> anyhow::Result<ReadAgentMessageResponse, anyhow::Error> {
-        let response: ReadAgentMessageResponse = self
-            .post_public_api(&format!("agent/messages/{message_id}/read"), &())
-            .await?;
-        Ok(response)
-    }
-
-    async fn get_public_conversation(
-        &self,
-        conversation_id: &str,
-    ) -> anyhow::Result<serde_json::Value, anyhow::Error> {
-        let response: serde_json::Value = self
-            .get_public_api(&format!("agent/conversations/{conversation_id}"))
-            .await?;
-        Ok(response)
-    }
-
-    async fn get_run_conversation(
-        &self,
-        run_id: &str,
-    ) -> anyhow::Result<serde_json::Value, anyhow::Error> {
-        let response: serde_json::Value = self
-            .get_public_api(&format!("agent/runs/{run_id}/conversation"))
-            .await?;
-        Ok(response)
     }
 
     async fn generate_code_review_content(
