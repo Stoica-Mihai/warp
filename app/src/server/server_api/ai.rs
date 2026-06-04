@@ -17,10 +17,6 @@ use prost::Message;
 use warp_core::channel::ChannelState;
 use warp_core::report_error;
 use warp_graphql::ai::{AgentTaskState, PlatformErrorCode};
-use warp_graphql::mutations::confirm_file_artifact_upload::{
-    ConfirmFileArtifactUpload, ConfirmFileArtifactUploadInput, ConfirmFileArtifactUploadResult,
-    ConfirmFileArtifactUploadVariables,
-};
 use warp_graphql::mutations::create_agent_task::{
     CreateAgentTask, CreateAgentTaskInput, CreateAgentTaskResult, CreateAgentTaskVariables,
 };
@@ -389,14 +385,6 @@ pub struct FileArtifactResponseData {
     pub size_bytes: Option<i64>,
 }
 
-
-#[derive(Debug, Clone)]
-pub struct FileArtifactRecord {
-    pub artifact_uid: String,
-    pub filepath: String,
-    pub description: Option<String>,
-    pub mime_type: String,
-}
 
 #[derive(Debug, Clone)]
 pub struct FileArtifactUploadHeaderInfo {
@@ -862,12 +850,6 @@ pub trait AIClient: 'static + Send + Sync {
         task_id: String,
     ) -> anyhow::Result<Vec<TaskAttachment>, anyhow::Error>;
 
-    async fn confirm_file_artifact_upload(
-        &self,
-        artifact_uid: String,
-        checksum: String,
-    ) -> anyhow::Result<FileArtifactRecord, anyhow::Error>;
-
     async fn get_artifact_download(
         &self,
         artifact_uid: &str,
@@ -929,18 +911,6 @@ pub trait AIClient: 'static + Send + Sync {
         request: GenerateCodeReviewContentRequest,
     ) -> Result<GenerateCodeReviewContentResponse, anyhow::Error>;
 }
-
-fn into_file_artifact_record(
-    artifact: warp_graphql::mutations::create_file_artifact_upload_target::FileArtifact,
-) -> FileArtifactRecord {
-    FileArtifactRecord {
-        artifact_uid: artifact.artifact_uid.into_inner(),
-        filepath: artifact.filepath,
-        description: artifact.description,
-        mime_type: artifact.mime_type,
-    }
-}
-
 
 #[cfg_attr(not(target_family = "wasm"), async_trait)]
 #[cfg_attr(target_family = "wasm", async_trait(?Send))]
@@ -1564,34 +1534,6 @@ impl AIClient for ServerApi {
                 Err(anyhow!(get_user_facing_error_message(error)))
             }
             TaskResult::Unknown => Err(anyhow!("Failed to fetch task attachments")),
-        }
-    }
-
-    async fn confirm_file_artifact_upload(
-        &self,
-        artifact_uid: String,
-        checksum: String,
-    ) -> anyhow::Result<FileArtifactRecord, anyhow::Error> {
-        let variables = ConfirmFileArtifactUploadVariables {
-            input: ConfirmFileArtifactUploadInput {
-                artifact_uid: cynic::Id::new(artifact_uid),
-                checksum,
-            },
-            request_context: get_request_context(),
-        };
-        let operation = ConfirmFileArtifactUpload::build(variables);
-        let response = self.send_graphql_request(operation, None).await?;
-
-        match response.confirm_file_artifact_upload {
-            ConfirmFileArtifactUploadResult::ConfirmFileArtifactUploadOutput(output) => {
-                Ok(into_file_artifact_record(output.artifact))
-            }
-            ConfirmFileArtifactUploadResult::UserFacingError(error) => {
-                Err(anyhow!(get_user_facing_error_message(error)))
-            }
-            ConfirmFileArtifactUploadResult::Unknown => {
-                Err(anyhow!("Failed to confirm file artifact upload"))
-            }
         }
     }
 
