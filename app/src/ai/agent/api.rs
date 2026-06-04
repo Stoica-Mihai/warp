@@ -3,33 +3,17 @@ mod convert_from;
 mod convert_to;
 mod r#impl;
 
-use std::pin::Pin;
-use std::sync::Arc;
-
-use ai::api_keys::ApiKeyManager;
 pub use convert_from::{
     user_inputs_from_messages, ConversionParams, ConvertAPIMessageToClientOutputMessage,
     MaybeAIAgentOutputMessage, MessageToAIAgentOutputMessageError,
 };
-use futures_lite::Stream;
 use serde::Serialize;
 use warp_core::channel::ChannelState;
-use warp_core::execution_mode::AppExecutionMode;
-use warp_core::features::FeatureFlag;
-use warp_core::user_preferences::GetUserPreferences;
-use warpui::{AppContext, EntityId, SingletonEntity as _};
 
 use super::{AIAgentInput, MCPContext, RequestMetadata, Suggestions};
-use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
-use crate::ai::blocklist::{RequestInput, SessionContext};
-use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
+use crate::ai::blocklist::SessionContext;
 use crate::ai::llms::LLMId;
-use crate::ai::mcp::TemplatableMCPServerManager;
-use crate::server::server_api::AIApiError;
-use crate::settings::AISettings;
-use crate::terminal::safe_mode_settings::get_secret_obfuscation_mode;
-use crate::workspaces::user_workspaces::UserWorkspaces;
 
 /// Unique, server-generated conversation-scoped token to be roundtripped to the API when sending
 /// requests that follow-up within a given conversation.
@@ -127,154 +111,3 @@ pub struct RequestParams {
     pub agent_name: Option<String>,
 }
 
-pub type Event = Result<warp_multi_agent_api::ResponseEvent, Arc<AIApiError>>;
-
-#[cfg(not(target_family = "wasm"))]
-pub type ResponseStream = Pin<Box<dyn Stream<Item = Event> + Send + 'static>>;
-
-// The WASM version of this type has no bound on `Send`, which is an unnecessary bound when
-// targeting wasm because the browser is single-threaded (and we don't leverage WebWorkers for async
-// execution in WoW).
-#[cfg(target_family = "wasm")]
-pub type ResponseStream = Pin<Box<dyn Stream<Item = Event>>>;
-
-#[derive(Debug, Clone)]
-pub struct ConversationData {
-    pub id: AIConversationId,
-    pub tasks: Vec<warp_multi_agent_api::Task>,
-    pub server_conversation_token: Option<ServerConversationToken>,
-    pub forked_from_conversation_token: Option<ServerConversationToken>,
-    pub ambient_agent_task_id: Option<AmbientAgentTaskId>,
-    pub existing_suggestions: Option<Suggestions>,
-}
-
-impl RequestParams {
-    pub fn new(
-        terminal_view_id: Option<EntityId>,
-        session_context: SessionContext,
-        request_input: &RequestInput,
-        conversation: ConversationData,
-        metadata: Option<RequestMetadata>,
-        app: &AppContext,
-    ) -> Self {
-        let ai_settings = AISettings::as_ref(app);
-        let is_memory_enabled = ai_settings.is_memory_enabled(app);
-        let warp_drive_context_enabled = ai_settings.is_warp_drive_context_enabled(app);
-
-        let templatable_mcp_manager = TemplatableMCPServerManager::as_ref(app);
-        let resources = templatable_mcp_manager
-            .resources()
-            .cloned()
-            .collect::<Vec<_>>();
-        let tools = templatable_mcp_manager.tools().cloned().collect::<Vec<_>>();
-
-        #[allow(deprecated)]
-        let mcp_context = (!resources.is_empty() || !tools.is_empty()).then_some(MCPContext {
-            resources,
-            tools,
-            servers: vec![],
-        });
-
-        let should_redact_secrets = get_secret_obfuscation_mode(app).should_redact_secret();
-
-        let user_workspaces = UserWorkspaces::as_ref(app);
-        let api_key_manager = ApiKeyManager::as_ref(app);
-        let is_byo_enabled = user_workspaces.is_byo_api_key_enabled(app);
-        let api_keys = api_key_manager.api_keys_for_request(
-            is_byo_enabled,
-            user_workspaces.is_aws_bedrock_credentials_enabled(app),
-        );
-        let is_custom_inference_enabled = user_workspaces.is_custom_inference_enabled(app);
-        let custom_model_providers = FeatureFlag::CustomInferenceEndpoints
-            .is_enabled()
-            .then(|| {
-                api_key_manager.custom_model_providers_for_request(is_custom_inference_enabled)
-            })
-            .flatten();
-        let allow_use_of_warp_credits = *AISettings::as_ref(app).can_use_warp_credits_for_fallback;
-
-        let app_execution_mode = AppExecutionMode::as_ref(app);
-        let autonomy_level = if app_execution_mode.is_autonomous() {
-            warp_multi_agent_api::AutonomyLevel::Unsupervised
-        } else {
-            warp_multi_agent_api::AutonomyLevel::Supervised
-        };
-
-        let isolation_level = if app_execution_mode.is_sandboxed() {
-            warp_multi_agent_api::IsolationLevel::Sandbox
-        } else {
-            warp_multi_agent_api::IsolationLevel::None
-        };
-
-        let web_search_enabled = true;
-        let research_agent_enabled = app
-            .private_user_preferences()
-            .read_value("ResearchAgentEnabled")
-            .ok()
-            .flatten()
-            .and_then(|s| s.parse().ok())
-            .unwrap_or_default();
-        let computer_use_enabled = false;
-        let ask_user_question_enabled = true;
-
-        let orchestration_enabled = ai_settings.is_orchestration_enabled(app)
-            && session_context
-                .session_type()
-                .as_ref()
-                .is_none_or(|t| matches!(t, crate::terminal::model::session::SessionType::Local));
-
-        // Reconcile the persisted override against the active base model's
-        // current `LLMContextWindow` instead of trusting whatever was stored
-        // last. If the active model isn't configurable or has been removed
-        // server-side, drop the override; otherwise clamp it to the model's
-        // current `[min, max]` range. This closes the window between an
-        // in-flight model metadata refresh and the next request.
-        let context_window_limit = {
-            let profile_data = AIExecutionProfilesModel::as_ref(app)
-                .active_profile(terminal_view_id, app)
-                .data()
-                .clone();
-            profile_data
-                .configurable_context_window(app)
-                .and_then(|cw| {
-                    profile_data
-                        .context_window_limit
-                        .map(|v| v.clamp(cw.min, cw.max))
-                })
-        };
-
-        Self {
-            input: request_input.all_inputs().cloned().collect(),
-            conversation_token: conversation.server_conversation_token,
-            forked_from_conversation_token: conversation.forked_from_conversation_token,
-            ambient_agent_task_id: conversation.ambient_agent_task_id,
-            tasks: conversation.tasks,
-            existing_suggestions: conversation.existing_suggestions,
-            context_window_limit,
-            metadata,
-            session_context,
-            model: request_input.model_id.clone(),
-            coding_model: request_input.coding_model_id.clone(),
-            cli_agent_model: request_input.cli_agent_model_id.clone(),
-            computer_use_model: request_input.computer_use_model_id.clone(),
-            is_memory_enabled,
-            warp_drive_context_enabled,
-            mcp_context,
-            planning_enabled: true,
-            should_redact_secrets,
-            api_keys,
-            custom_model_providers,
-            allow_use_of_warp_credits,
-            autonomy_level,
-            isolation_level,
-            web_search_enabled,
-            computer_use_enabled,
-            ask_user_question_enabled,
-            research_agent_enabled,
-            orchestration_enabled,
-            supported_tools_override: request_input.supported_tools_override.clone(),
-            parent_agent_id: None,
-            agent_name: None,
-        }
-    }
-}
