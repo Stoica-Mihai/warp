@@ -262,20 +262,6 @@ pub struct UploadLocalHandoffSnapshotResponse {
     pub uploads: Vec<UploadTarget>,
 }
 
-/// Request body for `POST /agent/conversations/{conversation_id}/fork`.
-#[derive(Debug, Clone, serde::Serialize)]
-pub(crate) struct ForkConversationRequest {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    title: Option<String>,
-}
-
-/// Response body for `POST /agent/conversations/{conversation_id}/fork`. The returned id is sent
-/// on the subsequent `POST /agent/runs` request under `conversation_id` (resume semantics).
-#[derive(Debug, Clone, serde::Deserialize)]
-pub struct ForkConversationResponse {
-    pub forked_conversation_id: String,
-}
-
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct RunFollowupRequest {
     pub message: String,
@@ -412,18 +398,6 @@ pub struct FileArtifactResponseData {
     pub size_bytes: Option<i64>,
 }
 
-
-#[derive(Debug, Clone, serde::Deserialize)]
-pub struct HandoffSnapshotAttachmentInfo {
-    pub attachment_id: String,
-    pub filename: String,
-    pub download_url: String,
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-pub struct ListHandoffSnapshotAttachmentsResponse {
-    pub attachments: Vec<HandoffSnapshotAttachmentInfo>,
-}
 
 #[derive(Debug, Clone)]
 pub struct CreateFileArtifactUploadRequest {
@@ -648,12 +622,6 @@ pub(crate) fn build_list_agent_runs_url(limit: i32, filter: &TaskListFilter) -> 
 pub(crate) fn build_run_followup_url(run_id: &AmbientAgentTaskId) -> String {
     format!("agent/runs/{run_id}/followups")
 }
-pub(crate) fn build_fork_conversation_url(conversation_id: &str) -> String {
-    format!(
-        "agent/conversations/{}/fork",
-        urlencoding::encode(conversation_id)
-    )
-}
 
 struct ListRunsResponse {
     runs: Vec<AmbientAgentTask>,
@@ -718,11 +686,6 @@ pub struct AgentSkillItem {
     pub variants: Vec<AgentSkillVariant>,
 }
 
-#[derive(serde::Deserialize)]
-struct ListSkillsResponse {
-    agents: Vec<AgentSkillItem>,
-}
-
 /// Reference to a managed secret by name.
 #[derive(Clone, serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq)]
 pub struct SecretRef {
@@ -777,14 +740,6 @@ pub struct AgentResponse {
     pub environment_id: Option<String>,
 }
 
-#[derive(serde::Deserialize)]
-struct ListAgentsResponse {
-    agents: Vec<AgentResponse>,
-}
-fn build_agent_url(uid: &str) -> String {
-    format!("agent/identities/{}", urlencoding::encode(uid))
-}
-
 #[derive(Clone, serde::Deserialize, Debug, PartialEq, Eq)]
 pub struct ConnectedSelfHostedWorker {
     pub worker_host: String,
@@ -799,6 +754,9 @@ pub struct ListConnectedSelfHostedWorkersResponse {
 }
 
 pub(crate) const CONNECTED_SELF_HOSTED_WORKERS_PATH: &str = "agent/connected-self-hosted-workers";
+fn build_agent_url(uid: &str) -> String {
+    format!("agent/identities/{}", urlencoding::encode(uid))
+}
 
 #[cfg_attr(test, automock)]
 #[cfg_attr(not(target_family = "wasm"), async_trait)]
@@ -867,13 +825,6 @@ pub trait AIClient: 'static + Send + Sync {
         request: UploadLocalHandoffSnapshotRequest,
     ) -> anyhow::Result<UploadLocalHandoffSnapshotResponse, anyhow::Error>;
 
-    /// Materialize a server-side fork of a conversation.
-    async fn fork_conversation(
-        &self,
-        conversation_id: String,
-        title: Option<String>,
-    ) -> anyhow::Result<ForkConversationResponse, anyhow::Error>;
-
     async fn list_ambient_agent_tasks(
         &self,
         limit: i32,
@@ -928,15 +879,6 @@ pub trait AIClient: 'static + Send + Sync {
         &self,
         server_conversation_token: String,
     ) -> anyhow::Result<(), anyhow::Error>;
-
-    async fn list_skills(
-        &self,
-        repo: Option<String>,
-    ) -> anyhow::Result<Vec<AgentSkillItem>, anyhow::Error>;
-
-    async fn list_agents(&self) -> anyhow::Result<Vec<AgentResponse>, anyhow::Error>;
-
-    async fn list_agents_raw(&self) -> anyhow::Result<serde_json::Value, anyhow::Error>;
 
     async fn get_agent(&self, uid: &str) -> anyhow::Result<AgentResponse, anyhow::Error>;
 
@@ -997,11 +939,6 @@ pub trait AIClient: 'static + Send + Sync {
         &self,
         artifact_uid: &str,
     ) -> anyhow::Result<ArtifactDownloadResponse, anyhow::Error>;
-
-    async fn get_handoff_snapshot_attachments(
-        &self,
-        task_id: &AmbientAgentTaskId,
-    ) -> anyhow::Result<Vec<TaskAttachment>, anyhow::Error>;
 
     // --- Orchestrations V2 messaging ---
 
@@ -1461,18 +1398,6 @@ impl AIClient for ServerApi {
         Ok(response)
     }
 
-    async fn fork_conversation(
-        &self,
-        conversation_id: String,
-        title: Option<String>,
-    ) -> anyhow::Result<ForkConversationResponse, anyhow::Error> {
-        let request = ForkConversationRequest { title };
-        let response: ForkConversationResponse = self
-            .post_public_api(&build_fork_conversation_url(&conversation_id), &request)
-            .await?;
-        Ok(response)
-    }
-
     async fn list_ambient_agent_tasks(
         &self,
         limit: i32,
@@ -1639,27 +1564,6 @@ impl AIClient for ServerApi {
             }
             DeleteConversationResult::Unknown => Err(anyhow!("Failed to delete AI conversation")),
         }
-    }
-
-    async fn list_skills(
-        &self,
-        repo: Option<String>,
-    ) -> anyhow::Result<Vec<AgentSkillItem>, anyhow::Error> {
-        let path = match repo {
-            Some(repo) => format!("agent?repo={}", urlencoding::encode(&repo)),
-            None => "agent".to_string(),
-        };
-        let response: ListSkillsResponse = self.get_public_api(&path).await?;
-        Ok(response.agents)
-    }
-
-    async fn list_agents(&self) -> anyhow::Result<Vec<AgentResponse>, anyhow::Error> {
-        let response: ListAgentsResponse = self.get_public_api("agent/identities").await?;
-        Ok(response.agents)
-    }
-
-    async fn list_agents_raw(&self) -> anyhow::Result<serde_json::Value, anyhow::Error> {
-        self.get_public_api("agent/identities").await
     }
 
     async fn get_agent(&self, uid: &str) -> anyhow::Result<AgentResponse, anyhow::Error> {
@@ -1876,25 +1780,6 @@ impl AIClient for ServerApi {
             .get_public_api(&format!("agent/artifacts/{artifact_uid}"))
             .await?;
         Ok(response)
-    }
-
-    async fn get_handoff_snapshot_attachments(
-        &self,
-        task_id: &AmbientAgentTaskId,
-    ) -> anyhow::Result<Vec<TaskAttachment>, anyhow::Error> {
-        let response: ListHandoffSnapshotAttachmentsResponse = self
-            .get_public_api(&format!("agent/runs/{task_id}/handoff/attachments"))
-            .await?;
-
-        Ok(response
-            .attachments
-            .into_iter()
-            .map(|attachment| TaskAttachment {
-                file_id: attachment.attachment_id,
-                filename: attachment.filename,
-                download_url: attachment.download_url,
-            })
-            .collect())
     }
 
     // --- Orchestrations V2 messaging ---
