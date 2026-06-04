@@ -829,33 +829,6 @@ impl LLMPreferences {
         ctx.dispatch_global_action("workspace:save_app", ());
     }
 
-    pub fn update_preferred_coding_llm(
-        &self,
-        preferred_llm_id: &LLMId,
-        terminal_view_id: Option<EntityId>,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let new_value = if preferred_llm_id == &self.models_by_feature.coding.default_id {
-            None
-        } else {
-            Some(preferred_llm_id.clone())
-        };
-
-        let mut changed = false;
-        AIExecutionProfilesModel::handle(ctx).update(ctx, |profiles, ctx| {
-            let profile = profiles.active_profile(terminal_view_id, ctx);
-
-            if profile.data().coding_model != new_value {
-                profiles.set_coding_model(*profile.id(), new_value, ctx);
-                changed = true;
-            }
-        });
-
-        if changed {
-            ctx.emit(LLMPreferencesEvent::UpdatedActiveCodingLLM);
-        }
-    }
-
     /// Fetches the latest set of models from the server for the currently logged in user, and updates the model.
     pub fn refresh_authed_models(&self, ctx: &mut ModelContext<Self>) {
         // Don't try to fetch auth'd models if the user is not logged in yet.
@@ -978,11 +951,6 @@ impl LLMPreferences {
         });
     }
 
-    pub fn vision_supported(&self, app: &AppContext, terminal_view_id: Option<EntityId>) -> bool {
-        self.get_active_base_model(app, terminal_view_id)
-            .vision_supported
-    }
-
     pub fn get_base_llm_override(&self, terminal_view_id: EntityId) -> Option<String> {
         if let Some(override_str) = self
             .base_llm_for_terminal_view
@@ -996,19 +964,6 @@ impl LLMPreferences {
         None
     }
 
-    /// Removes the LLM override for a terminal view.
-    /// This ensures that the new profile's default model is used.
-    pub fn remove_llm_override(
-        &mut self,
-        terminal_view_id: EntityId,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let old = self.base_llm_for_terminal_view.remove(&terminal_view_id);
-        if old.is_some() {
-            self.trigger_snapshot_save(ctx);
-            ctx.emit(LLMPreferencesEvent::UpdatedActiveAgentModeLLM);
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
