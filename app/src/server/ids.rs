@@ -2,7 +2,7 @@
 #[allow(unused_imports)]
 pub use warp_server_client::ids::GenericStringObjectId;
 pub use warp_server_client::ids::{
-    parse_sqlite_id_to_uid, ApiKeyUid, ClientId, HashableId, HashedSqliteId, ObjectUid, ServerId, SyncId, ToServerId,
+    parse_sqlite_id_to_uid, ClientId, HashableId, HashedSqliteId, ObjectUid, ServerId, SyncId, ToServerId,
 };
 
 /// server_id_traits is a macro used for generating implementations for the type aliases on

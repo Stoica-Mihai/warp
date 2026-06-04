@@ -1,23 +1,11 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::{bail, Result};
 use async_trait::async_trait;
-use cynic::{MutationBuilder, QueryBuilder};
 use instant::Duration;
 #[cfg(test)]
 use mockall::{automock, predicate::*};
-use warp_graphql::mutations::expire_api_key::{
-    ExpireApiKey, ExpireApiKeyResult, ExpireApiKeyVariables,
-};
-use warp_graphql::mutations::generate_api_key::{
-    GenerateApiKey, GenerateApiKeyInput, GenerateApiKeyResult, GenerateApiKeyVariables,
-};
-use warp_graphql::queries::api_keys::{
-    ApiKeyProperties, ApiKeyPropertiesResult, ApiKeys, ApiKeysVariables,
-};
 
 use super::ServerApi;
 use crate::auth::credentials::{AuthToken, Credentials};
-use crate::server::graphql::{get_request_context, get_user_facing_error_message};
-use crate::server::ids::ApiKeyUid;
 
 /// Header key for the ambient workload token attached to multi-agent requests.
 pub const AMBIENT_WORKLOAD_TOKEN_HEADER: &str = "X-Warp-Ambient-Workload-Token";
@@ -37,19 +25,6 @@ pub trait AuthClient: 'static + Send + Sync {
     /// Returns an auth mode that may not require an Authorization header (e.g. session cookies or
     /// test credentials).
     async fn get_or_refresh_access_token(&self) -> Result<AuthToken>;
-
-    // API Keys
-    async fn list_api_keys(&self) -> Result<Vec<ApiKeyProperties>>;
-
-    async fn create_api_key(
-        &self,
-        name: String,
-        team_id: Option<cynic::Id>,
-        agent_uid: Option<cynic::Id>,
-        expires_at: Option<warp_graphql::scalars::Time>,
-    ) -> Result<GenerateApiKeyResult>;
-
-    async fn expire_api_key(&self, key_uid: &ApiKeyUid) -> Result<ExpireApiKeyResult>;
 
     /// Returns a cached ambient workload token, or issues a new one if not present or expired.
     ///
@@ -84,53 +59,6 @@ impl ServerApi {
 impl AuthClient for ServerApi {
     async fn get_or_refresh_access_token(&self) -> Result<AuthToken> {
         self.access_token().await
-    }
-
-    // API Keys
-    async fn list_api_keys(&self) -> Result<Vec<ApiKeyProperties>> {
-        let variables = ApiKeysVariables {
-            request_context: get_request_context(),
-        };
-        let operation = ApiKeys::build(variables);
-        let response = self.send_graphql_request(operation, None).await?;
-        match response.api_keys {
-            ApiKeyPropertiesResult::ApiKeyPropertiesOutput(output) => Ok(output.api_keys),
-            ApiKeyPropertiesResult::UserFacingError(e) => {
-                Err(anyhow!(get_user_facing_error_message(e)))
-            }
-            ApiKeyPropertiesResult::Unknown => Err(anyhow!("failed to fetch API keys")),
-        }
-    }
-
-    async fn create_api_key(
-        &self,
-        name: String,
-        team_id: Option<cynic::Id>,
-        agent_uid: Option<cynic::Id>,
-        expires_at: Option<warp_graphql::scalars::Time>,
-    ) -> Result<GenerateApiKeyResult> {
-        let variables = GenerateApiKeyVariables {
-            input: GenerateApiKeyInput {
-                name,
-                team_id,
-                agent_uid,
-                expires_at,
-            },
-            request_context: get_request_context(),
-        };
-        let operation = GenerateApiKey::build(variables);
-        let response = self.send_graphql_request(operation, None).await?;
-        Ok(response.generate_api_key)
-    }
-
-    async fn expire_api_key(&self, key_uid: &ApiKeyUid) -> Result<ExpireApiKeyResult> {
-        let variables = ExpireApiKeyVariables {
-            key_uid: key_uid.into(),
-            request_context: get_request_context(),
-        };
-        let op = ExpireApiKey::build(variables);
-        let res = self.send_graphql_request(op, None).await?;
-        Ok(res.expire_api_key)
     }
 
     async fn get_or_create_ambient_workload_token(&self) -> Result<Option<String>> {
