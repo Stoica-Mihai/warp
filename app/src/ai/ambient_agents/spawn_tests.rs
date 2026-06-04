@@ -678,8 +678,7 @@ async fn poll_retries_transient_429_errors() {
     mock.expect_spawn_agent().returning(|_| {
         Ok(SpawnAgentResponse {
             task_id: "550e8400-e29b-41d4-a716-446655440000".parse().unwrap(),
-            run_id: "550e8400-e29b-41d4-a716-446655440000".to_string(),
-            at_capacity: false,
+                        at_capacity: false,
         })
     });
 
@@ -754,8 +753,7 @@ async fn poll_fails_on_permanent_http_error() {
     mock.expect_spawn_agent().returning(|_| {
         Ok(SpawnAgentResponse {
             task_id: "550e8400-e29b-41d4-a716-446655440000".parse().unwrap(),
-            run_id: "550e8400-e29b-41d4-a716-446655440000".to_string(),
-            at_capacity: false,
+                        at_capacity: false,
         })
     });
 
@@ -819,8 +817,7 @@ async fn poll_gives_up_after_max_transient_retries() {
     mock.expect_spawn_agent().returning(|_| {
         Ok(SpawnAgentResponse {
             task_id: "550e8400-e29b-41d4-a716-446655440000".parse().unwrap(),
-            run_id: "550e8400-e29b-41d4-a716-446655440000".to_string(),
-            at_capacity: false,
+                        at_capacity: false,
         })
     });
 
@@ -887,8 +884,7 @@ async fn poll_stops_on_terminal_failure_like_state() {
     mock.expect_spawn_agent().returning(|_| {
         Ok(SpawnAgentResponse {
             task_id: "550e8400-e29b-41d4-a716-446655440000".parse().unwrap(),
-            run_id: "550e8400-e29b-41d4-a716-446655440000".to_string(),
-            at_capacity: false,
+                        at_capacity: false,
         })
     });
 
@@ -1019,8 +1015,7 @@ async fn poll_for_session_join_info_waits_until_link_is_available() {
     mock.expect_spawn_agent().returning(|_| {
         Ok(SpawnAgentResponse {
             task_id: "550e8400-e29b-41d4-a716-446655440000".parse().unwrap(),
-            run_id: "550e8400-e29b-41d4-a716-446655440000".to_string(),
-            at_capacity: false,
+                        at_capacity: false,
         })
     });
 

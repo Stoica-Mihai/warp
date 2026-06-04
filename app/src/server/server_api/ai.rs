@@ -216,7 +216,6 @@ pub struct ReadAgentMessageResponse {
 #[derive(serde::Deserialize)]
 pub struct SpawnAgentResponse {
     pub task_id: AmbientAgentTaskId,
-    pub run_id: String,
     #[serde(default)]
     pub at_capacity: bool,
 }
@@ -310,14 +309,12 @@ pub struct TaskListFilter {
 /// Execution location filter values accepted by the public API.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ExecutionLocation {
-    Local,
     Remote,
 }
 
 impl ExecutionLocation {
     pub fn as_query_param(&self) -> &'static str {
         match self {
-            ExecutionLocation::Local => "LOCAL",
             ExecutionLocation::Remote => "REMOTE",
         }
     }
@@ -326,19 +323,13 @@ impl ExecutionLocation {
 /// Artifact type filter values accepted by the public API.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ArtifactType {
-    Plan,
     PullRequest,
-    Screenshot,
-    File,
 }
 
 impl ArtifactType {
     pub fn as_query_param(&self) -> &'static str {
         match self {
-            ArtifactType::Plan => "PLAN",
             ArtifactType::PullRequest => "PULL_REQUEST",
-            ArtifactType::Screenshot => "SCREENSHOT",
-            ArtifactType::File => "FILE",
         }
     }
 }
@@ -346,19 +337,13 @@ impl ArtifactType {
 /// Sort-by values accepted by the public API.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RunSortBy {
-    UpdatedAt,
     CreatedAt,
-    Title,
-    Agent,
 }
 
 impl RunSortBy {
     pub fn as_query_param(&self) -> &'static str {
         match self {
-            RunSortBy::UpdatedAt => "updated_at",
             RunSortBy::CreatedAt => "created_at",
-            RunSortBy::Title => "title",
-            RunSortBy::Agent => "agent",
         }
     }
 }
@@ -367,14 +352,12 @@ impl RunSortBy {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RunSortOrder {
     Asc,
-    Desc,
 }
 
 impl RunSortOrder {
     pub fn as_query_param(&self) -> &'static str {
         match self {
             RunSortOrder::Asc => "asc",
-            RunSortOrder::Desc => "desc",
         }
     }
 }
