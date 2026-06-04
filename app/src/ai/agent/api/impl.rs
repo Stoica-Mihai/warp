@@ -89,29 +89,6 @@ fn get_supported_tools(params: &RequestParams) -> Vec<api::ToolType> {
     supported_tools
 }
 
-fn get_supported_cli_agent_tools(params: &RequestParams) -> Vec<api::ToolType> {
-    let mut supported_cli_agent_tools = vec![
-        api::ToolType::WriteToLongRunningShellCommand,
-        api::ToolType::ReadShellCommandOutput,
-        api::ToolType::Grep,
-        api::ToolType::FileGlob,
-        api::ToolType::FileGlobV2,
-    ];
-
-    match params.session_context.session_type() {
-        None | Some(SessionType::Local) => {
-            supported_cli_agent_tools
-                .extend(&[api::ToolType::ReadFiles, api::ToolType::SearchCodebase]);
-        }
-        Some(SessionType::WarpifiedRemote { host_id: Some(_) }) => {
-            supported_cli_agent_tools.push(api::ToolType::ReadFiles);
-        }
-        Some(SessionType::WarpifiedRemote { host_id: None }) => {}
-    }
-
-    supported_cli_agent_tools
-}
-
 #[cfg(test)]
 #[path = "impl_tests.rs"]
 mod tests;
