@@ -346,40 +346,6 @@ pub struct AgentRunClientSetupMetricPayload {
     pub is_error: bool,
 }
 
-impl AgentRunClientEventRequest {
-    pub fn timeline_event(event_name: impl Into<String>, timestamp: DateTime<Utc>) -> Self {
-        Self {
-            event_uuid: uuid::Uuid::new_v4().to_string(),
-            event_name: event_name.into(),
-            timestamp,
-            payload: None,
-        }
-    }
-
-    pub fn setup_metric_event(
-        event_name: impl Into<String>,
-        start_timestamp: DateTime<Utc>,
-        finish_timestamp: DateTime<Utc>,
-        is_error: bool,
-    ) -> Self {
-        Self {
-            event_uuid: uuid::Uuid::new_v4().to_string(),
-            event_name: event_name.into(),
-            timestamp: finish_timestamp,
-            payload: Some(AgentRunClientEventPayload::SetupMetric(
-                AgentRunClientSetupMetricPayload {
-                    start_ts: start_timestamp,
-                    finish_ts: finish_timestamp,
-                    latency_ms: finish_timestamp
-                        .signed_duration_since(start_timestamp)
-                        .num_milliseconds()
-                        .max(0),
-                    is_error,
-                },
-            )),
-        }
-    }
-}
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ReadAgentMessageResponse {
@@ -418,78 +384,6 @@ pub enum ArtifactDownloadResponse {
     },
 }
 
-impl ArtifactDownloadResponse {
-    fn common(&self) -> &ArtifactDownloadCommonFields {
-        match self {
-            ArtifactDownloadResponse::Screenshot { common, .. }
-            | ArtifactDownloadResponse::File { common, .. } => common,
-        }
-    }
-
-    pub fn artifact_uid(&self) -> &str {
-        &self.common().artifact_uid
-    }
-
-    pub fn artifact_type(&self) -> &'static str {
-        match self {
-            ArtifactDownloadResponse::Screenshot { .. } => "SCREENSHOT",
-            ArtifactDownloadResponse::File { .. } => "FILE",
-        }
-    }
-
-    pub fn created_at(&self) -> DateTime<Utc> {
-        self.common().created_at
-    }
-
-    pub fn download_url(&self) -> &str {
-        match self {
-            ArtifactDownloadResponse::Screenshot { data, .. } => &data.download_url,
-            ArtifactDownloadResponse::File { data, .. } => &data.download_url,
-        }
-    }
-
-    pub fn expires_at(&self) -> DateTime<Utc> {
-        match self {
-            ArtifactDownloadResponse::Screenshot { data, .. } => data.expires_at,
-            ArtifactDownloadResponse::File { data, .. } => data.expires_at,
-        }
-    }
-
-    pub fn content_type(&self) -> &str {
-        match self {
-            ArtifactDownloadResponse::Screenshot { data, .. } => &data.content_type,
-            ArtifactDownloadResponse::File { data, .. } => &data.content_type,
-        }
-    }
-
-    pub fn filepath(&self) -> Option<&str> {
-        match self {
-            ArtifactDownloadResponse::Screenshot { .. } => None,
-            ArtifactDownloadResponse::File { data, .. } => Some(&data.filepath),
-        }
-    }
-
-    pub fn filename(&self) -> Option<&str> {
-        match self {
-            ArtifactDownloadResponse::Screenshot { .. } => None,
-            ArtifactDownloadResponse::File { data, .. } => Some(&data.filename),
-        }
-    }
-
-    pub fn description(&self) -> Option<&str> {
-        match self {
-            ArtifactDownloadResponse::Screenshot { data, .. } => data.description.as_deref(),
-            ArtifactDownloadResponse::File { data, .. } => data.description.as_deref(),
-        }
-    }
-
-    pub fn size_bytes(&self) -> Option<i64> {
-        match self {
-            ArtifactDownloadResponse::Screenshot { .. } => None,
-            ArtifactDownloadResponse::File { data, .. } => data.size_bytes,
-        }
-    }
-}
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct ArtifactDownloadCommonFields {
@@ -517,6 +411,7 @@ pub struct FileArtifactResponseData {
     pub description: Option<String>,
     pub size_bytes: Option<i64>,
 }
+
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct HandoffSnapshotAttachmentInfo {
