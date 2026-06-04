@@ -625,27 +625,6 @@ impl LLMPreferences {
             .unwrap_or_else(|| self.models_by_feature.agent_mode.default_llm_info())
     }
 
-    /// Returns `LLMInfo` for user's preferred coding model.
-    fn get_preferred_coding_model(
-        &self,
-        app: &AppContext,
-        terminal_view_id: Option<EntityId>,
-    ) -> &LLMInfo {
-        let profile = AIExecutionProfilesModel::as_ref(app).active_profile(terminal_view_id, app);
-
-        profile
-            .data()
-            .coding_model
-            .clone()
-            .and_then(|id| {
-                self.models_by_feature
-                    .coding
-                    .info_for_id(&id)
-                    .or_else(|| self.custom_llm_info_for_id_if_enabled(&id, app))
-            })
-            .unwrap_or_else(|| self.models_by_feature.coding.default_llm_info())
-    }
-
     /// Returns the set of LLMs available for Agent Mode use.
     pub fn get_base_llm_choices_for_agent_mode(
         &self,
