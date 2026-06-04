@@ -3241,53 +3241,6 @@ impl BlockList {
         self.maintain_pinned_to_bottom();
     }
 
-    /// Insert a rich content item immediately after the given removable item.
-    /// Returns true if insertion succeeded.
-    pub(in crate::terminal) fn insert_rich_content_after_item(
-        &mut self,
-        after_item: RemovableBlocklistItem,
-        item: RichContentItem,
-    ) -> bool {
-        let Some(current_index) = self
-            .removable_blocklist_item_positions
-            .get(&after_item)
-            .copied()
-        else {
-            return false;
-        };
-
-        let view_id = item.view_id;
-
-        // Recreate block heights tree with new item inserted.
-        let (new_tree, inserted_index) = {
-            let mut cursor = self.block_heights.cursor::<TotalIndex, ()>();
-            let mut prefix = cursor.slice(&(current_index + 1), SeekBias::Right);
-            let inserted_index = TotalIndex(prefix.summary().total_count);
-            prefix.push(BlockHeightItem::RichContent(item));
-            prefix.push_tree(cursor.suffix());
-            (prefix, inserted_index)
-        };
-
-        self.block_heights = new_tree;
-        self.update_block_height_indices(BlockHeightUpdate::Insertion(inserted_index), true);
-
-        // If there is an item at the index that we are inserting into,
-        // we should shift that item forward by one.
-        self.removable_blocklist_item_positions
-            .values_mut()
-            .for_each(|pos| {
-                if *pos == inserted_index {
-                    pos.0 += 1;
-                }
-            });
-
-        self.removable_blocklist_item_positions
-            .insert(RemovableBlocklistItem::RichContent(view_id), inserted_index);
-        self.event_proxy.send_wakeup_event();
-
-        true
-    }
-
     pub(in crate::terminal) fn set_marked_text(
         &mut self,
         marked_text: &str,
