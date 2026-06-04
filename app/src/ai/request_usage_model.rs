@@ -9,8 +9,6 @@ pub use warp_graphql::billing::BonusGrantType;
 use warp_graphql::scalars::time::ServerTimestamp;
 use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 
-use crate::ai::agent::conversation::AIConversationId;
-use crate::ai::agent::AIAgentExchangeId;
 use crate::auth::AuthStateProvider;
 use crate::pricing::PricingInfoModel;
 use crate::server::server_api::ai::AIClient;
@@ -198,10 +196,6 @@ impl AIRequestUsageModel {
         }
     }
 
-    pub fn last_update_time(&self) -> Option<Instant> {
-        self.last_update_time
-    }
-
     /// Spawns a task to refresh the latest AI request usage and bonus grants, fetching from the server.
     pub fn refresh_request_usage_async(&mut self, ctx: &mut ModelContext<Self>) {
         if !AuthStateProvider::as_ref(ctx).get().is_logged_in() {
@@ -237,15 +231,6 @@ impl AIRequestUsageModel {
         });
 
         ctx.emit(AIRequestUsageModelEvent::RequestUsageUpdated);
-    }
-
-    pub fn provide_negative_feedback_response_for_ai_conversation(
-        &mut self,
-        _client_conversation_id: AIConversationId,
-        _request_id: String,
-        _client_exchange_id: AIAgentExchangeId,
-        _ctx: &mut ModelContext<Self>,
-    ) {
     }
 
     /// Returns the number of remaining requests the user has based on their latest rate limit info.
@@ -330,10 +315,6 @@ impl AIRequestUsageModel {
         self.request_limit_info.num_requests_used_since_refresh
     }
 
-    pub fn request_percentage_used(&self) -> f32 {
-        self.requests_used() as f32 / self.request_limit() as f32
-    }
-
     pub fn request_limit(&self) -> usize {
         self.request_limit_info.limit
     }
@@ -370,38 +351,6 @@ impl AIRequestUsageModel {
 
     pub fn is_unlimited(&self) -> bool {
         self.request_limit_info.is_unlimited
-    }
-
-    pub fn refresh_duration_to_string(&self) -> String {
-        match self.request_limit_info.request_limit_refresh_duration {
-            RequestLimitRefreshDuration::Weekly => "weekly".to_string(),
-            RequestLimitRefreshDuration::Monthly => "monthly".to_string(),
-            RequestLimitRefreshDuration::EveryTwoWeeks => "biweekly".to_string(),
-        }
-    }
-
-    pub fn bonus_grants(&self) -> &[BonusGrant] {
-        &self.bonus_grants
-    }
-
-    /// Returns the total remaining ambient-only credits for the user.
-    /// Returns None if the user has never received any ambient-only grants.
-    pub fn ambient_only_credits_remaining(&self) -> Option<i32> {
-        let ambient_grants: Vec<_> = self
-            .bonus_grants
-            .iter()
-            .filter(|g| g.grant_type == BonusGrantType::AmbientOnly)
-            .collect();
-        if ambient_grants.is_empty() {
-            None
-        } else {
-            Some(
-                ambient_grants
-                    .iter()
-                    .map(|g| g.request_credits_remaining)
-                    .sum(),
-            )
-        }
     }
 
     pub fn total_workspace_bonus_credits_remaining(&self, uid: WorkspaceUid) -> i32 {
