@@ -6,7 +6,6 @@ cfg_if::cfg_if! {
         mod block_list;
         mod cloud_objects;
         mod sqlite;
-        pub mod commands;
     }
 }
 
