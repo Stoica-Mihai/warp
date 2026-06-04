@@ -24,7 +24,7 @@ use warpui::{AppContext, EntityId, ModelHandle};
 
 use super::model::EditorModel;
 use super::{
-    AutosuggestionLocation, AutosuggestionState, AutosuggestionType,
+    AutosuggestionLocation, AutosuggestionState,
     BaselinePositionComputationMethod, Bias, DisplayPoint, DrawableSelection, ScrollState,
     ToBufferOffset, ToCharOffset, ToDisplayPoint, ToPoint,
 };
