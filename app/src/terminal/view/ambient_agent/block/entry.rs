@@ -64,9 +64,7 @@ impl AmbientAgentEntryBlock {
         ctx.subscribe_to_model(&agent_conversations_model, |_, _, event, ctx| match event {
             AgentConversationsModelEvent::ConversationsLoaded
             | AgentConversationsModelEvent::NewTasksReceived
-            | AgentConversationsModelEvent::TasksUpdated
-            | AgentConversationsModelEvent::ConversationUpdated { .. } => ctx.notify(),
-            AgentConversationsModelEvent::ConversationArtifactsUpdated { .. } => {}
+            | AgentConversationsModelEvent::TasksUpdated => ctx.notify(),
         });
 
         Self {

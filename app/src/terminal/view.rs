@@ -140,7 +140,7 @@ use warpui::image_cache::ImageType;
 use warpui::keymap::Keystroke;
 use warpui::notification::{NotificationSendError, RequestPermissionsOutcome, UserNotification};
 use warpui::platform::{Cursor, OperatingSystem};
-use warpui::r#async::{SpawnedFutureHandle, Timer};
+use warpui::r#async::Timer;
 use warpui::text::SelectionType;
 use warpui::ui_components::components::UiComponent;
 use warpui::units::{IntoLines, IntoPixels, Lines, Pixels};
@@ -202,7 +202,7 @@ use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::context_chips::toolbar::AgentToolbarItemKind;
 use crate::terminal::view::agent_view_state::{
     get_agent_view_entry_block_position_id,
-    AgentViewEntryOrigin, ENTER_OR_EXIT_CONFIRMATION_WINDOW,
+    AgentViewEntryOrigin,
 };
 use crate::ai::blocklist::{
     ai_brand_color,
@@ -2046,15 +2046,6 @@ struct TerminalViewMouseStates {
     #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
     show_in_file_explorer_tooltip: MouseStateHandle,
     jump_to_bottom_of_block_button: MouseStateHandle,
-
-    parent_conversation_header_link: MouseStateHandle,
-    /// Persistent horizontal scroll state for the orchestration breadcrumb
-    /// row. Lives here (rather than as a `MouseStateHandle`) so the user's
-    /// scroll position survives across renders — in narrow split-off panes
-    /// the breadcrumb row often overflows the title slot, and we wrap it
-    /// in a `NewScrollable::horizontal` keyed on this handle so the user
-    /// can pan to read clipped labels.
-    breadcrumbs_horizontal_scroll: ClippedScrollStateHandle,
 }
 
 /// Where content was routed when sent to a CLI agent.
@@ -2114,10 +2105,6 @@ enum SecretTooltip {
         is_agent_mode: bool,
         tooltip: WithinModel<SecretHandle>,
     },
-    RichContent {
-        is_agent_mode: bool,
-        tooltip: RichContentSecretTooltipInfo,
-    },
 }
 
 pub fn is_prompt_suggestions_enabled(_app: &AppContext) -> bool {
@@ -2126,11 +2113,6 @@ pub fn is_prompt_suggestions_enabled(_app: &AppContext) -> bool {
 
 type TerminalViewCallback = Box<dyn FnOnce(&mut TerminalView, &mut ViewContext<TerminalView>)>;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(in crate::terminal::view) enum PendingUserQueryKind {
-    QueuedPrompt,
-    CloudMode,
-}
 
 #[derive(Debug, Clone)]
 pub struct TerminalDropTargetData {
@@ -2223,9 +2205,6 @@ pub struct TerminalView {
 
     /// The current scroll position.
     scroll_position: ScrollState,
-
-    /// Cached scroll position from before entering agent view, used to restore on exit.
-    scroll_position_before_entering_agent_view: Option<ScrollPosition>,
 
     /// Scroll state for scrolling vertically in the blocklist.
     blocklist_vertical_scroll_state: ScrollStateHandle,
@@ -2512,12 +2491,6 @@ pub struct TerminalView {
     /// Weak handle to the [`PaneStack`] this view is part of, allowing push/pop operations.
     pane_stack: Option<WeakModelHandle<crate::pane_group::pane::PaneStack<Self>>>,
 
-    /// If set, indicates a cloud mode entry is waiting for the fullscreen agent view to be exited.
-    /// This is used to ensure rich content inserted for cloud mode is scoped to the top-level
-    /// terminal view (not a specific agent view conversation).
-    pending_cloud_mode_start_callback: Option<TerminalViewCallback>,
-    pending_cloud_mode_start_abort_handle: Option<SpawnedFutureHandle>,
-
     /// Active /init flow model, if any. Cleared when cancelled or completed.
     active_init_project_model: Option<ModelHandle<InitProjectModel>>,
 
@@ -2533,8 +2506,6 @@ pub struct TerminalView {
     /// suppresses `AgentExitedShellProcess` telemetry so manual shutdown paths
     /// (tab close, update relaunch, etc.) are not attributed to agent commands.
     manual_pty_shutdown_requested: bool,
-    pending_user_query_view_id: Option<EntityId>,
-    pending_user_query_kind: Option<PendingUserQueryKind>,
     /// Per-session PTY recorder for writing PTY bytes to a file.
     pty_recorder: ModelHandle<PtyRecorder>,
 
@@ -2649,28 +2620,6 @@ impl TerminalView {
             data: SyncInputType::InputEditorContentsChanged {
                 contents: Arc::new(input_buffer),
             },
-        }
-    }
-
-    /// Marks rich content views as dirty if their metadata matches the given predicate.
-    ///
-    /// Rich content heights are stored in the blocklist sumtree. When a view's rendered height
-    /// changes (e.g., due to state changes that affect its layout), the sumtree entry becomes
-    /// stale. Marking items as dirty ensures they are re-measured on the next layout frame,
-    /// which happens unconditionally before viewport iteration. This is important for items
-    /// that may have 0 height in the sumtree, as the viewport iterator would otherwise skip
-    /// them entirely.
-    fn mark_all_rich_content_items_dirty_where(
-        &self,
-        model: &mut TerminalModel,
-        predicate: impl Fn(&RichContentMetadata) -> bool,
-    ) {
-        for content in &self.rich_content_views {
-            if content.metadata().is_some_and(&predicate) {
-                model
-                    .block_list_mut()
-                    .mark_rich_content_dirty(content.view_id());
-            }
         }
     }
 
@@ -3204,7 +3153,6 @@ impl TerminalView {
             snackbar_header_state: Default::default(),
             colors,
             scroll_position: ScrollState::new(ScrollPosition::FollowsBottomOfMostRecentBlock),
-            scroll_position_before_entering_agent_view: None,
             blocklist_vertical_scroll_state: Default::default(),
             alt_screen_vertical_scroll_state: Default::default(),
             alt_screen_scroll_top: Lines::zero(),
@@ -3312,11 +3260,7 @@ impl TerminalView {
             active_init_project_model: None,
             is_pending_aws_login: false,
             manual_pty_shutdown_requested: false,
-            pending_user_query_view_id: None,
-            pending_user_query_kind: None,
             pane_stack: None,
-            pending_cloud_mode_start_callback: None,
-            pending_cloud_mode_start_abort_handle: None,
             pty_recorder: ctx
                 .add_model(|ctx| PtyRecorder::new(inactive_pty_reads_rx, window_id, ctx)),
         };
@@ -3576,45 +3520,6 @@ impl TerminalView {
         F: FnOnce(&mut Self, &mut ViewContext<Self>) + 'static,
     {
         self.block_completed_callbacks.push(Box::new(callback));
-    }
-
-    fn set_pending_cloud_mode_start_callback(
-        &mut self,
-        callback: TerminalViewCallback,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.clear_pending_cloud_mode_start_callback();
-        self.pending_cloud_mode_start_callback = Some(callback);
-
-        self.pending_cloud_mode_start_abort_handle = Some(ctx.spawn_abortable(
-            // Reuse the same timeout as agent-view confirmation prompts so a pending cloud-mode
-            // start cannot outlive the user-visible confirmation window semantics.
-            Timer::after(ENTER_OR_EXIT_CONFIRMATION_WINDOW),
-            |me, _, _ctx| {
-                me.pending_cloud_mode_start_callback = None;
-                me.pending_cloud_mode_start_abort_handle = None;
-            },
-            |_, _| (),
-        ));
-    }
-
-    fn clear_pending_cloud_mode_start_callback(&mut self) {
-        if let Some(handle) = self.pending_cloud_mode_start_abort_handle.take() {
-            handle.abort();
-        }
-        self.pending_cloud_mode_start_callback = None;
-    }
-
-    fn maybe_run_pending_cloud_mode_start_callback(&mut self, ctx: &mut ViewContext<Self>) {
-        let Some(callback) = self.pending_cloud_mode_start_callback.take() else {
-            return;
-        };
-
-        if let Some(handle) = self.pending_cloud_mode_start_abort_handle.take() {
-            handle.abort();
-        }
-
-        callback(self, ctx);
     }
 
     /// If the active conversation is a child agent, navigate to the parent
@@ -9156,17 +9061,6 @@ impl TerminalView {
             _ => {}
         }
     }
-
-    /// Send a desktop notification that agent mode needs attention or has finished,
-    /// otherwise insert a callout banner if notifications are unset.
-    /// May become separate triggers if we show sub-tasks in the UI.
-    /// Note that this does NOT handle agent mode toast notifications in-app.
-    /// Those are handled in the workspace view on AgentManagementEvent::ConversationNeedsAttention.
-    fn maybe_send_agent_mode_desktop_notification(
-        &mut self,
-        _conversation_id: &AIConversationId,
-        _ctx: &mut ViewContext<Self>,
-    ) {}
 
     /// Shared logic for sending a desktop notification (or showing a discovery banner)
     /// for any agent status change (both Warp's agent and any CLI agent).

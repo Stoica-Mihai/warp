@@ -436,23 +436,6 @@ pub enum AgentConversationsModelEvent {
     NewTasksReceived,
     /// Existing task data may have been updated (e.g., state changes).
     TasksUpdated,
-    /// Conversation status data was updated
-    ConversationUpdated { kind: ConversationUpdateKind },
-    /// Conversation artifacts were updated (plans, PRs, etc.)
-    ConversationArtifactsUpdated { conversation_id: AIConversationId },
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ConversationUpdateKind {
-    /// The conversation was re-loaded into a terminal view.
-    Restored,
-    /// The conversation's status was set.
-    StatusSet {
-        prev_filter: StatusFilter,
-        new_filter: StatusFilter,
-    },
-    /// Conversation metadata or capabilities changed.
-    MetadataChanged,
 }
 
 impl Entity for AgentConversationsModel {
@@ -671,11 +654,6 @@ impl AgentConversationsModel {
         } else if has_updated_tasks {
             ctx.emit(AgentConversationsModelEvent::TasksUpdated);
         }
-    }
-
-    /// Returns true if we have tasks or local conversations in this view
-    pub fn has_items(&self) -> bool {
-        !self.tasks.is_empty() || !self.conversations.is_empty()
     }
 
     /// Returns an iterator over all ambient agent tasks.
