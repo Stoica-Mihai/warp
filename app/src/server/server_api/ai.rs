@@ -24,10 +24,6 @@ use warp_graphql::mutations::confirm_file_artifact_upload::{
 use warp_graphql::mutations::create_agent_task::{
     CreateAgentTask, CreateAgentTaskInput, CreateAgentTaskResult, CreateAgentTaskVariables,
 };
-use warp_graphql::mutations::create_file_artifact_upload_target::{
-    CreateFileArtifactUploadTarget, CreateFileArtifactUploadTargetInput,
-    CreateFileArtifactUploadTargetResult, CreateFileArtifactUploadTargetVariables,
-};
 use warp_graphql::mutations::delete_ai_conversation::{
     DeleteAIConversation, DeleteAIConversationVariables, DeleteConversationInput,
     DeleteConversationResult,
@@ -42,11 +38,6 @@ use warp_graphql::mutations::generate_metadata_for_command::{
 };
 use warp_graphql::mutations::populate_merkle_tree_cache::{
     PopulateMerkleTreeCache, PopulateMerkleTreeCacheResult, PopulateMerkleTreeCacheVariables,
-};
-use warp_graphql::mutations::request_bonus::{
-    ProvideNegativeFeedbackResponseForAiConversation,
-    ProvideNegativeFeedbackResponseForAiConversationInput,
-    ProvideNegativeFeedbackResponseForAiConversationVariables, RequestsRefundedResult,
 };
 use warp_graphql::mutations::update_agent_task::{
     AgentTaskStatusMessageInput, UpdateAgentTask, UpdateAgentTaskInput, UpdateAgentTaskResult,
@@ -92,7 +83,7 @@ use warp_graphql::queries::task_git_credentials::{
 use warp_multi_agent_api::ConversationData;
 
 use super::auth::AuthClient;
-use super::harness_support::{UploadField, UploadFieldValue, UploadTarget};
+use super::harness_support::{UploadField, UploadTarget};
 use super::ServerApi;
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::conversation::{AIAgentHarness, ServerAIConversationMetadata};
@@ -400,16 +391,6 @@ pub struct FileArtifactResponseData {
 
 
 #[derive(Debug, Clone)]
-pub struct CreateFileArtifactUploadRequest {
-    pub conversation_id: Option<String>,
-    pub run_id: Option<String>,
-    pub filepath: String,
-    pub description: Option<String>,
-    pub mime_type: Option<String>,
-    pub size_bytes: Option<i32>,
-}
-
-#[derive(Debug, Clone)]
 pub struct FileArtifactRecord {
     pub artifact_uid: String,
     pub filepath: String,
@@ -430,12 +411,6 @@ pub struct FileArtifactUploadTargetInfo {
     pub headers: Vec<FileArtifactUploadHeaderInfo>,
     /// Ordered multipart form fields for presigned POST uploads.
     pub fields: Vec<UploadField>,
-}
-
-#[derive(Debug, Clone)]
-pub struct CreateFileArtifactUploadResponse {
-    pub artifact: FileArtifactRecord,
-    pub upload_target: FileArtifactUploadTargetInfo,
 }
 
 /// A single git credential entry returned by `taskGitCredentials`.
@@ -654,38 +629,6 @@ impl<'de> serde::Deserialize<'de> for ListRunsResponse {
     }
 }
 
-/// Source information for an agent skill.
-#[derive(Clone, serde::Deserialize, Debug, PartialEq)]
-pub struct AgentSkillSource {
-    pub owner: String,
-    pub name: String,
-    pub skill_path: String,
-}
-
-/// Environment information for an agent skill.
-#[derive(Clone, serde::Deserialize, Debug, PartialEq)]
-pub struct AgentSkillEnvironment {
-    pub uid: String,
-    pub name: String,
-}
-
-/// A variant of an agent skill.
-#[derive(Clone, serde::Deserialize, Debug, PartialEq)]
-pub struct AgentSkillVariant {
-    pub id: String,
-    pub description: String,
-    pub base_prompt: String,
-    pub source: AgentSkillSource,
-    pub environments: Vec<AgentSkillEnvironment>,
-}
-
-/// An agent skill item with its variants.
-#[derive(Clone, serde::Deserialize, Debug, PartialEq)]
-pub struct AgentSkillItem {
-    pub name: String,
-    pub variants: Vec<AgentSkillVariant>,
-}
-
 /// Reference to a managed secret by name.
 #[derive(Clone, serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq)]
 pub struct SecretRef {
@@ -790,11 +733,6 @@ pub trait AIClient: 'static + Send + Sync {
         repo_metadata: RepoMetadata,
     ) -> anyhow::Result<HashMap<ContentHash, bool>>;
 
-    async fn provide_negative_feedback_response_for_ai_conversation(
-        &self,
-        conversation_id: String,
-        request_ids: Vec<String>,
-    ) -> anyhow::Result<i32, anyhow::Error>;
 
     async fn create_agent_task(
         &self,
@@ -924,11 +862,6 @@ pub trait AIClient: 'static + Send + Sync {
         task_id: String,
     ) -> anyhow::Result<Vec<TaskAttachment>, anyhow::Error>;
 
-    async fn create_file_artifact_upload_target(
-        &self,
-        request: CreateFileArtifactUploadRequest,
-    ) -> anyhow::Result<CreateFileArtifactUploadResponse, anyhow::Error>;
-
     async fn confirm_file_artifact_upload(
         &self,
         artifact_uid: String,
@@ -1006,35 +939,6 @@ fn into_file_artifact_record(
         description: artifact.description,
         mime_type: artifact.mime_type,
     }
-}
-
-
-/// Convert a cynic `FileArtifactUploadField` into the shared [`UploadField`]
-/// domain type. Unknown variants bubble as an error rather than being silently
-/// dropped, because a server-provided field we can't represent will almost certainly
-/// cause the upload to fail.
-fn convert_upload_field(
-    field: warp_graphql::mutations::create_file_artifact_upload_target::FileArtifactUploadField,
-) -> anyhow::Result<UploadField> {
-    use warp_graphql::mutations::create_file_artifact_upload_target::FileArtifactUploadFieldValue;
-
-    let value = match field.value {
-        FileArtifactUploadFieldValue::StaticUploadFieldValue(v) => {
-            UploadFieldValue::Static { value: v.value }
-        }
-        FileArtifactUploadFieldValue::ContentCRC32CFieldValue(_) => UploadFieldValue::ContentCrc32C,
-        FileArtifactUploadFieldValue::ContentDataFieldValue(_) => UploadFieldValue::ContentData,
-        FileArtifactUploadFieldValue::Unknown => {
-            return Err(anyhow!(
-                "Unknown UploadFieldValue variant for field '{}'; update client GraphQL types",
-                field.name
-            ));
-        }
-    };
-    Ok(UploadField {
-        name: field.name,
-        value,
-    })
 }
 
 
@@ -1270,33 +1174,6 @@ impl AIClient for ServerApi {
             GenerateCodeEmbeddingsResult::Unknown => {
                 Err(anyhow!("failed to generate code embeddings"))
             }
-        }
-    }
-
-    async fn provide_negative_feedback_response_for_ai_conversation(
-        &self,
-        conversation_id: String,
-        request_ids: Vec<String>,
-    ) -> anyhow::Result<i32, anyhow::Error> {
-        let variables = ProvideNegativeFeedbackResponseForAiConversationVariables {
-            input: ProvideNegativeFeedbackResponseForAiConversationInput {
-                conversation_id: conversation_id.into(),
-                request_ids: request_ids.into_iter().map(Into::into).collect(),
-            },
-            request_context: get_request_context(),
-        };
-
-        let operation = ProvideNegativeFeedbackResponseForAiConversation::build(variables);
-        let response = self.send_graphql_request(operation, None).await?;
-
-        match response.provide_negative_feedback_response_for_ai_conversation {
-            RequestsRefundedResult::RequestsRefundedOutput(output) => Ok(output.requests_refunded),
-            RequestsRefundedResult::UserFacingError(e) => {
-                Err(anyhow!(get_user_facing_error_message(e)))
-            }
-            RequestsRefundedResult::Unknown => Err(anyhow!(
-                "failed to provide negative feedback response for ai conversation"
-            )),
         }
     }
 
@@ -1687,60 +1564,6 @@ impl AIClient for ServerApi {
                 Err(anyhow!(get_user_facing_error_message(error)))
             }
             TaskResult::Unknown => Err(anyhow!("Failed to fetch task attachments")),
-        }
-    }
-
-    async fn create_file_artifact_upload_target(
-        &self,
-        request: CreateFileArtifactUploadRequest,
-    ) -> anyhow::Result<CreateFileArtifactUploadResponse, anyhow::Error> {
-        let variables = CreateFileArtifactUploadTargetVariables {
-            input: CreateFileArtifactUploadTargetInput {
-                conversation_id: request.conversation_id.map(cynic::Id::new),
-                run_id: request.run_id.map(cynic::Id::new),
-                filepath: request.filepath,
-                description: request.description,
-                mime_type: request.mime_type,
-                size_bytes: request.size_bytes,
-            },
-            request_context: get_request_context(),
-        };
-        let operation = CreateFileArtifactUploadTarget::build(variables);
-        let response = self.send_graphql_request(operation, None).await?;
-
-        match response.create_file_artifact_upload_target {
-            CreateFileArtifactUploadTargetResult::CreateFileArtifactUploadTargetOutput(output) => {
-                let headers = output
-                    .upload_target
-                    .headers
-                    .into_iter()
-                    .map(|header| FileArtifactUploadHeaderInfo {
-                        name: header.name,
-                        value: header.value,
-                    })
-                    .collect();
-                let fields = output
-                    .upload_target
-                    .fields
-                    .into_iter()
-                    .map(convert_upload_field)
-                    .collect::<anyhow::Result<Vec<_>>>()?;
-                Ok(CreateFileArtifactUploadResponse {
-                    artifact: into_file_artifact_record(output.artifact),
-                    upload_target: FileArtifactUploadTargetInfo {
-                        url: output.upload_target.url,
-                        method: output.upload_target.method,
-                        headers,
-                        fields,
-                    },
-                })
-            }
-            CreateFileArtifactUploadTargetResult::UserFacingError(error) => {
-                Err(anyhow!(get_user_facing_error_message(error)))
-            }
-            CreateFileArtifactUploadTargetResult::Unknown => {
-                Err(anyhow!("Failed to create file artifact upload target"))
-            }
         }
     }
 
