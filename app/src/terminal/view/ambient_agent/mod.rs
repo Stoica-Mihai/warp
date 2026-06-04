@@ -11,7 +11,6 @@ mod model;
 mod model_selector;
 mod progress;
 mod progress_ui_state;
-mod tips;
 mod view_impl;
 
 pub use auth_secret_ftux_view::{
@@ -33,7 +32,6 @@ pub use model_selector::{
 };
 pub use progress::{render_progress, ProgressProps, ProgressStep, ProgressStepState};
 pub use progress_ui_state::AmbientAgentProgressUIState;
-pub use tips::{get_cloud_mode_tips, CloudModeTip};
 use warpui::geometry::vector::Vector2F;
 use warpui::{AppContext, ModelHandle, ViewHandle, WindowId};
 

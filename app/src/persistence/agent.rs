@@ -148,45 +148,6 @@ pub(super) fn read_agent_conversations(
     Ok(conversations_by_id.into_values().collect())
 }
 
-/// Read a single agent conversation by its ID, including decoded tasks.
-pub(crate) fn read_agent_conversation_by_id(
-    conn: &mut SqliteConnection,
-    conversation_id_str: &str,
-) -> Result<Option<AgentConversation>, diesel::result::Error> {
-    use schema::agent_conversations::dsl as convo_dsl;
-    use schema::agent_tasks::dsl as tasks_dsl;
-
-    let maybe_record: Option<AgentConversationRecord> = convo_dsl::agent_conversations
-        .filter(convo_dsl::conversation_id.eq(conversation_id_str.to_owned()))
-        .select(AgentConversationRecord::as_select())
-        .first(conn)
-        .optional()?;
-
-    let Some(conversation_record) = maybe_record else {
-        return Ok(None);
-    };
-
-    let task_records: Vec<AgentTaskRecord> = schema::agent_tasks::table
-        .filter(tasks_dsl::conversation_id.eq(conversation_id_str))
-        .select(AgentTaskRecord::as_select())
-        .load(conn)?;
-
-    let mut decoded_tasks = Vec::new();
-    for task_record in task_records.into_iter() {
-        match api::Task::decode(&task_record.task[..]) {
-            Ok(task) => decoded_tasks.push(task),
-            Err(e) => {
-                log::error!("Failed to decode task protobuf: {e}");
-            }
-        }
-    }
-
-    Ok(Some(AgentConversation {
-        conversation: conversation_record,
-        tasks: decoded_tasks,
-    }))
-}
-
 pub(super) fn delete_agent_conversations(
     conn: &mut SqliteConnection,
     conversation_ids: Vec<String>,
