@@ -2106,7 +2106,6 @@ fn test_completions_while_typing_doesnt_hide_autosuggestion() {
 }
 
 #[test]
-#[test]
 fn test_plan_slash_command_argument_with_slash_does_not_disable_slash_command_parsing() {
     App::test((), |mut app| async move {
         initialize_app(&mut app);
@@ -2382,7 +2381,6 @@ fn test_open_slash_command_expands_tilde() {
     });
 }
 
-#[test]
 #[test]
 fn test_tab_completion_single_prefix_suggestion_with_fuzzy_suggestions() {
     // If there is a single prefix suggestion with other fuzzy suggestions,
@@ -4273,7 +4271,6 @@ fn test_alias_expansion_when_alias_expansion_is_disabled() {
 }
 
 #[test]
-#[test]
 fn test_get_expanded_command_on_execute() {
     App::test((), |mut app| async move {
         initialize_app(&mut app);
@@ -4614,33 +4611,6 @@ fn test_vim_escape_with_completions() {
     });
 }
 
-fn enter_fullscreen_agent_view_for_test(_terminal: &ViewHandle<TerminalView>, _app: &mut App) {}
-
-#[test]
-fn test_cloud_handoff_prefix_remains_text_when_handoff_flag_disabled() {}
-
-#[test]
-#[test]
-fn test_cloud_handoff_prefix_normal_deletion_does_not_exit() {}
-
-#[test]
-fn test_cloud_handoff_prefix_exits_on_backspace_at_beginning_of_buffer() {}
-
-#[test]
-#[test]
-fn test_cloud_handoff_prefix_escape_exits_mode_preserving_prompt_text() {}
-
-#[test]
-fn test_cloud_handoff_prefix_remains_text_in_powershell_with_nld_enabled() {}
-
-#[test]
-fn test_cloud_handoff_prefix_activates_in_powershell_when_nld_disabled() {}
-#[test]
-fn test_cloud_handoff_prefix_vim_escape_exits_insert_before_handoff_mode() {}
-#[test]
-#[test]
-#[test]
-#[test]
 #[test]
 fn test_ai_context_menu_closes_when_space_immediately_after_at_symbol() {
     let _ai_context_menu_enabled = FeatureFlag::AIContextMenuEnabled.override_enabled(true);
@@ -4683,8 +4653,6 @@ fn test_ai_context_menu_closes_when_space_immediately_after_at_symbol() {
     });
 }
 
-#[test]
-#[test]
 #[test]
 fn test_should_show_completions_in_ai_input() {
     // Test cases where the function should return true
@@ -4766,9 +4734,6 @@ fn test_remove_ignored_suggestion_on_command_execution() {
     });
 }
 
-#[test]
-#[test]
-#[test]
 #[test]
 fn test_page_up_and_down_scroll_terminal_from_prompt() {
     App::test((), |mut app| async move {

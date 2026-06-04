@@ -1000,9 +1000,6 @@ pub(crate) struct FormattedTextLineWrapper {
     /// The raw text with the Markdown formatting syntax stripped.
     /// This is needed for find & link/secret detection.
     stripped_text: String,
-    /// Pre-extracted URL hyperlinks from this line.
-    /// The AI formatted text wrapper only supports URL hyperlinks (since it's constructed via markdown).
-    hyperlinks: Vec<(Range<usize>, String)>,
 }
 
 impl FormattedTextLineWrapper {
@@ -1011,9 +1008,6 @@ impl FormattedTextLineWrapper {
         &self.stripped_text
     }
 
-    pub fn hyperlinks(&self) -> Vec<(Range<usize>, String)> {
-        self.hyperlinks.clone()
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -1050,11 +1044,6 @@ impl From<FormattedText> for FormattedTextWrapper {
             .iter()
             .map(|line| FormattedTextLineWrapper {
                 stripped_text: line.raw_text(),
-                hyperlinks: line
-                    .hyperlinks(true)
-                    .into_iter()
-                    .filter_map(|(r, u)| Some((r, u.url()?)))
-                    .collect(),
             })
             .collect();
         Self {

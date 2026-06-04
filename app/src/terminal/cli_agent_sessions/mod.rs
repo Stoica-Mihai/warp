@@ -67,11 +67,6 @@ pub enum CLIAgentInputState {
 pub enum CLIAgentInputEntrypoint {
     /// User pressed Ctrl-G while a CLI agent was active.
     CtrlG,
-    /// User clicked the rich input button in the CLI agent footer.
-    FooterButton,
-    /// Automatically opened when the CLI agent resumed work (left a blocked state)
-    /// and the auto-show setting is enabled.
-    AutoShow,
 }
 
 impl CLIAgentSessionContext {
@@ -459,25 +454,6 @@ impl CLIAgentSessionsModel {
     #[cfg(not(target_family = "wasm"))]
     pub fn record_plugin_auto_failure(&mut self, agent: CLIAgent, remote_host: Option<String>) {
         self.plugin_auto_failures.insert((agent, remote_host));
-    }
-
-    /// Saves draft text from the rich input composer for the given terminal.
-    /// Stores `None` for empty or whitespace-only text.
-    pub fn set_draft(&mut self, terminal_view_id: EntityId, text: String) {
-        if let Some(session) = self.sessions.get_mut(&terminal_view_id) {
-            session.draft_text = if text.trim().is_empty() {
-                None
-            } else {
-                Some(text)
-            };
-        }
-    }
-
-    /// Clears any saved draft text for the given terminal.
-    pub fn clear_draft(&mut self, terminal_view_id: EntityId) {
-        if let Some(session) = self.sessions.get_mut(&terminal_view_id) {
-            session.draft_text = None;
-        }
     }
 
     /// Returns and clears the draft text for the given terminal, if any.

@@ -8,7 +8,6 @@ use std::sync::Arc;
 use chrono::Local;
 use parking_lot::FairMutex;
 use warpui::notification::UserNotification;
-use warpui::platform::WindowStyle;
 use warpui::{App, Presenter, WindowInvalidation};
 
 use super::*;
@@ -47,25 +46,6 @@ use crate::test_util::terminal::{
 use crate::test_util::{add_window_with_terminal, assert_eventually};
 use crate::view_components::find::FindWithinBlockState;
 
-fn add_window_with_cloud_mode_terminal(app: &mut App) -> ViewHandle<TerminalView> {
-    let tips_model = app.add_model(|_| Default::default());
-    let (_, terminal) = app.add_window(WindowStyle::NotStealFocus, |ctx| {
-        TerminalView::new_for_test_with_cloud_mode(tips_model, None, true, ctx)
-    });
-    terminal.update(app, |view, _| {
-        view.model.lock().set_is_dummy_cloud_mode_session(true);
-    });
-    terminal
-}
-
-fn has_pending_user_query_block(view: &TerminalView) -> bool {
-    let Some(view_id) = view.pending_user_query_view_id else {
-        return false;
-    };
-    view.rich_content_views.iter().any(|rich_content| {
-        rich_content.view_id() == view_id && rich_content.is_pending_user_query()
-    })
-}
 
 fn exchange_with_inputs(inputs: Vec<AIAgentInput>) -> AIAgentExchange {
     AIAgentExchange {
