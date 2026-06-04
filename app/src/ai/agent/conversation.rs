@@ -787,26 +787,8 @@ impl AIConversation {
         }
     }
 
-    /// Updates the server conversation token for this conversation.
-    ///
-    /// This is used internally for session sharing when a forked conversation receives
-    /// its new server-assigned token. The viewer needs to update the conversation's token
-    /// from the original (forked-from) token to the new token so subsequent messages can
-    /// be matched to the correct conversation.
-    ///
-    /// This should only be called by session sharing viewer logic when linking forked conversations.
-    pub(crate) fn set_server_conversation_token(&mut self, token: String) {
-        self.server_conversation_token = Some(ServerConversationToken::new(token));
-    }
-
     pub fn forked_from_server_conversation_token(&self) -> Option<&ServerConversationToken> {
         self.forked_from_server_conversation_token.as_ref()
-    }
-
-    /// Clears the forked_from token after the first Init event has been sent to viewers.
-    /// This ensures we only send the forked_from token once during session sharing.
-    pub(crate) fn clear_forked_from_server_conversation_token(&mut self) {
-        self.forked_from_server_conversation_token = None;
     }
 
     pub fn server_id(&self) -> Option<ServerId> {

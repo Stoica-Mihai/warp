@@ -17,11 +17,10 @@ use warpui::text_layout::ClipConfig;
 use warpui::ui_components::button::ButtonTooltipPosition;
 use warpui::ui_components::components::UiComponent;
 use warpui::{
-    id, AppContext, Element, Entity, EntityId, ModelHandle, SingletonEntity, TypedActionView, View,
+    id, AppContext, Element, Entity, ModelHandle, SingletonEntity, TypedActionView, View,
     ViewContext, ViewHandle,
 };
 
-use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::document::ai_document_model::{
     AIDocumentId, AIDocumentInstance, AIDocumentModel, AIDocumentModelEvent, AIDocumentSaveStatus,
     AIDocumentUpdateSource, AIDocumentUserEditStatus, AIDocumentVersion,
@@ -404,45 +403,6 @@ impl AIDocumentView {
     /// Get the terminal view for this document. Returns None if no terminal is associated.
     pub fn terminal_view(&self) -> Option<ViewHandle<TerminalView>> {
         self.original_terminal_view.clone()
-    }
-
-    /// Attempts to populate the terminal view reference if not already set.
-    /// This is called when conversations are restored, allowing us to find the
-    /// terminal view associated with this document's conversation.
-    fn maybe_populate_terminal_view(
-        &mut self,
-        terminal_view_id: EntityId,
-        conversation_ids: &[AIConversationId],
-        ctx: &mut ViewContext<Self>,
-    ) {
-        // If we already have a terminal view, no need to update
-        if self.original_terminal_view.is_some() {
-            return;
-        }
-
-        // Get conversation ID from document
-        let Some(document_conversation_id) =
-            AIDocumentModel::as_ref(ctx).get_conversation_id_for_document_id(&self.document_id)
-        else {
-            return;
-        };
-
-        // Check if our document's conversation is in the restored conversations
-        if !conversation_ids.contains(&document_conversation_id) {
-            return;
-        }
-
-        // Search for the terminal view by ID
-        let window_id = ctx.window_id();
-        if let Some(terminal_views) = ctx.views_of_type::<TerminalView>(window_id) {
-            if let Some(terminal_view) = terminal_views
-                .into_iter()
-                .find(|tv| tv.id() == terminal_view_id)
-            {
-                self.original_terminal_view = Some(terminal_view);
-                ctx.notify();
-            }
-        }
     }
 
     /// Returns true if the conversation associated with this document is actively streaming.
