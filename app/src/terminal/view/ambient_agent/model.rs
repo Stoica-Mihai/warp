@@ -102,8 +102,6 @@ pub(crate) enum SnapshotUploadStatus {
     /// Touched workspace was empty so no upload happened. The cloud agent will
     /// start with no rehydration content.
     SkippedEmptyWorkspace,
-    /// Upload succeeded; the inner token is sent to the server on spawn.
-    Uploaded(InitialSnapshotToken),
     /// Upload failed. The error message is surfaced as a toast via
     /// `HandoffSnapshotUploadFailed`.
     Failed(String),
@@ -122,7 +120,6 @@ impl SnapshotUploadStatus {
     /// Returns the initial snapshot token to send on spawn, if any.
     fn initial_snapshot_token(&self) -> Option<InitialSnapshotToken> {
         match self {
-            Self::Uploaded(token) => Some(token.clone()),
             Self::SkippedEmptyWorkspace | Self::Pending | Self::Failed(_) => None,
         }
     }
@@ -323,12 +320,6 @@ impl AmbientAgentViewModel {
 
     pub fn setup_command_state_mut(&mut self) -> &mut SetupCommandState {
         &mut self.setup_commands_state
-    }
-
-    pub(super) fn start_new_setup_command_group(&mut self, ctx: &mut ModelContext<Self>) {
-        self.setup_commands_state.start_new_group();
-        self.harness_command_started = false;
-        ctx.emit(AmbientAgentViewModelEvent::UpdatedSetupCommandVisibility);
     }
 
     pub(super) fn finish_setup_command_group(
@@ -595,22 +586,6 @@ impl AmbientAgentViewModel {
         ctx.emit(AmbientAgentViewModelEvent::PendingHandoffChanged);
     }
 
-    /// Records a snapshot upload failure on the pending handoff. The run will
-    /// proceed without a local file snapshot (the cloud agent still has the
-    /// forked conversation context).
-    #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-    pub(crate) fn record_handoff_snapshot_upload_failed(
-        &mut self,
-        error_message: String,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        self.set_pending_handoff_snapshot_upload(
-            SnapshotUploadStatus::Failed(error_message.clone()),
-            ctx,
-        );
-        ctx.emit(AmbientAgentViewModelEvent::HandoffSnapshotUploadFailed { error_message });
-    }
-
     #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
     fn build_handoff_spawn_request(
         &self,
@@ -697,24 +672,6 @@ impl AmbientAgentViewModel {
     /// Whether the harness CLI has started running. Only meaningful for non-oz runs.
     pub(super) fn harness_command_started(&self) -> bool {
         self.harness_command_started
-    }
-
-    /// Marks the harness CLI as started and emits `HarnessCommandStarted`.
-    /// Idempotent: subsequent calls after the first are no-ops and do not re-emit.
-    pub(super) fn mark_harness_command_started(
-        &mut self,
-        block_id: BlockId,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        debug_assert!(
-            self.harness != Harness::Oz,
-            "harness_command_started is only meaningful for non-oz runs"
-        );
-        if self.harness_command_started {
-            return;
-        }
-        self.harness_command_started = true;
-        ctx.emit(AmbientAgentViewModelEvent::HarnessCommandStarted { block_id });
     }
 
     /// Sets the selected environment ID.
