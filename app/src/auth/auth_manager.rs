@@ -38,10 +38,6 @@ impl AuthManager {
         }
     }
 
-    pub fn refresh_user(&self, _ctx: &mut ModelContext<Self>) {}
-
-    pub fn authorize_device(&self, _ctx: &mut ModelContext<Self>) {}
-
     fn set_and_persist(
         &self,
         user: Option<User>,

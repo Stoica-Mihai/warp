@@ -270,40 +270,6 @@ impl ObjectActions {
         }
     }
 
-    /// Takes a list of ObjectActions for a single object from the server and replaces the existing actions
-    /// for this object with the new ones. Any pending actions are persisted so we make sure we don't delete actions
-    /// that are currently in the process of syncing.
-    pub fn overwrite_action_history_for_object(
-        &mut self,
-        uid: &ObjectUid,
-        mut actions: Vec<ObjectAction>,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        // Get the pending actions out of the old set.
-        let old_pending_actions: Vec<ObjectAction> = self
-            .object_actions_by_id
-            .get(uid)
-            .map(|actions| {
-                actions
-                    .iter()
-                    .filter(|a| {
-                        matches!(
-                            a.action_subtype,
-                            ObjectActionSubtype::SingleAction { pending: true, .. }
-                        )
-                    })
-                    .cloned()
-                    .collect()
-            })
-            .unwrap_or_default();
-
-        actions.extend(old_pending_actions);
-
-        self.object_actions_by_id
-            .insert(uid.to_string(), actions.clone());
-        ctx.notify();
-    }
-
     /// Returns a time-boxed summary of the number of times this action type has occurred on this object.
     /// This summary prioritizes smaller units of time where possible, starting from Day and going to Year.
     /// If the action type has occurred on the object in the last day, we return "X actions in the last day".
@@ -402,25 +368,6 @@ impl ObjectActions {
                 action_type.plural()
             }
         ))
-    }
-
-    /// Returns all the actions on the objects specified by the parameter hashed_object_ids.
-    /// The return value is a HashMap, which represents a subset of the model, filtered to just the actions
-    /// that occurred on the requested objects.
-    pub fn get_actions_for_objects(
-        &self,
-        uids: Vec<&ObjectUid>,
-    ) -> HashMap<ObjectUid, Vec<ObjectAction>> {
-        uids.iter()
-            .map(|&uid| {
-                let actions_on_this_object = self
-                    .object_actions_by_id
-                    .get(uid)
-                    .cloned()
-                    .unwrap_or_default();
-                (uid.clone(), actions_on_this_object)
-            })
-            .collect()
     }
 
     pub fn delete_actions_for_object(&mut self, uid: &ObjectUid, ctx: &mut ModelContext<Self>) {

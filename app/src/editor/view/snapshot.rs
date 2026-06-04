@@ -193,18 +193,6 @@ impl ViewSnapshot {
             .is_some_and(|s| s.is_active())
     }
 
-    pub fn active_next_command_suggestion(&self) -> bool {
-        self.autosuggestion_state.as_ref().is_some_and(|s| {
-            s.is_active()
-                && matches!(
-                    s.autosuggestion_type,
-                    AutosuggestionType::Command {
-                        was_intelligent_autosuggestion: true
-                    }
-                )
-        })
-    }
-
     /// Lays out the given ghosted text, which can be a placeholder or autosuggestion.
     fn layout_ghosted_text(
         &self,
