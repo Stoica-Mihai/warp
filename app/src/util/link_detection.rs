@@ -202,19 +202,16 @@ pub(crate) fn detect_file_paths(
 
                 // Check for line ranges after this file path and add them as separate clickable links
                 if let Some(line_ranges) = detect_line_ranges_after_file_path(text, byte_end) {
-                    // Extract the base file path from the existing path_type
-                    if let DetectedLinkType::FilePath { absolute_path, .. } = &path_type {
-                        for (line_number, char_range) in line_ranges {
-                            // Create a new DetectedLinkType with the same file path but with the line number
-                            let line_range_link = DetectedLinkType::FilePath {
-                                absolute_path: absolute_path.clone(),
-                                line_and_column_num: Some(warp_util::path::LineAndColumnArg {
-                                    line_num: line_number as usize,
-                                    column_num: None,
-                                }),
-                            };
-                            file_paths.insert(char_range, line_range_link);
-                        }
+                    let DetectedLinkType::FilePath { absolute_path, .. } = &path_type;
+                    for (line_number, char_range) in line_ranges {
+                        let line_range_link = DetectedLinkType::FilePath {
+                            absolute_path: absolute_path.clone(),
+                            line_and_column_num: Some(warp_util::path::LineAndColumnArg {
+                                line_num: line_number as usize,
+                                column_num: None,
+                            }),
+                        };
+                        file_paths.insert(char_range, line_range_link);
                     }
                 }
 

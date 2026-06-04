@@ -15738,10 +15738,6 @@ impl TerminalView {
         self.scroll_to(block_index, ctx);
     }
 
-    pub(crate) fn view_id(&self) -> EntityId {
-        self.view_id
-    }
-
     fn cursor_position_id(&self) -> String {
         self.cursor_position_id.clone()
     }

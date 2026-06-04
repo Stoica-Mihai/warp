@@ -2040,7 +2040,6 @@ impl Input {
             prompt_selection_state_handle,
             view_id,
             input_render_state_model_handle.clone(),
-            ai_input_model.clone(),
         );
 
         let ai_follow_up_icon_mouse_state = MouseStateHandle::default();
