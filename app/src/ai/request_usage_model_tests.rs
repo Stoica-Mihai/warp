@@ -40,10 +40,6 @@ fn add_request_usage_model(app: &mut App) -> ModelHandle<AIRequestUsageModel> {
     add_request_usage_model_without_auth(app)
 }
 
-fn add_request_usage_model_for_anonymous_users(app: &mut App) -> ModelHandle<AIRequestUsageModel> {
-    app.add_singleton_model(|_| AuthStateProvider::new_anonymous_for_test());
-    add_request_usage_model_without_auth(app)
-}
 
 fn add_request_usage_model_without_auth(app: &mut App) -> ModelHandle<AIRequestUsageModel> {
     app.add_singleton_model(|_| ServerApiProvider::new_for_test());

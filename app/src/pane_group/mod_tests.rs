@@ -5,7 +5,7 @@ use ai::project_context::model::ProjectContextModel;
 use chrono::Utc;
 use pathfinder_geometry::rect::RectF;
 use persistence::model::{
-    AgentConversation, AgentConversationData, AgentConversationRecord, ConversationUsageMetadata,
+    AgentConversation, AgentConversationData, AgentConversationRecord,
 };
 use repo_metadata::repositories::DetectedRepositories;
 use repo_metadata::watcher::DirectoryWatcher;
@@ -24,16 +24,10 @@ use super::child_agent::{
     HiddenChildAgentTaskContext,
 };
 use super::*;
-use crate::ai::agent::api::ServerConversationToken;
-use crate::ai::agent::conversation::{
-    AIAgentHarness, AIConversation, AIConversationId, ServerAIConversationMetadata,
-};
+use crate::ai::agent::conversation::{AIConversation, AIConversationId};
 use crate::ai::agent_conversations_model::AgentConversationsModel;
 use crate::ai::ambient_agents::github_auth_notifier::GitHubAuthNotifier;
-use crate::ai::ambient_agents::task::TaskPrincipalInfo;
-use crate::ai::ambient_agents::{
-    AgentSource, AmbientAgentTask, AmbientAgentTaskId, AmbientAgentTaskState,
-};
+use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::document::ai_document_model::AIDocumentModel;
 use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
 use crate::ai::harness_availability::HarnessAvailabilityModel;
@@ -47,9 +41,9 @@ use crate::ai::skills::SkillManager;
 use crate::ai::AIRequestUsageModel;
 use crate::auth::auth_manager::AuthManager;
 use crate::auth::AuthStateProvider;
-use crate::auth::user::TEST_USER_UID;
+
 use crate::cloud_object::model::persistence::CloudModel;
-use crate::cloud_object::{Owner, Revision, ServerMetadata, ServerPermissions};
+
 use crate::context_chips::prompt::Prompt;
 use crate::network::NetworkStatus;
 use crate::notebooks::editor::keys::NotebookKeybindings;
@@ -59,7 +53,6 @@ use crate::pricing::PricingInfoModel;
 use crate::resource_center::TipsCompleted;
 use crate::search::files::model::FileSearchModel;
 use crate::server::cloud_objects::update_manager::UpdateManager;
-use crate::server::ids::ServerId;
 use crate::server::server_api::ServerApiProvider;
 use crate::settings::PrivacySettings;
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
@@ -226,82 +219,6 @@ fn new_ambient_agent_task_id() -> AmbientAgentTaskId {
     Uuid::new_v4().to_string().parse().unwrap()
 }
 
-fn ambient_agent_task_for_current_user(task_id: AmbientAgentTaskId) -> AmbientAgentTask {
-    let now = Utc::now();
-    AmbientAgentTask {
-        task_id,
-        parent_run_id: None,
-        title: "Owned task".to_string(),
-        state: AmbientAgentTaskState::Succeeded,
-        prompt: "test".to_string(),
-        created_at: now,
-        started_at: Some(now),
-        updated_at: now,
-        status_message: None,
-        source: Some(AgentSource::CloudMode),
-        session_id: None,
-        session_link: None,
-        executor: None,
-        creator: Some(TaskPrincipalInfo {
-            creator_type: "USER".to_string(),
-            uid: TEST_USER_UID.to_string(),
-            display_name: None,
-        }),
-        conversation_id: None,
-        request_usage: None,
-        is_sandbox_running: false,
-        agent_config_snapshot: None,
-        artifacts: vec![],
-        last_event_sequence: None,
-        children: vec![],
-    }
-}
-
-fn mock_server_metadata() -> ServerMetadata {
-    ServerMetadata {
-        uid: ServerId::default(),
-        revision: Revision::now(),
-        metadata_last_updated_ts: Utc::now().into(),
-        trashed_ts: None,
-        folder_id: None,
-        is_welcome_object: false,
-        creator_uid: None,
-        last_editor_uid: None,
-        current_editor_uid: None,
-    }
-}
-
-fn mock_server_permissions() -> ServerPermissions {
-    ServerPermissions {
-        space: Owner::mock_current_user(),
-        guests: Vec::new(),
-        anyone_link_sharing: None,
-        permissions_last_updated_ts: Utc::now().into(),
-    }
-}
-
-fn test_server_conversation_metadata(
-    task_id: Option<AmbientAgentTaskId>,
-) -> ServerAIConversationMetadata {
-    ServerAIConversationMetadata {
-        title: "Restored cloud conversation".to_string(),
-        working_directory: None,
-        harness: AIAgentHarness::Oz,
-        usage: ConversationUsageMetadata {
-            was_summarized: false,
-            context_window_usage: 0.0,
-            credits_spent: 0.0,
-            credits_spent_for_last_block: None,
-            token_usage: vec![],
-            tool_usage_metadata: Default::default(),
-        },
-        metadata: mock_server_metadata(),
-        permissions: mock_server_permissions(),
-        ambient_agent_task_id: task_id,
-        server_conversation_token: ServerConversationToken::new("test-server-token".to_string()),
-        artifacts: Vec::new(),
-    }
-}
 
 
 fn persisted_remote_child_conversation(

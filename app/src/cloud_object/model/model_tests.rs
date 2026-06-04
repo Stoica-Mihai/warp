@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use lazy_static::lazy_static;
-use rand::Rng;
+
 use settings::{RespectUserSyncSetting, SyncToCloud};
 use warpui::{App, ModelHandle};
 
@@ -12,7 +12,7 @@ use crate::auth::user::TEST_USER_UID;
 use crate::auth::{AuthStateProvider, UserUid};
 use crate::cloud_object::model::actions::ObjectActions;
 use crate::cloud_object::model::generic_string_model::GenericStringModel;
-use crate::cloud_object::model::view::{CloudViewModel, UpdateTimestamp};
+use crate::cloud_object::model::view::CloudViewModel;
 use crate::cloud_object::{
     CloudObjectMetadata, CloudObjectPermissions, CloudObjectStatuses, CloudObjectSyncStatus,
     NumInFlightRequests, Owner, ServerMetadata, ServerPermissions,
@@ -99,12 +99,6 @@ fn initialize_app(
     });
 }
 
-fn mock_random_workflows(start_id: i64, owner: Owner) -> Vec<ServerWorkflow> {
-    let mut rng = rand::thread_rng();
-    // pick how many workflows to generate at random
-    let number_of_workflows = rng.gen_range(1..10);
-    mock_server_workflows(start_id, owner, number_of_workflows)
-}
 
 fn mock_server_metadata() -> ServerMetadata {
     ServerMetadata {
@@ -158,25 +152,6 @@ fn mock_server_workflows(
         .collect()
 }
 
-fn mock_random_folders(start_id: i64, owner: Owner) -> Vec<ServerFolder> {
-    let mut rng = rand::thread_rng();
-    // pick how many folders to generate at random
-    let number_of_workflows = rng.gen_range(1..10);
-    mock_server_folders(start_id, owner, number_of_workflows)
-}
-
-fn mock_server_folders(start_id: i64, owner: Owner, number_of_folders: i64) -> Vec<ServerFolder> {
-    (0..number_of_folders)
-        .map(|idx| {
-            ServerFolder::new(
-                SyncId::ServerId((start_id + idx).into()),
-                CloudFolderModel::new(&format!("f{}", start_id + idx), false),
-                mock_server_metadata(),
-                mock_server_permissions(owner),
-            )
-        })
-        .collect()
-}
 
 fn mock_server_notebooks() -> Vec<ServerNotebook> {
     let owner = Owner::mock_current_user();
@@ -419,41 +394,6 @@ fn test_create_json_object() {
     })
 }
 
-fn check_cloud_folders(app: &mut App, number_of_folders: usize) {
-    CloudModel::handle(app).read(app, |model, _| {
-        assert_eq!(
-            number_of_folders,
-            model.get_all_active_and_inactive_folders().count(),
-            "we expected {} folders, and received {}",
-            number_of_folders,
-            model.get_all_active_and_inactive_folders().count()
-        );
-    });
-}
-
-fn check_cloud_workflows(app: &mut App, number_of_workflows: usize) {
-    CloudModel::handle(app).read(app, |model, _| {
-        assert_eq!(
-            number_of_workflows,
-            model.get_all_active_and_inactive_workflows().count(),
-            "we expected {} workflows, and received {}",
-            number_of_workflows,
-            model.get_all_active_and_inactive_workflows().count()
-        );
-    });
-}
-
-fn check_cloud_notebooks(app: &mut App, number_of_notebooks: usize) {
-    CloudModel::handle(app).read(app, |model, _| {
-        assert_eq!(
-            number_of_notebooks,
-            model.get_all_active_and_inactive_notebooks().count(),
-            "we expected {} notebooks, and received {}",
-            number_of_notebooks,
-            model.get_all_active_and_inactive_notebooks().count()
-        );
-    });
-}
 
 
 #[test]
@@ -640,23 +580,6 @@ fn test_collapse_all_in_trash() {
             assert!(!folder_7.model().is_open);
         });
     })
-}
-
-
-
-/// Asserts that the object with the given ID has the expected sorting timestamp.
-#[track_caller]
-fn assert_sorting_timestamp(id: ServerId, expected_ts: impl Into<ServerTimestamp>, app: &App) {
-    let sorting_timestamp = app.read(|ctx| {
-        let object = CloudModel::as_ref(ctx).get_by_uid(&id.uid())?;
-        CloudViewModel::as_ref(ctx).object_sorting_timestamp(object, UpdateTimestamp::Revision, ctx)
-    });
-    assert_eq!(
-        sorting_timestamp,
-        Some(expected_ts.into()),
-        "Unexpected timestamp for {}",
-        id.uid()
-    );
 }
 
 
