@@ -2,40 +2,36 @@
 //! footer module since the ambient model/harness selectors still render with it.
 use pathfinder_color::ColorU;
 use warp_core::ui::appearance::Appearance;
-use warp_core::ui::color::blend::Blend;
 use warp_core::ui::theme::color::internal_colors;
 use warp_core::ui::theme::Fill;
 
 use crate::view_components::action_button::ActionButtonTheme;
 
-pub(crate) struct AgentInputButtonTheme;
+pub(crate) struct NakedHeaderButtonTheme;
 
-impl ActionButtonTheme for AgentInputButtonTheme {
+impl ActionButtonTheme for NakedHeaderButtonTheme {
     fn background(&self, hovered: bool, appearance: &Appearance) -> Option<Fill> {
-        let theme = appearance.theme();
-        Some(if hovered {
-            theme.surface_2()
+        if hovered {
+            Some(internal_colors::fg_overlay_1(appearance.theme()))
         } else {
-            theme.surface_1()
-        })
+            None
+        }
     }
 
     fn text_color(
         &self,
         _hovered: bool,
-        background: Option<Fill>,
+        _background: Option<Fill>,
         appearance: &Appearance,
     ) -> ColorU {
-        let base_bg = appearance.theme().surface_1();
-        let effective_bg = background
-            .map(|overlay| base_bg.blend(&overlay))
-            .unwrap_or(base_bg);
-
-        appearance.theme().sub_text_color(effective_bg).into_solid()
+        appearance
+            .theme()
+            .sub_text_color(appearance.theme().surface_1())
+            .into_solid()
     }
 
-    fn border(&self, appearance: &Appearance) -> Option<ColorU> {
-        Some(internal_colors::neutral_3(appearance.theme()))
+    fn border(&self, _appearance: &Appearance) -> Option<ColorU> {
+        None
     }
 
     fn should_opt_out_of_contrast_adjustment(&self) -> bool {
@@ -46,3 +42,4 @@ impl ActionButtonTheme for AgentInputButtonTheme {
         None
     }
 }
+

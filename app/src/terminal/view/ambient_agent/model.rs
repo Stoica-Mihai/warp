@@ -7,7 +7,7 @@ use warp_terminal::model::BlockId;
 use warpui::r#async::{SpawnedFutureHandle, Timer};
 use warpui::{AppContext, Entity, EntityId, ModelContext, SingletonEntity};
 
-use super::AmbientAgentProgressUIState;
+use super::progress_ui_state::AmbientAgentProgressUIState;
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::extract_user_query_mode;
 use crate::ai::ambient_agents::github_auth_notifier::{GitHubAuthEvent, GitHubAuthNotifier};

@@ -24,7 +24,7 @@ use crate::ai::harness_availability::{
 use crate::menu::{Event as MenuEvent, Menu, MenuItem, MenuItemFields, MenuVariant};
 use crate::report_if_error;
 use crate::terminal::input::{MenuPositioning, MenuPositioningProvider};
-use crate::terminal::view::ambient_agent::host_selector::NakedHeaderButtonTheme;
+use crate::terminal::view::ambient_agent::button_theme::NakedHeaderButtonTheme;
 use crate::terminal::view::ambient_agent::{AmbientAgentViewModel, AmbientAgentViewModelEvent};
 use crate::ui_components::icons::Icon;
 use crate::view_components::action_button::{ActionButton, ButtonSize};

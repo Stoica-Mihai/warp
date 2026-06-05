@@ -9,7 +9,6 @@ use warp_managed_secrets::client::SecretOwner;
 use warp_managed_secrets::{ManagedSecretManager, ManagedSecretValue};
 use warpui::{Entity, ModelContext, RequestState, SingletonEntity};
 
-use crate::ai::harness_display;
 use crate::auth::auth_manager::AuthManager;
 use crate::auth::AuthStateProvider;
 use crate::network::{NetworkStatus, NetworkStatusEvent, NetworkStatusKind};
@@ -122,27 +121,11 @@ impl HarnessAvailabilityModel {
         &self.harnesses
     }
 
-    pub fn display_name_for(&self, harness: Harness) -> &str {
-        self.harnesses
-            .iter()
-            .find(|h| h.harness == harness)
-            .map(|h| h.display_name.as_str())
-            .unwrap_or_else(|| harness_display::display_name(harness))
-    }
-
     /// Whether a harness is both known and enabled.
     pub fn is_harness_enabled(&self, harness: Harness) -> bool {
         self.harnesses
             .iter()
             .any(|h| h.harness == harness && h.enabled)
-    }
-
-    pub fn models_for(&self, harness: Harness) -> Option<&[HarnessModelInfo]> {
-        self.harnesses
-            .iter()
-            .find(|h| h.harness == harness)
-            .map(|h| h.available_models.as_slice())
-            .filter(|m| !m.is_empty())
     }
 
     pub fn auth_secrets_for(&self, harness: Harness) -> &AuthSecretFetchState {

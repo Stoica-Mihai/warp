@@ -254,18 +254,6 @@ impl<'de> Deserialize<'de> for LLMInfo {
 }
 
 impl LLMInfo {
-    /// Returns the display name for the LLM, to be used in the LLM selector menu.
-    pub fn menu_display_name(&self) -> String {
-        // Base label includes optional description in parentheses
-        match &self.description {
-            // This is a temporary implementation that won't scale well for longer
-            // descriptions. We should implement a better approach for displaying
-            // model descriptions, maybe through subtext.
-            Some(desc) => format!("{} ({})", self.display_name, desc),
-            None => self.display_name.clone(),
-        }
-    }
-
     /// Returns the reasoning level label formatted for display.
     pub fn reasoning_level(&self) -> Option<String> {
         self.reasoning_level.clone()

@@ -3,13 +3,7 @@ mod auth_secret_ftux_view;
 pub(crate) mod auth_secret_selector;
 mod block;
 mod button_theme;
-mod footer;
-mod harness_selector;
-mod host_selector;
-mod loading_screen;
 mod model;
-mod model_selector;
-mod progress;
 mod progress_ui_state;
 mod view_impl;
 
@@ -20,18 +14,7 @@ pub use auth_secret_selector::{
     AuthSecretSelector, AuthSecretSelectorAction, AuthSecretSelectorEvent,
 };
 pub use block::*;
-pub use footer::{render_error_footer, render_loading_footer};
-pub use harness_selector::{HarnessSelector, HarnessSelectorAction, HarnessSelectorEvent};
-pub use host_selector::{
-    Host, HostSelector, HostSelectorAction, HostSelectorEvent, NakedHeaderButtonTheme,
-};
-pub use loading_screen::{render_cloud_mode_error_screen, render_cloud_mode_loading_screen};
 pub use model::{AgentProgress, AmbientAgentViewModel, AmbientAgentViewModelEvent, Status};
-pub use model_selector::{
-    HarnessSelection, ModelSelection, ModelSelector, ModelSelectorAction, ModelSelectorEvent,
-};
-pub use progress::{render_progress, ProgressProps, ProgressStep, ProgressStepState};
-pub use progress_ui_state::AmbientAgentProgressUIState;
 use warpui::geometry::vector::Vector2F;
 use warpui::{AppContext, ModelHandle, ViewHandle, WindowId};
 
