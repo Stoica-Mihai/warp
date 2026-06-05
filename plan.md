@@ -266,17 +266,16 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 **Method that worked:** collapse dead `if flag.is_enabled() {…}` branches first (compiles fine with flag still defined — it's just fewer readers), bank green; remove flag def LAST once its readers hit zero. Cascades (banner module, dialog subsystem, URI route, REMOTE_CONTROL, close-session widget) surface as dead-code/unused-import warnings after the readers drop — use `cargo check --features gui` as the worklist oracle. For a subsystem that's reachable only through a now-permanently-false gate (close-confirm dialog, share banners), trace it to its event emitter — if the emitter is itself gated on `shared_session_status().is_sharer()` (always false), the whole chain is dead and removes cleanly. When a UI chip lives in kept agent code, re-gate it on the OTHER (off-by-default) flag rather than ripping the agent subsystem — defers cleanly, preserves default behavior.
 
-### AI strip — current state (`621e440b`, 2026-06-05 session 50)
+### AI strip — current state (`626288e7`, 2026-06-05 session 51)
 
-**Binary**: 737.1 MB (−1.7 MB total sessions 45–50). 3-gate **90/65/91** (0/0/0 errors). Latest commit `621e440b`.
+**Binary**: 737.1 MB (−1.7 MB total). 3-gate **84/56/85** (0/0/0 errors). Latest commit (see git log).
 
-**Session 50 handoff:**
-- Warnings: 90/65/91. Sessions 49+50 combined: **−130 total across 3 gates** (−65 default, 0 tests, −65 features).
-- Session 49: conversation_yaml + permissions cluster + ToolExt → −60 total.
-- Session 50: presigned_upload cluster (19 warnings) + ai.rs artifact/sort/filter/TaskListFilter types (14 warnings) + 9 ai_tests.rs test functions + harness_support.rs UploadTarget/UploadField → −70 total.
-- **Dead-code floor reached.** Remaining non-KEEP Warp-AI-specific: `create_agent_task` (alive in local_harness_launch_tests, KEEP). execution_profiles.rs: BLOCKED.
-- server_api/ai.rs: 1 warning now. presigned_upload.rs: 0 warnings now. harness_support.rs: 0 warnings now.
-- **Next milestone:** Binary reduction via live-linked code — `ai/agent/`, `crates/ai`, or auth/login.
+**Session 51 handoff:**
+- Warnings: 84/56/85. Sessions 49–51: −(60+70+21) = −151 total across all 3 gates.
+- Session 51: execution_profiles dead stubs (−15), model_tests.rs deleted, set_credits_spent_for_test/insert_task_for_test/new_logged/anon_for_test deleted (−6 tests). −21 total session 51.
+- **TRUE DEAD-CODE FLOOR.** All remaining warnings in KEEP or BLOCKED modules. No more Warp-AI dead items reachable via dead-code sweeping.
+- To get more: must delete LIVE Warp-AI code (cascades new dead code). Biggest opportunity: `AmbientAgentViewModel` from ambient_agent/model.rs (never instantiated, but compiled as type) → cascade to spawn.rs, auth.
+- execution_profiles.rs: 1 remaining warning (stub methods that were alive in llms.rs). All others: KEEP per generic rule.
 
 **Previous state (`0d24336f`, 2026-06-01 session 4):**
 
