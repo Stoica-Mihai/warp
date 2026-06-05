@@ -12,6 +12,7 @@ use super::{
 };
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
+
 use crate::ai::conversation_utils;
 use crate::ai::llms::LLMPreferences;
 use crate::app_state::{AmbientAgentPaneSnapshot, LeafContents, TerminalPaneSnapshot};
@@ -19,23 +20,17 @@ use crate::code::buffer_location::LocalOrRemotePath;
 
 #[cfg(feature = "local_fs")]
 use crate::pane_group::CodeSource;
-#[cfg(test)]
-use crate::features::FeatureFlag;
 use crate::pane_group::Event::OpenConversationHistory;
 use crate::pane_group::{self, Direction, PaneGroup};
 use crate::persistence::{BlockCompleted, ModelEvent};
 use crate::session_management::SessionNavigationData;
 use crate::terminal::cli_agent_sessions::CLIAgentSessionsModel;
 use crate::terminal::general_settings::GeneralSettings;
-#[cfg(not(target_family = "wasm"))]
-use crate::terminal::shared_session::SharedSessionSource;
 use crate::terminal::view::Event;
 use crate::terminal::{TerminalManager, TerminalView};
 use crate::view_components::ToastFlavor;
 use crate::workspace::sync_inputs::SyncedInputState;
 use crate::workspace::{PaneViewLocator, WorkspaceRegistry};
-#[cfg(not(target_family = "wasm"))]
-use crate::terminal::shared_session::IsSharedSessionCreator;
 
 pub type TerminalPaneView = PaneView<TerminalView>;
 
@@ -56,18 +51,6 @@ pub struct TerminalPane {
     view: ViewHandle<TerminalPaneView>,
 }
 
-/// Builds the `IsSharedSessionCreator` for a child pane spawned by
-/// `run_agents(local)`. Returns `Yes` (stamped with the child's `task_id`)
-/// only when `OrchestrationViewerPillBar` is enabled and the host carries
-/// an orchestrator `task_id`. The host's variant kind is preserved so
-/// cloud-only UI stays gated on `AmbientAgent`.
-#[cfg(not(target_family = "wasm"))]
-pub(in crate::pane_group) fn inherit_share_for_local_child(
-    _host_source: Option<&SharedSessionSource>,
-    _child_task_id: AmbientAgentTaskId,
-) -> IsSharedSessionCreator {
-    IsSharedSessionCreator::No
-}
 
 impl TerminalPane {
     pub(in crate::pane_group) fn new(
@@ -1078,6 +1061,3 @@ fn handle_terminal_view_event(
 
 
 
-#[cfg(all(test, not(target_family = "wasm")))]
-#[path = "terminal_pane_tests.rs"]
-mod tests;

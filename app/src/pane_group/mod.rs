@@ -788,10 +788,6 @@ pub struct PaneGroup {
     /// be revealed from the parent's status card.
     child_agent_panes: HashMap<AIConversationId, PaneId>,
 
-    /// Host pane id → child pane ids whose share was auto-created by
-    /// `inherit_share_for_local_child`. Used by `StopSharingCurrentSession`
-    /// so transitively-shared children don't outlive the host's share.
-    /// Excludes cloud-SDK-managed shares (`AmbientAgent` host path).
     transitively_shared_child_panes: HashMap<PaneId, HashSet<PaneId>>,
 
     /// Set when this pane group hosts a split-off child agent pane that
@@ -3368,34 +3364,6 @@ impl PaneGroup {
                 children.remove(&pane_id);
                 !children.is_empty()
             });
-    }
-
-    /// Creates a cloud-mode pane that lives off-tree as a child agent pane.
-    /// Inserts `pane` into `pane_contents` and attaches it (so subscriptions,
-    fn insert_ambient_agent_pane_hidden_for_child_agent(
-        &mut self,
-        _base_pane_id: PaneId,
-        ctx: &mut ViewContext<Self>,
-    ) -> TerminalPaneId {
-        let uuid = Uuid::new_v4();
-        let resources = TerminalViewResources {
-            tips_completed: self.tips_completed.clone(),
-            server_api: self.server_api.clone(),
-            model_event_sender: self.model_event_sender.clone(),
-        };
-        let view_bounds = Self::estimated_view_bounds(ctx);
-        let (view, terminal_manager) =
-            Self::create_cloud_mode_terminal(resources, view_bounds.size(), false, ctx);
-        let pane_data = TerminalPane::new(
-            uuid.as_bytes().to_vec(),
-            terminal_manager,
-            view,
-            self.model_event_sender.clone(),
-            ctx,
-        );
-        let new_pane_id = pane_data.terminal_pane_id();
-        self.attach_child_pane_off_tree(Box::new(pane_data), ctx);
-        new_pane_id
     }
 
     /// focus handle, etc. are wired up) without adding it to the layout tree.

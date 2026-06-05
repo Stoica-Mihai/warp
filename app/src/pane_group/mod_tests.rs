@@ -591,23 +591,6 @@ fn test_insert_hidden_child_agent_pane_keeps_focus_and_active_session() {
 }
 
 #[test]
-fn test_insert_hidden_ambient_child_agent_pane_suppresses_details_auto_open() {
-    App::test((), |mut app| async move {
-        initialize_app(&mut app);
-        let pane_group = mock_pane_group(&mut app, Default::default());
-
-        pane_group.update(&mut app, |panes, ctx| {
-            let parent_pane_id = get_newly_created_pane_id(panes, &[]);
-            let child_pane_id =
-                panes.insert_ambient_agent_pane_hidden_for_child_agent(parent_pane_id, ctx);
-
-            let _terminal_view = panes
-                .terminal_view_from_pane_id(child_pane_id, ctx)
-                .expect("hidden ambient child pane should have a terminal view");
-        });
-    });
-}
-#[test]
 fn test_restored_hidden_child_pane_reapplies_ambient_task_id_to_controller() {
     let _orchestration_v2 = FeatureFlag::OrchestrationV2.override_enabled(true);
 
