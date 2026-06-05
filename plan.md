@@ -266,27 +266,28 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 **Method that worked:** collapse dead `if flag.is_enabled() {…}` branches first (compiles fine with flag still defined — it's just fewer readers), bank green; remove flag def LAST once its readers hit zero. Cascades (banner module, dialog subsystem, URI route, REMOTE_CONTROL, close-session widget) surface as dead-code/unused-import warnings after the readers drop — use `cargo check --features gui` as the worklist oracle. For a subsystem that's reachable only through a now-permanently-false gate (close-confirm dialog, share banners), trace it to its event emitter — if the emitter is itself gated on `shared_session_status().is_sharer()` (always false), the whole chain is dead and removes cleanly. When a UI chip lives in kept agent code, re-gate it on the OTHER (off-by-default) flag rather than ripping the agent subsystem — defers cleanly, preserves default behavior.
 
-### AI strip — current state (`9168ce52`, 2026-06-05 session 44)
+### AI strip — current state (`5754ae9b`, 2026-06-05 session 45)
 
-**Binary**: 738.8 MB (cached — dead code deletion is linker-invisible). 3-gate **155/64/156** (0/0/0 errors). Latest commit (see `git log`).
+**Binary**: 737.7 MB (−1.1 MB vs session 44 baseline). 3-gate **155/65/156** (0/0/0 errors). Latest commit `5754ae9b`.
 
-**Session 44 handoff — FLOOR REACHED:**
-- Warnings: 155 default / 64 tests / 156 features. All 3 gates 0 errors.
-- **3-gate Warp-specific actionable items: ZERO remaining.** All items in 3-gate intersection are now either KEEP (generic) or BLOCKED (execution_profiles.rs).
-- server_api/ai.rs: 16 warnings — tests-alive (RunFollowupRequest, AgentRunEvent, etc.). KEEP.
+**Session 45 handoff:**
+- Warnings: 155 default / 65 tests / 156 features. All 3 gates 0 errors.
+- **Key change:** `ambient_agent_view_model` removed from TerminalView + Input structs. Always `None` in local build. Getter stub returns `None`. All dead branches collapsed. This makes the entire `terminal/view/ambient_agent/` module dead-linked — binary reduction pending fresh build.
+- ambient_agent/view_impl.rs: 5 dead methods deleted, 1 dead constant.
+- ambient_agent/loading_screen.rs: 2 dead render functions deleted.
+- ambient_agent/model.rs: dead handoff fields/methods/variants deleted.
+- terminal/input.rs: subscription block + dead view_model field + dead functions cleaned.
+- **Next step:** Measure binary delta. Then consider deleting more of terminal/view/ambient_agent/ module since model is never created.
+- **Still available for bigger binary win:** Delete `ambient_agent_view_model()` stub + remove `pub mod ambient_agent;` from view.rs + delete the entire ambient_agent/ UI module (it's all dead since AmbientAgentViewModel is never instantiated). But view_impl.rs still has direct field accesses (via the stub getter) that need to be collapsed first.
+- server_api/ai.rs: 16 warnings — tests-alive. KEEP.
 - presigned_upload.rs: 19 warnings — tests-alive. KEEP.
-- permissions.rs, conversation_yaml.rs: KEEP (used by live code).
-- Plugin managers: KEEP per generic rule.
-- execution_profiles.rs: BLOCKED (6 warnings — create_default_from_legacy_settings + create_default_cli_profile blocked by trait).
-- harness_support.rs: KEEP (alive under local_fs).
-- Generic modules (all KEEP): code/editor/, code_review/, MCP, CLI plugin managers, terminal/input/, view_components/, ui_components/, settings_view/, etc.
-- Remaining tests-alive items: `normalize_orchestrator_agent_name` (alive via local_harness_launch_tests.rs, KEEP); `ToolExt`/`type_name` (alive via conversation_yaml.rs, KEEP); skills/* (KEEP).
-- **Next milestone:** Focus shifts to larger structural cleanup (shared_session strip, login pass, remaining AI module deletions) or binary reduction via live-linked code deletion. See "Recommended removal order" section.
+- execution_profiles.rs: BLOCKED (6 warnings).
+- Generic modules: KEEP per rule.
 
-**Session 44 commits (2026-06-05):**
-- display_name/is_environment_setup_failure + task_tests.rs deleted — Warp cloud agent dead code.
-- requests_used/request_limit + 4 tests deleted from request_usage_model.
-- Total session 44: 159/64/160 → 155/64/156 (−4/0/−4 warnings).
+**Session 45 commits (2026-06-05):**
+- `fe76a01d`: ambient_agent_view_model removed from TerminalView/Input + cascade cleanup. ~500 LoC deleted.
+- `5754ae9b`: pending_cloud_followup_task_id field + view_impl dead methods + model dead methods + loading_screen dead fns. ~475 LoC deleted.
+- Total session 45: 155/64/156 → 155/65/156 (warnings ~flat; binary reduction TBD — live-linked code deleted).
 
 **Previous state (`0d24336f`, 2026-06-01 session 4):**
 
