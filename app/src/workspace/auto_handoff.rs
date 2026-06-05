@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use warpui::{
     AppContext, Entity, EntityId, ModelContext, SingletonEntity, TypedActionView, ViewHandle,
     WindowId,
@@ -10,57 +8,6 @@ use crate::ai::agent::conversation::AIConversationId;
 use crate::settings::AISettings;
 use crate::system::{SystemStats, SystemStatsEvent};
 use crate::terminal::view::TerminalView;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum AutoCloudHandoffSkipReason {
-    EmptyConversation,
-    NotInProgress,
-    MissingServerConversationToken,
-    SharedSessionViewer,
-    CloudHandoffUnavailable,
-    AlreadyAttempted,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum AutoCloudHandoffAttemptState {
-    InFlight,
-    #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-    Succeeded,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct AutoCloudHandoffEligibility {
-    pub(crate) is_empty: bool,
-    pub(crate) is_in_progress: bool,
-    pub(crate) has_server_conversation_token: bool,
-    pub(crate) is_viewing_shared_session: bool,
-    pub(crate) can_handoff_to_cloud: bool,
-    pub(crate) already_attempted: bool,
-}
-
-impl AutoCloudHandoffEligibility {
-    pub(crate) fn skip_reason(self) -> Option<AutoCloudHandoffSkipReason> {
-        if self.already_attempted {
-            return Some(AutoCloudHandoffSkipReason::AlreadyAttempted);
-        }
-        if self.is_viewing_shared_session {
-            return Some(AutoCloudHandoffSkipReason::SharedSessionViewer);
-        }
-        if self.is_empty {
-            return Some(AutoCloudHandoffSkipReason::EmptyConversation);
-        }
-        if !self.is_in_progress {
-            return Some(AutoCloudHandoffSkipReason::NotInProgress);
-        }
-        if !self.has_server_conversation_token {
-            return Some(AutoCloudHandoffSkipReason::MissingServerConversationToken);
-        }
-        if !self.can_handoff_to_cloud {
-            return Some(AutoCloudHandoffSkipReason::CloudHandoffUnavailable);
-        }
-        None
-    }
-}
 
 pub(crate) struct AutoCloudHandoffRequest {
     workspace: ViewHandle<Workspace>,
@@ -83,9 +30,7 @@ impl AutoCloudHandoffRequest {
         });
     }
 }
-pub(crate) struct AutoCloudHandoffController {
-    attempted_conversation_ids: HashMap<AIConversationId, AutoCloudHandoffAttemptState>,
-}
+pub(crate) struct AutoCloudHandoffController {}
 
 impl AutoCloudHandoffController {
     pub(crate) fn new(ctx: &mut ModelContext<Self>) -> Self {
@@ -93,15 +38,11 @@ impl AutoCloudHandoffController {
             controller.handle_system_stats_event(event, ctx);
         });
 
-        Self {
-            attempted_conversation_ids: HashMap::new(),
-        }
+        Self {}
     }
 
     #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-    pub(crate) fn record_handoff_failed(&mut self, conversation_id: AIConversationId) {
-        self.attempted_conversation_ids.remove(&conversation_id);
-    }
+    pub(crate) fn record_handoff_failed(&mut self, _conversation_id: AIConversationId) {}
 
     fn handle_system_stats_event(
         &mut self,
@@ -199,7 +140,3 @@ pub(crate) fn trigger_auto_handoff_to_cloud(
         controller.trigger(trigger, ctx);
     });
 }
-
-#[cfg(test)]
-#[path = "auto_handoff_tests.rs"]
-mod tests;
