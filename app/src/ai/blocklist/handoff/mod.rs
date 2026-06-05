@@ -32,7 +32,4 @@ pub struct HandoffLaunchAttachments {
 /// are restored into the source input on failure.
 #[cfg_attr(target_family = "wasm", allow(dead_code))]
 #[derive(Debug, Clone)]
-pub struct PendingCloudLaunch {
-    pub(crate) prompt: String,
-    pub(crate) attachments: HandoffLaunchAttachments,
-}
+pub struct PendingCloudLaunch {}
