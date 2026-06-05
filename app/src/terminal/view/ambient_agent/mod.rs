@@ -1,16 +1,11 @@
 mod auth_secret_ftux_dropdown;
 mod auth_secret_ftux_view;
-pub(crate) mod auth_secret_selector;
-mod button_theme;
 mod model;
 mod progress_ui_state;
 mod view_impl;
 
 pub use auth_secret_ftux_view::{
     AuthSecretFtuxAction, AuthSecretFtuxView, AuthSecretFtuxViewEvent,
-};
-pub use auth_secret_selector::{
-    AuthSecretSelector, AuthSecretSelectorAction, AuthSecretSelectorEvent,
 };
 pub use model::{AgentProgress, AmbientAgentViewModel, AmbientAgentViewModelEvent, Status};
 use warpui::geometry::vector::Vector2F;
