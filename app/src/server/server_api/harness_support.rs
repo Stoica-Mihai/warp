@@ -3,11 +3,6 @@
 
 use std::collections::HashMap;
 
-use anyhow::{Context, Result};
-use super::ServerApi;
-use crate::ai::ambient_agents::AmbientAgentTaskId;
-use crate::server::server_api::auth::AuthClient;
-
 /// A presigned upload target returned by the server.
 #[serde_with::serde_as]
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -43,44 +38,6 @@ pub enum UploadFieldValue {
     ContentData,
 }
 
-impl ServerApi {
-    pub(crate) async fn post_public_api_response_for_task<B>(
-        &self,
-        task_id: &AmbientAgentTaskId,
-        path: &str,
-        body: &B,
-    ) -> Result<http_client::Response>
-    where
-        B: serde::Serialize,
-    {
-        let auth_token = self
-            .get_or_refresh_access_token()
-            .await
-            .context("Failed to get access token for API request")?;
-
-        let url = format!("{}/api/v1/{}", crate::ChannelState::server_root_url(), path);
-
-        let mut request = self.client.post(&url).json(body);
-        if let Some(token) = auth_token.as_bearer_token() {
-            request = request.bearer_auth(token);
-        }
-
-        for (name, value) in self.ambient_agent_headers_for_task(task_id).await? {
-            request = request.header(name, value);
-        }
-
-        let response = request
-            .send()
-            .await
-            .with_context(|| format!("Failed to send API request to {url}"))?;
-
-        if response.status().is_success() {
-            Ok(response)
-        } else {
-            Err(Self::error_from_response(response).await)
-        }
-    }
-}
 
 #[cfg(test)]
 #[path = "harness_support_tests.rs"]
