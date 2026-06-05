@@ -266,28 +266,25 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 **Method that worked:** collapse dead `if flag.is_enabled() {…}` branches first (compiles fine with flag still defined — it's just fewer readers), bank green; remove flag def LAST once its readers hit zero. Cascades (banner module, dialog subsystem, URI route, REMOTE_CONTROL, close-session widget) surface as dead-code/unused-import warnings after the readers drop — use `cargo check --features gui` as the worklist oracle. For a subsystem that's reachable only through a now-permanently-false gate (close-confirm dialog, share banners), trace it to its event emitter — if the emitter is itself gated on `shared_session_status().is_sharer()` (always false), the whole chain is dead and removes cleanly. When a UI chip lives in kept agent code, re-gate it on the OTHER (off-by-default) flag rather than ripping the agent subsystem — defers cleanly, preserves default behavior.
 
-### AI strip — current state (`5754ae9b`, 2026-06-05 session 45)
+### AI strip — current state (`9525517f`, 2026-06-05 session 46)
 
-**Binary**: 737.7 MB (−1.1 MB vs session 44 baseline). 3-gate **155/65/156** (0/0/0 errors). Latest commit `5754ae9b`.
+**Binary**: 737.7 MB (−1.1 MB sessions 45+46 vs session 44 baseline). 3-gate **154/64/155** (0/0/0 errors). Latest commit `9525517f`.
 
-**Session 45 handoff:**
-- Warnings: 155 default / 65 tests / 156 features. All 3 gates 0 errors.
-- **Key change:** `ambient_agent_view_model` removed from TerminalView + Input structs. Always `None` in local build. Getter stub returns `None`. All dead branches collapsed. This makes the entire `terminal/view/ambient_agent/` module dead-linked — binary reduction pending fresh build.
-- ambient_agent/view_impl.rs: 5 dead methods deleted, 1 dead constant.
-- ambient_agent/loading_screen.rs: 2 dead render functions deleted.
-- ambient_agent/model.rs: dead handoff fields/methods/variants deleted.
-- terminal/input.rs: subscription block + dead view_model field + dead functions cleaned.
-- **Next step:** Measure binary delta. Then consider deleting more of terminal/view/ambient_agent/ module since model is never created.
-- **Still available for bigger binary win:** Delete `ambient_agent_view_model()` stub + remove `pub mod ambient_agent;` from view.rs + delete the entire ambient_agent/ UI module (it's all dead since AmbientAgentViewModel is never instantiated). But view_impl.rs still has direct field accesses (via the stub getter) that need to be collapsed first.
+**Session 46 handoff:**
+- Warnings: 154 default / 64 tests / 155 features. All 3 gates 0 errors.
+- ambient_agent_view_model stub getter deleted; all external callers collapsed (7 files).
+- profile_model_selector.rs (Warp AI execution profiles stub) deleted.
+- is_in_cloud_agent_setup_phase collapsed to false; DisplayChipConfig.ambient_agent_view_model removed.
+- **Actionable floor reached:** No more 3-gate Warp-specific dead items. All warnings KEEP/BLOCKED.
 - server_api/ai.rs: 16 warnings — tests-alive. KEEP.
 - presigned_upload.rs: 19 warnings — tests-alive. KEEP.
 - execution_profiles.rs: BLOCKED (6 warnings).
-- Generic modules: KEEP per rule.
+- ambient_agent/ module: still compiled (AmbientAgentEntryBlock, HarnessSelector, etc. live via rich_content.rs + input.rs). Deleting it requires also cleaning rich_content.rs and input.rs deps.
+- **Next milestone for binary reduction:** Strip remaining live-linked AI module items. Consider ai/blocklist/ cleanup (permissions.rs live, conversation_yaml.rs live — these are the main remaining alive AI items).
 
-**Session 45 commits (2026-06-05):**
-- `fe76a01d`: ambient_agent_view_model removed from TerminalView/Input + cascade cleanup. ~500 LoC deleted.
-- `5754ae9b`: pending_cloud_followup_task_id field + view_impl dead methods + model dead methods + loading_screen dead fns. ~475 LoC deleted.
-- Total session 45: 155/64/156 → 155/65/156 (warnings ~flat; binary reduction TBD — live-linked code deleted).
+**Sessions 45+46 commits (2026-06-05):**
+- `fe76a01d`, `5754ae9b`: ambient_agent_view_model removed from TerminalView/Input; cascade cleanup. −1.1 MB binary.
+- `c5c56871`, `ec61fb5b`, `242e6620`, `9525517f`: Dead branch collapses, profile_model_selector deleted, stub getter removed. −38 KB additional.
 
 **Previous state (`0d24336f`, 2026-06-01 session 4):**
 
