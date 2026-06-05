@@ -266,26 +266,28 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 **Method that worked:** collapse dead `if flag.is_enabled() {…}` branches first (compiles fine with flag still defined — it's just fewer readers), bank green; remove flag def LAST once its readers hit zero. Cascades (banner module, dialog subsystem, URI route, REMOTE_CONTROL, close-session widget) surface as dead-code/unused-import warnings after the readers drop — use `cargo check --features gui` as the worklist oracle. For a subsystem that's reachable only through a now-permanently-false gate (close-confirm dialog, share banners), trace it to its event emitter — if the emitter is itself gated on `shared_session_status().is_sharer()` (always false), the whole chain is dead and removes cleanly. When a UI chip lives in kept agent code, re-gate it on the OTHER (off-by-default) flag rather than ripping the agent subsystem — defers cleanly, preserves default behavior.
 
-### AI strip — current state (`a6ec151b`, 2026-06-05 session 42)
+### AI strip — current state (`ec30eaea`, 2026-06-05 session 43)
 
-**Binary**: 738.8 MB (cached — dead code deletion is linker-invisible). 3-gate **177/66/178** (0/0/0 errors). Latest commit `a6ec151b`.
+**Binary**: 738.8 MB (cached — dead code deletion is linker-invisible). 3-gate **159/64/160** (0/0/0 errors). Latest commit `ec30eaea`.
 
-**Session 42 handoff:**
-- Warnings: 177 default / 66 tests / 178 features. All 3 gates 0 errors.
-- server_api/ai.rs: 16 remaining warnings — all alive in tests or presigned_upload.rs (under local_fs). Do not delete.
+**Session 43 handoff:**
+- Warnings: 159 default / 64 tests / 160 features. All 3 gates 0 errors.
+- server_api/ai.rs: 16 remaining warnings — alive in tests or presigned_upload.rs. Do not delete.
 - presigned_upload.rs: 19 warnings — tests-alive. KEEP.
 - permissions.rs, conversation_yaml.rs: KEEP (used by live code).
 - Plugin managers (claude.rs, gemini.rs): dead constants/methods — KEEP per generic-feature rule.
-- execution_profiles.rs: BLOCKED (6 warnings, create_default_from_legacy_settings + create_default_cli_profile blocked by trait).
-- local_harness_launch.rs: KEEP per generic-feature rule.
-- harness_support.rs: 3 warnings (UploadTarget/UploadField/UploadFieldValue structs) — alive under local_fs (used by presigned_upload.rs). KEEP.
-- Remaining 3-gate items: mostly in generic modules (KEEP); remaining Warp-specific items need test deletion — ai/agent/mod.rs (6 warnings, alive in tests), ai/ambient_agents/spawn.rs (alive in tests), ai/agent/api/* (alive in tests). Focus for session 43: tackle items alive in tests by also deleting the tests.
+- execution_profiles.rs: BLOCKED (6 warnings).
+- local_harness_launch.rs, harness_support.rs: KEEP per generic rule / alive under local_fs.
+- Remaining 3-gate actionable: mostly generic modules (KEEP). No new Warp-specific items in intersection.
+- Still tests-alive: `ai/ambient_agents/task.rs` (normalize_orchestrator_agent_name, display_name, is_environment_setup_failure × 2), `ai/request_usage_model.rs` (requests_used, request_limit), `ai/skills/*` (KEEP), `terminal/input/handoff_compose.rs` (KEEP — generic).
 - **Dead code rule in effect:** See AGENTS.md CRITICAL session 40 note.
 
-**Session 42 commits (2026-06-05):**
-- `5c698675`: OperationSuccessType Failure/Denied/FeatureNotAvailable variants deleted + match arm cleanup in toast_message/active_notebook_data/workspace/view. −98 LoC.
-- `a6ec151b`: ObjectOperation::Create variant deleted + cascade: CreatedOnServer events (2 types), dead struct fields (WorkflowPaneData.workflow_id, EnvVarCollectionPaneData.env_var_collection_id), handler no-ops. −270 LoC.
-- Total session: 178/67/179 → 177/66/178 (−1/−1/−1 warnings net; cascades from Create deletion exposed and then cleaned new dead items).
+**Session 43 commits (2026-06-05):**
+- `dbd49f59`: RequestParams/RequestMetadata/EntrypointType/PassiveSuggestionTriggerType + text methods + impl_tests.rs. −358 LoC.
+- `dbbe4e02`: check_and_trigger_drive_sharing_onboarding_block. −19 LoC.
+- `5023617d`: submit_run_followup/RunFollowupRequest/build_run_followup_url + cascade (is_failure_like, session_type, new_for_test, formatted_text field, post_public_api_unit). −777 LoC.
+- `ec30eaea`: RestorationMode/convert_conversation_data_to_ai_conversation + test helper + import cleanup. −166 LoC.
+- Total session: 177/66/178 → 159/64/160 (−18/−2/−18 warnings).
 
 **Previous state (`0d24336f`, 2026-06-01 session 4):**
 
