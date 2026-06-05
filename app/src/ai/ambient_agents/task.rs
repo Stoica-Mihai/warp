@@ -326,26 +326,6 @@ pub fn normalize_orchestrator_agent_name(raw: &str) -> Option<String> {
 }
 
 impl AmbientAgentTask {
-    /// Returns the short label for this task: trimmed `agent_config_snapshot.name`,
-    /// trimmed `title`, or `"Agent"`.
-    pub fn display_name(&self) -> &str {
-        if let Some(name) = self
-            .agent_config_snapshot
-            .as_ref()
-            .and_then(|c| c.name.as_deref())
-        {
-            let trimmed = name.trim();
-            if !trimmed.is_empty() {
-                return trimmed;
-            }
-        }
-        let trimmed_title = self.title.trim();
-        if !trimmed_title.is_empty() {
-            return trimmed_title;
-        }
-        "Agent"
-    }
-
     pub fn conversation_id(&self) -> Option<&str> {
         self.conversation_id.as_deref()
     }
@@ -522,20 +502,6 @@ pub enum TaskStatusErrorCode {
     Unknown,
 }
 
-impl TaskStatusErrorCode {
-    pub fn is_environment_setup_failure(&self) -> bool {
-        matches!(self, TaskStatusErrorCode::EnvironmentSetupFailed)
-    }
-}
-
-impl TaskStatusMessage {
-    pub fn is_environment_setup_failure(&self) -> bool {
-        self.error_code
-            .as_ref()
-            .is_some_and(TaskStatusErrorCode::is_environment_setup_failure)
-    }
-}
-
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct RequestUsage {
     pub inference_cost: Option<f64>,
@@ -578,6 +544,3 @@ pub fn cancel_task_silently<V: View>(task_id: AmbientAgentTaskId, ctx: &mut View
     );
 }
 
-#[cfg(test)]
-#[path = "task_tests.rs"]
-mod tests;
