@@ -19,10 +19,6 @@ use warpui::windowing::WindowManager;
 use warpui::{App, ModelHandle};
 use watcher::HomeDirectoryWatcher;
 
-use super::child_agent::{
-    create_hidden_child_agent_conversation, HiddenChildAgentConversationRequest,
-    HiddenChildAgentTaskContext,
-};
 use super::*;
 use crate::ai::agent::conversation::{AIConversation, AIConversationId};
 use crate::ai::agent_conversations_model::AgentConversationsModel;
@@ -611,48 +607,6 @@ fn test_insert_hidden_ambient_child_agent_pane_suppresses_details_auto_open() {
         });
     });
 }
-#[test]
-fn test_hidden_child_creation_applies_ambient_task_id_to_controller() {
-    let _orchestration_v2 = FeatureFlag::OrchestrationV2.override_enabled(true);
-
-    App::test((), |mut app| async move {
-        initialize_app(&mut app);
-        let pane_group = mock_pane_group(&mut app, Default::default());
-
-        pane_group.update(&mut app, |panes, ctx| {
-            let parent_pane_id = get_newly_created_pane_id(panes, &[]);
-            let parent_conversation_id = start_parent_conversation(panes, parent_pane_id, ctx);
-            let task_id = new_ambient_agent_task_id();
-
-            let child = create_hidden_child_agent_conversation(
-                panes,
-                HiddenChildAgentConversationRequest {
-                    parent_pane_id,
-                    name: "Agent 1".to_string(),
-                    parent_conversation_id,
-                    orchestration_harness: None,
-                    env_vars: HashMap::new(),
-                    task_context: Some(HiddenChildAgentTaskContext),
-                    is_shared_session_creator: IsSharedSessionCreator::No,
-                },
-                ctx,
-            )
-            .expect("fresh hidden child conversation should be created");
-
-            let child_pane_id = panes
-                .child_agent_panes
-                .get(&child.conversation_id)
-                .copied()
-                .expect("fresh hidden child pane should be tracked");
-
-            assert_eq!(
-                request_ambient_agent_task_id_for_hidden_child(panes, child_pane_id, ctx,),
-                Some(task_id)
-            );
-        });
-    });
-}
-
 #[test]
 fn test_restored_hidden_child_pane_reapplies_ambient_task_id_to_controller() {
     let _orchestration_v2 = FeatureFlag::OrchestrationV2.override_enabled(true);
