@@ -1002,13 +1002,7 @@ pub(crate) struct FormattedTextLineWrapper {
     stripped_text: String,
 }
 
-impl FormattedTextLineWrapper {
-    /// Returns the raw text with the Markdown formatting syntax stripped.
-    pub fn raw_text(&self) -> &str {
-        &self.stripped_text
-    }
-
-}
+impl FormattedTextLineWrapper {}
 
 #[derive(Debug, Clone)]
 pub(crate) struct FormattedTextWrapper {
@@ -1025,16 +1019,7 @@ impl PartialEq for FormattedTextWrapper {
 
 impl Eq for FormattedTextWrapper {}
 
-impl FormattedTextWrapper {
-    pub fn lines(&self) -> &[FormattedTextLineWrapper] {
-        &self.lines
-    }
-
-    /// Returns a cheap clone of the cached [`FormattedText`], avoiding a per-call deep copy.
-    pub fn formatted_text_arc(&self) -> Arc<FormattedText> {
-        Arc::clone(&self.formatted_text)
-    }
-}
+impl FormattedTextWrapper {}
 
 impl From<FormattedText> for FormattedTextWrapper {
     fn from(value: FormattedText) -> Self {
@@ -2002,36 +1987,7 @@ pub enum StaticQueryType {
     EvaluationSuite,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[allow(clippy::enum_variant_names)]
-pub enum EntrypointType {
-    PromptSuggestion {
-        is_static: bool,
-        is_coding: bool,
-    },
-    ZeroStateAgentModePromptSuggestion,
-    InitProjectRules,
-    TriggerPassiveSuggestion {
-        trigger: Option<PassiveSuggestionTriggerType>,
-    },
-    UserInitiated,
-    AgentInitiated,
-    SharedSession,
-    CloneRepository,
-    ResumeConversation,
-}
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[allow(clippy::enum_variant_names)]
-pub enum PassiveSuggestionTriggerType {
-    /// Used for unit test generation.
-    FilesChanged,
-    /// Used for unit test generation.
-    CommandRun,
-
-    ShellCommandCompleted,
-    AgentResponseCompleted,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ShellCommandCompletedTrigger {
@@ -2050,20 +2006,6 @@ pub enum PassiveSuggestionTrigger {
     AgentResponseCompleted { exchange_id: AIAgentExchangeId },
 }
 
-impl From<&PassiveSuggestionTrigger> for PassiveSuggestionTriggerType {
-    fn from(value: &PassiveSuggestionTrigger) -> Self {
-        match value {
-            PassiveSuggestionTrigger::FilesChanged => PassiveSuggestionTriggerType::FilesChanged,
-            PassiveSuggestionTrigger::CommandRun => PassiveSuggestionTriggerType::CommandRun,
-            PassiveSuggestionTrigger::ShellCommandCompleted(_) => {
-                PassiveSuggestionTriggerType::ShellCommandCompleted
-            }
-            PassiveSuggestionTrigger::AgentResponseCompleted { .. } => {
-                PassiveSuggestionTriggerType::AgentResponseCompleted
-            }
-        }
-    }
-}
 
 impl PassiveSuggestionTrigger {
     /// Returns the block ID that triggered this passive suggestion
@@ -2735,20 +2677,6 @@ impl AIAgentExchange {
     }
 }
 
-/// Request-level metadata propagated to the `AIAgentApi` that may be used for logging.
-#[derive(Clone, Debug, Serialize)]
-pub struct RequestMetadata {
-    /// `true` if the user query was autodetected as AI input.
-    ///
-    /// This only applies to `AIAgentInput::UserQuery`.
-    pub is_autodetected_user_query: bool,
-
-    /// The entrypoint (onboarding, prompt suggestion, etc.) of the AI conversation.
-    pub entrypoint: EntrypointType,
-
-    /// Whether this request is an automatic resume triggered by a previous error.
-    pub is_auto_resume_after_error: bool,
-}
 
 /// A globally unique ID for a suggested objects.
 ///

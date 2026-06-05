@@ -1,13 +1,11 @@
 use std::ops::Range;
-use std::sync::Arc;
 
-use markdown_parser::{FormattedText, FormattedTextFragment, FormattedTextLine};
 use warp_multi_agent_api::{FileContent, FileContentLineRange};
 
 use crate::ai::agent::{
     AIAgentOutput, AIAgentOutputMessage, AIAgentOutputMessageType, AIAgentText, AIAgentTextSection,
     AgentOutputImage, AgentOutputImageLayout, AgentOutputMermaidDiagram, AnyFileContent,
-    FileContext, FormattedTextWrapper, MessageId, ProgrammingLanguage,
+    FileContext, MessageId, ProgrammingLanguage,
 };
 use crate::terminal::shell::ShellType;
 
@@ -16,34 +14,6 @@ fn to_range(range: Range<u32>) -> Option<FileContentLineRange> {
         start: range.start,
         end: range.end,
     })
-}
-
-#[test]
-fn formatted_text_wrapper_shares_arc_across_calls() {
-    let text = FormattedText::new([FormattedTextLine::Line(vec![
-        FormattedTextFragment::plain_text("hello world"),
-    ])]);
-    let wrapper = FormattedTextWrapper::from(text);
-    let arc1 = wrapper.formatted_text_arc();
-    let arc2 = wrapper.formatted_text_arc();
-    // Both calls must return the same allocation — not independent deep copies.
-    assert!(Arc::ptr_eq(&arc1, &arc2));
-}
-
-#[test]
-fn formatted_text_wrapper_preserves_content() {
-    let text = FormattedText::new([
-        FormattedTextLine::Line(vec![FormattedTextFragment::plain_text("line one")]),
-        FormattedTextLine::Line(vec![FormattedTextFragment::plain_text("line two")]),
-    ]);
-    let wrapper = FormattedTextWrapper::from(text);
-    // lines() metadata matches the cached Arc
-    assert_eq!(wrapper.lines().len(), 2);
-    assert_eq!(wrapper.lines()[0].raw_text(), "line one\n");
-    assert_eq!(wrapper.lines()[1].raw_text(), "line two\n");
-    // Arc contains the same lines
-    let ft = wrapper.formatted_text_arc();
-    assert_eq!(ft.lines.len(), 2);
 }
 
 #[test]
