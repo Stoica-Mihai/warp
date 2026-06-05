@@ -266,22 +266,18 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 **Method that worked:** collapse dead `if flag.is_enabled() {…}` branches first (compiles fine with flag still defined — it's just fewer readers), bank green; remove flag def LAST once its readers hit zero. Cascades (banner module, dialog subsystem, URI route, REMOTE_CONTROL, close-session widget) surface as dead-code/unused-import warnings after the readers drop — use `cargo check --features gui` as the worklist oracle. For a subsystem that's reachable only through a now-permanently-false gate (close-confirm dialog, share banners), trace it to its event emitter — if the emitter is itself gated on `shared_session_status().is_sharer()` (always false), the whole chain is dead and removes cleanly. When a UI chip lives in kept agent code, re-gate it on the OTHER (off-by-default) flag rather than ripping the agent subsystem — defers cleanly, preserves default behavior.
 
-### AI strip — current state (session 47, 2026-06-05)
+### AI strip — current state (`c4e1b94b`, 2026-06-05 session 48)
 
-**Binary**: 737.2 MB (−1.5 MB total sessions 45–47 vs session 44 baseline 737.7 MB). 3-gate **154/64/155** (0/0/0 errors). Latest commit `ca6355a3`.
+**Binary**: 737.2 MB (−1.6 MB total sessions 45–48 vs session 44 baseline 737.7 MB). 3-gate **155/65/156** (0/0/0 errors, +1/+1/+1 from new dead item in generic module — KEEP). Latest commit (see git log).
 
-**Session 47 handoff:**
-- Warnings: 154 default / 64 tests / 155 features. All 3 gates 0 errors.
-- **Major session 47 cleanup:** Removed AmbientAgentViewState + HarnessSelector/HostSelector/AuthSecret* from Input; AmbientAgentBlock from RichContentMetadata; deleted harness_selector.rs, host_selector.rs (except NakedHeaderButtonTheme moved to button_theme.rs), footer.rs, loading_screen.rs, model_selector.rs, progress.rs from ambient_agent/ module. Cascade: dead methods in harness_availability.rs, llms.rs, cloud_agent_settings.rs, connected_self_hosted_workers.rs deleted. −2332 LoC in one commit.
-- ambient_agent/ still lives: auth_secret_ftux_view, auth_secret_selector, block/, button_theme, model, progress_ui_state, view_impl, create_cloud_mode_view (pane_group caller), AuthSecretFtuxView (workspace/view.rs caller).
-- server_api/ai.rs: 16 warnings — tests-alive. KEEP.
-- presigned_upload.rs: 19 warnings — tests-alive. KEEP.
+**Session 48 handoff:**
+- Warnings: 155/65/156. +1 in each gate from `with_font_family` in `terminal/view/inline_action_header.rs` (generic, KEEP per rule).
+- ambient_agent/block/ directory deleted (AmbientAgentEntryBlock, HarnessSessionHeader, SetupCommand*, setup_command_text_tests); HarnessSessionHeader removed from RichContentMetadata; SetupCommandState cluster removed from model.rs; block.rs deleted.
+- ambient_agent/ remaining live files: auth_secret_ftux_view.rs, auth_secret_selector.rs, auth_secret_ftux_dropdown.rs, button_theme.rs, model.rs, model_tests.rs, progress_ui_state.rs, view_impl.rs. All have live callers — cannot delete.
+- server_api/ai.rs: 16 warnings — KEEP.
+- presigned_upload.rs: 19 warnings — KEEP.
 - execution_profiles.rs: BLOCKED.
-- **Next:** Measure binary from this session. Continue ambient_agent/ module reduction or look at other live-linked AI code.
-
-**Sessions 45–47 commits (2026-06-05):**
-- Sessions 45+46: ambient_agent_view_model removed from TerminalView/Input; cascade cleanup. ~−1.1 MB binary total.
-- Session 47: AmbientAgentViewState + view files deleted from ambient_agent/; cascade AI method cleanup. Binary TBD.
+- **Next milestone:** Look at `crates/ai` crate (25k LoC, MEDIUM difficulty) or auth/login cleanup for next binary reduction. Also: ai/blocklist/ still has large live files (permissions.rs 15 warnings but live; conversation_yaml.rs 13 warnings but live).
 
 **Previous state (`0d24336f`, 2026-06-01 session 4):**
 
