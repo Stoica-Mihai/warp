@@ -266,15 +266,15 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 **Method that worked:** collapse dead `if flag.is_enabled() {…}` branches first (compiles fine with flag still defined — it's just fewer readers), bank green; remove flag def LAST once its readers hit zero. Cascades (banner module, dialog subsystem, URI route, REMOTE_CONTROL, close-session widget) surface as dead-code/unused-import warnings after the readers drop — use `cargo check --features gui` as the worklist oracle. For a subsystem that's reachable only through a now-permanently-false gate (close-confirm dialog, share banners), trace it to its event emitter — if the emitter is itself gated on `shared_session_status().is_sharer()` (always false), the whole chain is dead and removes cleanly. When a UI chip lives in kept agent code, re-gate it on the OTHER (off-by-default) flag rather than ripping the agent subsystem — defers cleanly, preserves default behavior.
 
-### AI strip — current state (`b66611b8`, 2026-06-05 session 52)
+### AI strip — current state (`3e442c75`, 2026-06-05 session 53)
 
-**Binary**: 737.1 MB (−1.7 MB total). 3-gate **84/56/85** (0/0/0 errors). Latest commit `b66611b8`.
+**Binary**: 736.7 MB (−2.1 MB total sessions 45–53). 3-gate **84/56/85** (0/0/0 errors). Latest commit `3e442c75`.
 
-**Session 52 handoff:**
-- Warnings: 84/56/85. Sessions 49–52: −151 total.
-- Session 52: Deleted spawn.rs + github_auth_url + retry_strategies + SpawnAgentResponse/spawn_agent from ai.rs (binary reduction, 0 net warnings). CLIAgentInputState::Open/CtrlG cluster deleted then reverted (user confirmed generic, KEEP). Plugin_manager not touched (generic).
-- **DEAD-CODE FLOOR.** All remaining warnings in KEEP or BLOCKED modules.
-- **Next:** Structural live-code deletion for binary reduction.
+**Session 53 handoff:**
+- Warnings: 84/56/85. Dead-code floor — all remaining in KEEP/BLOCKED modules.
+- Session 53: ambient_agent/model.rs + progress_ui_state.rs deleted (AmbientAgentViewModel, never instantiated); convert_to.rs deleted (Warp MAA serialization, 0 callers); cascade: SpawnAgentRequest, MCPContext/Server, AttachmentInput, PendingCloudLaunch, is_harness_enabled deleted. −0.12 MB binary.
+- Session 52: spawn infrastructure deleted. −0.26 MB binary.
+- **Next:** auth_secret_ftux_view.rs (1052 lines, live via workspace/view.rs OpenCreateAuthSecretModal), ai/blocklist/ large files, ai/agent/ API modules.
 
 **Previous state (`0d24336f`, 2026-06-01 session 4):**
 
