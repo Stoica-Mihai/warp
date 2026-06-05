@@ -2029,23 +2029,8 @@ pub enum UserQueryMode {
     Orchestrate,
 }
 
-pub fn extract_user_query_mode(query: String) -> (String, UserQueryMode) {
-    if let Some(query) = commands::strip_command_prefix(&query, commands::PLAN_NAME) {
-        (query, UserQueryMode::Plan)
-    } else if let Some(query) = commands::strip_command_prefix(&query, commands::ORCHESTRATE_NAME) {
-        (query, UserQueryMode::Orchestrate)
-    } else {
-        (query, UserQueryMode::Normal)
-    }
-}
-
-/// Reconstructs the display form of a user query that has been stripped via
-/// [`extract_user_query_mode`], by re-prepending the slash-command prefix
+/// Reconstructs the display form of a user query by re-prepending the slash-command prefix
 /// associated with [`UserQueryMode`].
-///
-/// This is the inverse of [`extract_user_query_mode`] and the canonical way
-/// for UI to render a stored `(mode, query)` pair so the displayed prompt
-/// always matches what the user originally submitted.
 pub fn display_user_query_with_mode(mode: UserQueryMode, query: &str) -> String {
     match mode {
         UserQueryMode::Normal => query.to_owned(),

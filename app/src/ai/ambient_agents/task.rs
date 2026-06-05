@@ -429,36 +429,6 @@ impl AmbientAgentTaskState {
         }
     }
 
-    pub fn is_working(&self) -> bool {
-        match self {
-            AmbientAgentTaskState::Queued
-            | AmbientAgentTaskState::Pending
-            | AmbientAgentTaskState::Claimed
-            | AmbientAgentTaskState::InProgress => true,
-            AmbientAgentTaskState::Succeeded
-            | AmbientAgentTaskState::Failed
-            | AmbientAgentTaskState::Error
-            | AmbientAgentTaskState::Blocked
-            | AmbientAgentTaskState::Cancelled
-            | AmbientAgentTaskState::Unknown => false,
-        }
-    }
-
-    pub fn is_terminal(&self) -> bool {
-        match self {
-            AmbientAgentTaskState::Succeeded
-            | AmbientAgentTaskState::Failed
-            | AmbientAgentTaskState::Error
-            | AmbientAgentTaskState::Blocked
-            | AmbientAgentTaskState::Cancelled
-            | AmbientAgentTaskState::Unknown => true,
-            AmbientAgentTaskState::Queued
-            | AmbientAgentTaskState::Pending
-            | AmbientAgentTaskState::Claimed
-            | AmbientAgentTaskState::InProgress => false,
-        }
-    }
-
 }
 
 impl std::fmt::Display for AmbientAgentTaskState {

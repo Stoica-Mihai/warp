@@ -63,7 +63,7 @@ use crate::ai::ambient_agents::AmbientAgentTaskId;
 // Re-export ambient agent types for backwards compatibility
 pub use crate::ai::ambient_agents::{
     task::AttachmentInput,
-    AgentConfigSnapshot, AgentSource, AmbientAgentTask, AmbientAgentTaskState, TaskStatusMessage,
+    AgentConfigSnapshot, AgentSource, AmbientAgentTask, AmbientAgentTaskState,
 };
 use crate::ai::artifacts::Artifact;
 use crate::ai::generate_code_review_content::api::{
@@ -173,13 +173,6 @@ impl InitialSnapshotToken {
     }
 }
 
-
-#[derive(serde::Deserialize)]
-pub struct SpawnAgentResponse {
-    pub task_id: AmbientAgentTaskId,
-    #[serde(default)]
-    pub at_capacity: bool,
-}
 
 /// Filter parameters for listing ambient agent tasks.
 #[derive(Clone, Debug, Default)]
@@ -346,11 +339,6 @@ pub trait AIClient: 'static + Send + Sync {
         parent_run_id: Option<String>,
         config: Option<AgentConfigSnapshot>,
     ) -> anyhow::Result<AmbientAgentTaskId, anyhow::Error>;
-
-    async fn spawn_agent(
-        &self,
-        request: SpawnAgentRequest,
-    ) -> anyhow::Result<SpawnAgentResponse, anyhow::Error>;
 
     async fn list_ambient_agent_tasks(
         &self,
@@ -649,14 +637,6 @@ impl AIClient for ServerApi {
             }
             CreateAgentTaskResult::Unknown => Err(anyhow!("failed to create agent task")),
         }
-    }
-
-    async fn spawn_agent(
-        &self,
-        request: SpawnAgentRequest,
-    ) -> anyhow::Result<SpawnAgentResponse, anyhow::Error> {
-        let response: SpawnAgentResponse = self.post_public_api("agent/run", &request).await?;
-        Ok(response)
     }
 
     async fn list_connected_self_hosted_workers(
