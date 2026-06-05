@@ -233,10 +233,6 @@ use crate::terminal::model::session::active_session::ActiveSession;
 use crate::terminal::package_installers::command_at_cursor_has_common_package_installer_prefix;
 use crate::terminal::universal_developer_input::AtContextMenuDisabledReason;
 use crate::terminal::view::agent_view_state::AgentViewEntryOrigin;
-use crate::terminal::view::ambient_agent::{
-    AuthSecretFtuxView, AuthSecretSelector,
-    HarnessSelector, HostSelector,
-};
 use crate::terminal::view::CodeDiffAction;
 use crate::terminal::CLIAgent;
 use crate::ui_components::blended_colors;
@@ -1420,20 +1416,10 @@ pub struct Input {
     /// Weak handle to this input view for drop target data
     weak_view_handle: WeakViewHandle<Input>,
 
-    ambient_agent_view_state: Option<AmbientAgentViewState>,
-
     /// When a command is executed from a prompt chip (e.g. `cd` from the directory dropdown),
     /// we snapshot the current input contents here so we can restore them after the command
     /// completes and the buffer would normally be cleared.
     input_contents_before_prompt_chip_command: Option<String>,
-}
-
-struct AmbientAgentViewState {
-    #[allow(dead_code)]
-    harness_selector: ViewHandle<HarnessSelector>,
-    host_selector: Option<ViewHandle<HostSelector>>,
-    auth_secret_selector: Option<ViewHandle<AuthSecretSelector>>,
-    auth_secret_ftux_view: Option<ViewHandle<AuthSecretFtuxView>>,
 }
 
 #[derive(Clone)]
@@ -1860,8 +1846,6 @@ impl Input {
                 me.handle_universal_developer_input_button_bar_event(event, ctx);
             },
         );
-        let ambient_agent_view_state: Option<AmbientAgentViewState> = None;
-
         ctx.subscribe_to_model(&CLIAgentSessionsModel::handle(ctx), |me, _, event, ctx| {
             let CLIAgentSessionsModelEvent::InputSessionChanged {
                 terminal_view_id,
@@ -2523,7 +2507,6 @@ impl Input {
             cached_agent_mode_hint_text: None,
             is_editor_empty_on_last_edit: is_editor_empty,
             weak_view_handle: ctx.handle(),
-            ambient_agent_view_state,
             slash_command_data_source,
             cloud_mode_composer_slash_command_data_source,
             input_contents_before_prompt_chip_command: None,
@@ -2576,49 +2559,6 @@ impl Input {
         });
     }
 
-    fn harness_selector(&self) -> Option<&ViewHandle<HarnessSelector>> {
-        self.ambient_agent_view_state
-            .as_ref()
-            .map(|state| &state.harness_selector)
-    }
-
-    fn host_selector(&self) -> Option<&ViewHandle<HostSelector>> {
-        self.ambient_agent_view_state
-            .as_ref()
-            .and_then(|state| state.host_selector.as_ref())
-    }
-
-    fn auth_secret_selector(&self) -> Option<&ViewHandle<AuthSecretSelector>> {
-        self.ambient_agent_view_state
-            .as_ref()
-            .and_then(|state| state.auth_secret_selector.as_ref())
-    }
-
-    pub(super) fn auth_secret_ftux_view(&self) -> Option<&ViewHandle<AuthSecretFtuxView>> {
-        self.ambient_agent_view_state
-            .as_ref()
-            .and_then(|state| state.auth_secret_ftux_view.as_ref())
-    }
-
-    /// Opens the V2 cloud-mode host selector popover, if the feature is enabled and the
-    /// selector is constructed. No-op otherwise. Used by the `/host` slash command to
-    /// programmatically open the same popover that the V2 footer's host button toggles.
-    pub(super) fn open_v2_host_selector(&mut self, ctx: &mut ViewContext<Self>) {
-        let Some(host_selector) = self.host_selector().cloned() else {
-            return;
-        };
-        host_selector.update(ctx, |selector, ctx| selector.open_menu(ctx));
-    }
-
-    /// Opens the V2 cloud-mode harness selector popover, if the feature is enabled and the
-    /// selector is constructed. No-op otherwise. Used by the `/harness` slash command to
-    /// programmatically open the same popover that the V2 footer's harness button toggles.
-    pub(super) fn open_v2_harness_selector(&mut self, ctx: &mut ViewContext<Self>) {
-        let Some(harness_selector) = self.harness_selector().cloned() else {
-            return;
-        };
-        harness_selector.update(ctx, |selector, ctx| selector.open_menu(ctx));
-    }
 
     fn prefix_mode(&self, ctx: &AppContext) -> InputPrefixMode {
         let is_handoff_active = self.handoff_compose_state.as_ref(ctx).is_active();
@@ -5558,14 +5498,6 @@ impl Input {
     }
 
     pub fn focus_input_box(&self, ctx: &mut ViewContext<Self>) {
-        if false {
-            if let Some(ftux_view) = self.auth_secret_ftux_view().cloned() {
-                ftux_view.update(ctx, |view, ctx| {
-                    view.focus_dropdown_editor(ctx);
-                });
-                return;
-            }
-        }
         ctx.focus_self();
     }
 
@@ -5634,25 +5566,6 @@ impl Input {
     }
 
     fn editor_up(&mut self, ctx: &mut ViewContext<Self>) {
-        if false {
-            if let Some(ftux_view) = self.auth_secret_ftux_view().cloned() {
-                ftux_view.update(ctx, |view, ctx| {
-                    view.select_previous_in_dropdown(ctx);
-                });
-            }
-            return;
-        }
-
-        if let Some(selector) = self.auth_secret_selector() {
-            if selector.as_ref(ctx).is_menu_open() {
-                let selector = selector.clone();
-                selector.update(ctx, |selector, ctx| {
-                    selector.select_previous(ctx);
-                });
-                return;
-            }
-        }
-
         // For some input suggestion modes, the menu handles its own actions.
         let handled = match self.suggestions_mode_model.as_ref(ctx).mode() {
             InputSuggestionsMode::AIContextMenu { .. } => {
@@ -10481,16 +10394,6 @@ impl View for Input {
             if workflow.should_show_more_info_view {
                 ctx.set.insert("WorkflowInfoBox");
             }
-        }
-
-        let is_v2_host_selector_open = self
-            .host_selector()
-            .is_some_and(|view| view.as_ref(app).is_menu_open());
-        let is_v2_harness_selector_open = self
-            .harness_selector()
-            .is_some_and(|view| view.as_ref(app).is_menu_open());
-        if is_v2_host_selector_open || is_v2_harness_selector_open {
-            ctx.set.insert("ProfileModelSelectorOpen");
         }
 
         if self.prompt_render_helper.has_open_chip_menu(app) {

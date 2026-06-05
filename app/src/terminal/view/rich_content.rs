@@ -13,7 +13,6 @@ use crate::terminal::model::terminal_model::BlockIndex;
 use crate::terminal::ssh::error::SshErrorBlock;
 use crate::terminal::ssh::install_tmux::SshInstallTmuxBlock;
 use crate::terminal::ssh::warpify::SshWarpifyBlock;
-use crate::terminal::view::ambient_agent::AmbientAgentEntryBlock;
 use crate::terminal::view::ssh_remote_server_choice_view::SshRemoteServerChoiceView;
 use crate::terminal::view::ssh_remote_server_failed_banner::SshRemoteServerFailedBanner;
 use crate::terminal::warpify::success_block::WarpifySuccessBlock;
@@ -237,9 +236,6 @@ pub enum RichContentMetadata {
         bootstrap_success_block_handle: ViewHandle<WarpifySuccessBlock>,
     },
     AgentViewEntry(AgentViewEntryMetadata),
-    AmbientAgentBlock {
-        block_handle: ViewHandle<AmbientAgentEntryBlock>,
-    },
     InlineAgentViewHeader,
     AgentViewZeroState,
     TerminalViewZeroState,
