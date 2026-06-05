@@ -266,16 +266,15 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 **Method that worked:** collapse dead `if flag.is_enabled() {…}` branches first (compiles fine with flag still defined — it's just fewer readers), bank green; remove flag def LAST once its readers hit zero. Cascades (banner module, dialog subsystem, URI route, REMOTE_CONTROL, close-session widget) surface as dead-code/unused-import warnings after the readers drop — use `cargo check --features gui` as the worklist oracle. For a subsystem that's reachable only through a now-permanently-false gate (close-confirm dialog, share banners), trace it to its event emitter — if the emitter is itself gated on `shared_session_status().is_sharer()` (always false), the whole chain is dead and removes cleanly. When a UI chip lives in kept agent code, re-gate it on the OTHER (off-by-default) flag rather than ripping the agent subsystem — defers cleanly, preserves default behavior.
 
-### AI strip — current state (`626288e7`, 2026-06-05 session 51)
+### AI strip — current state (`b66611b8`, 2026-06-05 session 52)
 
-**Binary**: 737.1 MB (−1.7 MB total). 3-gate **84/56/85** (0/0/0 errors). Latest commit (see git log).
+**Binary**: 737.1 MB (−1.7 MB total). 3-gate **84/56/85** (0/0/0 errors). Latest commit `b66611b8`.
 
-**Session 51 handoff:**
-- Warnings: 84/56/85. Sessions 49–51: −(60+70+21) = −151 total across all 3 gates.
-- Session 51: execution_profiles dead stubs (−15), model_tests.rs deleted, set_credits_spent_for_test/insert_task_for_test/new_logged/anon_for_test deleted (−6 tests). −21 total session 51.
-- **TRUE DEAD-CODE FLOOR.** All remaining warnings in KEEP or BLOCKED modules. No more Warp-AI dead items reachable via dead-code sweeping.
-- To get more: must delete LIVE Warp-AI code (cascades new dead code). Biggest opportunity: `AmbientAgentViewModel` from ambient_agent/model.rs (never instantiated, but compiled as type) → cascade to spawn.rs, auth.
-- execution_profiles.rs: 1 remaining warning (stub methods that were alive in llms.rs). All others: KEEP per generic rule.
+**Session 52 handoff:**
+- Warnings: 84/56/85. Sessions 49–52: −151 total.
+- Session 52: Deleted spawn.rs + github_auth_url + retry_strategies + SpawnAgentResponse/spawn_agent from ai.rs (binary reduction, 0 net warnings). CLIAgentInputState::Open/CtrlG cluster deleted then reverted (user confirmed generic, KEEP). Plugin_manager not touched (generic).
+- **DEAD-CODE FLOOR.** All remaining warnings in KEEP or BLOCKED modules.
+- **Next:** Structural live-code deletion for binary reduction.
 
 **Previous state (`0d24336f`, 2026-06-01 session 4):**
 
