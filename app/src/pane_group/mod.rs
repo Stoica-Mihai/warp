@@ -5682,24 +5682,13 @@ impl PaneGroup {
     pub fn attach_execution_session_to_ambient_pane(
         &mut self,
         pane_id: PaneId,
-        session_id: SessionId,
+        _session_id: SessionId,
         ctx: &mut ViewContext<Self>,
     ) -> bool {
-        let Some(terminal_view) = self.terminal_view_from_pane_id(pane_id, ctx) else {
+        let Some(_terminal_view) = self.terminal_view_from_pane_id(pane_id, ctx) else {
             log::warn!("Tried to attach execution session to non-terminal pane {pane_id:?}");
             return false;
         };
-
-        if let Some(ambient_agent_view_model) = terminal_view
-            .as_ref(ctx)
-            .ambient_agent_view_model()
-            .cloned()
-        {
-            ambient_agent_view_model.update(ctx, |model, ctx| {
-                model.attach_execution_session(session_id, ctx);
-            });
-            return true;
-        }
 
         true
     }

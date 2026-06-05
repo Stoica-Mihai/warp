@@ -77,14 +77,6 @@ impl AutoCloudHandoffController {
         let (_window_id, _workspace, terminal_view) =
             Self::find_workspace_and_terminal(terminal_view_id, ctx)?;
 
-        if terminal_view
-            .as_ref(ctx)
-            .ambient_agent_view_model()
-            .is_some()
-        {
-            return None;
-        }
-
         if terminal_view.as_ref(ctx).has_active_long_running_command() {
             return None;
         }
