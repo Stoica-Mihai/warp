@@ -1,8 +1,7 @@
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
-use warp_core::channel::ChannelState;
-use warpui::{AppContext, SingletonEntity as _};
+use warpui::AppContext;
 
 use crate::ai::llms::LLMId;
 use crate::cloud_object::model::generic_string_model::{
@@ -13,10 +12,7 @@ use crate::cloud_object::{
     GenericCloudObject, GenericStringObjectFormat, GenericStringObjectUniqueKey, JsonObjectType,
     UniquePer,
 };
-use crate::settings::{
-    AISettings, AgentModeCommandExecutionPredicate, DEFAULT_COMMAND_EXECUTION_ALLOWLIST,
-    DEFAULT_COMMAND_EXECUTION_DENYLIST,
-};
+use crate::settings::{AgentModeCommandExecutionPredicate, DEFAULT_COMMAND_EXECUTION_DENYLIST};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ActionPermission {
@@ -104,19 +100,6 @@ pub enum RunAgentsPermission {
     Unknown,
 }
 
-impl RunAgentsPermission {
-    pub fn description(&self) -> &'static str {
-        match self {
-            RunAgentsPermission::NeverAllow => "The Agent cannot run child agents and the run_agents tool will not be available.",
-            RunAgentsPermission::AlwaysAllow => "Give the Agent full autonomy to run child agents without approval.",
-            RunAgentsPermission::AlwaysAsk => "Require explicit approval before the Agent runs child agents.",
-            RunAgentsPermission::Unknown => "Unknown setting.",
-        }
-    }
-    pub fn is_enabled(&self) -> bool { matches!(self, Self::AlwaysAllow | Self::AlwaysAsk) }
-    pub fn is_always_allow(&self) -> bool { matches!(self, Self::AlwaysAllow) }
-    pub fn is_never_allow(&self) -> bool { matches!(self, Self::NeverAllow | Self::Unknown) }
-}
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AskUserQuestionPermission {
@@ -128,22 +111,6 @@ pub enum AskUserQuestionPermission {
     Unknown,
 }
 
-impl AskUserQuestionPermission {
-    pub fn label(&self) -> &'static str {
-        match self {
-            AskUserQuestionPermission::Never => "Never ask",
-            AskUserQuestionPermission::AskExceptInAutoApprove => "Ask unless auto-approve",
-            AskUserQuestionPermission::AlwaysAsk | AskUserQuestionPermission::Unknown => "Always ask",
-        }
-    }
-    pub fn description(&self) -> &'static str {
-        match self {
-            AskUserQuestionPermission::AskExceptInAutoApprove | AskUserQuestionPermission::Unknown => "The Agent may ask a question and pause for your response, but will continue automatically when auto-approve is on.",
-            AskUserQuestionPermission::Never => "The Agent will not ask questions and will continue with its best judgment.",
-            AskUserQuestionPermission::AlwaysAsk => "The Agent may ask a question and will pause for your response even when auto-approve is on.",
-        }
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
@@ -202,23 +169,6 @@ impl Default for AIExecutionProfile {
 }
 
 impl AIExecutionProfile {
-    pub fn create_default_from_legacy_settings(app: &AppContext) -> Self {
-        let ai_settings = AISettings::as_ref(app);
-        Self {
-            name: "Default".to_string(),
-            is_default_profile: true,
-            command_denylist: ai_settings.agent_mode_command_execution_denylist.clone(),
-            command_allowlist: ai_settings
-                .agent_mode_command_execution_allowlist
-                .iter()
-                .filter(|cmd| !DEFAULT_COMMAND_EXECUTION_ALLOWLIST.contains(cmd))
-                .cloned()
-                .collect(),
-            directory_allowlist: ai_settings.agent_mode_coding_file_read_allowlist.clone(),
-            ..Default::default()
-        }
-    }
-
     #[cfg(feature = "agent_mode_evals")]
     pub fn create_agent_mode_eval_profile() -> Self {
         Self {
@@ -247,50 +197,6 @@ impl AIExecutionProfile {
         }
     }
 
-    pub fn create_default_cli_profile(is_sandboxed: bool, computer_use_override: Option<bool>) -> Self {
-        let command_denylist = if is_sandboxed { Vec::new() } else { DEFAULT_COMMAND_EXECUTION_DENYLIST.to_vec() };
-        let computer_use_permission = match computer_use_override {
-            Some(true) => {
-                if is_sandboxed {
-                    ComputerUsePermission::AlwaysAllow
-                } else {
-                    ComputerUsePermission::Never
-                }
-            }
-            Some(false) => ComputerUsePermission::Never,
-            None => {
-                if is_sandboxed && ChannelState::channel().is_dogfood() {
-                    ComputerUsePermission::AlwaysAllow
-                } else {
-                    ComputerUsePermission::Never
-                }
-            }
-        };
-        Self {
-            name: "Default (CLI)".to_owned(),
-            is_default_profile: true,
-            apply_code_diffs: ActionPermission::AlwaysAllow,
-            read_files: ActionPermission::AlwaysAllow,
-            execute_commands: ActionPermission::AlwaysAllow,
-            mcp_permissions: ActionPermission::AlwaysAllow,
-            write_to_pty: WriteToPtyPermission::AlwaysAllow,
-            ask_user_question: AskUserQuestionPermission::Never,
-            run_agents: RunAgentsPermission::AlwaysAllow,
-            command_denylist,
-            command_allowlist: DEFAULT_COMMAND_EXECUTION_ALLOWLIST.to_vec(),
-            directory_allowlist: Vec::new(),
-            mcp_allowlist: Vec::new(),
-            mcp_denylist: Vec::new(),
-            computer_use: computer_use_permission,
-            base_model: None,
-            coding_model: None,
-            cli_agent_model: None,
-            computer_use_model: None,
-            context_window_limit: None,
-            autosync_plans_to_warp_drive: false,
-            web_search_enabled: true,
-        }
-    }
 
 }
 
@@ -343,14 +249,11 @@ pub mod profiles {
     }
 
     pub struct AIExecutionProfileInfo {
-        id: ClientProfileId,
         data: AIExecutionProfile,
     }
     impl AIExecutionProfileInfo {
-        fn default_info() -> Self { Self { id: ClientProfileId(0), data: AIExecutionProfile::default() } }
-        pub fn id(&self) -> &ClientProfileId { &self.id }
+        fn default_info() -> Self { Self { data: AIExecutionProfile::default() } }
         pub fn data(&self) -> &AIExecutionProfile { &self.data }
-        pub fn sync_id(&self) -> Option<crate::server::ids::SyncId> { None }
     }
 
     #[allow(dead_code)]
