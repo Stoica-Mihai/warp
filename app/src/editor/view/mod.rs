@@ -57,8 +57,10 @@ use warp_util::user_input::UserInput;
 use warpui::accessibility::{AccessibilityContent, ActionAccessibilityContent, WarpA11yRole};
 use warpui::actions::StandardAction;
 use warpui::clipboard::ClipboardContent;
+#[cfg(feature = "voice_input")]
+use warpui::elements::ChildView;
 use warpui::elements::{
-    ChildView, Container, CornerRadius, CrossAxisAlignment, Flex, Hoverable, MainAxisSize,
+    Container, CornerRadius, CrossAxisAlignment, Flex, Hoverable, MainAxisSize,
     MouseStateHandle, ParentElement, Radius, Shrinkable, DEFAULT_UI_LINE_HEIGHT_RATIO,
 };
 use warpui::fonts::{Cache as FontCache, FamilyId, Properties, Weight};
@@ -99,10 +101,6 @@ use crate::editor::accept_autosuggestion_keybinding_view::AcceptAutosuggestionKe
 use crate::editor::autosuggestion_ignore_view::{AutosuggestionIgnore, AutosuggestionIgnoreEvent};
 use crate::editor::RangeExt;
 use crate::features::FeatureFlag;
-use crate::search::ai_context_menu::mixer::AIContextMenuSearchableAction;
-use crate::search::ai_context_menu::view::{
-    AIContextMenu, AIContextMenuCategory, AIContextMenuEvent,
-};
 #[cfg(feature = "voice_input")]
 use crate::settings::AISettingsChangedEvent;
 use crate::settings::{
@@ -1038,7 +1036,6 @@ pub enum EditorAction {
     #[cfg(feature = "voice_input")]
     ToggleVoiceInput(voice_input::VoiceInputToggledFrom),
     AttachFiles,
-    SetAIContextMenuOpen(bool),
     ReadAndProcessImagesAsync {
         num_images_user_attached: usize,
         file_paths: Vec<String>,
@@ -1407,7 +1404,6 @@ pub struct EditorOptions {
     /// If true, the user's [`CursorDisplayType`] will be respected.
     pub allow_user_cursor_preference: bool,
     pub convert_newline_to_space: bool,
-    pub include_ai_context_menu: bool,
     /// If true, this editor will delegate handling of paste events to its parent instead of
     /// inserting clipboard contents directly.
     pub delegate_paste_handling: bool,
@@ -1450,7 +1446,6 @@ impl Default for EditorOptions {
             middle_click_paste: true,
             allow_user_cursor_preference: false,
             convert_newline_to_space: false,
-            include_ai_context_menu: false,
             delegate_paste_handling: false,
             drag_drop_path_transformer: None,
             is_password: false,
@@ -1485,7 +1480,6 @@ impl From<SingleLineEditorOptions> for EditorOptions {
             middle_click_paste: options.middle_click_paste,
             allow_user_cursor_preference: options.allow_user_cursor_preference,
             convert_newline_to_space: options.convert_newline_to_space,
-            include_ai_context_menu: false,
             delegate_paste_handling: false,
             drag_drop_path_transformer: None,
             is_password: options.is_password,
@@ -1700,13 +1694,6 @@ impl ImageContextOptions {
     }
 }
 
-pub struct AIContextMenuState {
-    ai_context_menu: ViewHandle<AIContextMenu>,
-
-    /// The mouse handle for the at context menu icon.
-    at_context_menu_button_mouse_handle: MouseStateHandle,
-}
-
 pub struct EditorView {
     view_id: EntityId,
     editor_model: ModelHandle<EditorModel>,
@@ -1840,11 +1827,6 @@ pub struct EditorView {
 
     /// The mouse handle for the image context icon.
     image_context_button_mouse_handle: MouseStateHandle,
-
-    /// Because the AIContextMenu also contains a text editor,
-    /// we need to avoid infinite recursion and selectively
-    /// allow the creation of AIContextMenuState.
-    pub ai_context_menu_state: Option<AIContextMenuState>,
 
     /// Whether this editor is in AI input mode.
     is_ai_input: bool,
@@ -2983,53 +2965,6 @@ impl EditorView {
             },
         );
 
-        let ai_context_menu_state = if options.include_ai_context_menu {
-            let ai_context_menu = ctx.add_typed_action_view(AIContextMenu::new);
-            ctx.subscribe_to_view(
-                &ai_context_menu,
-                |me, _, event: &AIContextMenuEvent, ctx| {
-                    let _is_udi_enabled =
-                        InputSettings::as_ref(ctx).is_universal_developer_input_enabled(ctx);
-                    let _current_input_mode = if me.is_ai_input {
-                        InputType::AI
-                    } else {
-                        InputType::Shell
-                    };
-                    match event {
-                        AIContextMenuEvent::Close {
-                            item_count: _,
-                            query_length: _,
-                        } => {
-                            ctx.emit(Event::SetAIContextMenuOpen(false));
-                            ctx.focus_self();
-                            ctx.notify();
-                        }
-                        AIContextMenuEvent::ResultAccepted {
-                            action,
-                            item_count: _,
-                            query_length: _,
-                        } => {
-                            ctx.emit(Event::AcceptAIContextMenuItem(action.clone()));
-                            ctx.focus_self();
-                            ctx.notify();
-                        }
-                        AIContextMenuEvent::CategorySelected { category } => {
-                            ctx.emit(Event::SelectAIContextMenuCategory(*category));
-                            ctx.focus_self();
-                            ctx.notify();
-                        }
-                    }
-                },
-            );
-
-            Some(AIContextMenuState {
-                at_context_menu_button_mouse_handle: Default::default(),
-                ai_context_menu,
-            })
-        } else {
-            None
-        };
-
         Self {
             view_id: ctx.view_id(),
             editor_model,
@@ -3097,7 +3032,6 @@ impl EditorView {
             convert_newline_to_space: options.convert_newline_to_space,
             image_context_options: ImageContextOptions::Disabled,
             image_context_button_mouse_handle: Default::default(),
-            ai_context_menu_state,
             delegate_paste_handling: options.delegate_paste_handling,
             drag_drop_path_transformer: options.drag_drop_path_transformer,
             process_attached_images_future_handle: None,
@@ -3108,9 +3042,6 @@ impl EditorView {
 
     pub fn set_is_ai_input(&mut self, is_ai_input: bool, ctx: &mut ViewContext<Self>) {
         self.is_ai_input = is_ai_input;
-        if !self.is_ai_input {
-            ctx.emit(Event::SetAIContextMenuOpen(false));
-        }
         ctx.notify();
     }
 
@@ -7816,60 +7747,6 @@ impl EditorView {
         button.finish()
     }
 
-    pub fn render_ai_context_menu(&self) -> Option<Box<dyn Element>> {
-        if let Some(ai_context_menu_state) = &self.ai_context_menu_state {
-            Some(ChildView::new(&ai_context_menu_state.ai_context_menu).finish())
-        } else {
-            None
-        }
-    }
-
-    pub fn ai_context_menu(&self) -> Option<&ViewHandle<AIContextMenu>> {
-        self.ai_context_menu_state
-            .as_ref()
-            .map(|state| &state.ai_context_menu)
-    }
-
-    fn render_at_context_menu_button(
-        &self,
-        icon_size: f32,
-        appearance: &Appearance,
-    ) -> Option<Box<dyn Element>> {
-        let Some(ai_context_menu_state) = &self.ai_context_menu_state else {
-            return None;
-        };
-
-        let button = icon_button(
-            appearance,
-            icons::Icon::AtSign,
-            false,
-            ai_context_menu_state
-                .at_context_menu_button_mouse_handle
-                .clone(),
-        )
-        .with_style(UiComponentStyles {
-            width: Some(icon_size),
-            height: Some(icon_size),
-            padding: Some(Coords::uniform(icon_size / 10.)),
-            ..Default::default()
-        });
-        let button =
-            button
-                .with_tooltip_position(ButtonTooltipPosition::Above)
-                .with_tooltip(self.render_menu_button_tooltip(
-                    "Search files and directories".to_string(),
-                    appearance,
-                ))
-                .build()
-                .with_cursor(Cursor::PointingHand)
-                .on_click(move |ctx, _, _| {
-                    ctx.dispatch_typed_action(EditorAction::SetAIContextMenuOpen(true));
-                })
-                .finish();
-
-        Some(button)
-    }
-
     /// Commits the currently composed text from the IME (if there is any) to properly handle one of the following:
     /// - a new selection
     /// - clicking outside of the editor
@@ -7954,32 +7831,10 @@ impl EditorView {
         }
         let input_settings = InputSettings::as_ref(ctx);
         let is_universal_input_enabled = input_settings.is_universal_developer_input_enabled(ctx);
-        let is_any_ai_enabled = AISettings::as_ref(ctx).is_any_ai_enabled(ctx);
         let should_show_image = self.image_context_options.should_show_button()
             && !is_universal_input_enabled;
-        let should_show_at_context_menu = !is_universal_input_enabled
-            && is_any_ai_enabled
-            && {
-                if !self.is_ai_input {
-                    // In terminal mode, check the setting
-                    if !*InputSettings::as_ref(ctx).at_context_menu_in_terminal_mode {
-                        false
-                    } else {
-                        self.ai_context_menu_state
-                            .as_ref()
-                            .map(|state| state.ai_context_menu.as_ref(ctx).should_render(ctx))
-                            .unwrap_or(false)
-                    }
-                } else {
-                    // In AI mode, always allow if available
-                    self.ai_context_menu_state
-                        .as_ref()
-                        .map(|state| state.ai_context_menu.as_ref(ctx).should_render(ctx))
-                        .unwrap_or(false)
-                }
-            };
 
-        if !should_show_voice && !should_show_image && !should_show_at_context_menu {
+        if !should_show_voice && !should_show_image {
             return None;
         }
 
@@ -7988,17 +7843,6 @@ impl EditorView {
         let icon_size = self.line_height(font_cache, appearance);
 
         let mut controls = Flex::row().with_main_axis_size(MainAxisSize::Min);
-
-        if should_show_at_context_menu {
-            let at_context_menu_button = self.render_at_context_menu_button(icon_size, appearance);
-            if let Some(at_context_menu_button) = at_context_menu_button {
-                controls.add_child(
-                    Container::new(at_context_menu_button)
-                        .with_margin_left(4.)
-                        .finish(),
-                );
-            }
-        }
 
         if should_show_image {
             controls.add_child(
@@ -8139,9 +7983,6 @@ pub enum Event {
     UpdatePeers {
         operations: Rc<Vec<CrdtOperation>>,
     },
-    SetAIContextMenuOpen(bool),
-    AcceptAIContextMenuItem(AIContextMenuSearchableAction),
-    SelectAIContextMenuCategory(AIContextMenuCategory),
     ProcessingAttachedImages(bool),
     VoiceStateUpdated {
         is_listening: bool,
@@ -8360,19 +8201,6 @@ impl TypedActionView for EditorView {
             EmacsBinding => ctx.emit(Event::EmacsBindingUsed),
             DragAndDropFiles(paths) => {
                 self.drag_and_drop_files(paths, ctx);
-            }
-            SetAIContextMenuOpen(open) => {
-                if !self.is_ai_input && *open {
-                    // In terminal mode, check the setting before opening
-                    let input_settings = InputSettings::as_ref(ctx);
-                    if *input_settings.at_context_menu_in_terminal_mode {
-                        ctx.emit(Event::SetAIContextMenuOpen(*open));
-                    }
-                    // If setting is false, don't emit the event to open the menu
-                } else {
-                    // In AI mode or when closing, always allow
-                    ctx.emit(Event::SetAIContextMenuOpen(*open));
-                }
             }
             ImeCommit(text) => self.ime_commit(text, ctx),
             SetMarkedText {

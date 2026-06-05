@@ -91,8 +91,7 @@ impl InlineMenuType {
             | InputSuggestionsMode::HistoryUp { .. }
             | InputSuggestionsMode::CompletionSuggestions { .. }
             | InputSuggestionsMode::StaticWorkflowEnumSuggestions { .. }
-            | InputSuggestionsMode::DynamicWorkflowEnumSuggestions { .. }
-            | InputSuggestionsMode::AIContextMenu { .. } => None,
+            | InputSuggestionsMode::DynamicWorkflowEnumSuggestions { .. } => None,
         }
     }
 }

@@ -24,8 +24,19 @@ use warpui::text_layout::{ClipConfig, ClipDirection, ClipStyle};
 use warpui::{AppContext, Element, SingletonEntity};
 
 use crate::appearance::Appearance;
-use crate::search::ai_context_menu::safe_truncate;
 use crate::search::ItemHighlightState;
+
+fn safe_truncate(s: &mut String, new_len: usize) {
+    if new_len >= s.len() {
+        return;
+    }
+    // Truncate at a valid char boundary at or before new_len
+    let safe_len = (0..=new_len.min(s.len()))
+        .rev()
+        .find(|&i| s.is_char_boundary(i))
+        .unwrap_or(0);
+    s.truncate(safe_len);
+}
 
 pub const MAX_COMBINED_LENGTH: usize = 55;
 

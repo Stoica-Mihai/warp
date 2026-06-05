@@ -3827,7 +3827,7 @@ impl TerminalView {
 
         // Create attachment reference and key using the shared function
         let main_branch_name = metadata.map(|m| m.main_branch_name.clone());
-        let (attachment_reference, _diff_set_key) = create_attachment_reference_and_key(
+        let (_attachment_reference, _diff_set_key) = create_attachment_reference_and_key(
             &DiffSetScope::All,
             &diff_mode,
             main_branch_name.as_deref(),
@@ -3835,8 +3835,6 @@ impl TerminalView {
 
         // Insert the reference into the terminal input immediately
         self.input.update(ctx, |input, ctx| {
-            // Remove the @-trigger text (e.g. "@uncom") that was used to open the context menu.
-            input.replace_at_symbol_with_text(&attachment_reference, ctx);
             input.ensure_agent_mode_for_ai_features(
                 true,
                 Some(InputTypeAutoDetectionSource::AttachmentForcedAi),
@@ -6496,14 +6494,6 @@ impl TerminalView {
                                     // is known so the active session's working directory catches up.
                                     ctx.emit(Event::AppStateChanged);
 
-                                    if FeatureFlag::AIContextMenuEnabled.is_enabled() {
-                                        me.input.update(ctx, |input, ctx| {
-                                            input
-                                                .check_and_update_ai_context_menu_disabled_state(
-                                                    ctx,
-                                                );
-                                        });
-                                    }
                                     ctx.emit(Event::Pane(PaneEvent::RemoteRepoNavigated {
                                         remote_path: remote_path.clone(),
                                     }));
@@ -6558,15 +6548,6 @@ impl TerminalView {
                                                 ctx,
                                             );
                                         });
-
-                                        if FeatureFlag::AIContextMenuEnabled.is_enabled() {
-                                            me.input.update(ctx, |input, ctx| {
-                                                input
-                                                    .check_and_update_ai_context_menu_disabled_state(
-                                                        ctx,
-                                                    );
-                                            });
-                                        }
 
                                         me.start_lsp_server_in_active_pwd(ctx);
 

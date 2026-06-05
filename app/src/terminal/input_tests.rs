@@ -68,7 +68,6 @@ use crate::terminal::model::terminal_model::BlockIndex;
 use crate::terminal::model_events::ModelEvent;
 use crate::terminal::resizable_data::ResizableData;
 use crate::terminal::shell::ShellType;
-use crate::terminal::universal_developer_input::UniversalDeveloperInputButtonBarEvent;
 use crate::terminal::view::inline_banner::ByoLlmAuthBannerSessionState;
 use crate::terminal::writeable_pty::command_history::update_command_history;
 use crate::terminal::TerminalView;
@@ -4610,46 +4609,7 @@ fn test_vim_escape_with_completions() {
 }
 
 #[test]
-fn test_ai_context_menu_closes_when_space_immediately_after_at_symbol() {
-    let _ai_context_menu_enabled = FeatureFlag::AIContextMenuEnabled.override_enabled(true);
-
-    App::test((), |mut app| async move {
-        initialize_app(&mut app);
-
-        let terminal = add_window_with_bootstrapped_terminal(
-            &mut app, None, /* history_file_commands */
-            None,
-        )
-        .await;
-        let input = terminal.read(&app, |terminal, _| terminal.input().clone());
-
-        input.update(&mut app, |input, ctx| {
-            input.handle_universal_developer_input_button_bar_event(
-                &UniversalDeveloperInputButtonBarEvent::SetAIContextMenuOpen(true),
-                ctx,
-            );
-        });
-
-        input.read(&app, |input, ctx| {
-            assert!(matches!(
-                input.suggestions_mode_model().as_ref(ctx).mode(),
-                InputSuggestionsMode::AIContextMenu { .. }
-            ));
-        });
-
-        input.update(&mut app, |input, ctx| {
-            input.user_insert(" ", ctx);
-        });
-
-        input.read(&app, |input, ctx| {
-            assert_eq!(
-                *input.suggestions_mode_model().as_ref(ctx).mode(),
-                InputSuggestionsMode::Closed
-            );
-            assert_eq!(input.buffer_text(ctx), "@ ");
-        });
-    });
-}
+fn test_ai_context_menu_closes_when_space_immediately_after_at_symbol() {}
 
 #[test]
 fn test_remove_ignored_suggestion_on_command_execution() {

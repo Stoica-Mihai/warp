@@ -33,8 +33,6 @@ use crate::ai::blocklist::{BlocklistAIInputModel, InputConfig, InputType};
 use crate::ai::AIRequestUsageModel;
 use crate::network::NetworkStatus;
 #[cfg(not(target_family = "wasm"))]
-use crate::search::ai_context_menu::view::AIContextMenu;
-#[cfg(not(target_family = "wasm"))]
 use crate::settings::InputSettings;
 use crate::settings::{AISettings, AISettingsChangedEvent};
 use crate::settings_view::SettingsSection;
@@ -54,8 +52,6 @@ pub enum AtContextMenuDisabledReason {
     #[cfg(target_family = "wasm")]
     Wasm,
     #[cfg(not(target_family = "wasm"))]
-    NoObjectsAvailable,
-    #[cfg(not(target_family = "wasm"))]
     SshWithoutRemoteServer,
     #[cfg(not(target_family = "wasm"))]
     Subshell,
@@ -66,10 +62,6 @@ pub enum AtContextMenuDisabledReason {
 impl AtContextMenuDisabledReason {
     fn tooltip_text(&self) -> String {
         match self {
-            #[cfg(not(target_family = "wasm"))]
-            AtContextMenuDisabledReason::NoObjectsAvailable => {
-                "No available objects in the current context.".to_string()
-            }
             #[cfg(not(target_family = "wasm"))]
             AtContextMenuDisabledReason::SshWithoutRemoteServer => {
                 "Not supported in SSH sessions without remote server".to_string()
@@ -152,19 +144,6 @@ impl AtContextMenuDisabledReason {
         // Repo-based restrictions will be enforced at the category level
         // (e.g., Code will only be available inside a git repository).
 
-        // This condition kicks in if we're locked in shell mode and not in a git repository, so we have
-        // no categories available.
-        if AIContextMenu::get_categories_for_mode(
-            input_config.input_type.is_ai() || !input_config.is_locked,
-            false, /* is_in_ambient_agent */
-            false, /* is_cli_agent_input */
-            ctx,
-        )
-        .is_empty()
-        {
-            return Some(AtContextMenuDisabledReason::NoObjectsAvailable);
-        }
-
         None
     }
 }
@@ -233,7 +212,6 @@ impl CachedUIState {
 pub struct UniversalDeveloperInputButtonBar {
     terminal_view_id: EntityId,
     mic_button: ViewHandle<ActionButton>,
-    at_button: ViewHandle<ActionButton>,
     file_button: ViewHandle<ActionButton>,
     slash_command_button: ViewHandle<ActionButton>,
     segmented_control: ViewHandle<SegmentedControl<InputToggleMode>>,
@@ -246,7 +224,6 @@ pub enum UniversalDeveloperInputButtonBarAction {
     #[cfg(feature = "voice_input")]
     ToggleVoiceInput,
     SelectFile,
-    SetAIContextMenuOpen(bool),
     OpenSlashCommandMenu,
 }
 
@@ -256,7 +233,6 @@ pub enum UniversalDeveloperInputButtonBarEvent {
     InputTypeSelected(InputType),
     EnableAutoDetection,
     SelectFile,
-    SetAIContextMenuOpen(bool),
     ModelSelectorOpened,
     ModelSelectorClosed,
     OpenSettings(SettingsSection),
@@ -289,20 +265,6 @@ impl UniversalDeveloperInputButtonBar {
                 });
             }
             button
-        });
-
-        let at_button_view = ctx.add_typed_action_view(|_ctx| {
-            ActionButton::new("", PromptIconButtonTheme::new(false))
-                .with_icon(Icon::AtSign)
-                .with_tooltip(AT_CONTEXT_TOOLTIP)
-                .with_size(button_size)
-                .with_disabled_theme(UDIDisabledButtonTheme)
-                .with_tooltip_alignment(TooltipAlignment::Left)
-                .on_click(|ctx| {
-                    ctx.dispatch_typed_action(
-                        UniversalDeveloperInputButtonBarAction::SetAIContextMenuOpen(true),
-                    );
-                })
         });
 
         let file_button_view = ctx.add_typed_action_view(|_ctx| {
@@ -463,7 +425,6 @@ impl UniversalDeveloperInputButtonBar {
         let mut me = Self {
             terminal_view_id,
             mic_button: mic_button_view,
-            at_button: at_button_view,
             file_button: file_button_view,
             slash_command_button: slash_command_menu_view,
             segmented_control: segmented_control_view,
@@ -521,24 +482,6 @@ impl UniversalDeveloperInputButtonBar {
             });
     }
 
-    /// Update the at button's disabled state based on whether AI context menu should render
-    pub fn set_at_button_disabled(
-        &mut self,
-        disable_reason: Option<AtContextMenuDisabledReason>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.at_button.update(ctx, |button, ctx| {
-            button.set_disabled(disable_reason.is_some(), ctx);
-            button.set_tooltip(
-                disable_reason
-                    .map(|reason| reason.tooltip_text())
-                    .or(Some(AT_CONTEXT_TOOLTIP.to_string())),
-                ctx,
-            );
-            ctx.notify();
-        });
-    }
-
     /// Update the slash button's disabled state based on whether the buffer is empty.
     pub fn set_slash_button_disabled(&mut self, should_disable: bool, ctx: &mut ViewContext<Self>) {
         self.slash_command_button.update(ctx, |button, ctx| {
@@ -583,10 +526,6 @@ impl UniversalDeveloperInputButtonBar {
         let theme = PromptIconButtonTheme::new(is_blurred);
 
         self.mic_button.update(ctx, |button, ctx| {
-            button.set_theme(theme.clone(), ctx);
-        });
-
-        self.at_button.update(ctx, |button, ctx| {
             button.set_theme(theme.clone(), ctx);
         });
 
@@ -653,8 +592,6 @@ impl View for UniversalDeveloperInputButtonBar {
                 buttons = buttons.with_child(ChildView::new(&self.mic_button).finish());
             }
 
-            buttons = buttons.with_child(ChildView::new(&self.at_button).finish());
-
             buttons = buttons.with_child(ChildView::new(&self.file_button).finish());
 
             let show_model_selector = FeatureFlag::ProfilesDesignRevamp.is_enabled()
@@ -694,11 +631,6 @@ impl TypedActionView for UniversalDeveloperInputButtonBar {
             }
             UniversalDeveloperInputButtonBarAction::SelectFile => {
                 ctx.emit(UniversalDeveloperInputButtonBarEvent::SelectFile);
-            }
-            UniversalDeveloperInputButtonBarAction::SetAIContextMenuOpen(open) => {
-                ctx.emit(UniversalDeveloperInputButtonBarEvent::SetAIContextMenuOpen(
-                    *open,
-                ));
             }
             UniversalDeveloperInputButtonBarAction::OpenSlashCommandMenu => {
                 ctx.emit(UniversalDeveloperInputButtonBarEvent::OpenSlashCommandMenu);
