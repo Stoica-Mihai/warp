@@ -59,7 +59,6 @@ pub enum OperationSuccessType {
 
 #[derive(Debug, PartialEq)]
 pub enum ObjectOperation {
-    Create { initiated_by: InitiatedBy },
     Update,
     MoveToFolder,
     MoveToDrive,

@@ -32,7 +32,6 @@ use warpui::{
     ViewContext, ViewHandle, WindowId,
 };
 
-use super::aliases::WorkflowAliases;
 use super::command_parser::WorkflowCommandDisplayData;
 use super::{CloudWorkflowModel, WorkflowSource, WorkflowType, WorkflowViewMode};
 use crate::secret_redaction::find_secrets_in_text;
@@ -547,37 +546,6 @@ impl WorkflowView {
         ctx: &mut ViewContext<Self>,
     ) {
         let UpdateManagerEvent::ObjectOperationComplete { result } = event;
-
-        if let (ObjectOperation::Create { .. }, OperationSuccessType::Success) =
-            (&result.operation, &result.success_type)
-        {
-            if self.workflow_id.into_client() == result.client_id {
-                let server_id = result
-                    .server_id
-                    .expect("Expect server id on success creation");
-
-                // The aliases were created with the old client sync id.  Update them to the new server id.
-                WorkflowAliases::handle(ctx).update(ctx, |aliases, ctx| {
-                    if let Result::Err(e) =
-                        aliases.update_workflow_id(self.workflow_id, server_id.into(), ctx)
-                    {
-                        log::error!("Failed to update aliases after workflow creation: {e:?}");
-                    }
-                });
-
-                if let Some(workflow) =
-                    CloudModel::as_ref(ctx).get_workflow_by_uid(&server_id.uid())
-                {
-                    self.load(
-                        workflow.clone(),
-                        &OpenWarpDriveObjectSettings::default(),
-                        self.workflow_view_mode,
-                        ctx,
-                    );
-                }
-                ctx.notify();
-            }
-        }
 
         if let (ObjectOperation::Update, OperationSuccessType::Success) =
             (&result.operation, &result.success_type)

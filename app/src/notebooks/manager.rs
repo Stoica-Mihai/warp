@@ -14,7 +14,7 @@ use crate::cloud_object::Owner;
 use crate::drive::OpenWarpDriveObjectSettings;
 use crate::pane_group::{NotebookPane, PaneContent};
 use crate::server::cloud_objects::update_manager::{
-    ObjectOperation, OperationSuccessType, UpdateManager, UpdateManagerEvent,
+    UpdateManager, UpdateManagerEvent,
 };
 use crate::server::ids::SyncId;
 use crate::workspace::PaneViewLocator;
@@ -286,35 +286,9 @@ impl NotebookManager {
     fn handle_update_manager_event(
         &mut self,
         event: &UpdateManagerEvent,
-        ctx: &mut ModelContext<Self>,
+        _ctx: &mut ModelContext<Self>,
     ) {
-        let result = event.result();
-
-        if !matches!(&result.success_type, OperationSuccessType::Success) {
-            return;
-        }
-        if let ObjectOperation::Create { .. } = result.operation {
-            let server_id = result.server_id.expect("Expect server id on success");
-            let Some(server_id) = CloudModel::as_ref(ctx)
-                .get_notebook_by_uid(&server_id.uid())
-                .and_then(|notebook| notebook.id.into_server())
-            else {
-                return;
-            };
-            let Some(client_id) = result.client_id else {
-                return;
-            };
-
-            if let Some(mut pane) = self.panes_by_hashed_id.remove(&client_id.to_string()) {
-                pane.notebook_id = SyncId::ServerId(server_id);
-                self.panes_by_hashed_id
-                    .insert(server_id.uid().clone(), pane);
-            }
-            if let Some(parse_status) = self.raw_text_by_hashed_id.remove(&client_id.to_string()) {
-                self.raw_text_by_hashed_id
-                    .insert(server_id.uid(), parse_status);
-            }
-        }
+        let _ = event;
     }
 
     /// Swap the ID of the notebook open in a pane. This assumes the pane location and view are

@@ -1,6 +1,6 @@
 use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 
-use super::{CloudNotebookModel, NotebookId};
+use super::CloudNotebookModel;
 use crate::ai::document::ai_document_model::AIDocumentId;
 use crate::cloud_object::breadcrumbs::ContainingObject;
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
@@ -112,21 +112,6 @@ impl ActiveNotebookData {
         let result = event.result();
 
         match (&result.operation, &result.success_type) {
-            (ObjectOperation::Create { .. }, OperationSuccessType::Success) => {
-                if let Some(current_id) = self.id() {
-                    if current_id.into_client() == result.client_id {
-                        let server_id = result.server_id.expect("Expect server id on success");
-                        let notebook_id: NotebookId = server_id.into();
-                        self.feature_not_available = false;
-                        self.saving_status = SavingStatus::Saved;
-                        self.active_notebook =
-                            ActiveNotebook::CommittedNotebook(SyncId::ServerId(notebook_id.into()));
-                        ctx.emit(ActiveNotebookDataEvent::BreadcrumbsChanged);
-                        ctx.emit(ActiveNotebookDataEvent::CreatedOnServer);
-                        ctx.notify();
-                    }
-                }
-            }
             (ObjectOperation::Update, OperationSuccessType::Success) => {
                 if let Some(current_id) = self.id() {
                     let server_id = result.server_id.expect("Expect server id on success");
@@ -364,8 +349,6 @@ pub enum ActiveNotebookDataEvent {
     EditRejected,
     /// The notebook's breadcrumbs were updated.
     BreadcrumbsChanged,
-    /// This notebook was created on the server.
-    CreatedOnServer,
     /// This notebook was trashed or untrashed (used for refreshing pane overflow items)
     TrashStatusChanged,
     // This notebook was moved to a shared space.

@@ -36,7 +36,7 @@ use crate::notebooks::file::MarkdownDisplayMode;
 use crate::notebooks::{CloudNotebookModel, NotebookId};
 use crate::persistence::ModelEvent;
 use crate::server::cloud_objects::update_manager::{
-    InitiatedBy, ObjectOperation, OperationSuccessType, UpdateManager, UpdateManagerEvent,
+    InitiatedBy, UpdateManager, UpdateManagerEvent,
 };
 use crate::server::ids::{ClientId, ServerId, SyncId};
 use crate::settings::FontSettings;
@@ -281,58 +281,9 @@ impl AIDocumentModel {
     fn handle_update_manager_event(
         &mut self,
         event: &UpdateManagerEvent,
-        ctx: &mut ModelContext<Self>,
+        _ctx: &mut ModelContext<Self>,
     ) {
-        let result = event.result();
-        if !matches!(result.operation, ObjectOperation::Create { .. })
-            || result.success_type != OperationSuccessType::Success
-        {
-            return;
-        }
-        let (Some(client_id), Some(server_id)) = (result.client_id, result.server_id) else {
-            return;
-        };
-
-        // If we're waiting on a Plans folder to complete creation, ensure the Plans folder exists
-        // (creating it if needed) and if it has a ServerId, process the pending document queue.
-        //
-        // NOTE: this handler runs for *all* Warp Drive object creations, so we must only create the
-        // Plans folder when we actually have a plan notebook waiting to be created.
-        if !self.pending_document_queue.is_empty() {
-            if let Some(owner) = Self::get_plan_owner(ctx) {
-                if let Some(folder_id) = self.get_or_create_plan_folder(owner, ctx).into_server() {
-                    let queue = std::mem::take(&mut self.pending_document_queue);
-
-                    for pending in queue {
-                        self.create_notebook_in_plan_folder(
-                            pending.id,
-                            &pending.title,
-                            &pending.content,
-                            owner,
-                            folder_id,
-                            ctx,
-                        );
-                        ctx.emit(AIDocumentModelEvent::DocumentSaveStatusUpdated(pending.id));
-                    }
-                }
-            }
-        }
-
-        let Some((doc_id, doc)) = self
-            .documents
-            .iter_mut()
-            .find(|(_, doc)| doc.sync_id.and_then(|id| id.into_client()) == Some(client_id))
-        else {
-            return;
-        };
-
-        let conversation_id = doc.conversation_id;
-        let ai_document_id = *doc_id;
-        doc.sync_id = Some(SyncId::ServerId(server_id));
-        ctx.emit(AIDocumentModelEvent::DocumentSaveStatusUpdated(
-            ai_document_id,
-        ));
-
+        let _ = event;
     }
 
     /// Create a new document with default title/content and return its ID.

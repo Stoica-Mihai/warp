@@ -11785,8 +11785,7 @@ impl Workspace {
                                 let mut new_toast =
                                     DismissibleToast::success(message).with_object_id(object_id);
                                 if let Some(notebook) = cloned_notebook {
-                                    if (matches!(result.operation, ObjectOperation::Create { .. })
-                                        || result.operation == ObjectOperation::Update)
+                                    if result.operation == ObjectOperation::Update
                                         && notebook.model().ai_document_id.is_some()
                                     {
                                         // This is a plan. Only show the "Plan synced" toast if the plan is open in
@@ -11822,9 +11821,7 @@ impl Workspace {
                                 }
 
                                 if let Some(workflow) = cloned_workflow {
-                                    if matches!(result.operation, ObjectOperation::Create { .. })
-                                        || result.operation == ObjectOperation::Update
-                                    {
+                                    if result.operation == ObjectOperation::Update {
                                         new_toast = new_toast.with_link(
                                             ToastLink::new("View".to_string()).with_onclick_action(
                                                 WorkspaceAction::ViewObjectInWarpDrive(
@@ -11922,25 +11919,6 @@ impl Workspace {
             }
         }
 
-        // If this was a successful personal object creation, then potentially show the sharing
-        // onboarding block.
-        if result.success_type == OperationSuccessType::Success
-            && matches!(result.operation, ObjectOperation::Create { .. })
-        {
-            if let Some(created_object) = result
-                .server_id
-                .and_then(|id| CloudModel::as_ref(ctx).get_by_uid(&id.uid()))
-            {
-                if created_object.space(ctx) == Space::Personal
-                    && created_object.renders_in_warp_drive()
-                {
-                    self.check_and_trigger_drive_sharing_onboarding_block(
-                        created_object.cloud_object_type_and_id(),
-                        ctx,
-                    );
-                }
-            }
-        }
     }
 
     fn restore_previous_workspace_state(&mut self, ctx: &mut ViewContext<Self>) {

@@ -8,7 +8,7 @@ use crate::cloud_object::Owner;
 use crate::env_vars::view::env_var_collection::EnvVarCollectionView;
 use crate::pane_group::{EnvVarCollectionPane, PaneContent};
 use crate::server::cloud_objects::update_manager::{
-    ObjectOperation, OperationSuccessType, UpdateManager, UpdateManagerEvent,
+    UpdateManager, UpdateManagerEvent,
 };
 use crate::server::ids::SyncId;
 use crate::{safe_warn, PaneViewLocator, WindowId};
@@ -110,7 +110,6 @@ impl EnvVarCollectionManager {
         let entry = self.panes_by_hashed_id.entry(env_var_collection_id.uid());
         if let Entry::Vacant(entry) = entry {
             entry.insert(EnvVarCollectionPaneData {
-                env_var_collection_id,
                 window_id,
                 locator: PaneViewLocator {
                     pane_group_id,
@@ -175,31 +174,9 @@ impl EnvVarCollectionManager {
     fn handle_update_manager_event(
         &mut self,
         event: &UpdateManagerEvent,
-        ctx: &mut ModelContext<Self>,
+        _ctx: &mut ModelContext<Self>,
     ) {
-        let result = event.result();
-
-        if !matches!(&result.success_type, OperationSuccessType::Success) {
-            return;
-        }
-        if let ObjectOperation::Create { .. } = result.operation {
-            let server_id = result.server_id.expect("Expect server id on success");
-            let Some(server_id) = CloudModel::as_ref(ctx)
-                .get_env_var_collection_by_uid(&server_id.uid())
-                .and_then(|collection| collection.id.into_server())
-            else {
-                return;
-            };
-            let Some(client_id) = result.client_id else {
-                return;
-            };
-
-            if let Some(mut pane) = self.panes_by_hashed_id.remove(&client_id.to_string()) {
-                pane.env_var_collection_id = SyncId::ServerId(server_id);
-                self.panes_by_hashed_id
-                    .insert(server_id.uid().clone(), pane);
-            }
-        }
+        let _ = event;
     }
 
     pub fn reset(&mut self) {
@@ -208,7 +185,6 @@ impl EnvVarCollectionManager {
 }
 
 struct EnvVarCollectionPaneData {
-    env_var_collection_id: SyncId,
     window_id: WindowId,
     handle: WeakViewHandle<EnvVarCollectionView>,
     locator: PaneViewLocator,

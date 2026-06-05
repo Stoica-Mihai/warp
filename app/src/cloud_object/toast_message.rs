@@ -16,11 +16,6 @@ impl CloudObjectToastMessage {
     ) -> Option<String> {
         let object_name = object.model_type_name().to_owned();
         match (object.object_type(), operation, success_type) {
-            // We should only show toasts for creates initiated by the user, not by the system
-            (_, ObjectOperation::Create { initiated_by: InitiatedBy::User }, OperationSuccessType::Success) => {
-                let containing_object_name = object.containing_object_name(app);
-                Some(format!("{object_name} saved to {containing_object_name}"))
-            }
             // notebooks intentionally do not have an update message, as they are updated
             // as the user types and so toasts would be VERY noisy
             (

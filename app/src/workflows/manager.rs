@@ -10,7 +10,7 @@ use crate::cloud_object::{GenericCloudObject, Owner};
 use crate::drive::OpenWarpDriveObjectSettings;
 use crate::pane_group::{PaneContent, WorkflowPane};
 use crate::server::cloud_objects::update_manager::{
-    ObjectOperation, OperationSuccessType, UpdateManager, UpdateManagerEvent,
+    UpdateManager, UpdateManagerEvent,
 };
 use crate::server::ids::{ClientId, SyncId};
 use crate::workflows::workflow_view::WorkflowView;
@@ -145,7 +145,6 @@ impl WorkflowManager {
         let entry = self.panes_by_hashed_id.entry(workflow_id.uid());
         if let Entry::Vacant(entry) = entry {
             entry.insert(WorkflowPaneData {
-                workflow_id,
                 window_id,
                 locator: PaneViewLocator {
                     pane_group_id,
@@ -180,31 +179,9 @@ impl WorkflowManager {
     fn handle_update_manager_event(
         &mut self,
         event: &UpdateManagerEvent,
-        ctx: &mut ModelContext<Self>,
+        _ctx: &mut ModelContext<Self>,
     ) {
-        let UpdateManagerEvent::ObjectOperationComplete { result } = event;
-
-        if !matches!(&result.success_type, OperationSuccessType::Success) {
-            return;
-        }
-        if let ObjectOperation::Create { .. } = result.operation {
-            let server_id = result.server_id.expect("Expect server id on success");
-            let Some(server_id) = CloudModel::as_ref(ctx)
-                .get_workflow_by_uid(&server_id.uid())
-                .and_then(|workflow| workflow.id.into_server())
-            else {
-                return;
-            };
-            let Some(client_id) = result.client_id else {
-                return;
-            };
-
-            if let Some(mut pane) = self.panes_by_hashed_id.remove(&client_id.to_string()) {
-                pane.workflow_id = SyncId::ServerId(server_id);
-                self.panes_by_hashed_id
-                    .insert(server_id.uid().clone(), pane);
-            }
-        }
+        let _ = event;
     }
 
     pub fn reset(&mut self) {
@@ -213,7 +190,6 @@ impl WorkflowManager {
 }
 
 struct WorkflowPaneData {
-    workflow_id: SyncId,
     window_id: WindowId,
     locator: PaneViewLocator,
 }

@@ -566,9 +566,6 @@ impl NotebookView {
             ActiveNotebookDataEvent::BreadcrumbsChanged => {
                 self.update_breadcrumbs(ctx);
             }
-            ActiveNotebookDataEvent::CreatedOnServer => {
-                ctx.emit(NotebookEvent::Pane(PaneEvent::AppStateChanged));
-            }
             ActiveNotebookDataEvent::TrashStatusChanged | ActiveNotebookDataEvent::MovedToSpace => {
                 self.pane_configuration.update(ctx, |pane_config, ctx| {
                     pane_config.refresh_pane_header_overflow_menu_items(ctx)
