@@ -110,8 +110,7 @@ fn initialize_app(app: &mut App) {
     app.add_singleton_model(NotebookKeybindings::new);
     app.add_singleton_model(TerminalKeybindings::new);
     app.add_singleton_model(|_| CLIAgentSessionsModel::new());
-    app.add_singleton_model(crate::ai::blocklist::BlocklistAIPermissions::new);
-        app.add_singleton_model(|ctx| {
+    app.add_singleton_model(|ctx| {
         AIExecutionProfilesModel::new(&crate::LaunchMode::new_for_unit_test(), ctx)
     });
     app.add_singleton_model(|ctx| {

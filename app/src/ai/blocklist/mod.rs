@@ -12,7 +12,6 @@ pub(crate) use session_context::SessionContext;
 pub mod history_model {}
 mod input_config;
 pub(crate) mod keystroke_render;
-mod permissions;
 pub(crate) mod persistence;
 pub mod prompt;
 pub(super) mod view_util;
@@ -69,9 +68,6 @@ mod input_stubs {
         pub fn unlocked_if_autodetection_enabled(self, _: bool, _: &warpui::AppContext) -> InputConfig { self.input_config }
     }
 }
-#[cfg(test)]
-pub use permissions::{BlocklistAIPermissions, CommandExecutionPermissionAllowedReason};
-
 pub(crate) use persistence::{PersistedAIInput, SerializedBlockListItem};
 pub(crate) use view_util::{
     ai_brand_color, ai_indicator_height,
