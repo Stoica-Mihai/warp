@@ -22,6 +22,7 @@ use crate::search::data_source::{Query, QueryResult};
 use crate::search::mixer::DataSourceRunErrorWrapper;
 use crate::search::result_renderer::ItemHighlightState;
 use crate::search::{SearchItem, SyncDataSource};
+use crate::terminal::cli_agent_sessions::{CLIAgentInputState, CLIAgentSessionsModel};
 use crate::terminal::input::inline_menu::{
     default_navigation_message_items, styles as inline_styles, InlineMenuAction,
     InlineMenuMessageArgs, InlineMenuType,
@@ -92,8 +93,11 @@ impl SkillSelectorDataSource {
 
     /// Returns the supported skill providers for the active CLI agent, or `None` if
     /// CLI agent input is not open.
-    fn active_cli_agent_providers(&self, _app: &AppContext) -> Option<&'static [SkillProvider]> {
-        None
+    fn active_cli_agent_providers(&self, app: &AppContext) -> Option<&'static [SkillProvider]> {
+        CLIAgentSessionsModel::as_ref(app)
+            .session(self.terminal_view_id)
+            .filter(|s| matches!(s.input_state, CLIAgentInputState::Open { .. }))
+            .map(|s| s.agent.supported_skill_providers())
     }
 
     pub fn set_include_bundled(&mut self, include_bundled: bool) {

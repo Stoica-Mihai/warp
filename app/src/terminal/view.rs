@@ -307,7 +307,8 @@ use crate::terminal::cli_agent_sessions::listener::{
 #[cfg(not(target_family = "wasm"))]
 use crate::terminal::cli_agent_sessions::plugin_manager::{plugin_manager_for, PluginModalKind};
 use crate::terminal::cli_agent_sessions::{
-    CLIAgentSessionStatus, CLIAgentSessionsModel, CLIAgentSessionsModelEvent,
+    CLIAgentInputState, CLIAgentSessionStatus, CLIAgentSessionsModel,
+    CLIAgentSessionsModelEvent,
 };
 use crate::terminal::color::List;
 use crate::terminal::command_corrections_denylist::COMMAND_CORRECTIONS_PREFERRED_DENYLIST;
@@ -14349,8 +14350,10 @@ impl TerminalView {
 
     /// Returns true when cursor rendering should be suppressed because the
     /// CLI agent rich input is open.
-    fn should_hide_cli_agent_cursor_cell(&self, _app: &AppContext) -> bool {
-        false
+    fn should_hide_cli_agent_cursor_cell(&self, app: &AppContext) -> bool {
+        CLIAgentSessionsModel::as_ref(app)
+            .session(self.view_id)
+            .is_some_and(|s| matches!(s.input_state, CLIAgentInputState::Open { .. }))
     }
 
     fn render_block_list_element(

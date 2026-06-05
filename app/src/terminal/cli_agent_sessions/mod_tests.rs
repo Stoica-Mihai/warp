@@ -1,7 +1,9 @@
 use super::event::{parse_event, CLIAgentEvent, CLIAgentEventPayload, CLIAgentEventType};
 use super::{
-    CLIAgentInputState, CLIAgentSession, CLIAgentSessionContext, CLIAgentSessionStatus,
+    CLIAgentInputEntrypoint, CLIAgentInputState, CLIAgentSession, CLIAgentSessionContext,
+    CLIAgentSessionStatus, CLIAgentSessionsModel,
 };
+use crate::ai::blocklist::{InputConfig, InputType};
 use crate::terminal::CLIAgent;
 
 #[test]
@@ -235,6 +237,132 @@ fn parse_pi_stop_notification() {
 }
 
 #[test]
+fn apply_event_preserves_input_session() {
+    let input_state = CLIAgentInputState::Open {
+        entrypoint: CLIAgentInputEntrypoint::CtrlG,
+        previous_input_config: InputConfig {
+            input_type: InputType::Shell,
+            is_locked: false,
+        },
+        previous_was_lock_set_with_empty_buffer: true,
+    };
+    let mut session = CLIAgentSession {
+        agent: CLIAgent::Claude,
+        status: CLIAgentSessionStatus::InProgress,
+        session_context: CLIAgentSessionContext::default(),
+        input_state,
+        should_auto_toggle_input: false,
+        listener: None,
+        remote_host: None,
+        plugin_version: None,
+        draft_text: None,
+        custom_command_prefix: None,
+    };
+
+    let event = CLIAgentEvent {
+        v: 1,
+        agent: CLIAgent::Claude,
+        event: CLIAgentEventType::PermissionRequest,
+        session_id: Some("abc".to_string()),
+        cwd: Some("/tmp/proj".to_string()),
+        project: Some("proj".to_string()),
+        payload: CLIAgentEventPayload {
+            summary: Some("Needs approval".to_string()),
+            ..Default::default()
+        },
+    };
+
+    session.apply_event(&event);
+
+    assert_eq!(session.input_state, input_state);
+}
+
+#[test]
+fn is_remote_returns_true_when_remote_host_is_set() {
+    let session = CLIAgentSession {
+        agent: CLIAgent::Claude,
+        status: CLIAgentSessionStatus::InProgress,
+        session_context: CLIAgentSessionContext::default(),
+        input_state: CLIAgentInputState::Closed,
+        should_auto_toggle_input: false,
+        listener: None,
+        plugin_version: None,
+        draft_text: None,
+        remote_host: Some("user@devbox".to_owned()),
+        custom_command_prefix: None,
+    };
+    assert!(session.is_remote());
+}
+
+#[test]
+fn is_remote_returns_false_when_remote_host_is_none() {
+    let session = CLIAgentSession {
+        agent: CLIAgent::Claude,
+        status: CLIAgentSessionStatus::InProgress,
+        session_context: CLIAgentSessionContext::default(),
+        input_state: CLIAgentInputState::Closed,
+        should_auto_toggle_input: false,
+        listener: None,
+        remote_host: None,
+        plugin_version: None,
+        draft_text: None,
+        custom_command_prefix: None,
+    };
+    assert!(!session.is_remote());
+}
+
+#[test]
+fn local_failure_is_shared_across_local_sessions() {
+    let mut model = CLIAgentSessionsModel::new();
+
+    model.record_plugin_auto_failure(CLIAgent::Claude, None);
+
+    assert!(model.has_plugin_auto_failed(CLIAgent::Claude, &None));
+}
+
+#[test]
+fn local_failure_does_not_affect_remote_host() {
+    let mut model = CLIAgentSessionsModel::new();
+
+    model.record_plugin_auto_failure(CLIAgent::Claude, None);
+
+    let remote = Some("user@devbox".to_owned());
+    assert!(!model.has_plugin_auto_failed(CLIAgent::Claude, &remote));
+}
+
+#[test]
+fn remote_failure_does_not_affect_local() {
+    let mut model = CLIAgentSessionsModel::new();
+
+    model.record_plugin_auto_failure(CLIAgent::Claude, Some("user@devbox".to_owned()));
+
+    assert!(!model.has_plugin_auto_failed(CLIAgent::Claude, &None));
+}
+
+#[test]
+fn remote_failures_are_independent_per_host() {
+    let mut model = CLIAgentSessionsModel::new();
+
+    let host_a = Some("user@host-a".to_owned());
+    let host_b = Some("user@host-b".to_owned());
+
+    model.record_plugin_auto_failure(CLIAgent::Claude, host_a.clone());
+
+    assert!(model.has_plugin_auto_failed(CLIAgent::Claude, &host_a));
+    assert!(!model.has_plugin_auto_failed(CLIAgent::Claude, &host_b));
+}
+
+#[test]
+fn failure_tracking_is_independent_per_agent() {
+    let mut model = CLIAgentSessionsModel::new();
+
+    model.record_plugin_auto_failure(CLIAgent::Claude, None);
+
+    assert!(model.has_plugin_auto_failed(CLIAgent::Claude, &None));
+    assert!(!model.has_plugin_auto_failed(CLIAgent::Gemini, &None));
+}
+
+#[test]
 fn session_start_sets_plugin_version() {
     let mut session = CLIAgentSession {
         agent: CLIAgent::Claude,
@@ -244,6 +372,7 @@ fn session_start_sets_plugin_version() {
         should_auto_toggle_input: false,
         listener: None,
         plugin_version: None,
+        draft_text: None,
         remote_host: None,
         custom_command_prefix: None,
     };
@@ -275,6 +404,7 @@ fn session_start_without_plugin_version_leaves_none() {
         should_auto_toggle_input: false,
         listener: None,
         plugin_version: None,
+        draft_text: None,
         remote_host: None,
         custom_command_prefix: None,
     };
@@ -312,6 +442,7 @@ fn blocked_claude_session_with_permission_state() -> CLIAgentSession {
         should_auto_toggle_input: false,
         listener: None,
         plugin_version: None,
+        draft_text: None,
         remote_host: None,
         custom_command_prefix: None,
     }
@@ -426,6 +557,7 @@ fn permission_request_still_populates_summary_and_tool_fields() {
         should_auto_toggle_input: false,
         listener: None,
         plugin_version: None,
+        draft_text: None,
         remote_host: None,
         custom_command_prefix: None,
     };
