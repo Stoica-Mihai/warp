@@ -3823,13 +3823,6 @@ impl CoreEditorModel for CodeEditorModel {
 }
 
 impl CodeEditorModel {
-    pub fn open_comment_line(&mut self, line: &EditorLineLocation, ctx: &mut ModelContext<Self>) {
-        self.comments.update(ctx, |comments, ctx| {
-            comments.pending_comment = PendingComment::Open { line: line.clone() };
-            ctx.emit(PendingCommentEvent::NewPendingComment(line.clone()));
-        });
-    }
-
     pub fn reopen_comment_line(
         &mut self,
         id: &CommentId,
