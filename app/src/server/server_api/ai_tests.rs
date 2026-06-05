@@ -1,14 +1,13 @@
-use chrono::{TimeZone, Utc};
 use futures::executor::block_on;
 
 use super::super::auth::CLOUD_AGENT_ID_HEADER;
 use super::super::ServerApi;
 use super::{
     build_list_agent_runs_url,
-    AgentMessageHeader, AgentRunEvent, AgentSource, AmbientAgentTaskState, Artifact,
-    ArtifactDownloadResponse, ArtifactType, ConnectedSelfHostedWorker, ExecutionLocation,
+    AmbientAgentTaskState, Artifact,
+    ConnectedSelfHostedWorker,
     ListConnectedSelfHostedWorkersResponse, ListRunsResponse,
-    ReadAgentMessageResponse, RunSortBy, RunSortOrder, SpawnAgentRequest,
+    SpawnAgentRequest,
     TaskListFilter, UserQueryMode, CONNECTED_SELF_HOSTED_WORKERS_PATH,
 };
 use crate::notebooks::NotebookId;
@@ -109,68 +108,6 @@ fn deserialize_connected_self_hosted_workers_response() {
             },
         ]
     );
-}
-#[test]
-fn test_deserialize_file_artifact_download_response() {
-    let json = r#"{
-        "artifact_uid": "artifact-123",
-        "artifact_type": "FILE",
-        "created_at": "2024-01-15T10:30:00Z",
-        "data": {
-            "download_url": "https://storage.example.com/report.txt",
-            "expires_at": "2024-01-15T11:30:00Z",
-            "content_type": "text/plain",
-            "filepath": "outputs/report.txt",
-            "filename": "report.txt",
-            "description": "daily summary",
-            "size_bytes": 42
-        }
-    }"#;
-
-    let artifact: ArtifactDownloadResponse = serde_json::from_str(json).unwrap();
-
-    let ArtifactDownloadResponse::File { common, data } = artifact else {
-        panic!("expected File artifact download response");
-    };
-    assert_eq!(common.artifact_uid, "artifact-123");
-    assert_eq!(common.created_at.to_rfc3339(), "2024-01-15T10:30:00+00:00");
-    assert_eq!(data.download_url, "https://storage.example.com/report.txt");
-    assert_eq!(data.expires_at.to_rfc3339(), "2024-01-15T11:30:00+00:00");
-    assert_eq!(data.content_type, "text/plain");
-    assert_eq!(data.filepath, "outputs/report.txt");
-    assert_eq!(data.filename, "report.txt");
-    assert_eq!(data.description.as_deref(), Some("daily summary"));
-    assert_eq!(data.size_bytes, Some(42));
-}
-
-#[test]
-fn test_deserialize_screenshot_artifact_download_response() {
-    let json = r#"{
-        "artifact_uid": "screenshot-123",
-        "artifact_type": "SCREENSHOT",
-        "created_at": "2024-01-15T10:30:00Z",
-        "data": {
-            "download_url": "https://storage.example.com/screenshot.png",
-            "expires_at": "2024-01-15T11:30:00Z",
-            "content_type": "image/png",
-            "description": "dashboard screenshot"
-        }
-    }"#;
-
-    let artifact: ArtifactDownloadResponse = serde_json::from_str(json).unwrap();
-
-    let ArtifactDownloadResponse::Screenshot { common, data } = artifact else {
-        panic!("expected Screenshot artifact download response");
-    };
-    assert_eq!(common.artifact_uid, "screenshot-123");
-    assert_eq!(common.created_at.to_rfc3339(), "2024-01-15T10:30:00+00:00");
-    assert_eq!(
-        data.download_url,
-        "https://storage.example.com/screenshot.png"
-    );
-    assert_eq!(data.expires_at.to_rfc3339(), "2024-01-15T11:30:00+00:00");
-    assert_eq!(data.content_type, "image/png");
-    assert_eq!(data.description.as_deref(), Some("dashboard screenshot"));
 }
 
 #[test]
@@ -815,93 +752,6 @@ fn test_artifact_plan_serialize_deserialize_roundtrip() {
 }
 
 #[test]
-fn test_deserialize_agent_message_headers() {
-    let json = r#"[
-        {
-            "message_id": "message-1",
-            "sender_run_id": "run-1",
-            "subject": "Build finished",
-            "sent_at": "2026-04-09T20:00:00Z",
-            "delivered_at": "2026-04-09T20:01:00Z",
-            "read_at": null
-        }
-    ]"#;
-
-    let headers: Vec<AgentMessageHeader> = serde_json::from_str(json).unwrap();
-
-    assert_eq!(headers.len(), 1);
-    assert_eq!(headers[0].message_id, "message-1");
-    assert_eq!(headers[0].sender_run_id, "run-1");
-    assert_eq!(headers[0].subject, "Build finished");
-    assert_eq!(headers[0].sent_at, "2026-04-09T20:00:00Z");
-    assert_eq!(
-        headers[0].delivered_at.as_deref(),
-        Some("2026-04-09T20:01:00Z")
-    );
-    assert_eq!(headers[0].read_at, None);
-}
-
-#[test]
-fn test_deserialize_read_agent_message_response_with_timestamps() {
-    let json = r#"{
-        "message_id": "message-1",
-        "sender_run_id": "run-1",
-        "subject": "Build finished",
-        "body": "Everything passed.",
-        "sent_at": "2026-04-09T20:00:00Z",
-        "delivered_at": "2026-04-09T20:01:00Z",
-        "read_at": "2026-04-09T20:02:00Z"
-    }"#;
-
-    let response: ReadAgentMessageResponse = serde_json::from_str(json).unwrap();
-
-    assert_eq!(response.message_id, "message-1");
-    assert_eq!(response.sender_run_id, "run-1");
-    assert_eq!(response.subject, "Build finished");
-    assert_eq!(response.body, "Everything passed.");
-    assert_eq!(response.sent_at, "2026-04-09T20:00:00Z");
-    assert_eq!(
-        response.delivered_at.as_deref(),
-        Some("2026-04-09T20:01:00Z")
-    );
-    assert_eq!(response.read_at.as_deref(), Some("2026-04-09T20:02:00Z"));
-}
-
-#[test]
-fn test_deserialize_agent_run_events_with_optional_fields() {
-    let json = r#"[
-        {
-            "event_type": "run_started",
-            "run_id": "run-1",
-            "ref_id": null,
-            "execution_id": "exec-1",
-            "occurred_at": "2026-04-09T20:00:00Z",
-            "sequence": 7
-        },
-        {
-            "event_type": "new_message",
-            "run_id": "run-2",
-            "ref_id": "message-9",
-            "execution_id": null,
-            "occurred_at": "2026-04-09T20:05:00Z",
-            "sequence": 8
-        }
-    ]"#;
-
-    let events: Vec<AgentRunEvent> = serde_json::from_str(json).unwrap();
-
-    assert_eq!(events.len(), 2);
-    assert_eq!(events[0].event_type, "run_started");
-    assert_eq!(events[0].execution_id.as_deref(), Some("exec-1"));
-    assert_eq!(events[0].ref_id, None);
-    assert_eq!(events[0].sequence, 7);
-    assert_eq!(events[1].event_type, "new_message");
-    assert_eq!(events[1].ref_id.as_deref(), Some("message-9"));
-    assert_eq!(events[1].execution_id, None);
-    assert_eq!(events[1].sequence, 8);
-}
-
-#[test]
 fn test_artifact_plan_serialize_deserialize_roundtrip_no_notebook_uid() {
     let original = Artifact::Plan {
         document_uid: "doc-123".to_string(),
@@ -976,64 +826,6 @@ fn test_artifact_vec_serialize_deserialize_roundtrip() {
     let deserialized: Vec<Artifact> = serde_json::from_str(&serialized).unwrap();
 
     assert_eq!(original, deserialized);
-}
-
-#[test]
-fn build_list_agent_runs_url_empty_filter() {
-    let url = build_list_agent_runs_url(10, &TaskListFilter::default());
-    assert_eq!(url, "agent/runs?limit=10");
-}
-
-#[test]
-fn build_list_agent_runs_url_all_fields() {
-    let filter = TaskListFilter {
-        creator_uid: Some("user-uid".to_string()),
-        updated_after: Some(Utc.with_ymd_and_hms(2026, 4, 3, 12, 30, 0).unwrap()),
-        created_after: Some(Utc.with_ymd_and_hms(2026, 4, 1, 0, 0, 0).unwrap()),
-        created_before: Some(Utc.with_ymd_and_hms(2026, 4, 2, 0, 0, 0).unwrap()),
-        states: Some(vec![
-            AmbientAgentTaskState::Failed,
-            AmbientAgentTaskState::Error,
-        ]),
-        source: Some(AgentSource::AgentWebhook),
-        execution_location: Some(ExecutionLocation::Remote),
-        environment_id: Some("env-123".to_string()),
-        skill_spec: Some("owner/repo:SKILL.md".to_string()),
-        schedule_id: Some("sched-1".to_string()),
-        ancestor_run_id: Some("run-parent".to_string()),
-        config_name: Some("nightly".to_string()),
-        model_id: Some("claude-4-5".to_string()),
-        artifact_type: Some(ArtifactType::PullRequest),
-        search_query: Some("oz run".to_string()),
-        sort_by: Some(RunSortBy::CreatedAt),
-        sort_order: Some(RunSortOrder::Asc),
-        cursor: Some("abcd==".to_string()),
-    };
-
-    let url = build_list_agent_runs_url(42, &filter);
-    assert_eq!(
-        url,
-        "agent/runs?limit=42\
-         &creator=user-uid\
-         &updated_after=2026-04-03T12%3A30%3A00%2B00%3A00\
-         &created_after=2026-04-01T00%3A00%3A00%2B00%3A00\
-         &created_before=2026-04-02T00%3A00%3A00%2B00%3A00\
-         &state=FAILED\
-         &state=ERROR\
-         &source=API\
-         &execution_location=REMOTE\
-         &environment_id=env-123\
-         &skill_spec=owner%2Frepo%3ASKILL.md\
-         &schedule_id=sched-1\
-         &ancestor_run_id=run-parent\
-         &name=nightly\
-         &model_id=claude-4-5\
-         &artifact_type=PULL_REQUEST\
-         &q=oz%20run\
-         &sort_by=created_at\
-         &sort_order=asc\
-         &cursor=abcd%3D%3D"
-    );
 }
 
 #[test]

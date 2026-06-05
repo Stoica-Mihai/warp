@@ -55,7 +55,6 @@ use warp_graphql::queries::sync_merkle_tree::{
     SyncMerkleTree, SyncMerkleTreeInput, SyncMerkleTreeResult, SyncMerkleTreeVariables,
 };
 use super::auth::AuthClient;
-use super::harness_support::UploadField;
 use super::ServerApi;
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::conversation::{AIAgentHarness, ServerAIConversationMetadata};
@@ -175,108 +174,12 @@ impl InitialSnapshotToken {
 }
 
 
-// --- Orchestrations V2 messaging types ---
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct AgentMessageHeader {
-    pub message_id: String,
-    pub sender_run_id: String,
-    pub subject: String,
-    pub sent_at: String,
-    pub delivered_at: Option<String>,
-    pub read_at: Option<String>,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct AgentRunEvent {
-    pub event_type: String,
-    pub run_id: String,
-    pub ref_id: Option<String>,
-    pub execution_id: Option<String>,
-    pub occurred_at: String,
-    pub sequence: i64,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct ReadAgentMessageResponse {
-    pub message_id: String,
-    pub sender_run_id: String,
-    pub subject: String,
-    pub body: String,
-    pub sent_at: String,
-    pub delivered_at: Option<String>,
-    pub read_at: Option<String>,
-}
-
 #[derive(serde::Deserialize)]
 pub struct SpawnAgentResponse {
     pub task_id: AmbientAgentTaskId,
     #[serde(default)]
     pub at_capacity: bool,
 }
-
-/// Response from the artifact endpoint.
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-#[serde(tag = "artifact_type")]
-pub enum ArtifactDownloadResponse {
-    #[serde(rename = "SCREENSHOT")]
-    Screenshot {
-        #[serde(flatten)]
-        common: ArtifactDownloadCommonFields,
-        data: ScreenshotArtifactResponseData,
-    },
-    #[serde(rename = "FILE")]
-    File {
-        #[serde(flatten)]
-        common: ArtifactDownloadCommonFields,
-        data: FileArtifactResponseData,
-    },
-}
-
-
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-pub struct ArtifactDownloadCommonFields {
-    pub artifact_uid: String,
-    pub created_at: DateTime<Utc>,
-}
-
-/// Screenshot-specific data from the artifact endpoint.
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-pub struct ScreenshotArtifactResponseData {
-    pub download_url: String,
-    pub expires_at: DateTime<Utc>,
-    pub content_type: String,
-    pub description: Option<String>,
-}
-
-/// File-specific data from the artifact endpoint.
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-pub struct FileArtifactResponseData {
-    pub download_url: String,
-    pub expires_at: DateTime<Utc>,
-    pub content_type: String,
-    pub filepath: String,
-    pub filename: String,
-    pub description: Option<String>,
-    pub size_bytes: Option<i64>,
-}
-
-
-#[derive(Debug, Clone)]
-pub struct FileArtifactUploadHeaderInfo {
-    pub name: String,
-    pub value: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct FileArtifactUploadTargetInfo {
-    pub url: String,
-    pub method: String,
-    pub headers: Vec<FileArtifactUploadHeaderInfo>,
-    /// Ordered multipart form fields for presigned POST uploads.
-    pub fields: Vec<UploadField>,
-}
-
 
 /// Filter parameters for listing ambient agent tasks.
 #[derive(Clone, Debug, Default)]
@@ -287,77 +190,16 @@ pub struct TaskListFilter {
     pub created_before: Option<DateTime<Utc>>,
     pub states: Option<Vec<AmbientAgentTaskState>>,
     pub source: Option<AgentSource>,
-    pub execution_location: Option<ExecutionLocation>,
     pub environment_id: Option<String>,
     pub skill_spec: Option<String>,
     pub schedule_id: Option<String>,
     pub ancestor_run_id: Option<String>,
     pub config_name: Option<String>,
     pub model_id: Option<String>,
-    pub artifact_type: Option<ArtifactType>,
     pub search_query: Option<String>,
-    pub sort_by: Option<RunSortBy>,
-    pub sort_order: Option<RunSortOrder>,
     pub cursor: Option<String>,
 }
 
-/// Execution location filter values accepted by the public API.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ExecutionLocation {
-    Remote,
-}
-
-impl ExecutionLocation {
-    pub fn as_query_param(&self) -> &'static str {
-        match self {
-            ExecutionLocation::Remote => "REMOTE",
-        }
-    }
-}
-
-/// Artifact type filter values accepted by the public API.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ArtifactType {
-    PullRequest,
-}
-
-impl ArtifactType {
-    pub fn as_query_param(&self) -> &'static str {
-        match self {
-            ArtifactType::PullRequest => "PULL_REQUEST",
-        }
-    }
-}
-
-/// Sort-by values accepted by the public API.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum RunSortBy {
-    CreatedAt,
-}
-
-impl RunSortBy {
-    pub fn as_query_param(&self) -> &'static str {
-        match self {
-            RunSortBy::CreatedAt => "created_at",
-        }
-    }
-}
-
-/// Sort-order values accepted by the public API.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum RunSortOrder {
-    Asc,
-}
-
-impl RunSortOrder {
-    pub fn as_query_param(&self) -> &'static str {
-        match self {
-            RunSortOrder::Asc => "asc",
-        }
-    }
-}
-
-/// Build the path + query string for `GET /api/v1/agent/runs` from a filter.
 pub(crate) fn build_list_agent_runs_url(limit: i32, filter: &TaskListFilter) -> String {
     let mut url = format!("agent/runs?limit={limit}");
 
@@ -390,9 +232,6 @@ pub(crate) fn build_list_agent_runs_url(limit: i32, filter: &TaskListFilter) -> 
     if let Some(source) = filter.source.as_ref() {
         push("source", source.as_str());
     }
-    if let Some(execution_location) = filter.execution_location {
-        push("execution_location", execution_location.as_query_param());
-    }
     if let Some(environment_id) = filter.environment_id.as_deref() {
         push("environment_id", environment_id);
     }
@@ -411,17 +250,8 @@ pub(crate) fn build_list_agent_runs_url(limit: i32, filter: &TaskListFilter) -> 
     if let Some(model_id) = filter.model_id.as_deref() {
         push("model_id", model_id);
     }
-    if let Some(artifact_type) = filter.artifact_type {
-        push("artifact_type", artifact_type.as_query_param());
-    }
     if let Some(search_query) = filter.search_query.as_deref() {
         push("q", search_query);
-    }
-    if let Some(sort_by) = filter.sort_by {
-        push("sort_by", sort_by.as_query_param());
-    }
-    if let Some(sort_order) = filter.sort_order {
-        push("sort_order", sort_order.as_query_param());
     }
     if let Some(cursor) = filter.cursor.as_deref() {
         push("cursor", cursor);
