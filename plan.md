@@ -266,15 +266,29 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 **Method that worked:** collapse dead `if flag.is_enabled() {…}` branches first (compiles fine with flag still defined — it's just fewer readers), bank green; remove flag def LAST once its readers hit zero. Cascades (banner module, dialog subsystem, URI route, REMOTE_CONTROL, close-session widget) surface as dead-code/unused-import warnings after the readers drop — use `cargo check --features gui` as the worklist oracle. For a subsystem that's reachable only through a now-permanently-false gate (close-confirm dialog, share banners), trace it to its event emitter — if the emitter is itself gated on `shared_session_status().is_sharer()` (always false), the whole chain is dead and removes cleanly. When a UI chip lives in kept agent code, re-gate it on the OTHER (off-by-default) flag rather than ripping the agent subsystem — defers cleanly, preserves default behavior.
 
-### AI strip — current state (`3e442c75`, 2026-06-05 session 53)
+### AI strip — current state (2026-06-06 session 55)
 
-**Binary**: 736.7 MB (−2.1 MB total sessions 45–53). 3-gate **84/56/85** (0/0/0 errors). Latest commit `3e442c75`.
+**Binary**: 729.1 MB (−9.7 MB total sessions 53–55). 3-gate **90/60/91** (0/0/0 errors). Handoff: `/tmp/session55-handoff.md`.
 
-**Session 53 handoff:**
-- Warnings: 84/56/85. Dead-code floor — all remaining in KEEP/BLOCKED modules.
-- Session 53: ambient_agent/model.rs + progress_ui_state.rs deleted (AmbientAgentViewModel, never instantiated); convert_to.rs deleted (Warp MAA serialization, 0 callers); cascade: SpawnAgentRequest, MCPContext/Server, AttachmentInput, PendingCloudLaunch, is_harness_enabled deleted. −0.12 MB binary.
-- Session 52: spawn infrastructure deleted. −0.26 MB binary.
-- **Next:** auth_secret_ftux_view.rs (1052 lines, live via workspace/view.rs OpenCreateAuthSecretModal), ai/blocklist/ large files, ai/agent/ API modules.
+**Session 55 completed:**
+- `f12b1a07`: AgentToastStack deleted (462 lines).
+- `c4e3259e`: search/ai_context_menu/ deleted (7472 lines) + AIContextMenu excised from editor/terminal/input. −3.6 MB binary.
+- `6783a8fa`: AIDocumentView cluster deleted — ai_document_view.rs + ai/document/ model + ai_document_pane.rs. −2.2 MB binary. AIDocumentModel stub kept (used by terminal/input/plans/data_source.rs).
+- `8aeb0f57`: ai/facts/ cluster deleted — ai/facts/ (2097 lines) + drive/items/ai_fact.rs + ai_fact_collection.rs. −1.9 MB binary.
+- Dead code cleanup: deferred_panes parameter chain removed from restore_pane_leaf/restore_pane_tree, process_deferred_panes deleted; tooltip_text + terminal_view_id removed from UDI.
+- Warnings: 90/60/91 (6 above previous floor; pre-existing dead code in KEEP modules exposed by deletions).
+
+**Next targets (in order of binary impact):**
+1. `ai/agent_conversations_model.rs` + tests (32.1K + 78.4K) — conversation history model
+2. `ai/llms.rs` (39.0K) — LLM listing
+3. `ai/harness_availability.rs` (11.1K) — harness availability
+4. Small Warp-AI TypedActionView views: `AgentTodosPopupView` (56 lines), `DeleteConversationConfirmationDialog` (175 lines)
+5. `drive/` + `cloud_object/` — Warp Drive cluster (21K+ lines, 144 callers — very complex)
+
+**Session 53 state (for reference):**
+- Binary: 736.7 MB. Warnings: 84/56/85. Latest commit `3e442c75`.
+- Session 53: ambient_agent/model.rs + progress_ui_state.rs deleted (AmbientAgentViewModel); convert_to.rs deleted (Warp MAA serialization). −0.12 MB.
+- Session 52: spawn infrastructure deleted. −0.26 MB.
 
 **Previous state (`0d24336f`, 2026-06-01 session 4):**
 
