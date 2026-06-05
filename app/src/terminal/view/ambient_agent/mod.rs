@@ -1,13 +1,10 @@
 mod auth_secret_ftux_dropdown;
 mod auth_secret_ftux_view;
-mod model;
-mod progress_ui_state;
 mod view_impl;
 
 pub use auth_secret_ftux_view::{
     AuthSecretFtuxAction, AuthSecretFtuxView, AuthSecretFtuxViewEvent,
 };
-pub use model::{AgentProgress, AmbientAgentViewModel, AmbientAgentViewModelEvent, Status};
 use warpui::geometry::vector::Vector2F;
 use warpui::{AppContext, ModelHandle, ViewHandle, WindowId};
 

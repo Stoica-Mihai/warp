@@ -311,14 +311,6 @@ impl RunExecution<'_> {
     }
 }
 
-/// Represents a single attachment input from the client (e.g., file upload)
-#[derive(Clone, Debug, Serialize)]
-pub struct AttachmentInput {
-    pub file_name: String,
-    pub mime_type: String,
-    pub data: String, // base64-encoded data
-}
-
 /// Returns the trimmed orchestrator agent name, or `None` when empty / whitespace-only.
 pub fn normalize_orchestrator_agent_name(raw: &str) -> Option<String> {
     let trimmed = raw.trim();

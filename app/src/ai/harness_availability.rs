@@ -121,13 +121,6 @@ impl HarnessAvailabilityModel {
         &self.harnesses
     }
 
-    /// Whether a harness is both known and enabled.
-    pub fn is_harness_enabled(&self, harness: Harness) -> bool {
-        self.harnesses
-            .iter()
-            .any(|h| h.harness == harness && h.enabled)
-    }
-
     pub fn auth_secrets_for(&self, harness: Harness) -> &AuthSecretFetchState {
         self.auth_secrets
             .get(&harness)

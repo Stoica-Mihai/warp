@@ -58,11 +58,9 @@ use super::auth::AuthClient;
 use super::ServerApi;
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::conversation::{AIAgentHarness, ServerAIConversationMetadata};
-pub use crate::ai::agent::UserQueryMode;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 // Re-export ambient agent types for backwards compatibility
 pub use crate::ai::ambient_agents::{
-    task::AttachmentInput,
     AgentConfigSnapshot, AgentSource, AmbientAgentTask, AmbientAgentTaskState,
 };
 use crate::ai::artifacts::Artifact;
@@ -90,75 +88,6 @@ use crate::{
 };
 
 const AI_ASSISTANT_REQUEST_TIMEOUT_SECONDS: u64 = 30;
-
-fn public_api_user_query_mode(mode: UserQueryMode) -> &'static str {
-    match mode {
-        UserQueryMode::Normal => "normal",
-        UserQueryMode::Plan => "plan",
-        UserQueryMode::Orchestrate => "orchestrate",
-    }
-}
-
-fn serialize_user_query_mode_for_public_api<S>(
-    mode: &UserQueryMode,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    serializer.serialize_str(public_api_user_query_mode(*mode))
-}
-
-/// JSON payload sent to the public `POST /agent/run` API.
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct SpawnAgentRequest {
-    pub prompt: String,
-    /// The public API accepts lowercase mode strings (`normal`, `plan`, or `orchestrate`).
-    #[serde(serialize_with = "serialize_user_query_mode_for_public_api")]
-    pub mode: UserQueryMode,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub config: Option<AgentConfigSnapshot>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub title: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub team: Option<bool>,
-    /// Agent identity UID to use as the execution principal for the run.
-    #[serde(rename = "agent_identity_uid", skip_serializing_if = "Option::is_none")]
-    pub agent_identity_uid: Option<String>,
-    /// Use a Claude-compatible skill as the base prompt.
-    /// Format: "repo:skill_name" or just "skill_name".
-    /// The skill is resolved at runtime in the agent environment.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub skill: Option<String>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub attachments: Vec<AttachmentInput>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub interactive: Option<bool>,
-    /// Populated when a cloud agent spawns a child run via the public API.
-    /// Not yet wired through the local start_agent flow.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub parent_run_id: Option<String>,
-    /// Base64-encoded `warp.multi_agent.v1.Skill` payloads to restore as runtime skills.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub runtime_skills: Vec<String>,
-    /// Base64-encoded `warp.multi_agent.v1.Attachment` payloads to restore as referenced attachments.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub referenced_attachments: Vec<String>,
-    /// Server-side conversation id to resume against (sets `task.AgentConversationID`).
-    /// For local-to-cloud handoff this is the forked conversation id returned by
-    /// `POST /agent/conversations/{conversation_id}/fork` at chip-click time.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub conversation_id: Option<String>,
-    /// References a batch of files previously uploaded to handoff/{token}/
-    /// via `POST /agent/handoff/upload-snapshot`. The server stores the token on the new run's
-    /// queued execution input and resolves the prefix in place at rehydration time.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub initial_snapshot_token: Option<InitialSnapshotToken>,
-    /// When `Some(true)`, the cloud agent skips the end-of-run snapshot upload.
-    /// Set by the client when cloud conversation storage is disabled.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub snapshot_disabled: Option<bool>,
-}
 
 /// Server-minted token returned by `POST /agent/handoff/upload-snapshot` that scopes a batch
 /// of presigned upload URLs to `handoff/{token}/`. The client passes it

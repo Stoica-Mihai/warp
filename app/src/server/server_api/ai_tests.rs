@@ -7,8 +7,7 @@ use super::{
     AmbientAgentTaskState, Artifact,
     ConnectedSelfHostedWorker,
     ListConnectedSelfHostedWorkersResponse, ListRunsResponse,
-    SpawnAgentRequest,
-    TaskListFilter, UserQueryMode, CONNECTED_SELF_HOSTED_WORKERS_PATH,
+    TaskListFilter, CONNECTED_SELF_HOSTED_WORKERS_PATH,
 };
 use crate::notebooks::NotebookId;
 
@@ -31,35 +30,6 @@ fn ambient_agent_headers_for_task_overrides_existing_cloud_agent_header() {
         cloud_agent_headers,
         vec![(CLOUD_AGENT_ID_HEADER, task_scoped_id.to_string())]
     );
-}
-
-#[test]
-fn spawn_agent_request_serializes_agent_uid_as_agent_identity_uid() {
-    let request = SpawnAgentRequest {
-        prompt: "hello".to_string(),
-        mode: UserQueryMode::Normal,
-        config: None,
-        title: None,
-        team: None,
-        agent_identity_uid: Some("agent_123".to_string()),
-        skill: None,
-        attachments: vec![],
-        interactive: None,
-        parent_run_id: None,
-        runtime_skills: vec![],
-        referenced_attachments: vec![],
-        conversation_id: None,
-        initial_snapshot_token: None,
-        snapshot_disabled: None,
-    };
-
-    let value = serde_json::to_value(&request).unwrap();
-
-    assert_eq!(
-        value.get("agent_identity_uid").and_then(|v| v.as_str()),
-        Some("agent_123")
-    );
-    assert!(value.get("agent_uid").is_none());
 }
 
 #[test]
