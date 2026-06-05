@@ -2826,7 +2826,6 @@ fn drag_drop_image_in_cli_agent_long_running_command_pastes_via_clipboard() {
                         listener: None,
                         remote_host: None,
                         plugin_version: None,
-                        draft_text: None,
                         custom_command_prefix: None,
                     },
                     ctx,
