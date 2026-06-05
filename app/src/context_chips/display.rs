@@ -196,7 +196,6 @@ impl PromptDisplay {
                         session_context: self.session_context.clone(),
                         current_repo_path: self.current_repo_path.clone(),
                         model_events: self.model_events.clone(),
-                        ambient_agent_view_model: None,
                     },
                 );
                 chip.maybe_set_git_line_changes_info(git_line_changes_info.clone());

@@ -39,7 +39,7 @@ use crate::pane_group::TerminalViewResources;
 use crate::terminal::model::terminal_model::ConversationTranscriptViewerStatus;
 use crate::terminal::shell::{ShellName, ShellType};
 use crate::terminal::{
-    MockTerminalManager, ShellLaunchState, TerminalManager, TerminalModel, TerminalView,
+    MockTerminalManager, ShellLaunchState, TerminalManager, TerminalView,
 };
 
 /// Creates a cloud mode terminal view and manager for ambient agent sessions.
@@ -81,47 +81,3 @@ pub fn create_cloud_mode_view(
     (terminal_view, terminal_manager)
 }
 
-/// Returns `true` when a cloud agent shared session is in any pre-first-exchange phase —
-/// either still spawning (loading screen) or running setup commands before the first
-/// agent turn. In this state, we hide the interactive input and render a loading footer.
-pub fn is_cloud_agent_pre_first_exchange(
-    ambient_agent_view_model: Option<&ModelHandle<AmbientAgentViewModel>>,
-    terminal_model: &TerminalModel,
-    app: &AppContext,
-) -> bool {
-    let Some(ambient_agent_view_model) = ambient_agent_view_model else {
-        return false;
-    };
-
-    let view_model = ambient_agent_view_model.as_ref(app);
-
-    let is_in_pre_first_exchange_status = matches!(
-        view_model.status(),
-        Status::WaitingForSession { .. } | Status::AgentRunning
-    );
-    if !is_in_pre_first_exchange_status {
-        return false;
-    }
-
-    // The `is_local_to_cloud_handoff` flag is the authoritative "this is a cloud agent pane" signal.
-    if !view_model.is_local_to_cloud_handoff() {
-        return false;
-    }
-
-    // For non-oz harness runs, there is no Oz `AppendedExchange` to key off of, so we also
-    // exit the pre-first-exchange phase when the harness CLI (e.g. `claude`, `gemini`) has
-    // been detected. See `mark_harness_command_started`.
-    if view_model.harness_command_started() {
-        return false;
-    }
-
-    // Loading phase (`WaitingForSession`): no setup commands have started yet, but we're
-    // still pre-first-exchange. Skip the block-list flag check.
-    if matches!(view_model.status(), Status::WaitingForSession { .. }) {
-        return true;
-    }
-
-    terminal_model
-        .block_list()
-        .is_executing_oz_environment_startup_commands()
-}

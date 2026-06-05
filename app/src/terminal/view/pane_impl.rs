@@ -13,7 +13,6 @@ use warpui::{
     WeakModelHandle,
 };
 
-use super::ambient_agent::is_cloud_agent_pre_first_exchange;
 use super::{Event, PaneConfiguration, TerminalAction, TerminalViewState};
 use crate::ai::agent::conversation::{
     AIConversation, ConversationStatus, ServerAIConversationMetadata,
@@ -580,20 +579,8 @@ impl TerminalView {
     /// both the `WaitingForSession` phase (env being provisioned, "Connecting to Host") and
     /// the post-session pre-first-exchange phase (session ready, harness not started, no
     /// exchange yet). In either case the run is committed and we want the UI to read as busy.
-    fn is_in_cloud_agent_setup_phase(&self, ctx: &AppContext) -> bool {
-        if self
-            .ambient_agent_view_model()
-            .is_some_and(|model| model.as_ref(ctx).is_waiting_for_session())
-        {
-            return true;
-        }
-
-        let model = self.model.lock();
-        is_cloud_agent_pre_first_exchange(
-            self.ambient_agent_view_model(),
-            &model,
-            ctx,
-        )
+    fn is_in_cloud_agent_setup_phase(&self, _ctx: &AppContext) -> bool {
+        false
     }
 
     /// Selected conversation status for chrome, or [`ConversationStatus::InProgress`] while the

@@ -439,11 +439,6 @@ impl AmbientAgentViewModel {
         }
     }
 
-    /// Whether the harness CLI has started running. Only meaningful for non-oz runs.
-    pub(super) fn harness_command_started(&self) -> bool {
-        self.harness_command_started
-    }
-
     /// Sets the selected environment ID.
     /// If the given ID does not exist in CloudModel, the environment ID is not changed.
     pub fn set_environment_id(

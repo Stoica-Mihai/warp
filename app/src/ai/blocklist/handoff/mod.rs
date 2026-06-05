@@ -14,8 +14,6 @@
 //! `AmbientAgentViewModel::submit_handoff`, which reads the cached
 //! `forked_conversation_id` and `snapshot_upload` off `PendingHandoff`.
 
-use crate::server::server_api::ai::AttachmentInput;
-
 #[cfg(feature = "local_fs")]
 pub(crate) mod snapshot;
 #[cfg(feature = "local_fs")]
@@ -23,9 +21,7 @@ pub(crate) mod touched_repos;
 
 #[cfg_attr(target_family = "wasm", allow(dead_code))]
 #[derive(Debug, Clone, Default)]
-pub struct HandoffLaunchAttachments {
-    pub(crate) request_attachments: Vec<AttachmentInput>,
-}
+pub struct HandoffLaunchAttachments {}
 
 /// Carries the auto-submit payload for `& query` and `/handoff query`.
 /// `request_attachments` feed the spawn request while `display_attachments`
