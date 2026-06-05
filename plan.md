@@ -266,16 +266,18 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 **Method that worked:** collapse dead `if flag.is_enabled() {…}` branches first (compiles fine with flag still defined — it's just fewer readers), bank green; remove flag def LAST once its readers hit zero. Cascades (banner module, dialog subsystem, URI route, REMOTE_CONTROL, close-session widget) surface as dead-code/unused-import warnings after the readers drop — use `cargo check --features gui` as the worklist oracle. For a subsystem that's reachable only through a now-permanently-false gate (close-confirm dialog, share banners), trace it to its event emitter — if the emitter is itself gated on `shared_session_status().is_sharer()` (always false), the whole chain is dead and removes cleanly. When a UI chip lives in kept agent code, re-gate it on the OTHER (off-by-default) flag rather than ripping the agent subsystem — defers cleanly, preserves default behavior.
 
-### AI strip — current state (`e9c2551e`, 2026-06-05 session 48)
+### AI strip — current state (`2f368e9f`, 2026-06-05 session 49)
 
-**Binary**: 737.1 MB (−1.7 MB total sessions 45–48 vs session 44 baseline 737.7 MB). 3-gate **155/65/156** (0/0/0 errors, +1/+1/+1 from `with_font_family` in generic inline_action_header.rs — KEEP). Latest commit `e9c2551e`.
+**Binary**: 737.1 MB (−1.7 MB total sessions 45–49). 3-gate **125/65/126** (0/0/0 errors). Latest commit `2f368e9f`.
 
-**Session 48 handoff:**
-- Warnings: 155/65/156. +1 in each gate from `with_font_family` in `terminal/view/inline_action_header.rs` (generic, KEEP per rule).
-- ambient_agent/block/ deleted; auth_secret_selector.rs + button_theme.rs deleted (never instantiated in production); HarnessSessionHeader removed from RichContentMetadata; SetupCommandState cluster removed from model.rs.
-- ambient_agent/ remaining: auth_secret_ftux_view.rs + auth_secret_ftux_dropdown.rs (KEEP — live in workspace/view.rs for API key creation); model.rs + model_tests.rs (KEEP — AmbientAgentViewModel type used by auth); progress_ui_state.rs (KEEP); view_impl.rs (KEEP — enter_cloud_agent_view live in view.rs).
-- server_api/ai.rs: 16 warnings — KEEP. presigned_upload.rs: 19 — KEEP. execution_profiles.rs: BLOCKED.
-- **Next milestone:** crates/ai crate or auth/login cleanup for binary reduction. ai/blocklist/ has large live files. Dead-code floor reached in all Warp/AI-specific modules.
+**Session 49 handoff:**
+- Warnings: 125/65/126. **−60 total across 3 gates** this session (−30 default, 0 tests, −30 features).
+- Deleted: `conversation_yaml.rs` 13 dead AI-conversation-YAML functions + `conversation_yaml_tests.rs`.
+- Deleted: `BlocklistAIPermissions` struct + all permission enums (CommandExecutionPermission, FileReadPermission, FileWritePermission + reason enums) + `permissions_tests.rs` (1503 lines). 5 test files updated to remove singleton registration.
+- Deleted: `ToolExt` trait + `SubagentExt::type_name` from `task/helper.rs`.
+- **Dead-code floor reached again.** All 3-gate items are KEEP/BLOCKED.
+- server_api/ai.rs: 14 warnings — tests-alive. KEEP. presigned_upload.rs: 19 — KEEP. execution_profiles.rs: BLOCKED.
+- **Next milestone:** Binary reduction via live-linked code. Consider `ai/agent/` module reduction or auth/login cleanup.
 
 **Previous state (`0d24336f`, 2026-06-01 session 4):**
 
