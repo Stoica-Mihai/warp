@@ -23,7 +23,7 @@ use warpui::ui_components::segmented_control::{
     RenderableOptionConfig, SegmentedControl, SegmentedControlEvent, TooltipConfig,
 };
 use warpui::{
-    AppContext, Element, Entity, EntityId, ModelHandle, SingletonEntity as _, TypedActionView,
+    AppContext, Element, Entity, ModelHandle, SingletonEntity as _, TypedActionView,
     View, ViewContext, ViewHandle,
 };
 
@@ -60,23 +60,6 @@ pub enum AtContextMenuDisabledReason {
 }
 
 impl AtContextMenuDisabledReason {
-    fn tooltip_text(&self) -> String {
-        match self {
-            #[cfg(not(target_family = "wasm"))]
-            AtContextMenuDisabledReason::SshWithoutRemoteServer => {
-                "Not supported in SSH sessions without remote server".to_string()
-            }
-            #[cfg(not(target_family = "wasm"))]
-            AtContextMenuDisabledReason::Subshell => "Not supported in subshells".to_string(),
-            #[cfg(target_family = "wasm")]
-            AtContextMenuDisabledReason::Wasm => "Requires a filesystem".to_string(),
-            #[cfg(not(target_family = "wasm"))]
-            AtContextMenuDisabledReason::DisabledInTerminalMode => {
-                "Disabled in terminal mode, re-enable in settings".to_string()
-            }
-        }
-    }
-
     #[cfg(target_family = "wasm")]
     pub fn get_disable_reason(
         _active_block_metadata: Option<&BlockMetadata>,
@@ -148,8 +131,6 @@ impl AtContextMenuDisabledReason {
     }
 }
 
-const AT_CONTEXT_TOOLTIP: &str = "Attach context";
-
 const BLURRED_OPACITY: Opacity = 50;
 
 
@@ -210,7 +191,6 @@ impl CachedUIState {
 }
 
 pub struct UniversalDeveloperInputButtonBar {
-    terminal_view_id: EntityId,
     mic_button: ViewHandle<ActionButton>,
     file_button: ViewHandle<ActionButton>,
     slash_command_button: ViewHandle<ActionButton>,
@@ -241,7 +221,6 @@ pub enum UniversalDeveloperInputButtonBarEvent {
 
 impl UniversalDeveloperInputButtonBar {
     pub fn new(
-        terminal_view_id: EntityId,
         input_model: ModelHandle<BlocklistAIInputModel>,
         cli_subagent_controller: ModelHandle<CLISubagentController>,
         terminal_model: std::sync::Arc<parking_lot::FairMutex<crate::terminal::TerminalModel>>,
@@ -423,7 +402,6 @@ impl UniversalDeveloperInputButtonBar {
         });
 
         let mut me = Self {
-            terminal_view_id,
             mic_button: mic_button_view,
             file_button: file_button_view,
             slash_command_button: slash_command_menu_view,

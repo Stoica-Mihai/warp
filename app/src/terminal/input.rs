@@ -1810,7 +1810,6 @@ impl Input {
 
         let universal_developer_input_button_bar = ctx.add_typed_action_view(|ctx| {
             UniversalDeveloperInputButtonBar::new(
-                terminal_view_id,
                 ai_input_model.clone(),
                 cli_subagent_controller.clone(),
                 model.clone(),

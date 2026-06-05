@@ -1,7 +1,7 @@
 pub use ai::document::{AIDocumentId, AIDocumentVersion};
 
 use chrono::{DateTime, Local};
-use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
+use warpui::{Entity, ModelContext, SingletonEntity};
 
 use crate::ai::agent::conversation::AIConversationId;
 
@@ -26,6 +26,7 @@ impl AIDocumentModel {
         Self
     }
 
+    #[cfg(test)]
     pub fn new_for_test() -> Self {
         Self
     }
@@ -37,19 +38,5 @@ impl AIDocumentModel {
         vec![]
     }
 
-    pub fn get_conversation_id_for_document_id(
-        &self,
-        _id: &AIDocumentId,
-    ) -> Option<AIConversationId> {
-        None
-    }
 
-    pub fn apply_persisted_content(
-        &mut self,
-        _id: AIDocumentId,
-        _content: &str,
-        _title: Option<&str>,
-        _ctx: &mut ModelContext<Self>,
-    ) {
-    }
 }

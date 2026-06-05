@@ -1305,7 +1305,6 @@ impl PaneGroup {
         user_default_shell_unsupported_banner_model_handle: ModelHandle<BannerState>,
         view_size: Vector2F,
         model_event_sender: Option<SyncSender<ModelEvent>>,
-        deferred_panes: &mut Vec<(PaneId, LeafSnapshot)>,
         pending_ambient_restorations: &mut Vec<(AmbientAgentTaskId, PaneId)>,
     ) -> anyhow::Result<(PaneData, InitialFocus)> {
         match root {
@@ -1318,7 +1317,6 @@ impl PaneGroup {
                 user_default_shell_unsupported_banner_model_handle,
                 view_size,
                 model_event_sender,
-                deferred_panes,
                 pending_ambient_restorations,
             ),
             PaneNodeSnapshot::Branch(pane) => {
@@ -1349,7 +1347,6 @@ impl PaneGroup {
                         user_default_shell_unsupported_banner_model_handle.clone(),
                         view_size,
                         model_event_sender.clone(),
-                        deferred_panes,
                         pending_ambient_restorations,
                     ) {
                         Ok((child, child_focus)) => {
@@ -1385,8 +1382,6 @@ impl PaneGroup {
         user_default_shell_unsupported_banner_model_handle: ModelHandle<BannerState>,
         view_size: Vector2F,
         model_event_sender: Option<SyncSender<ModelEvent>>,
-        #[cfg_attr(not(feature = "local_fs"), allow(unused_variables, clippy::ptr_arg))]
-        deferred_panes: &mut Vec<(PaneId, LeafSnapshot)>,
         pending_ambient_restorations: &mut Vec<(AmbientAgentTaskId, PaneId)>,
     ) -> anyhow::Result<(PaneData, InitialFocus)> {
         let custom_vertical_tabs_title = leaf.custom_vertical_tabs_title.clone();
@@ -1744,16 +1739,6 @@ impl PaneGroup {
             }
         }
 
-        result
-    }
-
-    #[cfg_attr(not(feature = "local_fs"), allow(unused_variables, unused_mut))]
-    fn process_deferred_panes(
-        _deferred_panes: Vec<(PaneId, LeafSnapshot)>,
-        result: (PaneData, InitialFocus),
-        _pane_contents: &mut HashMap<PaneId, Box<dyn AnyPaneContent>>,
-        _ctx: &mut ViewContext<Self>,
-    ) -> (PaneData, InitialFocus) {
         result
     }
 
@@ -2752,7 +2737,6 @@ impl PaneGroup {
                     model_event_sender_clone,
                 ),
                 PanesLayout::Snapshot(panes_snapshot) => {
-                    let mut deferred_panes = Vec::new();
                     let mut pending_restorations = Vec::new();
                     let result = Self::restore_pane_tree(
                         *panes_snapshot,
@@ -2763,7 +2747,6 @@ impl PaneGroup {
                         unsupported_banner_model_handle.clone(),
                         view_bounds.size(),
                         model_event_sender_clone.clone(),
-                        &mut deferred_panes,
                         &mut pending_restorations,
                     )
                     .unwrap_or_else(|err| {
@@ -2782,7 +2765,7 @@ impl PaneGroup {
 
                     *pending_ambient_for_closure.borrow_mut() = pending_restorations;
 
-                    Self::process_deferred_panes(deferred_panes, result, pane_contents, ctx)
+                    result
                 }
                 PanesLayout::SingleTerminal(options) => Self::initial_single_terminal_pane(
                     *options,
