@@ -150,19 +150,6 @@ impl ActiveNotebookData {
                     }
                 }
             }
-            (ObjectOperation::Update, OperationSuccessType::FeatureNotAvailable) => {
-                let current_id = self.id();
-                if let Some(id) = current_id {
-                    let server_id = result
-                        .server_id
-                        .expect("Expect server id on update failure");
-                    if id.into_server() == Some(server_id) {
-                        self.feature_not_available = true;
-                        ctx.emit(ActiveNotebookDataEvent::EditRejected);
-                        ctx.notify();
-                    }
-                }
-            }
             (ObjectOperation::TakeEditAccess, OperationSuccessType::Success) => {
                 let current_id = self.id();
                 let server_id = result.server_id.expect("Expect server id on success");

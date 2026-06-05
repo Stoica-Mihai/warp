@@ -15,8 +15,6 @@ impl CloudObjectToastMessage {
         app: &AppContext,
     ) -> Option<String> {
         let object_name = object.model_type_name().to_owned();
-        let object_name_lowercase = object_name.to_ascii_lowercase();
-
         match (object.object_type(), operation, success_type) {
             // We should only show toasts for creates initiated by the user, not by the system
             (_, ObjectOperation::Create { initiated_by: InitiatedBy::User }, OperationSuccessType::Success) => {
@@ -46,31 +44,6 @@ impl CloudObjectToastMessage {
             (_, ObjectOperation::Leave, OperationSuccessType::Success) => {
                 Some(format!("Left {object_name}"))
             }
-            (_, ObjectOperation::Create { initiated_by: InitiatedBy::User }, OperationSuccessType::Failure) => {
-                Some(format!("Failed to create {object_name_lowercase}"))
-            }
-            (_, ObjectOperation::Create { initiated_by: InitiatedBy::User }, OperationSuccessType::Denied(message)) => {
-                Some(message.to_string())
-            }
-            (_, ObjectOperation::Update, OperationSuccessType::Failure) => {
-                Some(format!("Failed to update {object_name_lowercase}"))
-            }
-            (_, ObjectOperation::MoveToFolder, OperationSuccessType::Failure) | (_, ObjectOperation::MoveToDrive, OperationSuccessType::Failure) => {
-                Some(format!("Failed to move {object_name_lowercase}"))
-            }
-            (_, ObjectOperation::Trash, OperationSuccessType::Failure) => {
-                Some(format!("Failed to trash {object_name_lowercase}"))
-            }
-            (_, ObjectOperation::Untrash, OperationSuccessType::Failure) => {
-                Some(format!("Failed to restore {object_name_lowercase}"))
-            }
-            // We should only show deletion failure toasts for user-initiated deletions.
-            (_, ObjectOperation::Delete { initiated_by: InitiatedBy::User }, OperationSuccessType::Failure) => {
-                Some(format!("Failed to delete {object_name_lowercase}"))
-            }
-            (_, ObjectOperation::Leave, OperationSuccessType::Failure) => {
-                Some(format!("Failed to leave {object_name}"))
-            }
             (
                 ObjectType::Workflow,
                 ObjectOperation::Update,
@@ -91,9 +64,6 @@ impl CloudObjectToastMessage {
                 OperationSuccessType::Rejection,
             ) => {
                 Some("Rule could not be saved because changes were made while you were editing.".to_string())
-            }
-            (_, ObjectOperation::TakeEditAccess, OperationSuccessType::Failure) => {
-                Some(format!("Failed to start editing {object_name_lowercase}"))
             }
             _ => None,
         }
@@ -121,9 +91,6 @@ impl CloudObjectToastMessage {
             (ObjectOperation::EmptyTrash, OperationSuccessType::Success) => Some(format!(
                 "Trash emptied: {count_objects_message} deleted forever"
             )),
-            (ObjectOperation::EmptyTrash, OperationSuccessType::Failure) => {
-                Some("Failed to empty trash".to_string())
-            }
             (ObjectOperation::EmptyTrash, OperationSuccessType::Rejection) => {
                 Some("No objects in trash to empty".to_string())
             }

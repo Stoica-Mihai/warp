@@ -54,10 +54,7 @@ lazy_static::lazy_static! {
 #[derive(Debug, PartialEq)]
 pub enum OperationSuccessType {
     Success,
-    Failure,
     Rejection,
-    Denied(String),
-    FeatureNotAvailable,
 }
 
 #[derive(Debug, PartialEq)]
