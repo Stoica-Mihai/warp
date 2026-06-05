@@ -4242,14 +4242,6 @@ impl TerminalView {
         true
     }
 
-    fn should_render_legacy_ambient_agent_loading_footer(
-        &self,
-        _model: &TerminalModel,
-        _app: &AppContext,
-    ) -> bool {
-        false
-    }
-
     /// Give the agent control of the active long running command
     /// (which was started outside of a conversation).
     fn tag_agent_in(&mut self, ctx: &mut ViewContext<Self>) {
@@ -17140,8 +17132,6 @@ impl View for TerminalView {
 
                     if self.is_input_box_visible(&model, app) {
                         column.add_child(self.render_input());
-                    } else if self.should_render_legacy_ambient_agent_loading_footer(&model, app) {
-                        column.add_child(ambient_agent::render_loading_footer(appearance));
                     } else if self.show_remote_server_loading_footer(&model, app) {
                         column.add_child(
                             self.render_remote_server_loading_footer(&model, appearance, app),
