@@ -88,7 +88,6 @@ pub enum SessionStartupKind {
 pub(crate) enum HandoffSubmissionState {
     #[default]
     Idle,
-    Queued,
     Starting,
 }
 
@@ -96,32 +95,18 @@ pub(crate) enum HandoffSubmissionState {
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub(crate) enum SnapshotUploadStatus {
-    /// Upload is still in flight, or has not started yet.
     #[default]
     Pending,
-    /// Touched workspace was empty so no upload happened. The cloud agent will
-    /// start with no rehydration content.
-    SkippedEmptyWorkspace,
-    /// Upload failed. The error message is surfaced as a toast via
-    /// `HandoffSnapshotUploadFailed`.
-    Failed(String),
 }
 
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
 impl SnapshotUploadStatus {
-    /// True when the upload has resolved to a final state. `Pending` blocks
-    /// submit; all other variants (including `Failed`) allow it to proceed.
-    /// On `Failed`, `initial_snapshot_token()` returns `None` so the cloud
-    /// run starts without a local file snapshot.
     fn is_settled(&self) -> bool {
-        !matches!(self, Self::Pending)
+        false
     }
 
-    /// Returns the initial snapshot token to send on spawn, if any.
     fn initial_snapshot_token(&self) -> Option<InitialSnapshotToken> {
-        match self {
-            Self::SkippedEmptyWorkspace | Self::Pending | Self::Failed(_) => None,
-        }
+        None
     }
 }
 
@@ -530,60 +515,12 @@ impl AmbientAgentViewModel {
             };
             handoff.touched_workspace.is_some()
                 && handoff.snapshot_upload.is_settled()
-                && matches!(
-                    handoff.submission_state,
-                    HandoffSubmissionState::Idle | HandoffSubmissionState::Queued
-                )
+                && matches!(handoff.submission_state, HandoffSubmissionState::Idle)
         }
         #[cfg(not(all(feature = "local_fs", not(target_family = "wasm"))))]
         {
             false
         }
-    }
-
-    /// Seeds the handoff context onto this pane. Called by the workspace bootstrap
-    /// after splitting in a fresh cloud-mode pane and entering agent view.
-    #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-    pub(crate) fn set_pending_handoff(
-        &mut self,
-        pending: Option<PendingHandoff>,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let previous_harness = self.selected_harness();
-        self.pending_handoff = pending;
-        if self.selected_harness() != previous_harness {
-            ctx.emit(AmbientAgentViewModelEvent::HarnessSelected);
-        }
-        ctx.emit(AmbientAgentViewModelEvent::PendingHandoffChanged);
-    }
-
-    /// Updates the touched workspace once async derivation completes.
-    /// No-op when no handoff context is set.
-    #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-    pub(crate) fn set_pending_handoff_workspace(
-        &mut self,
-        workspace: TouchedWorkspace,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let Some(handoff) = self.pending_handoff.as_mut() else {
-            return;
-        };
-        handoff.touched_workspace = Some(workspace);
-        ctx.emit(AmbientAgentViewModelEvent::PendingHandoffChanged);
-    }
-
-    /// Records the outcome of the async snapshot upload.
-    #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-    pub(crate) fn set_pending_handoff_snapshot_upload(
-        &mut self,
-        snapshot_upload: SnapshotUploadStatus,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let Some(handoff) = self.pending_handoff.as_mut() else {
-            return;
-        };
-        handoff.snapshot_upload = snapshot_upload;
-        ctx.emit(AmbientAgentViewModelEvent::PendingHandoffChanged);
     }
 
     #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
@@ -614,59 +551,6 @@ impl AmbientAgentViewModel {
             agent_identity_uid: None,
             snapshot_disabled: should_disable_snapshot(ctx).then_some(true),
         }
-    }
-
-    #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-    pub(crate) fn queue_handoff_auto_submit(&mut self, ctx: &mut ModelContext<Self>) -> bool {
-        let Some((launch, forked_conversation_id)) = ({
-            let handoff = self.pending_handoff.as_mut();
-            handoff.and_then(|handoff| {
-                if !matches!(handoff.submission_state, HandoffSubmissionState::Idle) {
-                    return None;
-                }
-                let launch = handoff.auto_submit.as_ref()?.clone();
-                handoff.submission_state = HandoffSubmissionState::Queued;
-                Some((launch, handoff.forked_conversation_id.clone()))
-            })
-        }) else {
-            return false;
-        };
-
-        self.request = Some(self.build_handoff_spawn_request(
-            launch.prompt,
-            launch.attachments.request_attachments,
-            forked_conversation_id,
-            None,
-            ctx,
-        ));
-        self.status = Status::WaitingForSession {
-            progress: AgentProgress::new(),
-            kind: SessionStartupKind::InitialRun,
-        };
-        self.start_progress_timer(ctx);
-        ctx.emit(AmbientAgentViewModelEvent::PendingHandoffChanged);
-        ctx.emit(AmbientAgentViewModelEvent::DispatchedAgent);
-        true
-    }
-
-    #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-    pub(crate) fn maybe_auto_submit_handoff(
-        &mut self,
-        ctx: &mut ModelContext<Self>,
-    ) -> Option<PendingCloudLaunch> {
-        let handoff = self.pending_handoff.as_mut()?;
-        if handoff.touched_workspace.is_none()
-            || !handoff.snapshot_upload.is_settled()
-            || !matches!(
-                handoff.submission_state,
-                HandoffSubmissionState::Idle | HandoffSubmissionState::Queued
-            )
-        {
-            return None;
-        }
-        let launch = handoff.auto_submit.take()?;
-        ctx.emit(AmbientAgentViewModelEvent::PendingHandoffChanged);
-        Some(launch)
     }
 
     /// Whether the harness CLI has started running. Only meaningful for non-oz runs.
