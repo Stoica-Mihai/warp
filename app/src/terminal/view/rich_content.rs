@@ -240,7 +240,6 @@ pub enum RichContentMetadata {
     AgentViewZeroState,
     TerminalViewZeroState,
     PluginInstructionsBlock,
-    HarnessSessionHeader,
 }
 
 impl TerminalView {

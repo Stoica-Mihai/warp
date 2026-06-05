@@ -32,7 +32,6 @@ use crate::server::server_api::ai::{
 };
 use crate::server::server_api::{AIApiError, ClientError, ServerApiProvider};
 use crate::settings::PrivacySettings;
-use crate::terminal::view::ambient_agent::{SetupCommandGroupId, SetupCommandState};
 use crate::terminal::CLIAgent;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::workspaces::workspace::AdminEnablementSetting;
@@ -142,8 +141,6 @@ pub struct AmbientAgentViewModel {
     /// UI state for rendering the ambient agent progress screen.
     pub ui_state: AmbientAgentProgressUIState,
 
-    setup_commands_state: SetupCommandState,
-
     /// The task ID for the current cloud agent task, if one has been spawned.
     task_id: Option<AmbientAgentTaskId>,
 
@@ -233,7 +230,6 @@ impl AmbientAgentViewModel {
             environment_id_from_viewed_task: false,
             progress_timer_handle: None,
             ui_state,
-            setup_commands_state: Default::default(),
             task_id: None,
             conversation_id: None,
             harness,
@@ -252,27 +248,6 @@ impl AmbientAgentViewModel {
 
     pub fn request(&self) -> Option<&SpawnAgentRequest> {
         self.request.as_ref()
-    }
-
-    pub fn setup_command_state(&self) -> &SetupCommandState {
-        &self.setup_commands_state
-    }
-
-    pub fn setup_command_state_mut(&mut self) -> &mut SetupCommandState {
-        &mut self.setup_commands_state
-    }
-
-    pub(super) fn set_setup_command_group_visibility(
-        &mut self,
-        group_id: SetupCommandGroupId,
-        is_visible: bool,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        if is_visible != self.setup_commands_state.should_expand(group_id) {
-            self.setup_commands_state
-                .set_should_expand(group_id, is_visible);
-            ctx.emit(AmbientAgentViewModelEvent::UpdatedSetupCommandVisibility);
-        }
     }
 
     /// Handles CloudModel events to keep environment_id in sync.
@@ -410,12 +385,6 @@ impl AmbientAgentViewModel {
         }
         self.harness_auth_secret_name = name;
         ctx.emit(AmbientAgentViewModelEvent::AuthSecretSelected);
-    }
-
-    /// True when the run is configured to use a non-Oz execution harness and the
-    /// required feature flags are enabled.
-    pub(super) fn is_third_party_harness(&self) -> bool {
-        false
     }
 
     /// Returns the [`CLIAgent`] corresponding to the currently selected harness when it is a
@@ -717,7 +686,6 @@ impl AmbientAgentViewModel {
         self.last_ended_execution_session_id = None;
         self.pending_followup_prompt = None;
         self.request = None;
-        self.setup_commands_state = Default::default();
         self.stop_progress_timer();
         ctx.notify();
     }
@@ -1282,7 +1250,6 @@ pub enum AmbientAgentViewModelEvent {
         error_message: String,
     },
 
-    UpdatedSetupCommandVisibility,
     /// The selected harness auth secret changed.
     AuthSecretSelected,
     /// The run's task association or execution liveness changed in a way that
