@@ -412,21 +412,7 @@ pub mod profiles {
 
 
 pub mod model_menu_items {
-    use warpui::{Action, AppContext};
-    use crate::ai::llms::{LLMId, LLMInfo};
-    use crate::menu::MenuItem;
+    use crate::ai::llms::LLMInfo;
 
     pub fn is_auto(_llm: &LLMInfo) -> bool { true }
-
-    pub fn has_reasoning_variants(_llm: &LLMInfo, _all: &[&LLMInfo]) -> bool { false }
-
-    pub fn available_model_menu_items<A: Action + Clone>(
-        _choices: Vec<&LLMInfo>,
-        _action: impl Fn(&LLMInfo) -> A,
-        _model_id_to_add_profile_default_label_to: Option<&LLMId>,
-        _position_id_fn: Option<&dyn Fn(&LLMId) -> String>,
-        _collapse_auto: bool,
-        _collapse_reasoning_variants: bool,
-        _app: &AppContext,
-    ) -> Vec<MenuItem<A>> { vec![] }
 }

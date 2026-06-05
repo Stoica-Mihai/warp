@@ -25,13 +25,8 @@ pub enum BonusGrantScope {
 
 #[derive(Clone, Debug)]
 pub struct BonusGrant {
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub cost_cents: i32,
     pub expiration: Option<chrono::DateTime<chrono::Utc>>,
     pub grant_type: BonusGrantType,
-    pub reason: String,
-    pub user_facing_message: Option<String>,
-    pub request_credits_granted: i32,
     pub request_credits_remaining: i32,
     pub scope: BonusGrantScope,
 }

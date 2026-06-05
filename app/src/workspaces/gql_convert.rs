@@ -552,13 +552,8 @@ impl From<GqlDelinquencyStatus> for DelinquencyStatus {
 impl BonusGrant {
     pub fn from_gql_bonus_grant(bonus_grant: GqlBonusGrant, scope: BonusGrantScope) -> Self {
         Self {
-            created_at: bonus_grant.created_at.utc(),
-            cost_cents: bonus_grant.cost_cents,
             expiration: bonus_grant.expiration.map(|exp| exp.utc()),
             grant_type: bonus_grant.grant_type,
-            reason: bonus_grant.reason,
-            user_facing_message: bonus_grant.user_facing_message,
-            request_credits_granted: bonus_grant.request_credits_granted,
             request_credits_remaining: bonus_grant.request_credits_remaining,
             scope,
         }

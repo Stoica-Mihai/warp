@@ -226,13 +226,8 @@ fn test_has_any_ai_remaining_true_with_user_bonus_credits() {
 
             // User-level bonus credits remaining.
             model.bonus_grants = vec![BonusGrant {
-                created_at: Utc::now(),
-                cost_cents: 0,
                 expiration: Some(Utc::now() + chrono::Duration::days(7)),
                 grant_type: BonusGrantType::Any,
-                reason: "test user bonus".to_string(),
-                user_facing_message: None,
-                request_credits_granted: 5,
                 request_credits_remaining: 5,
                 scope: BonusGrantScope::User,
             }];
@@ -290,13 +285,8 @@ fn test_has_any_ai_remaining_true_with_workspace_bonus_credits() {
 
             // Workspace-level bonus credits remaining.
             model.bonus_grants = vec![BonusGrant {
-                created_at: Utc::now(),
-                cost_cents: 0,
                 expiration: Some(Utc::now() + chrono::Duration::days(7)),
                 grant_type: BonusGrantType::Any,
-                reason: "test workspace bonus".to_string(),
-                user_facing_message: None,
-                request_credits_granted: 5,
                 request_credits_remaining: 5,
                 scope: BonusGrantScope::Workspace(uid),
             }];
@@ -595,13 +585,8 @@ fn test_has_any_ai_remaining_false_with_only_ambient_bonus_credits() {
 
             // Only ambient-only bonus credits.
             model.bonus_grants = vec![BonusGrant {
-                created_at: Utc::now(),
-                cost_cents: 0,
                 expiration: Some(Utc::now() + chrono::Duration::days(7)),
                 grant_type: BonusGrantType::AmbientOnly,
-                reason: "ambient trial credits".to_string(),
-                user_facing_message: None,
-                request_credits_granted: 1000,
                 request_credits_remaining: 1000,
                 scope: BonusGrantScope::User,
             }];
