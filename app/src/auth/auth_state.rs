@@ -553,20 +553,6 @@ impl AuthStateProvider {
     /// no credentials). Used by unit tests that need to exercise code paths
     /// gated on `AuthState::user_id()` / `UserWorkspaces::personal_drive()`
     /// returning `None`.
-    #[cfg(test)]
-    pub fn new_logged_out_for_test() -> Self {
-        Self {
-            auth_state: Arc::new(AuthState::new_logged_out_for_test()),
-        }
-    }
-
-    #[cfg(test)]
-    pub fn new_anonymous_for_test() -> Self {
-        Self {
-            auth_state: Arc::new(AuthState::new_anonymous_for_test()),
-        }
-    }
-
     pub fn get(&self) -> &Arc<AuthState> {
         &self.auth_state
     }

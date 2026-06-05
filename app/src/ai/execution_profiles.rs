@@ -235,11 +235,7 @@ impl JsonModel for AIExecutionProfile {
 
 pub mod profiles {
     use warpui::{Entity, ModelContext, SingletonEntity};
-    pub use super::{
-        ActionPermission, AIExecutionProfile, AskUserQuestionPermission,
-        ComputerUsePermission,
-        RunAgentsPermission, WriteToPtyPermission,
-    };
+    pub use super::AIExecutionProfile;
     use crate::ai::llms::LLMId;
 
     #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -270,46 +266,13 @@ pub mod profiles {
     impl AIExecutionProfilesModel {
         pub fn new(_launch_mode: &crate::LaunchMode, _ctx: &mut ModelContext<Self>) -> Self { Self }
         pub fn active_profile(&self, _view_id: Option<warpui::EntityId>, _ctx: &warpui::AppContext) -> AIExecutionProfileInfo { AIExecutionProfileInfo::default_info() }
-        pub fn default_profile(&self, _ctx: &warpui::AppContext) -> AIExecutionProfileInfo { AIExecutionProfileInfo::default_info() }
-        pub fn default_profile_id(&self) -> ClientProfileId { ClientProfileId(0) }
-        pub fn set_active_profile(&mut self, _view_id: warpui::EntityId, _id: ClientProfileId, _ctx: &mut ModelContext<Self>) {}
-        pub fn create_profile(&mut self, _ctx: &mut ModelContext<Self>) -> Option<ClientProfileId> { None }
-        pub fn delete_profile(&mut self, _id: ClientProfileId, _ctx: &mut ModelContext<Self>) {}
         pub fn get_profile_by_id(&self, _id: ClientProfileId, _ctx: &warpui::AppContext) -> Option<AIExecutionProfileInfo> { None }
         pub fn get_all_profile_ids(&self) -> Vec<ClientProfileId> { vec![] }
-        pub fn get_profile_id_by_sync_id(&self, _sync_id: &crate::server::ids::SyncId) -> Option<ClientProfileId> { None }
-        pub fn has_multiple_profiles(&self) -> bool { false }
-        pub fn reset(&mut self) {}
         pub fn set_base_model(&mut self, _id: ClientProfileId, _model: Option<LLMId>, _ctx: &mut ModelContext<Self>) {}
         pub fn set_coding_model(&mut self, _id: ClientProfileId, _model: Option<LLMId>, _ctx: &mut ModelContext<Self>) {}
         pub fn set_cli_agent_model(&mut self, _id: ClientProfileId, _model: Option<LLMId>, _ctx: &mut ModelContext<Self>) {}
         pub fn set_computer_use_model(&mut self, _id: ClientProfileId, _model: Option<LLMId>, _ctx: &mut ModelContext<Self>) {}
         pub fn set_context_window_limit(&mut self, _id: ClientProfileId, _limit: Option<u32>, _ctx: &mut ModelContext<Self>) {}
-        pub fn set_apply_code_diffs(&mut self, _id: ClientProfileId, _p: &ActionPermission, _ctx: &mut ModelContext<Self>) {}
-        pub fn set_read_files(&mut self, _id: ClientProfileId, _p: &ActionPermission, _ctx: &mut ModelContext<Self>) {}
-        pub fn set_execute_commands(&mut self, _id: ClientProfileId, _p: &ActionPermission, _ctx: &mut ModelContext<Self>) {}
-        pub fn set_write_to_pty(&mut self, _id: ClientProfileId, _p: &WriteToPtyPermission, _ctx: &mut ModelContext<Self>) {}
-        pub fn set_mcp_permissions(&mut self, _id: ClientProfileId, _p: &ActionPermission, _ctx: &mut ModelContext<Self>) {}
-        pub fn set_computer_use(&mut self, _id: ClientProfileId, _p: &ComputerUsePermission, _ctx: &mut ModelContext<Self>) {}
-        pub fn set_ask_user_question(&mut self, _id: ClientProfileId, _p: AskUserQuestionPermission, _ctx: &mut ModelContext<Self>) {}
-        pub fn set_run_agents(&mut self, _id: ClientProfileId, _p: RunAgentsPermission, _ctx: &mut ModelContext<Self>) {}
-        pub fn set_web_search_enabled(&mut self, _id: ClientProfileId, _v: bool, _ctx: &mut ModelContext<Self>) {}
-        pub fn set_autosync_plans_to_warp_drive(&mut self, _id: ClientProfileId, _v: bool, _ctx: &mut ModelContext<Self>) {}
-        pub fn set_profile_name(&mut self, _id: ClientProfileId, _name: String, _ctx: &mut ModelContext<Self>) {}
-        pub fn add_to_command_allowlist(&mut self, _id: ClientProfileId, _cmd: &crate::settings::AgentModeCommandExecutionPredicate, _ctx: &mut ModelContext<Self>) {}
-        pub fn remove_from_command_allowlist(&mut self, _id: ClientProfileId, _idx: usize, _ctx: &mut ModelContext<Self>) {}
-        pub fn add_to_command_denylist(&mut self, _id: ClientProfileId, _cmd: &crate::settings::AgentModeCommandExecutionPredicate, _ctx: &mut ModelContext<Self>) {}
-        pub fn remove_from_command_denylist(&mut self, _id: ClientProfileId, _idx: usize, _ctx: &mut ModelContext<Self>) {}
-        pub fn add_to_directory_allowlist(&mut self, _id: ClientProfileId, _path: &std::path::PathBuf, _ctx: &mut ModelContext<Self>) {}
-        pub fn remove_from_directory_allowlist(&mut self, _id: ClientProfileId, _idx: usize, _ctx: &mut ModelContext<Self>) {}
-        pub fn add_to_mcp_allowlist(&mut self, _id: ClientProfileId, _uuid: &uuid::Uuid, _ctx: &mut ModelContext<Self>) {}
-        pub fn remove_from_mcp_allowlist(&mut self, _id: ClientProfileId, _uuid: &uuid::Uuid, _ctx: &mut ModelContext<Self>) {}
-        pub fn add_to_mcp_denylist(&mut self, _id: ClientProfileId, _uuid: &uuid::Uuid, _ctx: &mut ModelContext<Self>) {}
-        pub fn remove_from_mcp_denylist(&mut self, _id: ClientProfileId, _uuid: &uuid::Uuid, _ctx: &mut ModelContext<Self>) {}
-        #[cfg(test)]
-        pub fn apply_cli_profile_defaults_for_test(&mut self, _id: ClientProfileId, _sandboxed: bool, _ctx: &mut ModelContext<Self>) {}
-        #[cfg(test)]
-        pub fn default_profile_id_for_test(&self) -> ClientProfileId { ClientProfileId(0) }
     }
 }
 

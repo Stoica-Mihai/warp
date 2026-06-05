@@ -624,10 +624,6 @@ impl AgentConversationsModel {
         self.tasks.values()
     }
 
-    #[cfg(test)]
-    pub(crate) fn insert_task_for_test(&mut self, task: AmbientAgentTask) {
-        self.tasks.insert(task.task_id, task);
-    }
 
 
     pub fn get_entry_by_id(
