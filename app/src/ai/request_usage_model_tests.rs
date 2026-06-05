@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use ai::api_keys::ApiKeyManager;
-use chrono::Duration;
 use warp_graphql::billing::{AddonCreditsOption, OveragesPricing, PricingInfo};
 use warpui::{App, ModelHandle};
 
@@ -80,110 +79,6 @@ fn enable_auto_reload(workspace: &mut Workspace) {
         .settings
         .addon_credits_settings
         .selected_auto_reload_credit_denomination = Some(1000);
-}
-
-#[test]
-fn test_request_limit_info() {
-    App::test((), |mut app| async move {
-        let request_usage_model = add_request_usage_model(&mut app);
-        request_usage_model.update(&mut app, |request_usage_model, _ctx| {
-            request_usage_model.request_limit_info = RequestLimitInfo {
-                limit: 200,
-                num_requests_used_since_refresh: 39,
-                next_refresh_time: ServerTimestamp::new(Utc::now() + Duration::days(1)),
-                is_unlimited: false,
-                request_limit_refresh_duration: RequestLimitRefreshDuration::Monthly,
-                is_unlimited_voice: false,
-                voice_request_limit: 100,
-                voice_requests_used_since_last_refresh: 0,
-                is_unlimited_codebase_indices: false,
-                max_codebase_indices: 3,
-                max_files_per_repo: 5000,
-                embedding_generation_batch_size: 100,
-            };
-            assert_eq!(200, request_usage_model.request_limit());
-            assert_eq!(39, request_usage_model.requests_used());
-            assert_eq!(161, request_usage_model.requests_remaining());
-        })
-    });
-}
-
-#[test]
-fn test_request_limit_info_with_limit() {
-    App::test((), |mut app| async move {
-        let request_usage_model = add_request_usage_model(&mut app);
-        request_usage_model.update(&mut app, |request_usage_model, _ctx| {
-            request_usage_model.request_limit_info = RequestLimitInfo {
-                limit: 999999999,
-                num_requests_used_since_refresh: 39,
-                next_refresh_time: ServerTimestamp::new(Utc::now() + Duration::minutes(1)),
-                is_unlimited: false,
-                request_limit_refresh_duration: RequestLimitRefreshDuration::Monthly,
-                is_unlimited_voice: false,
-                voice_request_limit: 100,
-                voice_requests_used_since_last_refresh: 0,
-                is_unlimited_codebase_indices: false,
-                max_codebase_indices: 3,
-                max_files_per_repo: 5000,
-                embedding_generation_batch_size: 100,
-            };
-            assert_eq!(999999999, request_usage_model.request_limit());
-            assert_eq!(39, request_usage_model.requests_used());
-            assert_eq!(999999960, request_usage_model.requests_remaining());
-        })
-    });
-}
-
-#[test]
-fn test_request_limit_info_past_refresh_time() {
-    App::test((), |mut app| async move {
-        let request_usage_model = add_request_usage_model(&mut app);
-        request_usage_model.update(&mut app, |request_usage_model, _ctx| {
-            request_usage_model.request_limit_info = RequestLimitInfo {
-                limit: 200,
-                num_requests_used_since_refresh: 39,
-                next_refresh_time: ServerTimestamp::new(Utc::now() - Duration::seconds(1)),
-                is_unlimited: false,
-                request_limit_refresh_duration: RequestLimitRefreshDuration::Monthly,
-                is_unlimited_voice: false,
-                voice_request_limit: 100,
-                voice_requests_used_since_last_refresh: 0,
-                is_unlimited_codebase_indices: false,
-                max_codebase_indices: 3,
-                max_files_per_repo: 5000,
-                embedding_generation_batch_size: 100,
-            };
-            assert_eq!(200, request_usage_model.request_limit());
-            assert_eq!(0, request_usage_model.requests_used());
-            assert_eq!(200, request_usage_model.requests_remaining());
-        })
-    });
-}
-
-#[test]
-fn test_request_limit_info_is_unlimited_true() {
-    App::test((), |mut app| async move {
-        let request_usage_model = add_request_usage_model(&mut app);
-        request_usage_model.update(&mut app, |request_usage_model, _ctx| {
-            request_usage_model.request_limit_info = RequestLimitInfo {
-                limit: 999999999,
-                num_requests_used_since_refresh: 39,
-                next_refresh_time: ServerTimestamp::new(Utc::now() + Duration::minutes(1)),
-                is_unlimited: true,
-                request_limit_refresh_duration: RequestLimitRefreshDuration::Monthly,
-                is_unlimited_voice: false,
-                voice_request_limit: 100,
-                voice_requests_used_since_last_refresh: 0,
-                is_unlimited_codebase_indices: false,
-                max_codebase_indices: 3,
-                max_files_per_repo: 5000,
-                embedding_generation_batch_size: 100,
-            };
-            assert_eq!(999999999, request_usage_model.request_limit());
-            assert_eq!(39, request_usage_model.requests_used());
-            assert_eq!(999999999, request_usage_model.requests_remaining());
-        })
-    });
 }
 
 #[test]

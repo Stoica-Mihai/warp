@@ -303,17 +303,6 @@ impl AIRequestUsageModel {
             || has_byo_api_key
     }
 
-    pub fn requests_used(&self) -> usize {
-        if self.next_refresh_time() <= Utc::now() {
-            return 0;
-        }
-        self.request_limit_info.num_requests_used_since_refresh
-    }
-
-    pub fn request_limit(&self) -> usize {
-        self.request_limit_info.limit
-    }
-
     /// Returns the number of indices the user's tier allows them to create and the number of files
     /// the user's tier allows them to index. If the user is allowed unlimited indices, then the
     /// max_indices_allowed is None.
