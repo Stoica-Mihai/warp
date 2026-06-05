@@ -262,17 +262,6 @@ impl AmbientAgentViewModel {
         &mut self.setup_commands_state
     }
 
-    pub(super) fn finish_setup_command_group(
-        &mut self,
-        group_id: SetupCommandGroupId,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        if self.setup_commands_state.is_running(group_id) {
-            self.setup_commands_state.finish_group(group_id);
-            ctx.emit(AmbientAgentViewModelEvent::UpdatedSetupCommandVisibility);
-        }
-    }
-
     pub(super) fn set_setup_command_group_visibility(
         &mut self,
         group_id: SetupCommandGroupId,
@@ -284,15 +273,6 @@ impl AmbientAgentViewModel {
                 .set_should_expand(group_id, is_visible);
             ctx.emit(AmbientAgentViewModelEvent::UpdatedSetupCommandVisibility);
         }
-    }
-
-    pub(super) fn set_setup_command_visibility(
-        &mut self,
-        is_visible: bool,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let group_id = self.setup_commands_state.current_group_id();
-        self.set_setup_command_group_visibility(group_id, is_visible, ctx);
     }
 
     /// Handles CloudModel events to keep environment_id in sync.
@@ -457,11 +437,6 @@ impl AmbientAgentViewModel {
         {
             false
         }
-    }
-
-    /// Always false — handoff submission is not supported.
-    pub(crate) fn is_handoff_ready_to_submit(&self) -> bool {
-        false
     }
 
     /// Whether the harness CLI has started running. Only meaningful for non-oz runs.

@@ -2470,9 +2470,6 @@ pub struct TerminalView {
     is_orchestration_split_off: bool,
     is_using_conversation_for_pane_header_title: bool,
 
-    pending_cloud_followup_task_id: Option<AmbientAgentTaskId>,
-
-
     /// Mouse state handle for the ambient agent cancel button in the pane header.
     ambient_agent_cancel_mouse_state: warpui::elements::MouseStateHandle,
 
@@ -3228,7 +3225,6 @@ impl TerminalView {
             ignore_next_set_title_event: false,
             is_orchestration_split_off: false,
             is_using_conversation_for_pane_header_title: false,
-            pending_cloud_followup_task_id: None,
             ambient_agent_cancel_mouse_state: Default::default(),
             active_init_project_model: None,
             is_pending_aws_login: false,
