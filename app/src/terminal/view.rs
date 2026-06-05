@@ -4028,12 +4028,6 @@ impl TerminalView {
         model.ambient_agent_task_id()
     }
 
-    pub fn ambient_agent_view_model(
-        &self,
-    ) -> Option<&ModelHandle<ambient_agent::AmbientAgentViewModel>> {
-        None
-    }
-
     pub fn ambient_agent_task_id_for_details_panel(
         &self,
         app: &AppContext,

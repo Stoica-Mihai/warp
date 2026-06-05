@@ -14,10 +14,9 @@ use warpui::{
     ViewHandle, WeakModelHandle,
 };
 
-use super::super::{AmbientAgentViewModelEvent, Status};
+use super::super::Status;
 use crate::ai::agent::conversation::ConversationStatus;
 use crate::ai::agent_conversations_model::{AgentConversationsModel, AgentConversationsModelEvent};
-use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::terminal::view::agent_view_state::{render_block_container, AgentViewEntryOrigin};
 use crate::pane_group::pane::{PaneConfiguration, PaneConfigurationEvent, PaneStack};
 use crate::terminal::view::ambient_agent::AmbientAgentViewModel;
@@ -38,7 +37,6 @@ pub struct AmbientAgentEntryBlock {
     terminal_manager: ModelHandle<Box<dyn TerminalManager>>,
     pane_stack: WeakModelHandle<PaneStack<TerminalView>>,
     state_handles: StateHandles,
-    fetched_task_id: Option<AmbientAgentTaskId>,
 }
 
 impl AmbientAgentEntryBlock {
@@ -48,16 +46,6 @@ impl AmbientAgentEntryBlock {
         pane_stack: WeakModelHandle<PaneStack<TerminalView>>,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
-        if let Some(view_model) = terminal_view
-            .as_ref(ctx)
-            .ambient_agent_view_model()
-            .cloned()
-        {
-            ctx.subscribe_to_model(&view_model, Self::handle_ambient_agent_view_model_event);
-        } else {
-            log::warn!("AmbientAgentEntryBlock created without an ambient agent view model");
-        }
-
         let pane_configuration = terminal_view.as_ref(ctx).pane_configuration().clone();
         ctx.subscribe_to_model(&pane_configuration, Self::handle_pane_configuration_event);
         let agent_conversations_model = AgentConversationsModel::handle(ctx);
@@ -72,32 +60,11 @@ impl AmbientAgentEntryBlock {
             terminal_manager,
             pane_stack,
             state_handles: Default::default(),
-            fetched_task_id: None,
         }
     }
 }
 
 impl AmbientAgentEntryBlock {
-    fn handle_ambient_agent_view_model_event(
-        &mut self,
-        _: ModelHandle<AmbientAgentViewModel>,
-        event: &AmbientAgentViewModelEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            AmbientAgentViewModelEvent::DispatchedAgent
-            | AmbientAgentViewModelEvent::ProgressUpdated
-            | AmbientAgentViewModelEvent::SessionReady { .. }
-            | AmbientAgentViewModelEvent::Failed { .. }
-            | AmbientAgentViewModelEvent::NeedsGithubAuth
-            | AmbientAgentViewModelEvent::Cancelled => {
-                self.maybe_fetch_task_data(ctx);
-                ctx.notify();
-            }
-            _ => (),
-        }
-    }
-
     fn handle_pane_configuration_event(
         &mut self,
         _: ModelHandle<PaneConfiguration>,
@@ -111,23 +78,6 @@ impl AmbientAgentEntryBlock {
         }
     }
 
-    fn maybe_fetch_task_data(&mut self, ctx: &mut ViewContext<Self>) {
-        let Some(task_id) = self
-            .ambient_agent_view_model(ctx)
-            .and_then(AmbientAgentViewModel::task_id)
-        else {
-            return;
-        };
-
-        if self.fetched_task_id == Some(task_id) {
-            return;
-        }
-        self.fetched_task_id = Some(task_id);
-
-        AgentConversationsModel::handle(ctx).update(ctx, |model, ctx| {
-            model.get_or_async_fetch_task_data(&task_id, ctx);
-        });
-    }
 
     fn meaningful_title(title: &str) -> Option<String> {
         let title = title.trim();
@@ -158,12 +108,9 @@ impl AmbientAgentEntryBlock {
 
     fn ambient_agent_view_model<'a>(
         &self,
-        app: &'a AppContext,
+        _app: &'a AppContext,
     ) -> Option<&'a AmbientAgentViewModel> {
-        self.terminal_view
-            .as_ref(app)
-            .ambient_agent_view_model()
-            .map(|model| model.as_ref(app))
+        None
     }
 
     /// Gets the detail text to display based on the ambient agent status.

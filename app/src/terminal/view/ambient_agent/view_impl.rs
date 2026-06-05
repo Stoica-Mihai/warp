@@ -26,17 +26,6 @@ impl TerminalView {
     ) {
         let is_nested_cloud_mode = self.is_nested_cloud_mode(ctx);
 
-        // (1) If we're currently in an empty cloud mode session (setup/composing; no
-        // dispatched query yet), do not allow creating a new cloud mode session.
-        if is_nested_cloud_mode
-            && self.ambient_agent_view_model().is_some_and(|model| {
-                let model = model.as_ref(ctx);
-                model.is_in_setup() || model.is_configuring_ambient_agent()
-            })
-        {
-            return;
-        }
-
         if is_nested_cloud_mode {
             // (2) Start a sibling cloud mode session at the terminal level.
             let Some(pane_stack) = self
