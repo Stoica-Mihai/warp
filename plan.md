@@ -266,9 +266,24 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 **Method that worked:** collapse dead `if flag.is_enabled() {…}` branches first (compiles fine with flag still defined — it's just fewer readers), bank green; remove flag def LAST once its readers hit zero. Cascades (banner module, dialog subsystem, URI route, REMOTE_CONTROL, close-session widget) surface as dead-code/unused-import warnings after the readers drop — use `cargo check --features gui` as the worklist oracle. For a subsystem that's reachable only through a now-permanently-false gate (close-confirm dialog, share banners), trace it to its event emitter — if the emitter is itself gated on `shared_session_status().is_sharer()` (always false), the whole chain is dead and removes cleanly. When a UI chip lives in kept agent code, re-gate it on the OTHER (off-by-default) flag rather than ripping the agent subsystem — defers cleanly, preserves default behavior.
 
-### AI strip — current state (`0d24336f`, 2026-06-01 session 4)
+### AI strip — current state (`15d8b1a7`, 2026-06-05 session 40)
 
-**Binary**: 794.3 MB (unchanged — handler bodies were already dead-stripped). 3-gate **71/86/71** (better than pre-existing 72/87/72; `is_conversation_selected` stub added for workspace caller at `7a710de6`). Commits `0d24336f` + `7a710de6`.
+**Binary**: 738.8 MB (cached — dead code deletion is linker-invisible). 3-gate **188/72/189** (0/0/0 errors). Latest commit `15d8b1a7`.
+
+**Session 40 handoff:**
+- Warnings: 188 default / 72 tests / 189 features. All 3 gates 0 errors.
+- server_api/ai.rs: 16 remaining warnings — all alive in tests or presigned_upload.rs (under local_fs). Do not delete.
+- presigned_upload.rs: 19 warnings — tests-alive. KEEP.
+- permissions.rs, conversation_yaml.rs: KEEP (used by live code).
+- Plugin managers (claude.rs, gemini.rs): dead constants/methods — KEEP per generic-feature rule.
+- execution_profiles.rs: BLOCKED (8 warnings, create_default_from_legacy_settings + create_default_cli_profile blocked by trait).
+- auto_handoff.rs: record_handoff_failed still alive (called from workspace/view.rs under local_fs cfg). AutoCloudHandoffAttemptState is empty enum (both variants deleted) — hashmap stays, no new errors.
+- Remaining 3-gate dead items (65 total in intersection): see warning files; focus on `server/cloud_objects/update_manager.rs` variants (Failure/Denied/FeatureNotAvailable — need match arm removal in toast_message.rs + workspace/view.rs too), `ai/request_usage_model.rs` dead methods/fields, ambient_agents dead items, code/editor dead items (KEEP — generic).
+- **Dead code rule established (session 40):** Only delete Warp/AI-cloud-specific dead code. Generic module dead code (code/editor/, code_review/, MCP, CLI plugin manager, terminal UI) stays even if 3-gate dead. See AGENTS.md CRITICAL session 40 note for classification guide.
+
+**Previous state (`0d24336f`, 2026-06-01 session 4):**
+
+Binary: 794.3 MB (unchanged — handler bodies were already dead-stripped). 3-gate **71/86/71**. Commits `0d24336f` + `7a710de6`.
 
 **Phase G-preview DONE (`1f600e66`):**
 - `ai_controller: ModelHandle<BlocklistAIController>` removed from TerminalView struct (Phase G-preview goal achieved).
