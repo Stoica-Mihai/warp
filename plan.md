@@ -266,29 +266,26 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 **Method that worked:** collapse dead `if flag.is_enabled() {…}` branches first (compiles fine with flag still defined — it's just fewer readers), bank green; remove flag def LAST once its readers hit zero. Cascades (banner module, dialog subsystem, URI route, REMOTE_CONTROL, close-session widget) surface as dead-code/unused-import warnings after the readers drop — use `cargo check --features gui` as the worklist oracle. For a subsystem that's reachable only through a now-permanently-false gate (close-confirm dialog, share banners), trace it to its event emitter — if the emitter is itself gated on `shared_session_status().is_sharer()` (always false), the whole chain is dead and removes cleanly. When a UI chip lives in kept agent code, re-gate it on the OTHER (off-by-default) flag rather than ripping the agent subsystem — defers cleanly, preserves default behavior.
 
-### AI strip — current state (`bae58497`, 2026-06-05 session 41)
+### AI strip — current state (`a6ec151b`, 2026-06-05 session 42)
 
-**Binary**: 738.8 MB (cached — dead code deletion is linker-invisible). 3-gate **178/67/179** (0/0/0 errors). Latest commit `bae58497`.
+**Binary**: 738.8 MB (cached — dead code deletion is linker-invisible). 3-gate **177/66/178** (0/0/0 errors). Latest commit `a6ec151b`.
 
-**Session 41 handoff:**
-- Warnings: 178 default / 67 tests / 179 features. All 3 gates 0 errors.
+**Session 42 handoff:**
+- Warnings: 177 default / 66 tests / 178 features. All 3 gates 0 errors.
 - server_api/ai.rs: 16 remaining warnings — all alive in tests or presigned_upload.rs (under local_fs). Do not delete.
 - presigned_upload.rs: 19 warnings — tests-alive. KEEP.
 - permissions.rs, conversation_yaml.rs: KEEP (used by live code).
 - Plugin managers (claude.rs, gemini.rs): dead constants/methods — KEEP per generic-feature rule.
-- execution_profiles.rs: BLOCKED (still 6+ warnings, create_default_from_legacy_settings + create_default_cli_profile blocked by trait).
-- local_harness_launch.rs: 8 warnings — KEEP per generic-feature rule (run_id/task_id fields, command builders).
-- `Failure/Denied/FeatureNotAvailable` (OperationSuccessType) + `Create` (ObjectOperation): in 3-gate intersection but need match arm cleanup in toast_message.rs / workspace/view.rs / notebooks + 8 other files. Deferred — complex multi-file cleanup.
-- Remaining 59-item 3-gate intersection: most in generic modules (KEEP); about 5–6 Warp-specific items left that need test deletion or complex match arm work.
-- **Dead code rule in effect:** See AGENTS.md CRITICAL session 40 note. Only delete Warp/AI-cloud-specific dead code. Generic modules keep dead code.
+- execution_profiles.rs: BLOCKED (6 warnings, create_default_from_legacy_settings + create_default_cli_profile blocked by trait).
+- local_harness_launch.rs: KEEP per generic-feature rule.
+- harness_support.rs: 3 warnings (UploadTarget/UploadField/UploadFieldValue structs) — alive under local_fs (used by presigned_upload.rs). KEEP.
+- Remaining 3-gate items: mostly in generic modules (KEEP); remaining Warp-specific items need test deletion — ai/agent/mod.rs (6 warnings, alive in tests), ai/ambient_agents/spawn.rs (alive in tests), ai/agent/api/* (alive in tests). Focus for session 43: tackle items alive in tests by also deleting the tests.
+- **Dead code rule in effect:** See AGENTS.md CRITICAL session 40 note.
 
-**Session 41 commits (2026-06-05):**
-- `49a7c9ac`: has_reasoning_variants + available_model_menu_items deleted + BonusGrant dead fields (created_at/cost_cents/reason/user_facing_message/request_credits_granted). −3 warnings each gate.
-- `3bbd20f2`: Cloud handoff methods + tests + dead HandoffSubmissionState/SnapshotUploadStatus variants from ambient_agent/model. −291 LoC.
-- `fbf09718`: 4 dead server_api.rs HTTP methods (put_public_api_response/put_public_api/delete_public_api_unit/patch_public_api_unit) + PendingCloudLaunch dead fields. −119 LoC.
-- `c3099485`: inherit_share_for_local_child + insert_ambient_agent_pane_hidden_for_child_agent + tests. −125 LoC.
-- `bae58497`: post_public_api_response_for_task from harness_support.rs + unused imports. −43 LoC.
-- Total session: 188/72/189 → 178/67/179 (−10/−5/−10 warnings).
+**Session 42 commits (2026-06-05):**
+- `5c698675`: OperationSuccessType Failure/Denied/FeatureNotAvailable variants deleted + match arm cleanup in toast_message/active_notebook_data/workspace/view. −98 LoC.
+- `a6ec151b`: ObjectOperation::Create variant deleted + cascade: CreatedOnServer events (2 types), dead struct fields (WorkflowPaneData.workflow_id, EnvVarCollectionPaneData.env_var_collection_id), handler no-ops. −270 LoC.
+- Total session: 178/67/179 → 177/66/178 (−1/−1/−1 warnings net; cascades from Create deletion exposed and then cleaned new dead items).
 
 **Previous state (`0d24336f`, 2026-06-01 session 4):**
 
