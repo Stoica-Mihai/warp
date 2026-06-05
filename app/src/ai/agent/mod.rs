@@ -1006,9 +1006,7 @@ impl FormattedTextLineWrapper {}
 
 #[derive(Debug, Clone)]
 pub(crate) struct FormattedTextWrapper {
-    /// Private to prevent direct mutation that would desync the cached `formatted_text` Arc.
     lines: Vec<FormattedTextLineWrapper>,
-    formatted_text: Arc<FormattedText>,
 }
 
 impl PartialEq for FormattedTextWrapper {
@@ -1023,18 +1021,14 @@ impl FormattedTextWrapper {}
 
 impl From<FormattedText> for FormattedTextWrapper {
     fn from(value: FormattedText) -> Self {
-        let formatted_text = Arc::new(value);
-        let lines = formatted_text
+        let lines = value
             .lines
             .iter()
             .map(|line| FormattedTextLineWrapper {
                 stripped_text: line.raw_text(),
             })
             .collect();
-        Self {
-            lines,
-            formatted_text,
-        }
+        Self { lines }
     }
 }
 

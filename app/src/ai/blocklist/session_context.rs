@@ -7,10 +7,6 @@ pub struct SessionContext {
 }
 
 impl SessionContext {
-    pub fn session_type(&self) -> &Option<SessionType> {
-        &self.session_type
-    }
-
     pub fn current_working_directory(&self) -> &Option<String> {
         &self.current_working_directory
     }
@@ -21,14 +17,5 @@ impl SessionContext {
             Some(SessionType::Local) | None => None,
         }
     }
-
-    #[cfg(test)]
-    pub fn new_for_test() -> Self {
-        SessionContext {
-            session_type: None,
-            current_working_directory: None,
-        }
-    }
-
 
 }

@@ -464,21 +464,6 @@ impl AmbientAgentTaskState {
         }
     }
 
-    pub fn is_failure_like(&self) -> bool {
-        match self {
-            AmbientAgentTaskState::Failed
-            | AmbientAgentTaskState::Error
-            | AmbientAgentTaskState::Blocked
-            | AmbientAgentTaskState::Unknown => true,
-            AmbientAgentTaskState::Queued
-            | AmbientAgentTaskState::Pending
-            | AmbientAgentTaskState::Claimed
-            | AmbientAgentTaskState::InProgress
-            | AmbientAgentTaskState::Succeeded
-            | AmbientAgentTaskState::Cancelled => false,
-        }
-    }
-
     pub fn is_terminal(&self) -> bool {
         match self {
             AmbientAgentTaskState::Succeeded

@@ -5,15 +5,11 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use anyhow::anyhow;
 use futures::{select, FutureExt, Stream, StreamExt};
 use session_sharing_protocol::common::SessionId;
-
 use super::{AmbientAgentTask, AmbientAgentTaskId, AmbientAgentTaskState};
 use crate::server::retry_strategies::with_bounded_retry;
-use crate::server::server_api::ai::{
-    AIClient, RunFollowupRequest, SpawnAgentRequest, TaskStatusMessage,
-};
+use crate::server::server_api::ai::{AIClient, SpawnAgentRequest, TaskStatusMessage};
 
 
 #[cfg(not(test))]
@@ -76,9 +72,6 @@ pub enum AmbientAgentEvent {
 
 enum RunPollMode {
     InitialRun,
-    Followup {
-        previous_session_id: Option<SessionId>,
-    },
 }
 
 /// Spawns an ambient agent task and monitors its state.
@@ -126,38 +119,11 @@ pub fn spawn_task(
     }
 }
 
-pub fn submit_run_followup(
-    message: String,
-    run_id: AmbientAgentTaskId,
-    previous_session_id: Option<SessionId>,
-    ai_client: Arc<dyn AIClient>,
-    timeout: Option<Duration>,
-) -> impl Stream<Item = Result<AmbientAgentEvent, anyhow::Error>> {
-    async_stream::stream! {
-        let request = RunFollowupRequest { message };
-        if let Err(err) = ai_client.submit_run_followup(&run_id, request).await {
-            yield Err(err);
-            return;
-        }
-
-        let mut stream = Box::pin(poll_run_until_joinable_session(
-            run_id,
-            ai_client,
-            RunPollMode::Followup {
-                previous_session_id,
-            },
-            timeout,
-        ));
-        while let Some(event) = stream.next().await {
-            yield event;
-        }
-    }
-}
 
 fn poll_run_until_joinable_session(
     run_id: AmbientAgentTaskId,
     ai_client: Arc<dyn AIClient>,
-    mode: RunPollMode,
+    _mode: RunPollMode,
     timeout: Option<Duration>,
 ) -> impl Stream<Item = Result<AmbientAgentEvent, anyhow::Error>> {
     async_stream::stream! {
@@ -180,7 +146,7 @@ fn poll_run_until_joinable_session(
         // To avoid that, gate event emission for follow-ups on having observed at least
         // one working state. Initial spawns don't need this — they start from a fresh
         // task whose first observation reflects the spawn itself.
-        let mut seen_working_state = matches!(&mode, RunPollMode::InitialRun);
+        let mut seen_working_state = true;
         let mut skipped_stale_polls: usize = 0;
         loop {
             let mut poll_timer = FutureExt::fuse(warpui::r#async::Timer::after(TASK_STATUS_POLL_INTERVAL));
@@ -244,48 +210,15 @@ fn poll_run_until_joinable_session(
                             }
 
                             if task.state.is_terminal() {
-                                if matches!(&mode, RunPollMode::Followup { .. }) {
-                                    let exhausted_stale_skips = !seen_working_state
-                                        && skipped_stale_polls >= MAX_STALE_POLLS_BEFORE_FAILURE;
-                                    let message = if exhausted_stale_skips {
-                                        "Cloud follow-up did not start in time".to_string()
-                                    } else {
-                                        task.status_message
-                                            .as_ref()
-                                            .map(|msg| msg.message.clone())
-                                            .unwrap_or_else(|| {
-                                                if task.state.is_failure_like() {
-                                                    "Cloud agent failed".to_string()
-                                                } else {
-                                                    "Cloud follow-up finished before a new session became available".to_string()
-                                                }
-                                            })
-                                    };
-                                    yield Err(anyhow!(message));
-                                }
                                 return;
                             }
 
                             if task.state == AmbientAgentTaskState::InProgress {
                                 if let Some(session_join_info) = SessionJoinInfo::from_task(&task) {
-                                    let has_new_session = match &mode {
-                                        RunPollMode::InitialRun
-                                        | RunPollMode::Followup {
-                                            previous_session_id: None,
-                                        } => true,
-                                        RunPollMode::Followup {
-                                            previous_session_id: Some(previous_session_id),
-                                        } => session_join_info
-                                            .session_id
-                                            .as_ref()
-                                            .is_some_and(|session_id| session_id != previous_session_id),
-                                    };
-                                    if has_new_session {
-                                        yield Ok(AmbientAgentEvent::SessionStarted {
-                                            session_join_info,
-                                        });
-                                        return;
-                                    }
+                                    yield Ok(AmbientAgentEvent::SessionStarted {
+                                        session_join_info,
+                                    });
+                                    return;
                                 }
                             }
                         }
