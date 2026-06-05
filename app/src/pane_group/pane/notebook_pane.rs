@@ -231,11 +231,7 @@ fn handle_notebook_event(
             new_space,
         } => move_to_space(*cloud_object_type_and_id, *new_space, ctx),
         NotebookEvent::Pane(pane_event) => group.handle_pane_event(pane_id, pane_event, ctx),
-        NotebookEvent::AttachPlanAsContext(ai_document_id) => {
-            ctx.emit(crate::pane_group::Event::AttachPlanAsContext {
-                ai_document_id: *ai_document_id,
-            })
-        }
+        NotebookEvent::AttachPlanAsContext(_ai_document_id) => {}
     }
 }
 

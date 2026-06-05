@@ -17,7 +17,6 @@ use super::drive_helpers::{
 use super::index::{DriveIndex, DriveIndexAction, DriveIndexEvent};
 use super::items::WarpDriveItemId;
 use super::{CloudObjectTypeAndId, DriveObjectType};
-use crate::ai::document::ai_document_model::AIDocumentId;
 use crate::ai::facts::CloudAIFactModel;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::model::view::CloudViewModel;
@@ -82,7 +81,6 @@ pub enum DrivePanelEvent {
     OpenEnvVarCollection(EnvVarCollectionSource),
     OpenWorkflowInPane(WorkflowOpenSource, WorkflowViewMode),
     FocusWarpDrive,
-    AttachPlanAsContext(AIDocumentId),
 }
 
 impl DrivePanel {
@@ -329,9 +327,7 @@ impl DrivePanel {
                     log::error!("Cannot identify an AI rule owner from {space:?}");
                 }
             },
-            DriveIndexEvent::AttachPlanAsContext(id) => {
-                ctx.emit(DrivePanelEvent::AttachPlanAsContext(*id))
-            }
+            DriveIndexEvent::AttachPlanAsContext(_id) => {}
         }
     }
 
