@@ -52,7 +52,7 @@ use crate::ai::restored_conversations::RestoredAgentConversations;
 #[cfg(feature = "local_fs")]
 use crate::app_state::CodePaneSnapShot;
 use crate::app_state::{
-    self, AIFactPaneSnapshot, BranchSnapshot, EnvVarCollectionPaneSnapshot, LeafContents,
+    self, BranchSnapshot, EnvVarCollectionPaneSnapshot, LeafContents,
     LeafSnapshot, NotebookPaneSnapshot, PaneNodeSnapshot, PaneUuid, SettingsPaneSnapshot,
     TerminalPaneSnapshot, WorkflowPaneSnapshot,
 };
@@ -136,7 +136,6 @@ use focus_state::PaneGroupFocusState;
 #[path = "mod_tests.rs"]
 mod tests;
 
-pub use pane::ai_fact_pane::AIFactPane;
 pub use pane::code_pane::CodePane;
 pub use pane::env_var_collection_pane::EnvVarCollectionPane;
 pub use pane::file_pane::FilePane;
@@ -528,10 +527,6 @@ pub enum Event {
     /// from the orchestration pill bar's 3-dot menu.
     OpenChildAgentInNewTab {
         conversation_id: AIConversationId,
-    },
-    OpenAIFactCollection {
-        /// If set, open the fact collection to the specific rule.
-        sync_id: Option<SyncId>,
     },
     AnonymousUserSignup,
     /// Request that the workspace open the command palette.
@@ -1599,21 +1594,6 @@ impl PaneGroup {
                     )),
                 };
 
-                let pane_id = pane.as_pane().id();
-                pane_contents.insert(pane_id, pane);
-                let focus = InitialFocus {
-                    focused_pane: leaf.is_focused.then_some(pane_id),
-                    active_session: None,
-                };
-                Ok((PaneData::new(pane_id), focus))
-            }
-            LeafContents::AIFact(snapshot) => {
-                if !FeatureFlag::AIRules.is_enabled() {
-                    return Err(anyhow::anyhow!("AI fact pane not enabled"));
-                }
-                let pane: Box<dyn AnyPaneContent + 'static> = match snapshot {
-                    AIFactPaneSnapshot::Personal => Box::new(AIFactPane::new(ctx)),
-                };
                 let pane_id = pane.as_pane().id();
                 pane_contents.insert(pane_id, pane);
                 let focus = InitialFocus {
@@ -3322,10 +3302,6 @@ impl PaneGroup {
     }
 
     pub fn workflow_pane_by_pane_id(&self, pane_id: Option<PaneId>) -> Option<&WorkflowPane> {
-        self.downcast_pane_by_id(pane_id?)
-    }
-
-    pub fn ai_fact_pane_by_pane_id(&self, pane_id: Option<PaneId>) -> Option<&AIFactPane> {
         self.downcast_pane_by_id(pane_id?)
     }
 

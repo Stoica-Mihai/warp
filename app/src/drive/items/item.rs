@@ -663,7 +663,6 @@ impl<'a> WarpDriveRow<'a> {
         let warp_drive_item_id = self.item.warp_drive_id();
         match warp_drive_item_id {
             WarpDriveItemId::Object(_)
-            | WarpDriveItemId::AIFactCollection
             | WarpDriveItemId::MCPServerCollection => {
                 Hoverable::new(self.item_states.item_mouse_state.clone(), move |_| {
                     Container::new(
@@ -905,7 +904,7 @@ impl UiComponent for WarpDriveRow<'_> {
                     &self.item.warp_drive_id().drive_row_position_id(),
                 )
             }
-            WarpDriveItemId::AIFactCollection | WarpDriveItemId::MCPServerCollection => {
+            WarpDriveItemId::MCPServerCollection => {
                 SavePosition::new(
                     hoverable_item,
                     &self.item.warp_drive_id().drive_row_position_id(),

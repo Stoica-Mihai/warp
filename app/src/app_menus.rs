@@ -516,13 +516,6 @@ fn make_new_ai_menu(ctx: &AppContext) -> Menu {
         updateable_custom_item_without_checkmark(CustomAction::AISearch, ctx),
     ]);
 
-    if FeatureFlag::AIRules.is_enabled() {
-        items.extend([
-            MenuItem::Separator,
-            updateable_custom_item_without_checkmark(CustomAction::OpenAIFactCollection, ctx),
-        ]);
-    }
-
     if FeatureFlag::McpServer.is_enabled() && ContextFlag::ShowMCPServers.is_enabled() {
         items.push(updateable_custom_item_without_checkmark(
             CustomAction::OpenMCPServerCollection,
@@ -596,7 +589,6 @@ fn make_new_drive_menu(ctx: &AppContext) -> Menu {
         updateable_custom_item_without_checkmark(CustomAction::ToggleWarpDrive, ctx),
         updateable_custom_item_without_checkmark(CustomAction::SearchDrive, ctx),
         updateable_custom_item_without_checkmark(CustomAction::OpenTeamSettings, ctx),
-        updateable_custom_item_without_checkmark(CustomAction::OpenAIFactCollection, ctx),
         updateable_custom_item_without_checkmark(CustomAction::OpenMCPServerCollection, ctx),
     ]);
 

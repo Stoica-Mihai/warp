@@ -58,7 +58,6 @@ use crate::ai::cloud_environments::{
     CloudAmbientAgentEnvironment, CloudAmbientAgentEnvironmentModel,
 };
 use crate::ai::document::ai_document_model::AIDocumentId;
-use crate::ai::facts::{CloudAIFact, CloudAIFactModel};
 use crate::ai::mcp::templatable::{CloudTemplatableMCPServer, CloudTemplatableMCPServerModel};
 use crate::ai::mcp::templatable_installation::VariableValue;
 use crate::ai::mcp::{
@@ -66,7 +65,7 @@ use crate::ai::mcp::{
 };
 use crate::ai::persisted_workspace::EnablementState;
 use crate::app_state::{
-    AIFactPaneSnapshot, AmbientAgentPaneSnapshot, AppState, BranchSnapshot, CodePaneSnapShot,
+    AmbientAgentPaneSnapshot, AppState, BranchSnapshot, CodePaneSnapShot,
     CodePaneTabSnapshot, CodeReviewPaneSnapshot, EnvVarCollectionPaneSnapshot, LeafContents,
     LeafSnapshot, LeftPanelSnapshot, NotebookPaneSnapshot, PaneFlex, PaneNodeSnapshot,
     RightPanelSnapshot, SettingsPaneSnapshot, SplitDirection, TabSnapshot, TerminalPaneSnapshot,
@@ -1045,7 +1044,6 @@ fn save_pane_state(
         LeafContents::Code(_) => CODE_PANE_KIND,
         LeafContents::Workflow(_) => WORKFLOW_PANE_KIND,
         LeafContents::Settings(_) => SETTINGS_PANE_KIND,
-        LeafContents::AIFact(_) => AI_FACT_PANE_KIND,
         LeafContents::CodeReview(_) => CODE_REVIEW_PANE_KIND,
         LeafContents::AmbientAgent(_) => AMBIENT_AGENT_PANE_KIND,
         LeafContents::NetworkLog => {
@@ -1207,13 +1205,6 @@ fn save_pane_state(
 
             diesel::insert_into(schema::settings_panes::dsl::settings_panes)
                 .values(settings_pane)
-                .execute(conn)?;
-        }
-        LeafContents::AIFact(_ai_fact_pane_snapshot) => {
-            let ai_fact = model::NewAIFactPane { id };
-
-            diesel::insert_into(schema::ai_memory_panes::dsl::ai_memory_panes)
-                .values(ai_fact)
                 .execute(conn)?;
         }
         LeafContents::CodeReview(code_review_pane_snapshot) => {
@@ -2465,7 +2456,9 @@ fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<PaneN
                         search_query: None,
                     })
                 }
-                AI_FACT_PANE_KIND => LeafContents::AIFact(AIFactPaneSnapshot::Personal),
+                AI_FACT_PANE_KIND => {
+                    bail!("Legacy AI fact panes are no longer supported")
+                }
                 MCP_SERVER_PANE_KIND => {
                     // Legacy MCP server panes are no longer supported.
                     bail!("Legacy MCP server panes are no longer supported")
@@ -2902,18 +2895,7 @@ fn read_sqlite_data(
                                     boxed
                                 })
                             }
-                            JsonObjectType::AIFact => {
-                                let model = CloudAIFactModel::deserialize_owned(&object.data);
-                                model.ok().map(|model| {
-                                    let boxed: Box<dyn CloudObject> = Box::new(CloudAIFact::new(
-                                        server_id,
-                                        model,
-                                        to_cloud_object_metadata(metadata),
-                                        cloud_object_permissions,
-                                    ));
-                                    boxed
-                                })
-                            }
+                            JsonObjectType::AIFact => None,
                             JsonObjectType::MCPServer => {
                                 let model = CloudMCPServerModel::deserialize_owned(&object.data);
                                 model.ok().map(|model| {

@@ -13,7 +13,6 @@ use warpui::{
     SingletonEntity,
 };
 
-use crate::ai::facts::{AIFact, CloudAIFactModel};
 #[cfg(not(target_family = "wasm"))]
 use crate::ai::mcp::templatable::{CloudTemplatableMCPServerModel, TemplatableMCPServer};
 use crate::auth::AuthStateProvider;
@@ -275,16 +274,6 @@ impl UpdateManager {
         if had_conflicts {
             self.save_in_memory_object_to_sqlite(cloud_model_handle.as_ref(ctx), uid);
         }
-    }
-
-    pub fn update_ai_fact(
-        &mut self,
-        ai_fact: AIFact,
-        ai_fact_id: SyncId,
-        revision_ts: Option<Revision>,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        self.update_object(CloudAIFactModel::new(ai_fact), ai_fact_id, revision_ts, ctx);
     }
 
     #[cfg(not(target_family = "wasm"))]
@@ -763,27 +752,6 @@ impl UpdateManager {
             entrypoint,
             true,
             initial_folder_id,
-            // When adding the initiated_by parameter to this function call, InitiatedBy::User was set as a default value.
-            // This can be changed to InitiatedBy::System if this action was automatically kicked off by the system and we do not want a user facing toast.
-            InitiatedBy::User,
-            ctx,
-        );
-    }
-
-    pub fn create_ai_fact(
-        &mut self,
-        ai_fact: AIFact,
-        client_id: ClientId,
-        owner: Owner,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        self.create_object(
-            CloudAIFactModel::new(ai_fact),
-            owner,
-            client_id,
-            Default::default(),
-            false,
-            None,
             // When adding the initiated_by parameter to this function call, InitiatedBy::User was set as a default value.
             // This can be changed to InitiatedBy::System if this action was automatically kicked off by the system and we do not want a user facing toast.
             InitiatedBy::User,

@@ -24,7 +24,6 @@ use crate::ai::ambient_agents::scheduled::CloudScheduledAmbientAgentModel;
 use crate::ai::cloud_agent_config::CloudAgentConfigModel;
 use crate::ai::cloud_environments::CloudAmbientAgentEnvironmentModel;
 use crate::ai::document::ai_document_model::AIDocumentId;
-use crate::ai::facts::CloudAIFactModel;
 use crate::ai::mcp::templatable::CloudTemplatableMCPServerModel;
 use crate::ai::mcp::CloudMCPServerModel;
 use crate::appearance::Appearance;
@@ -949,7 +948,6 @@ pub enum ServerCloudObject {
     Preference(ServerPreference),
     EnvVarCollection(ServerEnvVarCollection),
     WorkflowEnum(ServerWorkflowEnum),
-    AIFact(ServerAIFact),
     MCPServer(ServerMCPServer),
     TemplatableMCPServer(ServerTemplatableMCPServer),
     AmbientAgentEnvironment(ServerAmbientAgentEnvironment),
@@ -966,7 +964,6 @@ impl ServerCloudObject {
             ServerCloudObject::Preference(preferences) => &preferences.metadata,
             ServerCloudObject::EnvVarCollection(env_var_collection) => &env_var_collection.metadata,
             ServerCloudObject::WorkflowEnum(workflow_enum) => &workflow_enum.metadata,
-            ServerCloudObject::AIFact(aifact) => &aifact.metadata,
             ServerCloudObject::MCPServer(mcp_server) => &mcp_server.metadata,
             ServerCloudObject::TemplatableMCPServer(templatable_mcp_server) => {
                 &templatable_mcp_server.metadata
@@ -989,7 +986,6 @@ impl ServerCloudObject {
             ServerCloudObject::Preference(preferences) => preferences.id.uid(),
             ServerCloudObject::EnvVarCollection(env_var_collection) => env_var_collection.id.uid(),
             ServerCloudObject::WorkflowEnum(workflow_enum) => workflow_enum.id.uid(),
-            ServerCloudObject::AIFact(aifact) => aifact.id.uid(),
             ServerCloudObject::MCPServer(mcp_server) => mcp_server.id.uid(),
             ServerCloudObject::TemplatableMCPServer(templatable_mcp_server) => {
                 templatable_mcp_server.id.uid()
@@ -1026,8 +1022,6 @@ where
             ServerCloudObject::EnvVarCollection(server_env_var_collection.clone())
         } else if let Some(server_workflow_enum) = value.downcast_ref::<ServerWorkflowEnum>() {
             ServerCloudObject::WorkflowEnum(server_workflow_enum.clone())
-        } else if let Some(server_aifact) = value.downcast_ref::<ServerAIFact>() {
-            ServerCloudObject::AIFact(server_aifact.clone())
         } else if let Some(server_mcp_server) = value.downcast_ref::<ServerMCPServer>() {
             ServerCloudObject::MCPServer(server_mcp_server.clone())
         } else if let Some(server_templatable_mcp_server) =
@@ -1059,7 +1053,6 @@ pub type ServerNotebook = GenericServerObject<NotebookId, CloudNotebookModel>;
 pub type ServerEnvVarCollection =
     GenericServerObject<GenericStringObjectId, CloudEnvVarCollectionModel>;
 pub type ServerWorkflowEnum = GenericServerObject<GenericStringObjectId, CloudWorkflowEnumModel>;
-pub type ServerAIFact = GenericServerObject<GenericStringObjectId, CloudAIFactModel>;
 pub type ServerMCPServer = GenericServerObject<GenericStringObjectId, CloudMCPServerModel>;
 pub type ServerTemplatableMCPServer =
     GenericServerObject<GenericStringObjectId, CloudTemplatableMCPServerModel>;

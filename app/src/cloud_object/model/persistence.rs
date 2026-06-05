@@ -511,9 +511,6 @@ impl CloudModel {
             ServerCloudObject::WorkflowEnum(workflow_enum) => {
                 self.upsert_from_server_object(workflow_enum, ctx);
             }
-            ServerCloudObject::AIFact(aifact) => {
-                self.upsert_from_server_object(aifact, ctx);
-            }
             ServerCloudObject::MCPServer(mcp_server) => {
                 self.upsert_from_server_object(mcp_server, ctx);
             }

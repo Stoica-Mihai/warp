@@ -114,7 +114,6 @@ pub enum LeafContents {
     EnvVarCollection(EnvVarCollectionPaneSnapshot),
     Workflow(WorkflowPaneSnapshot),
     Settings(SettingsPaneSnapshot),
-    AIFact(AIFactPaneSnapshot),
     CodeReview(CodeReviewPaneSnapshot),
     AmbientAgent(AmbientAgentPaneSnapshot),
     /// The in-app network log pane. Not persisted across restarts because the
@@ -146,7 +145,6 @@ impl LeafContents {
             | LeafContents::EnvVarCollection(_)
             | LeafContents::Workflow(_)
             | LeafContents::Settings(_)
-            | LeafContents::AIFact(_)
             | LeafContents::CodeReview(_)
             | LeafContents::AmbientAgent(_) => true,
         }
@@ -239,11 +237,6 @@ pub enum SettingsPaneSnapshot {
         current_page: SettingsSection,
         search_query: Option<String>,
     },
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum AIFactPaneSnapshot {
-    Personal,
 }
 
 #[derive(Clone, Debug, PartialEq)]

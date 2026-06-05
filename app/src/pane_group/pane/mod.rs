@@ -8,7 +8,6 @@
 //! The [`PaneContent`] interface requires implementers to maintain a [`PaneId`] for their pane.
 //! The [`PaneId`] must be created via a [`PaneView<BackingView>`]. The [`PaneId`] is consequently
 //! used to render a [`PaneView`] which internally renders the pane, including the [`BackingView`].
-pub(super) mod ai_fact_pane;
 pub(super) mod code_pane;
 pub(super) mod env_var_collection_pane;
 pub(super) mod file_pane;
@@ -36,7 +35,6 @@ use warpui::{
 
 pub use self::view::{PaneHeaderAction, PaneHeaderCustomAction, PaneView, PaneViewEvent};
 use super::{ActivationReason, LeafContents, PaneGroup, PaneGroupAction};
-use crate::ai::facts::AIFactView;
 #[cfg(feature = "local_fs")]
 use crate::code::buffer_location::LocalOrRemotePath;
 use crate::code::view::CodeView;
@@ -122,7 +120,6 @@ pub(crate) enum IPaneType {
     EnvVarCollection,
     Workflow,
     Settings,
-    AIFact,
     NetworkLog,
     DeferredPlaceholder,
     /// A pane type only for tests.
@@ -140,7 +137,6 @@ impl Display for IPaneType {
             IPaneType::EnvVarCollection => write!(f, "Environment Variable Collection"),
             IPaneType::Workflow => write!(f, "Workflow"),
             IPaneType::Settings => write!(f, "Settings"),
-            IPaneType::AIFact => write!(f, "AI Fact"),
             IPaneType::NetworkLog => write!(f, "Network Log"),
             IPaneType::DeferredPlaceholder => write!(f, "Placeholder"),
             #[cfg(test)]
@@ -201,11 +197,6 @@ impl PaneId {
         Self::new_from_ctx(IPaneType::Settings, ctx)
     }
 
-    /// Creates a [`PaneId`] from a [`ViewContext<PaneView<AIFactView>>`]
-    pub fn from_ai_fact_pane_ctx(ctx: &ViewContext<PaneView<AIFactView>>) -> Self {
-        Self::new_from_ctx(IPaneType::AIFact, ctx)
-    }
-
     /// Creates a [`PaneId`] from a [`ViewContext<PaneView<NetworkLogView>>`].
     pub fn from_network_log_pane_ctx(ctx: &ViewContext<PaneView<NetworkLogView>>) -> Self {
         Self::new_from_ctx(IPaneType::NetworkLog, ctx)
@@ -254,11 +245,6 @@ impl PaneId {
         settings_pane_view: &ViewHandle<PaneView<SettingsView>>,
     ) -> Self {
         Self::new(IPaneType::Settings, settings_pane_view)
-    }
-
-    /// Creates a [`PaneId`] from a [`PaneView<AIFactView>`] entity ID.
-    pub fn from_ai_fact_pane_view(ai_fact_pane_view: &ViewHandle<PaneView<AIFactView>>) -> Self {
-        Self::new(IPaneType::AIFact, ai_fact_pane_view)
     }
 
     /// Creates a [`PaneId`] from a [`PaneView<NetworkLogView>`] entity ID.
@@ -317,7 +303,6 @@ impl PaneId {
             IPaneType::Notebook
                 | IPaneType::Workflow
                 | IPaneType::EnvVarCollection
-                | IPaneType::AIFact
         )
     }
 
@@ -344,9 +329,6 @@ impl PaneId {
             }
             IPaneType::Settings => {
                 ChildView::<PaneView<SettingsView>>::with_id(self.0.pane_view_id).finish()
-            }
-            IPaneType::AIFact => {
-                ChildView::<PaneView<AIFactView>>::with_id(self.0.pane_view_id).finish()
             }
             IPaneType::NetworkLog => {
                 ChildView::<PaneView<NetworkLogView>>::with_id(self.0.pane_view_id).finish()

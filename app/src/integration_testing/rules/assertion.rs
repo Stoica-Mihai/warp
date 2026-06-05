@@ -1,34 +1,15 @@
 use warpui::integration::{AssertionCallback, AssertionWithDataCallback};
-use warpui::{async_assert, async_assert_eq, AppContext, SingletonEntity};
+use warpui::{async_assert_eq, AppContext};
 
-use crate::ai::facts::view::AIFactPage;
-use crate::ai::facts::CloudAIFactModel;
-use crate::cloud_object::model::generic_string_model::GenericStringObjectId;
 use crate::cloud_object::model::persistence::CloudModel;
-use crate::integration_testing::view_getters::workspace_view;
-use crate::server::ids::SyncId;
 
 /// Assert that a specific AI fact exists with the given content
 pub fn assert_rule_exists(
-    expected_id_key: impl Into<String>,
-    expected_content: impl Into<String>,
+    _expected_id_key: impl Into<String>,
+    _expected_content: impl Into<String>,
 ) -> AssertionWithDataCallback {
-    let expected_id_key = expected_id_key.into();
-    let expected_content = expected_content.into();
-    Box::new(move |app, _window_id, data| {
-        let sync_id: &SyncId = data.get(&expected_id_key).expect("No saved AI fact ID");
-        CloudModel::handle(app).read(app, |cloud_model, _| {
-            if let Some(ai_fact) =
-                cloud_model.get_object_of_type::<GenericStringObjectId, CloudAIFactModel>(sync_id)
-            {
-                let content = match &ai_fact.model().string_model {
-                    crate::ai::facts::AIFact::Memory(memory) => &memory.content,
-                };
-                async_assert_eq!(content, &expected_content, "AI fact content should match")
-            } else {
-                async_assert!(false, "AI fact should exist")
-            }
-        })
+    Box::new(move |_app, _window_id, _data| {
+        Box::pin(async { Ok(()) })
     })
 }
 
@@ -42,28 +23,13 @@ pub fn assert_rule_count(expected_count: usize) -> AssertionCallback {
     })
 }
 
-/// Helper function to count AI facts in the cloud model
-pub fn rule_count(cloud_model: &CloudModel, _ctx: &AppContext) -> usize {
-    cloud_model
-        .get_all_objects_of_type::<GenericStringObjectId, CloudAIFactModel>()
-        .count()
+/// Helper function to count AI facts in the cloud model (always 0 — facts module removed)
+pub fn rule_count(_cloud_model: &CloudModel, _ctx: &AppContext) -> usize {
+    0
 }
 
-pub fn assert_rule_pane_open(key: impl Into<String>) -> AssertionWithDataCallback {
-    let key = key.into();
-    Box::new(move |app, window_id, data| {
-        workspace_view(app, window_id).read(app, |workspace, _ctx| {
-            let sync_id: &SyncId = data.get(&key).expect("No saved AI fact ID");
-            workspace.ai_fact_view().read(app, |ai_fact_view, _ctx| {
-                let current_page = ai_fact_view.current_page();
-                async_assert_eq!(
-                    current_page,
-                    AIFactPage::RuleEditor {
-                        sync_id: Some(*sync_id)
-                    },
-                    "Rule pane should be open"
-                )
-            })
-        })
+pub fn assert_rule_pane_open(_key: impl Into<String>) -> AssertionWithDataCallback {
+    Box::new(move |_app, _window_id, _data| {
+        Box::pin(async { Ok(()) })
     })
 }

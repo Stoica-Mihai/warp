@@ -155,7 +155,6 @@ pub enum SettingsViewEvent {
         message: String,
         flavor: ToastFlavor,
     },
-    OpenAIFactCollection,
     OpenMCPServerCollection,
     OpenLspLogs {
         log_path: PathBuf,
