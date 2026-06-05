@@ -49,7 +49,7 @@ impl TerminalView {
         event: &AmbientAgentViewModelEvent,
         ctx: &mut ViewContext<Self>,
     ) {
-        let Some(ambient_agent_view_model) = self.ambient_agent_view_model.clone() else {
+        let Some(ambient_agent_view_model) = self.ambient_agent_view_model().cloned() else {
             return;
         };
 
@@ -250,7 +250,7 @@ impl TerminalView {
         // (1) If we're currently in an empty cloud mode session (setup/composing; no
         // dispatched query yet), do not allow creating a new cloud mode session.
         if is_nested_cloud_mode
-            && self.ambient_agent_view_model.as_ref().is_some_and(|model| {
+            && self.ambient_agent_view_model().is_some_and(|model| {
                 let model = model.as_ref(ctx);
                 model.is_in_setup() || model.is_configuring_ambient_agent()
             })
@@ -313,7 +313,7 @@ impl TerminalView {
         appearance: &Appearance,
         app: &AppContext,
     ) -> Box<dyn Element> {
-        let Some(ambient_agent_view_model) = self.ambient_agent_view_model.as_ref() else {
+        let Some(ambient_agent_view_model) = self.ambient_agent_view_model() else {
             return Empty::new().finish();
         };
         let ambient_agent_model = ambient_agent_view_model.as_ref(app);

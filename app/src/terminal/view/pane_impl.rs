@@ -582,8 +582,7 @@ impl TerminalView {
     /// exchange yet). In either case the run is committed and we want the UI to read as busy.
     fn is_in_cloud_agent_setup_phase(&self, ctx: &AppContext) -> bool {
         if self
-            .ambient_agent_view_model
-            .as_ref()
+            .ambient_agent_view_model()
             .is_some_and(|model| model.as_ref(ctx).is_waiting_for_session())
         {
             return true;
@@ -591,7 +590,7 @@ impl TerminalView {
 
         let model = self.model.lock();
         is_cloud_agent_pre_first_exchange(
-            self.ambient_agent_view_model.as_ref(),
+            self.ambient_agent_view_model(),
             &model,
             ctx,
         )

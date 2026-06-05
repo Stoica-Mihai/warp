@@ -4654,39 +4654,6 @@ fn test_ai_context_menu_closes_when_space_immediately_after_at_symbol() {
 }
 
 #[test]
-fn test_should_show_completions_in_ai_input() {
-    // Test cases where the function should return true
-    // i.e. we should trigger completions-as-you-type in AI input.
-    assert!(should_show_completions_in_ai_input("/"));
-    assert!(should_show_completions_in_ai_input("/foo"));
-    assert!(should_show_completions_in_ai_input("some text /foo"));
-
-    assert!(should_show_completions_in_ai_input("./"));
-    assert!(should_show_completions_in_ai_input("./foo"));
-    assert!(should_show_completions_in_ai_input("some text ./foo"));
-
-    assert!(should_show_completions_in_ai_input("foo/"));
-    assert!(should_show_completions_in_ai_input("~/"));
-    assert!(should_show_completions_in_ai_input("foo/bar"));
-    assert!(should_show_completions_in_ai_input("some text foo/bar"));
-
-    assert!(should_show_completions_in_ai_input("../"));
-    assert!(should_show_completions_in_ai_input("../foo"));
-    assert!(should_show_completions_in_ai_input("bar ../foo"));
-
-    // Test cases where the function should return false
-    // i.e. we should NOT trigger completions-as-you-type in AI input.
-    assert!(!should_show_completions_in_ai_input("foo"));
-    assert!(!should_show_completions_in_ai_input("some text/ foo"));
-    assert!(!should_show_completions_in_ai_input("./bar foo"));
-    assert!(!should_show_completions_in_ai_input("some text / bar foo"));
-    assert!(!should_show_completions_in_ai_input(""));
-    assert!(!should_show_completions_in_ai_input("../foo bar"));
-    // Space at the end invalidates triggering completions.
-    assert!(!should_show_completions_in_ai_input("../foo "));
-}
-
-#[test]
 fn test_remove_ignored_suggestion_on_command_execution() {
     App::test((), |mut app| async move {
         initialize_app(&mut app);
