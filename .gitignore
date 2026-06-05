@@ -5,6 +5,9 @@ app/frameworks/**/*.xcframework
 /target
 /app/target
 app/src/target/
+target/gate-default/
+target/gate-tests/
+target/gate-feat/
 /warp.xcworkspace
 .idea/
 .DS_Store
