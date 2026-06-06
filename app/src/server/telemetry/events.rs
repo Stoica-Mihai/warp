@@ -262,17 +262,6 @@ pub enum InteractionSource {
     Keybinding,
 }
 
-/// The entrypoint from which the rewind dialog was opened.
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-pub enum AgentModeRewindEntrypoint {
-    /// The rewind button in the AI block header.
-    Button,
-    /// The context menu item "Rewind to before here".
-    ContextMenu,
-    /// The /rewind slash command.
-    SlashCommand,
-}
-
 /// How the user triggered the [`AgentModeCodeFilesNavigated`] event.
 /// How the user triggered the [`AddTabWithShell`] event.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]

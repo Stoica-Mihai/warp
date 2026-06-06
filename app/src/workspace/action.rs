@@ -19,7 +19,6 @@ use super::tab_settings::{
 use super::view::WorkspaceBanner;
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::conversation::AIConversationId;
-use crate::ai::agent::AIAgentExchangeId;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::drive::WarpDriveItemId;
 use crate::drive::CloudObjectTypeAndId;
@@ -519,18 +518,6 @@ pub enum WorkspaceAction {
     ViewAgentRunsForEnvironment {
         environment_id: String,
     },
-    /// Show the rewind confirmation dialog before rewinding an AI conversation
-    ShowRewindConfirmationDialog {
-        ai_block_view_id: EntityId,
-        exchange_id: AIAgentExchangeId,
-        conversation_id: AIConversationId,
-    },
-    /// Execute the actual rewind after confirmation
-    ExecuteRewindAIConversation {
-        ai_block_view_id: EntityId,
-        exchange_id: AIAgentExchangeId,
-        conversation_id: AIConversationId,
-    },
     /// Execute the actual deletion of a conversation after confirmation
     ExecuteDeleteConversation {
         conversation_id: AIConversationId,
@@ -803,8 +790,6 @@ impl WorkspaceAction {
             | OpenGlobalSearch
             | ToggleNotificationMailbox { .. }
             | ViewAgentRunsForEnvironment { .. }
-            | ShowRewindConfirmationDialog { .. }
-            | ExecuteRewindAIConversation { .. }
             | ExecuteDeleteConversation { .. }
             | OpenOrAttachAmbientAgentConversation { .. }
             | OpenConversationTranscriptViewer { .. }

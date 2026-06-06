@@ -259,7 +259,7 @@ use crate::resource_center::{
 use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::ids::{ObjectUid, SyncId};
 use crate::server::telemetry::{
-    AgentModeRewindEntrypoint, AnonymousUserSignupEntrypoint,
+    AnonymousUserSignupEntrypoint,
     LinkOpenMethod, NotificationAgentVariant, PaletteSource,
     SaveAsWorkflowModalSource, ToggleBlockFilterSource,
 };
@@ -14937,52 +14937,6 @@ impl TerminalView {
         }
     }
 
-    fn show_rewind_confirmation_dialog(
-        &mut self,
-        ai_block_view_id: EntityId,
-        exchange_id: AIAgentExchangeId,
-        conversation_id: AIConversationId,
-        _entrypoint: AgentModeRewindEntrypoint,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        ctx.dispatch_typed_action(&WorkspaceAction::ShowRewindConfirmationDialog {
-            ai_block_view_id,
-            exchange_id,
-            conversation_id,
-        });
-    }
-
-    fn rewind_ai_conversation(
-        &mut self,
-        _ai_block_view_id: EntityId,
-        _exchange_id: AIAgentExchangeId,
-        conversation_id: AIConversationId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        // If the active block is a running command from this conversation, stop it and
-        // set the take-over reason to Stop to prevent automatic conversation resume.
-        let should_stop_running_command = {
-            let mut model = self.model.lock();
-            let active_block = model.block_list_mut().active_block_mut();
-
-            let is_from_this_conversation = active_block.is_executing()
-                && active_block.ai_conversation_id() == Some(conversation_id);
-
-            if is_from_this_conversation {
-                active_block.set_user_control_with_stop_reason();
-            }
-
-            is_from_this_conversation
-        };
-
-        // Note: CTRL-C isn't guaranteed to stop everything, such as a Python REPL.
-        if should_stop_running_command {
-            self.user_write_ctrl_c_to_pty(ctx);
-        }
-
-
-    }
-
     fn handle_input_context_menu_action(
         &mut self,
         action: &InputContextMenuAction,
@@ -16094,15 +16048,6 @@ impl TypedActionView for TerminalView {
                 "Open overflow menu with copy options for this AI block.".to_owned(),
                 WarpA11yRole::PopoverRole,
             )),
-            RewindAIConversation { .. } => Custom(AccessibilityContent::new_without_help(
-                "Show confirmation dialog to rewind to before this point in the AI conversation."
-                    .to_owned(),
-                WarpA11yRole::ButtonRole,
-            )),
-            ExecuteRewindAIConversation { .. } => Custom(AccessibilityContent::new_without_help(
-                "Execute rewind to before this point in the AI conversation.".to_owned(),
-                WarpA11yRole::ButtonRole,
-            )),
             SelectAIAttachedBlock(_) => Custom(AccessibilityContent::new_without_help(
                 "Click on a block attached as context to this AI query.".to_owned(),
                 WarpA11yRole::ButtonRole,
@@ -16174,7 +16119,6 @@ impl TypedActionView for TerminalView {
             | ResolvePromptSuggestion(..)
             | AwsBedrockLoginBanner(_)
             | AwsCliNotInstalledBanner(_)
-            | ExecuteRewindFromInlineMenu { .. }
             | ToggleCLIAgentRichInput
             | ToggleSessionRecording => Empty,
         }
@@ -16256,49 +16200,6 @@ impl TypedActionView for TerminalView {
                 *is_restored,
                 ctx,
             ),
-            RewindAIConversation {
-                ai_block_view_id,
-                exchange_id,
-                conversation_id,
-                entrypoint,
-            } => {
-                self.show_rewind_confirmation_dialog(
-                    *ai_block_view_id,
-                    *exchange_id,
-                    *conversation_id,
-                    *entrypoint,
-                    ctx,
-                );
-            }
-            ExecuteRewindAIConversation {
-                ai_block_view_id,
-                exchange_id,
-                conversation_id,
-            } => {
-                self.rewind_ai_conversation(*ai_block_view_id, *exchange_id, *conversation_id, ctx)
-            }
-            ExecuteRewindFromInlineMenu {
-                exchange_id,
-                conversation_id,
-            } => {
-                let ai_block_view_id: Option<EntityId> = None;
-
-                if let Some(ai_block_view_id) = ai_block_view_id {
-                    self.show_rewind_confirmation_dialog(
-                        ai_block_view_id,
-                        *exchange_id,
-                        *conversation_id,
-                        AgentModeRewindEntrypoint::SlashCommand,
-                        ctx,
-                    );
-                } else {
-                    log::warn!(
-                        "Could not find AI block view for exchange_id {:?} in conversation {:?}",
-                        exchange_id,
-                        conversation_id
-                    );
-                }
-            }
             CloseContextMenu => self.close_context_menu(ctx, true),
             Paste => self.paste(false, ctx),
             Copy => self.copy(ctx),

@@ -97,7 +97,6 @@ pub struct WorkspaceState {
     pub is_prompt_editor_open: bool,
     pub is_agent_toolbar_editor_open: bool,
     pub is_header_toolbar_editor_open: bool,
-    pub is_rewind_confirmation_dialog_open: bool,
     pub is_native_quit_modal_open: bool,
     pub is_tab_config_params_modal_open: bool,
     pub is_session_config_modal_open: bool,

@@ -469,16 +469,6 @@ pub static PROMPTS: LazyLock<StaticCommand> = LazyLock::new(|| StaticCommand {
     argument: None,
 });
 
-pub const REWIND: StaticCommand = StaticCommand {
-    name: "/rewind",
-    description: "Rewind to a previous point in the conversation",
-    icon_path: "bundled/svg/clock-rewind.svg",
-    availability: Availability::AGENT_VIEW
-        .union(Availability::AI_ENABLED)
-        .union(Availability::NOT_CLOUD_AGENT),
-    auto_enter_ai_mode: true,
-    argument: None,
-};
 
 pub const EXPORT_TO_CLIPBOARD: StaticCommand = StaticCommand {
     name: "/export-to-clipboard",

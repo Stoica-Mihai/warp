@@ -10,7 +10,6 @@ pub mod message_bar;
 pub mod plans;
 pub mod prompts;
 pub mod repos;
-pub mod rewind;
 pub mod skills;
 pub mod slash_command_model;
 pub mod slash_commands;
@@ -209,7 +208,6 @@ use crate::terminal::input::inline_menu::InlineMenuPositioner;
 use crate::terminal::input::plans::{InlinePlanMenuEvent, InlinePlanMenuView};
 use crate::terminal::input::prompts::{InlinePromptsMenuEvent, InlinePromptsMenuView};
 use crate::terminal::input::repos::{InlineReposMenuEvent, InlineReposMenuView};
-use crate::terminal::input::rewind::{RewindMenuEvent, RewindMenuView};
 use crate::terminal::input::skills::{InlineSkillSelectorEvent, InlineSkillSelectorView};
 use crate::terminal::input::slash_command_model::SlashCommandModel;
 use crate::terminal::input::slash_commands::{
@@ -604,7 +602,6 @@ pub enum InputSuggestionsMode {
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum UserQueryMenuAction {
     ForkFrom,
-    Rewind,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -659,10 +656,6 @@ impl InputSuggestionsMode {
                 action: UserQueryMenuAction::ForkFrom,
                 ..
             } => Some("Search queries"),
-            InputSuggestionsMode::UserQueryMenu {
-                action: UserQueryMenuAction::Rewind,
-                ..
-            } => Some("Search queries to rewind to"),
             InputSuggestionsMode::ConversationMenu => Some("Search conversations"),
             InputSuggestionsMode::SkillMenu => Some("Search skills"),
             InputSuggestionsMode::ProfileSelector => Some("Search profiles"),
@@ -1366,9 +1359,6 @@ pub struct Input {
 
     /// Inline menu for selecting a query point when forking a conversation.
     user_query_menu_view: ViewHandle<UserQueryMenuView>,
-
-    /// Inline menu for selecting a rewind point in a conversation.
-    rewind_menu_view: ViewHandle<RewindMenuView>,
 
     /// Inline history menu for up-arrow with conversations and commands.
     inline_history_menu_view: ViewHandle<InlineHistoryMenuView>,
@@ -2289,19 +2279,6 @@ impl Input {
             me.handle_plan_menu_event(event, ctx);
         });
 
-        let rewind_menu_view = ctx.add_view(|ctx| {
-            RewindMenuView::new(
-                AIConversationId::default(),
-                suggestions_mode_model.clone(),
-                &inline_terminal_menu_positioner,
-                &buffer_model,
-                ctx,
-            )
-        });
-        ctx.subscribe_to_view(&rewind_menu_view, |me, _, event, ctx| {
-            me.handle_rewind_menu_event(event, ctx);
-        });
-
         let inline_slash_commands_view = ctx.add_view(|ctx| {
             InlineSlashCommandView::new(
                 &slash_command_model,
@@ -2425,7 +2402,6 @@ impl Input {
             inline_skill_selector_view,
             skill_selector_should_invoke: false,
             user_query_menu_view,
-            rewind_menu_view,
             inline_history_menu_view,
             inline_terminal_menu_positioner,
             cached_agent_mode_hint_text: None,
@@ -3011,56 +2987,6 @@ impl Input {
     }
 
     fn open_user_query_menu(&mut self, _action: UserQueryMenuAction, _ctx: &mut ViewContext<Self>) {}
-
-    fn open_rewind_menu(&mut self, _ctx: &mut ViewContext<Self>) {}
-
-    fn handle_rewind_menu_event(&mut self, event: &RewindMenuEvent, ctx: &mut ViewContext<Self>) {
-        if !self.suggestions_mode_model.as_ref(ctx).is_rewind_menu() {
-            log::error!("handle_rewind_menu_event called when mode is not RewindMenu");
-            return;
-        }
-
-        match event {
-            RewindMenuEvent::Dismissed => {
-                self.suggestions_mode_model.update(ctx, |model, ctx| {
-                    model.close_and_restore_buffer(ctx);
-                });
-                ctx.notify();
-            }
-            RewindMenuEvent::AcceptedRewindPoint { exchange_id } => {
-                // If exchange_id is None, user selected "Current" - just close menu
-                let Some(exchange_id) = exchange_id else {
-                    self.suggestions_mode_model.update(ctx, |model, ctx| {
-                        model.set_mode(InputSuggestionsMode::Closed, ctx);
-                    });
-                    ctx.notify();
-                    self.clear_buffer_and_reset_undo_stack(ctx);
-                    return;
-                };
-
-                let Some(conversation_id) = self
-                    .suggestions_mode_model
-                    .as_ref(ctx)
-                    .rewind_conversation_id()
-                else {
-                    log::error!("No conversation_id in RewindMenu mode when accepting");
-                    return;
-                };
-
-                ctx.dispatch_typed_action(&TerminalAction::ExecuteRewindFromInlineMenu {
-                    conversation_id,
-                    exchange_id: *exchange_id,
-                });
-
-    
-                self.suggestions_mode_model.update(ctx, |model, ctx| {
-                    model.set_mode(InputSuggestionsMode::Closed, ctx);
-                });
-                ctx.notify();
-                self.clear_buffer_and_reset_undo_stack(ctx);
-            }
-        }
-    }
 
     fn open_inline_history_menu(&mut self, ctx: &mut ViewContext<Self>) {
         if !FeatureFlag::InlineHistoryMenu.is_enabled() {
@@ -5194,15 +5120,6 @@ impl Input {
                 });
                 true
             }
-            InputSuggestionsMode::UserQueryMenu {
-                action: UserQueryMenuAction::Rewind,
-                ..
-            } => {
-                self.rewind_menu_view.update(ctx, |view, ctx| {
-                    view.select_up(ctx);
-                });
-                true
-            }
             InputSuggestionsMode::PromptsMenu => {
                 self.inline_prompts_menu_view.update(ctx, |view, ctx| {
                     view.select_up(ctx);
@@ -5443,15 +5360,6 @@ impl Input {
                 ..
             } => {
                 self.user_query_menu_view.update(ctx, |view, ctx| {
-                    view.select_down(ctx);
-                });
-                true
-            }
-            InputSuggestionsMode::UserQueryMenu {
-                action: UserQueryMenuAction::Rewind,
-                ..
-            } => {
-                self.rewind_menu_view.update(ctx, |view, ctx| {
                     view.select_down(ctx);
                 });
                 true
@@ -8232,10 +8140,6 @@ impl Input {
         } else if self.suggestions_mode_model.as_ref(ctx).is_user_query_menu() {
             self.user_query_menu_view
                 .update(ctx, |view, ctx| view.accept_selected_item(false, ctx));
-            return;
-        } else if self.suggestions_mode_model.as_ref(ctx).is_rewind_menu() {
-            self.rewind_menu_view
-                .update(ctx, |view, ctx| view.accept_selected_item(ctx));
             return;
         } else if self
             .suggestions_mode_model

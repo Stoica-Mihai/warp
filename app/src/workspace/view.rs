@@ -99,9 +99,6 @@ use super::action::{
 use super::auto_handoff::AutoCloudHandoffController;
 use super::lightbox_view::{LightboxParams, LightboxView, LightboxViewEvent};
 use super::native_modal::{NativeModal, NativeModalEvent};
-use super::rewind_confirmation_dialog::{
-    RewindConfirmationDialog, RewindConfirmationEvent, RewindDialogSource,
-};
 use super::tab_settings::{
     HeaderToolbarChipSelection, NewTabPlacement, TabSettings, TabSettingsChangedEvent,
     VerticalTabsDisplayGranularity, WorkspaceDecorationVisibility,
@@ -268,8 +265,7 @@ use crate::terminal::settings::{SpacingMode, TerminalSettings};
 use crate::terminal::shell::ShellType;
 use crate::terminal::view::ssh_file_upload::FileUploadId;
 use crate::terminal::view::{
-    LeftPanelTargetView, SyncEvent, SyncInputType,
-    TerminalAction, NOTIFICATIONS_TROUBLESHOOT_URL,
+    LeftPanelTargetView, SyncEvent, SyncInputType, NOTIFICATIONS_TROUBLESHOOT_URL,
 };
 use crate::terminal::warpify::settings::WarpifySettings;
 use crate::terminal::{self, BlockListSettings, SizeInfo, TerminalModel, TerminalView};
@@ -723,7 +719,6 @@ pub struct Workspace {
     pending_session_config_tab_config_chip: bool,
     show_session_config_tab_config_chip: bool,
     new_worktree_modal: ModalViewState<Modal<NewWorktreeModal>>,
-    rewind_confirmation_dialog: ViewHandle<RewindConfirmationDialog>,
     command_search_view: ViewHandle<CommandSearchView>,
     reauth_banner_dismissed: bool,
     settings_file_error: Option<crate::settings::SettingsFileError>,
@@ -1228,18 +1223,6 @@ impl Workspace {
         });
 
         theme_deletion_modal
-    }
-
-    fn build_rewind_confirmation_dialog(
-        ctx: &mut ViewContext<Self>,
-    ) -> ViewHandle<RewindConfirmationDialog> {
-        let rewind_confirmation_dialog =
-            ctx.add_typed_action_view(|_| RewindConfirmationDialog::new());
-        ctx.subscribe_to_view(&rewind_confirmation_dialog, move |me, _, event, ctx| {
-            me.handle_rewind_confirmation_dialog_event(event, ctx);
-        });
-
-        rewind_confirmation_dialog
     }
 
     fn build_native_modal_view(ctx: &mut ViewContext<Self>) -> ViewHandle<NativeModal> {
@@ -1970,7 +1953,6 @@ impl Workspace {
 
         let session_config_modal = Self::build_session_config_modal(ctx);
 
-        let rewind_confirmation_dialog = Self::build_rewind_confirmation_dialog(ctx);
         let command_search_view =
             ctx.add_typed_action_view(|ctx| CommandSearchView::new(ctx));
         ctx.subscribe_to_view(&command_search_view, |me, _, event, ctx| {
@@ -2145,7 +2127,6 @@ impl Workspace {
             pending_session_config_tab_config_chip: false,
             show_session_config_tab_config_chip: false,
             new_worktree_modal,
-            rewind_confirmation_dialog,
             command_search_view,
             reauth_banner_dismissed: false,
             settings_file_error,
@@ -7157,35 +7138,6 @@ impl Workspace {
         self.tab_views().find(|view| view.id() == id)
     }
 
-    fn handle_rewind_confirmation_dialog_event(
-        &mut self,
-        event: &RewindConfirmationEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            RewindConfirmationEvent::Cancel => {
-                self.current_workspace_state
-                    .is_rewind_confirmation_dialog_open = false;
-                self.focus_active_tab(ctx);
-                ctx.notify();
-            }
-            RewindConfirmationEvent::Confirm { rewind_source } => {
-                self.current_workspace_state
-                    .is_rewind_confirmation_dialog_open = false;
-                self.handle_action(
-                    &WorkspaceAction::ExecuteRewindAIConversation {
-                        ai_block_view_id: rewind_source.ai_block_view_id,
-                        exchange_id: rewind_source.exchange_id,
-                        conversation_id: rewind_source.conversation_id,
-                    },
-                    ctx,
-                );
-                self.focus_active_tab(ctx);
-                ctx.notify();
-            }
-        }
-    }
-
     pub fn handle_network_status_event(
         &mut self,
         _handle: ModelHandle<NetworkStatus>,
@@ -11270,11 +11222,6 @@ impl Workspace {
                 self.open_command_palette(ctx);
             } else if self.current_workspace_state.is_theme_chooser_open {
                 self.focus_theme_chooser(ctx);
-            } else if self
-                .current_workspace_state
-                .is_rewind_confirmation_dialog_open
-            {
-                ctx.focus(&self.rewind_confirmation_dialog);
             } else if self.current_workspace_state.is_native_quit_modal_open {
                 ctx.focus(&self.native_modal);
             } else {
@@ -11346,20 +11293,6 @@ impl Workspace {
             })
     }
 
-
-    pub fn show_rewind_confirmation_dialog(
-        &mut self,
-        source: RewindDialogSource,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.rewind_confirmation_dialog.update(ctx, |view, _| {
-            view.set_rewind_source(source);
-        });
-        self.current_workspace_state
-            .is_rewind_confirmation_dialog_open = true;
-        ctx.focus(&self.rewind_confirmation_dialog);
-        ctx.notify();
-    }
 
     pub fn show_native_modal(
         &mut self,
@@ -16030,50 +15963,6 @@ impl TypedActionView for Workspace {
                     );
                 }
             }
-            ShowRewindConfirmationDialog {
-                ai_block_view_id,
-                exchange_id,
-                conversation_id,
-            } => {
-                self.show_rewind_confirmation_dialog(
-                    RewindDialogSource {
-                        ai_block_view_id: *ai_block_view_id,
-                        exchange_id: *exchange_id,
-                        conversation_id: *conversation_id,
-                    },
-                    ctx,
-                );
-            }
-            ExecuteRewindAIConversation {
-                ai_block_view_id,
-                exchange_id,
-                conversation_id,
-            } => {
-                let user_query: Option<String> = None;
-
-                // Dispatch to the active terminal to execute the rewind
-                if let Some(terminal_view) = self
-                    .active_tab_pane_group()
-                    .as_ref(ctx)
-                    .focused_session_view(ctx)
-                {
-                    terminal_view.update(ctx, |terminal, ctx| {
-                        terminal.handle_action(
-                            &TerminalAction::ExecuteRewindAIConversation {
-                                ai_block_view_id: *ai_block_view_id,
-                                exchange_id: *exchange_id,
-                                conversation_id: *conversation_id,
-                            },
-                            ctx,
-                        );
-                    });
-                }
-
-                // Prefill the input after the rewind
-                if let Some(query) = user_query {
-                    self.insert_in_input(&query, true, false, true, ctx);
-                }
-            }
             ExecuteDeleteConversation { .. } => {
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
@@ -16858,22 +16747,6 @@ impl View for Workspace {
 
         if let Some(lightbox_view) = &self.lightbox_view {
             stack.add_child(ChildView::new(lightbox_view).finish());
-        }
-
-
-        if self
-            .current_workspace_state
-            .is_rewind_confirmation_dialog_open
-        {
-            stack.add_positioned_overlay_child(
-                ChildView::new(&self.rewind_confirmation_dialog).finish(),
-                OffsetPositioning::offset_from_parent(
-                    Vector2F::zero(),
-                    ParentOffsetBounds::WindowByPosition,
-                    ParentAnchor::Center,
-                    ChildAnchor::Center,
-                ),
-            );
         }
 
 

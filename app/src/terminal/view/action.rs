@@ -24,7 +24,7 @@ use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::AIAgentExchangeId;
 use crate::code_review::telemetry_event::CodeReviewPaneEntrypoint;
 use crate::server::ids::SyncId;
-use crate::server::telemetry::{AgentModeRewindEntrypoint, PaletteSource, ToggleBlockFilterSource};
+use crate::server::telemetry::{PaletteSource, ToggleBlockFilterSource};
 use crate::terminal::available_shells::AvailableShell;
 use crate::terminal::block_list_element::{
     BlockHoverAction, BlockListMenuSource, BlockSelectAction, BlockTextSelectAction,
@@ -199,25 +199,6 @@ pub enum TerminalAction {
         exchange_id: AIAgentExchangeId,
         conversation_id: AIConversationId,
         is_restored: bool,
-    },
-    /// Show the confirmation dialog before rewinding an AI conversation
-    RewindAIConversation {
-        ai_block_view_id: EntityId,
-        exchange_id: AIAgentExchangeId,
-        conversation_id: AIConversationId,
-        /// The entrypoint from which this action was triggered (for telemetry).
-        entrypoint: AgentModeRewindEntrypoint,
-    },
-    /// Actually execute the rewind (called after user confirms in the dialog)
-    ExecuteRewindAIConversation {
-        ai_block_view_id: EntityId,
-        exchange_id: AIAgentExchangeId,
-        conversation_id: AIConversationId,
-    },
-    /// Execute rewind from the inline menu (looks up ai_block_view_id from exchange_id)
-    ExecuteRewindFromInlineMenu {
-        exchange_id: AIAgentExchangeId,
-        conversation_id: AIConversationId,
     },
     SelectAllBlocks,
     ExpandBlockSelectionAbove,
@@ -519,9 +500,6 @@ impl fmt::Debug for TerminalAction {
             MiddleClickOnInput => write!(f, "MiddleClickOnInput"),
             OpenAIBlockAttachedBlocksMenu { .. } => write!(f, "OpenAIBlockAttachedBlocksMenu"),
             OpenAIBlockOverflowMenu { .. } => write!(f, "OpenAIBlockOverflowMenu"),
-            RewindAIConversation { .. } => write!(f, "RewindAIConversation"),
-            ExecuteRewindAIConversation { .. } => write!(f, "ExecuteRewindAIConversation"),
-            ExecuteRewindFromInlineMenu { .. } => write!(f, "ExecuteRewindFromInlineMenu"),
             SelectAIAttachedBlock(_) => write!(f, "SelectAIAttachedBlock"),
             DragAndDropFiles(_) => write!(f, "DragAndDropFiles"),
             WarpifySSHSession => write!(f, "WarpifySSHSession"),

@@ -612,9 +612,6 @@ impl Input {
                 }
                 return false;
             }
-            _rewind if command.name == commands::REWIND.name => {
-                self.open_rewind_menu(ctx);
-            }
             _pr_comments if command.name == commands::PR_COMMENTS.name => {
                 if !FeatureFlag::PRCommentsSlashCommand.is_enabled() {
                     return false;

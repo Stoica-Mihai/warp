@@ -12,7 +12,6 @@ mod lightbox_view;
 mod native_modal;
 mod one_time_modal_model;
 mod registry;
-pub mod rewind_confirmation_dialog;
 pub mod sync_inputs;
 pub mod tab_settings;
 mod toast_stack;
@@ -95,7 +94,6 @@ pub fn init(app: &mut AppContext) {
     modal::init(app);
     native_modal::init(app);
     lightbox_view::init(app);
-    rewind_confirmation_dialog::init(app);
     crate::tab_configs::remove_confirmation_dialog::init(app);
     tab_configs::session_config_modal::init(app);
     view::global_search::view::GlobalSearchView::init(app);
