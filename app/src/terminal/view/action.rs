@@ -255,10 +255,6 @@ pub enum TerminalAction {
     /// This is for debugging, dev only for now
     LoadAgentModeConversation,
     ShowWarpifySettings,
-    /// Removes a pending attachment (image or file) by index in the unified list.
-    DeleteAttachment {
-        index: usize,
-    },
     /// Opens a pending input attachment image in the workspace lightbox before
     /// the attachment has been submitted with a user query.
     OpenAttachmentLightbox {
@@ -493,7 +489,6 @@ impl fmt::Debug for TerminalAction {
             ShowInitializationBlock => write!(f, "ShowInitializationBlock"),
             LoadAgentModeConversation => write!(f, "LoadAgentModeConversation"),
             ShowWarpifySettings => write!(f, "ShowWarpifySettings"),
-            DeleteAttachment { index } => write!(f, "DeleteAttachment({index:?})"),
             OpenAttachmentLightbox { index } => {
                 write!(f, "OpenAttachmentLightbox({index:?})")
             }

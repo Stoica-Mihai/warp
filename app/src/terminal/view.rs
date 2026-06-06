@@ -15425,7 +15425,6 @@ impl TypedActionView for TerminalView {
             | RunNativeShellCompletions { .. }
             | OpenTeamSettingsPage
             | LoadAgentModeConversation
-            | DeleteAttachment { .. }
             | OpenAttachmentLightbox { .. }
             | ToggleAutoexecuteMode
             | ToggleQueueNextPrompt
@@ -15837,7 +15836,6 @@ impl TypedActionView for TerminalView {
             ShowInitializationBlock => self.show_initialization_block(),
             LoadAgentModeConversation => {}
             ShowWarpifySettings => ctx.emit(Event::OpenSettings(SettingsSection::Warpify)),
-            DeleteAttachment { .. } => {}
             OpenAttachmentLightbox { .. } => {}
             ToggleAutoexecuteMode => {}
             ToggleQueueNextPrompt => {}

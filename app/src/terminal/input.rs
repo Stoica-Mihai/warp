@@ -56,7 +56,6 @@ use warp_completer::parsers::simple::command_at_cursor_position;
 use warp_completer::parsers::LiteCommand;
 use warp_completer::signatures::CommandRegistry;
 use warp_core::context_flag::ContextFlag;
-use warp_core::ui::theme::color::internal_colors;
 use warp_core::ui::theme::AnsiColorIdentifier;
 use warp_core::user_preferences::GetUserPreferences as _;
 use warp_editor::editor::NavigationKey;
@@ -67,10 +66,9 @@ use warpui::clipboard_utils::CLIPBOARD_IMAGE_MIME_TYPES;
 use warpui::color::ColorU;
 use warpui::elements::{
     resizable_state_handle, Align, AnchorPair, ChildAnchor, Clipped, ConstrainedBox, Container,
-    CornerRadius, DispatchEventResult, DropTargetData, Element, EventHandler,
-    Flex, MainAxisAlignment, MainAxisSize, MouseStateHandle, OffsetType,
-    ParentAnchor, ParentElement, Radius,
-    ResizableStateHandle, SavePosition, SelectionHandle, Text, Wrap, YAxisAnchor,
+    DispatchEventResult, DropTargetData, Element, EventHandler, Flex, MouseStateHandle, OffsetType,
+    ParentAnchor, ParentElement, ResizableStateHandle, SavePosition, SelectionHandle, Text,
+    YAxisAnchor,
 };
 pub use warpui::elements::{ParentElement as _, Stack};
 pub use warpui::geometry::vector::{vec2f, Vector2F};
@@ -81,8 +79,6 @@ use warpui::presenter::ChildView;
 use warpui::r#async::FutureExt as _;
 use warpui::r#async::SpawnedFutureHandle;
 use warpui::text_layout::TextStyle;
-use warpui::ui_components::chip::Chip;
-use warpui::ui_components::components::{Coords, UiComponent, UiComponentStyles};
 use warpui::units::IntoPixels;
 pub use warpui::WindowId;
 use warpui::{
@@ -148,7 +144,6 @@ use crate::completer::SessionContext;
 use crate::context_chips::display::{PromptDisplay, PromptDisplayEvent};
 use crate::context_chips::display_chip::DisplayChipConfig;
 use crate::context_chips::prompt_type::PromptType;
-use crate::context_chips::spacing;
 use crate::debounce::debounce;
 use crate::editor::{
     default_cursor_colors, position_id_for_cached_point, position_id_for_cursor,
@@ -221,8 +216,6 @@ use crate::terminal::universal_developer_input::AtContextMenuDisabledReason;
 use crate::terminal::view::agent_view_state::AgentViewEntryOrigin;
 use crate::terminal::view::CodeDiffAction;
 use crate::terminal::CLIAgent;
-use crate::ui_components::blended_colors;
-use crate::ui_components::icons::Icon;
 use crate::user_config::WarpConfig;
 use crate::util::bindings::{self, keybinding_name_to_normalized_string, CustomAction};
 #[cfg(feature = "local_fs")]
@@ -1299,8 +1292,6 @@ pub struct Input {
     /// Cached hint text to ensure it remains stable during shell initialization hooks
     cached_agent_mode_hint_text: Option<&'static str>,
 
-    attachment_chips: Vec<AttachmentChip>,
-
     is_processing_attached_images: bool,
 
     universal_developer_input_button_bar: ViewHandle<UniversalDeveloperInputButtonBar>,
@@ -1352,13 +1343,6 @@ pub struct Input {
     /// we snapshot the current input contents here so we can restore them after the command
     /// completes and the buffer would normally be cleared.
     input_contents_before_prompt_chip_command: Option<String>,
-}
-
-#[derive(Clone)]
-struct AttachmentChip {
-    file_name: String,
-    mouse_state_handle: MouseStateHandle,
-    index: usize,
 }
 
 /// A map of remote buffer operations that were deferred because
@@ -2337,7 +2321,6 @@ impl Input {
             terminal_view_id,
             #[cfg(feature = "local_fs")]
             conn: None,
-            attachment_chips: Default::default(),
             is_processing_attached_images: false,
             handoff_compose_state,
             slash_command_model,
@@ -8668,77 +8651,6 @@ impl Input {
         None
     }
 
-    fn render_attachment_chips(&self, appearance: &Appearance) -> Option<Box<dyn Element>> {
-        if self.attachment_chips.is_empty() {
-            None
-        } else {
-            let chips = self
-                .attachment_chips
-                .iter()
-                .map(|chip| self.render_attached_chip(chip, appearance));
-
-            Some(
-                Wrap::row()
-                    .with_run_spacing(spacing::UDI_CHIP_MARGIN)
-                    .with_main_axis_alignment(MainAxisAlignment::Start)
-                    .with_main_axis_size(MainAxisSize::Min)
-                    .with_children(chips)
-                    .finish(),
-            )
-        }
-    }
-
-    fn render_attached_chip(
-        &self,
-        chip: &AttachmentChip,
-        appearance: &Appearance,
-    ) -> Box<dyn Element> {
-        let delete_chip_index = chip.index;
-        let close_button = appearance
-            .ui_builder()
-            .close_button(
-                appearance.monospace_font_size(),
-                chip.mouse_state_handle.clone(),
-            )
-            .build()
-            .on_click(move |ctx, _, _| {
-                ctx.dispatch_typed_action(TerminalAction::DeleteAttachment {
-                    index: delete_chip_index,
-                });
-            })
-            .finish();
-
-        let icon = Icon::File;
-
-        let attachment_chip = Chip::new(
-            chip.file_name.clone(),
-            UiComponentStyles {
-                margin: Some(Coords {
-                    top: 0.,
-                    bottom: 0.,
-                    left: 0.,
-                    right: 6.,
-                }),
-                font_family_id: Some(appearance.ui_font_family()),
-                font_size: Some(appearance.monospace_font_size()),
-                font_color: Some(blended_colors::text_main(
-                    appearance.theme(),
-                    appearance.theme().background(),
-                )),
-                border_width: Some(1.),
-                border_color: Some(internal_colors::neutral_4(appearance.theme()).into()),
-                border_radius: Some(CornerRadius::with_all(Radius::Pixels(5.))),
-                ..Default::default()
-            },
-        )
-        .with_icon(icon.to_warpui_icon(
-            blended_colors::text_main(appearance.theme(), appearance.theme().background()).into(),
-        ))
-        .with_close_button(close_button)
-        .build();
-
-        attachment_chip.finish()
-    }
 
     fn render_input_box(
         &self,
