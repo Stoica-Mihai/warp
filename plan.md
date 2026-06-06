@@ -998,3 +998,9 @@ Executed the full map above. Phase 1: dropped Cargo feature `voice_input` + `gui
 - Tests: user_workspaces_tests.rs team-CRUD tests + mockall expect_* for removed trait methods.
 
 **Scope: ~700 LoC, core model (UserWorkspaces) + UserWorkspacesEvent handler cascade. Execution order:** (1) UserWorkspaces CRUD wrappers+callbacks+field+events (verify event handlers dead first) → (2) team.rs trait/impl CRUD methods + cascade types → (3) tests. Green per increment. Do with fresh focus — UserWorkspaces is load-bearing; the event-variant→handler cascade is the trap.
+
+**TEAMS map — 2 more KEEP-nuances (verified):**
+4. `generate_stripe_billing_portal_link` + `on_generate_stripe_billing_portal_link` are LIVE (main_page.rs:92 Account page, uses workspace_client) — **KEEP**. (generate_upgrade_link + on_generate_upgrade_link = 0 callers, dead, remove.)
+5. `on_workspaces_updated` (us.rs:775) + `on_update_workspace_metadata` (1244) are SHARED callbacks — used by the dead CRUD methods AND live workspace-update paths (1297, 1337). **KEEP both.** So removal is per-method (drop each dead CRUD fn + its DEDICATED on_* callback like on_email_invite_sent/on_team_discoverability_set), NOT a contiguous block-delete — the shared callbacks are interleaved.
+
+**Verdict:** Teams strip is precisely mapped (5 traps caught: workspaces_metadata, TeamUpdateManager, read-accessors, stripe-billing, shared-callbacks all KEEP). Removable = ~15 dead TeamClient CRUD methods + ~18 dead UserWorkspaces CRUD fns/dedicated-callbacks + team_client field + event variants + cascade types + tests (~700 LoC). Intricate core-model surgery with interleaved shared callbacks — execute per-method with gating in a focused session, NOT a block-delete.
