@@ -14,7 +14,6 @@ use super::team::{MembershipRole, Team};
 use crate::ai::execution_profiles::{
     ActionPermission, ComputerUsePermission, WriteToPtyPermission,
 };
-use crate::ai::llms::LLMModelHost;
 use crate::auth::UserUid;
 use crate::server::ids::ServerId;
 use crate::settings::AgentModeCommandExecutionPredicate;
@@ -742,6 +741,16 @@ impl BillingMetadata {
 #[cfg(test)]
 #[path = "workspace_tests.rs"]
 mod tests;
+
+/// The host where an LLM can be routed to.
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum LLMModelHost {
+    DirectApi,
+    AwsBedrock,
+    CustomEndpoint,
+    #[serde(other)]
+    Unknown,
+}
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct LlmHostSettings {

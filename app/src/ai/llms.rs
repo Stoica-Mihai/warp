@@ -122,15 +122,7 @@ impl LLMProvider {
     }
 }
 
-/// The host where an LLM can be routed to.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum LLMModelHost {
-    DirectApi,
-    AwsBedrock,
-    CustomEndpoint,
-    #[serde(other)]
-    Unknown,
-}
+pub use crate::workspaces::workspace::LLMModelHost;
 
 /// Configuration for routing an LLM to a specific host.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

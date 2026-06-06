@@ -692,7 +692,7 @@ impl ToPathBufs for Vec<String> {
         self.into_iter().map(PathBuf::from).collect()
     }
 }
-impl From<warp_graphql::workspace::LlmModelHost> for crate::ai::llms::LLMModelHost {
+impl From<warp_graphql::workspace::LlmModelHost> for crate::workspaces::workspace::LLMModelHost {
     fn from(gql_host: warp_graphql::workspace::LlmModelHost) -> Self {
         use warp_graphql::workspace::LlmModelHost as GqlLlmModelHost;
         match gql_host {
@@ -725,7 +725,7 @@ impl From<warp_graphql::workspace::LlmSettings> for LlmSettings {
     fn from(gql_settings: warp_graphql::workspace::LlmSettings) -> Self {
         let mut host_configs = std::collections::HashMap::new();
         for entry in gql_settings.host_configs {
-            let host: crate::ai::llms::LLMModelHost = entry.host.into();
+            let host: crate::workspaces::workspace::LLMModelHost = entry.host.into();
             if host_configs
                 .insert(host.clone(), entry.settings.into())
                 .is_some()

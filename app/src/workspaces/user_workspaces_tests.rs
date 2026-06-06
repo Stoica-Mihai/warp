@@ -6,7 +6,7 @@ use warpui::{AddSingletonModel, App};
 use warpui_extras::user_preferences;
 
 use super::*;
-use crate::ai::llms::LLMModelHost;
+use crate::workspaces::workspace::LLMModelHost;
 use crate::auth::AuthManager;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::features::FeatureFlag;
