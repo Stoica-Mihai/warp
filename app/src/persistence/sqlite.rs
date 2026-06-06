@@ -90,7 +90,6 @@ use crate::persistence::model::{
     ProjectRules, UserProfile, CODE_REVIEW_PANE_KIND,
 };
 use crate::server::ids::{ClientId, HashableId, ServerId, SyncId, ToServerId};
-use crate::settings::cloud_preferences::{CloudPreference, CloudPreferenceModel};
 use crate::settings_view::SettingsSection;
 use crate::suggestions::ignored_suggestions_model::SuggestionType;
 use crate::tab::SelectedTabColor;
@@ -2827,19 +2826,8 @@ fn read_sqlite_data(
                             .try_into()
                             .ok()?;
                         object_id.and_then(|server_id| match json_object_type {
-                            JsonObjectType::Preference => {
-                                let model = CloudPreferenceModel::deserialize_owned(&object.data);
-                                model.ok().map(|model| {
-                                    let boxed: Box<dyn CloudObject> =
-                                        Box::new(CloudPreference::new(
-                                            server_id,
-                                            model,
-                                            to_cloud_object_metadata(metadata),
-                                            cloud_object_permissions,
-                                        ));
-                                    boxed
-                                })
-                            }
+                            // Cloud preference sync is removed; never reconstruct Preference objects.
+                            JsonObjectType::Preference => None,
                             JsonObjectType::EnvVarCollection => {
                                 let model =
                                     CloudEnvVarCollectionModel::deserialize_owned(&object.data);

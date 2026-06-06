@@ -34,7 +34,6 @@ use crate::env_vars::CloudEnvVarCollectionModel;
 use crate::notebooks::{CloudNotebookModel, NotebookId};
 use crate::persistence::ModelEvent;
 use crate::server::ids::{HashableId, HashedSqliteId, ObjectUid, ServerId, SyncId, ToServerId};
-use crate::settings::cloud_preferences::CloudPreferenceModel;
 use crate::util::time_format::format_approx_duration_from_now_utc;
 use crate::workflows::workflow_enum::CloudWorkflowEnumModel;
 use crate::workflows::{CloudWorkflow, CloudWorkflowModel, WorkflowId, WorkflowSource};
@@ -926,7 +925,6 @@ pub enum ServerCloudObject {
     Notebook(ServerNotebook),
     Workflow(Box<ServerWorkflow>),
     Folder(ServerFolder),
-    Preference(ServerPreference),
     EnvVarCollection(ServerEnvVarCollection),
     WorkflowEnum(ServerWorkflowEnum),
     MCPServer(ServerMCPServer),
@@ -942,7 +940,6 @@ impl ServerCloudObject {
             ServerCloudObject::Notebook(notebook) => &notebook.metadata,
             ServerCloudObject::Workflow(workflow) => &workflow.metadata,
             ServerCloudObject::Folder(folder) => &folder.metadata,
-            ServerCloudObject::Preference(preferences) => &preferences.metadata,
             ServerCloudObject::EnvVarCollection(env_var_collection) => &env_var_collection.metadata,
             ServerCloudObject::WorkflowEnum(workflow_enum) => &workflow_enum.metadata,
             ServerCloudObject::MCPServer(mcp_server) => &mcp_server.metadata,
@@ -964,7 +961,6 @@ impl ServerCloudObject {
             ServerCloudObject::Notebook(notebook) => notebook.id.uid(),
             ServerCloudObject::Workflow(workflow) => workflow.id.uid(),
             ServerCloudObject::Folder(folder) => folder.id.uid(),
-            ServerCloudObject::Preference(preferences) => preferences.id.uid(),
             ServerCloudObject::EnvVarCollection(env_var_collection) => env_var_collection.id.uid(),
             ServerCloudObject::WorkflowEnum(workflow_enum) => workflow_enum.id.uid(),
             ServerCloudObject::MCPServer(mcp_server) => mcp_server.id.uid(),
@@ -995,8 +991,6 @@ where
             ServerCloudObject::Workflow(Box::new(server_workflow.clone()))
         } else if let Some(server_folder) = value.downcast_ref::<ServerFolder>() {
             ServerCloudObject::Folder(server_folder.clone())
-        } else if let Some(server_preferences) = value.downcast_ref::<ServerPreference>() {
-            ServerCloudObject::Preference(server_preferences.clone())
         } else if let Some(server_env_var_collection) =
             value.downcast_ref::<ServerEnvVarCollection>()
         {
@@ -1027,7 +1021,6 @@ where
     }
 }
 
-pub type ServerPreference = GenericServerObject<GenericStringObjectId, CloudPreferenceModel>;
 pub type ServerFolder = GenericServerObject<FolderId, CloudFolderModel>;
 pub type ServerWorkflow = GenericServerObject<WorkflowId, CloudWorkflowModel>;
 pub type ServerNotebook = GenericServerObject<NotebookId, CloudNotebookModel>;

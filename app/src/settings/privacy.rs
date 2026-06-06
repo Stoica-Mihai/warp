@@ -7,7 +7,6 @@ use warp_core::features::FeatureFlag;
 use warp_core::report_if_error;
 use warpui::{AppContext, Entity, ModelContext, SingletonEntity, UpdateModel};
 
-use crate::cloud_object::model::persistence::CloudModel;
 use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::terminal::safe_mode_settings::SafeModeSettings;
 use crate::workspaces::workspace::EnterpriseSecretRegex;
@@ -545,89 +544,19 @@ impl PrivacySettings {
 
     fn handle_warp_drive_objects_loaded(&mut self, _: (), ctx: &mut ModelContext<Self>) {
         self.initialize_default_regexes_once(ctx);
-        // Check if the warp drive preferences are set. If they are, and telemetry and crash reporting
-        // are set as warp drive prefs, then use those.  Otherwise, update the warp drive prefs to match
-        // the values from the legacy user_settings endpoint so that we can use warp drive prefs going forward.
-        let cloud_model = CloudModel::as_ref(ctx);
-        let cloud_prefs = cloud_model.get_all_cloud_preferences_by_storage_key();
-        let cloud_telemetry_value =
-            cloud_prefs
-                .get(IsTelemetryEnabled::storage_key())
-                .map(|pref| {
-                    pref.model()
-                        .string_model
-                        .value
-                        .as_bool()
-                        .unwrap_or_default()
-                });
-        let cloud_crash_reporting_value = cloud_prefs
-            .get(IsCrashReportingEnabled::storage_key())
-            .map(|pref| {
-                pref.model()
-                    .string_model
-                    .value
-                    .as_bool()
-                    .unwrap_or_default()
-            });
-        let cloud_conversation_storage_value = cloud_prefs
-            .get(IsCloudConversationStorageEnabled::storage_key())
-            .map(|pref| {
-                pref.model()
-                    .string_model
-                    .value
-                    .as_bool()
-                    .unwrap_or_default()
-            });
-
-        match (
-            cloud_telemetry_value,
-            cloud_crash_reporting_value,
-            cloud_conversation_storage_value,
-        ) {
-            (
-                Some(is_telemetry_enabled),
-                Some(is_crash_reporting_enabled),
-                Some(is_cloud_conversation_storage_enabled),
-            ) => {
-                log::info!(
-                    "Warp Drive privacy preferences are set, using those for telemetry={is_telemetry_enabled}, \
-                    crash_reporting={is_crash_reporting_enabled}, cloud_conversation_storage={is_cloud_conversation_storage_enabled}"
-                );
-                self.set_is_telemetry_enabled(is_telemetry_enabled, ctx);
-                self.set_is_crash_reporting_enabled(is_crash_reporting_enabled, ctx);
-                self.set_is_cloud_conversation_storage_enabled(
-                    is_cloud_conversation_storage_enabled,
-                    ctx,
-                );
-            }
-            _ => {
-                log::info!(
-                    "Warp Drive privacy preferences are not set, syncing local PrivacySettings values to \
-                    WarpDrivePrivacySettings and cloud. telemetry={}, crash_reporting={}, \
-                    cloud_conversation_storage={}",
-                    self.is_telemetry_enabled,
-                    self.is_crash_reporting_enabled,
-                    self.is_cloud_conversation_storage_enabled
-                );
-                // First, ensure WarpDrivePrivacySettings (the define_settings_group model)
-                // reflects the actual PrivacySettings in-memory values. These may differ
-                // because WarpDrivePrivacySettings defaults to `true` for all three settings,
-                // while the user may have changed them to `false` via PrivacySettings before
-                // signing up. Without this step, maybe_sync_local_prefs_to_cloud would read
-                // the stale WarpDrivePrivacySettings defaults and push those to the cloud.
-                WarpDrivePrivacySettings::handle(ctx).update(ctx, |settings, ctx| {
-                    report_if_error!(settings
-                        .is_telemetry_enabled
-                        .set_value(self.is_telemetry_enabled, ctx));
-                    report_if_error!(settings
-                        .is_crash_reporting_enabled
-                        .set_value(self.is_crash_reporting_enabled, ctx));
-                    report_if_error!(settings
-                        .is_cloud_conversation_storage_enabled
-                        .set_value(self.is_cloud_conversation_storage_enabled, ctx));
-                });
-            }
-        }
+        // Cloud settings-sync is removed; keep WarpDrivePrivacySettings (the local store)
+        // in sync with the in-memory PrivacySettings values.
+        WarpDrivePrivacySettings::handle(ctx).update(ctx, |settings, ctx| {
+            report_if_error!(settings
+                .is_telemetry_enabled
+                .set_value(self.is_telemetry_enabled, ctx));
+            report_if_error!(settings
+                .is_crash_reporting_enabled
+                .set_value(self.is_crash_reporting_enabled, ctx));
+            report_if_error!(settings
+                .is_cloud_conversation_storage_enabled
+                .set_value(self.is_cloud_conversation_storage_enabled, ctx));
+        });
     }
 }
 

@@ -63,7 +63,7 @@ use crate::ai::{BonusGrant, BonusGrantScope};
 use crate::auth::UserUid;
 use crate::cloud_object::{
     ServerAmbientAgentEnvironment, ServerCloudObject,
-    ServerEnvVarCollection, ServerFolder, ServerMCPServer, ServerNotebook, ServerPreference,
+    ServerEnvVarCollection, ServerFolder, ServerMCPServer, ServerNotebook,
     ServerScheduledAmbientAgent, ServerTemplatableMCPServer, ServerWorkflow, ServerWorkflowEnum,
     TryFromGql as _,
 };
@@ -1052,7 +1052,7 @@ impl TryFrom<warp_graphql::object::CloudObject> for ServerCloudObject {
                         Ok(ServerCloudObject::EnvVarCollection(ServerEnvVarCollection::try_from_gql(gso)?))
                     }
                     warp_graphql::generic_string_object::GenericStringObjectFormat::JsonPreference => {
-                        Ok(ServerCloudObject::Preference(ServerPreference::try_from_gql(gso)?))
+                        Err(anyhow::anyhow!("Preference cloud objects are not supported"))
                     }
                     warp_graphql::generic_string_object::GenericStringObjectFormat::JsonWorkflowEnum => {
                         Ok(ServerCloudObject::WorkflowEnum(ServerWorkflowEnum::try_from_gql(gso)?))
@@ -1106,7 +1106,7 @@ impl TryFrom<CloudObjectWithDescendants> for ServerCloudObject {
                     Ok(ServerCloudObject::EnvVarCollection(ServerEnvVarCollection::try_from_gql(gso)?))
                 }
                 warp_graphql::generic_string_object::GenericStringObjectFormat::JsonPreference => {
-                    Ok(ServerCloudObject::Preference(ServerPreference::try_from_gql(gso)?))
+                    Err(anyhow::anyhow!("Preference cloud objects are not supported"))
                 }
                 warp_graphql::generic_string_object::GenericStringObjectFormat::JsonWorkflowEnum => {
                     Ok(ServerCloudObject::WorkflowEnum(ServerWorkflowEnum::try_from_gql(gso)?))
