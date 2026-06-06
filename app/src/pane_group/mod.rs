@@ -1691,12 +1691,6 @@ impl PaneGroup {
             .map(move |pane| (pane.id(), pane.file_view(app)))
     }
 
-    fn close_panes(&mut self, pane_ids: Vec<PaneId>, ctx: &mut ViewContext<Self>) {
-        for pane_id in pane_ids {
-            self.close_pane(pane_id, ctx);
-        }
-    }
-
     pub fn has_active_code_pane_with_unsaved_changes(&self, ctx: &AppContext) -> bool {
         self.focused_pane_id(ctx).is_code_pane()
             && self
@@ -2372,43 +2366,6 @@ impl PaneGroup {
     /// layout tree at creation time — it lives only in `pane_contents` and
     /// `child_agent_panes`. The orchestration pill bar later inserts it into
     /// the tree on demand via `replace_pane` (in-place swap) or `panes.split`
-    /// ("Open in new pane").
-    ///
-    /// When `is_shared_session_creator` is `Yes`, the new pane is recorded
-    /// in `transitively_shared_child_panes` keyed by `base_pane_id` so the
-    /// host's `StopSharingCurrentSession` cleans it up.
-    fn insert_terminal_pane_hidden_for_child_agent(
-        &mut self,
-        base_pane_id: PaneId,
-        env_vars: HashMap<OsString, OsString>,
-        is_shared_session_creator: IsSharedSessionCreator,
-        ctx: &mut ViewContext<Self>,
-    ) -> TerminalPaneId {
-        let base_session_id = base_pane_id
-            .as_terminal_pane_id()
-            .or(self.active_session_id(ctx));
-        let startup_directory = self.startup_path_for_new_session(base_session_id, ctx);
-        let is_transitively_shared = false;
-        let (pane_data, _view) = self.create_terminal_pane_data(
-            startup_directory,
-            env_vars,
-            is_shared_session_creator,
-            None,
-            ctx,
-        );
-        let new_pane_id = pane_data.terminal_pane_id();
-        if is_transitively_shared {
-            self.transitively_shared_child_panes
-                .entry(base_pane_id)
-                .or_default()
-                .insert(new_pane_id.into());
-        }
-        self.attach_child_pane_off_tree(Box::new(pane_data), ctx);
-        new_pane_id
-    }
-
-
-
     /// Removes `pane_id` from the transitive-share tracking map.
     fn forget_transitively_shared_pane(&mut self, pane_id: PaneId) {
         // The pane may be a host (key) or a transitively-shared child (value).
@@ -2418,27 +2375,6 @@ impl PaneGroup {
                 children.remove(&pane_id);
                 !children.is_empty()
             });
-    }
-
-    /// focus handle, etc. are wired up) without adding it to the layout tree.
-    /// Used for child agent panes which only enter the tree later via the
-    /// pill bar's swap or split-off paths.
-    fn attach_child_pane_off_tree(
-        &mut self,
-        pane: Box<dyn AnyPaneContent>,
-        ctx: &mut ViewContext<Self>,
-    ) -> Option<PaneId> {
-        let pane_id = pane.as_pane().id();
-        self.pane_contents.insert(pane_id, pane);
-        let pane = self
-            .pane_contents
-            .get(&pane_id)
-            .expect("Just inserted pane");
-        if !self.try_attach_pane(pane.as_ref(), ctx) {
-            self.pane_contents.remove(&pane_id);
-            return None;
-        }
-        Some(pane_id)
     }
 
     /// Get the [`PaneView<TerminalView>`] for the pane at `pane_index`, if that pane is:
@@ -2884,11 +2820,6 @@ impl PaneGroup {
         replacement_id: PaneId,
         ctx: &mut ViewContext<Self>,
     ) {
-        if let Some(terminal_view) = self.terminal_view_from_pane_id(replacement_id, ctx) {
-            terminal_view.update(ctx, |view, ctx| {
-                view.clear_orchestration_split_off(ctx);
-            });
-        }
         self.panes.revert_temporary_replacement(replacement_id);
     }
 
@@ -4013,8 +3944,7 @@ impl PaneGroup {
     }
 
     /// Creates a new terminal session and wraps it in a `TerminalPane`.
-    /// This is the shared session-creation boilerplate used by both
-    /// `add_session_in_directory` and `insert_terminal_pane_hidden_for_child_agent`.
+    /// This is the shared session-creation boilerplate used by `add_session_in_directory`.
     #[allow(clippy::too_many_arguments)]
     fn create_terminal_pane_data(
         &self,

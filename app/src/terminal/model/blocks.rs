@@ -3289,13 +3289,6 @@ impl BlockList {
         contents.trim().to_string()
     }
 
-    pub(crate) fn removable_blocklist_item_position(
-        &self,
-        item: &RemovableBlocklistItem,
-    ) -> Option<&TotalIndex> {
-        self.removable_blocklist_item_positions.get(item)
-    }
-
     pub fn get_previous_block_height_item(
         &self,
         item: RemovableBlocklistItem,

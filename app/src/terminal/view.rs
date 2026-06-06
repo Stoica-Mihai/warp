@@ -188,7 +188,6 @@ use super::{cli_agent, CLIAgent, GridType};
 use crate::ai::conversation_types::AIConversationId;
 use crate::ai::agent_types::{AIAgentActionId, AgentReviewCommentBatch};
 use ai::agent::action::AIAgentPtyWriteMode;
-use ai::agent::FileLocations;
 #[cfg(feature = "local_fs")]
 use crate::ai::agent_types::{CurrentHead, DiffBase};
 use crate::ai::ambient_agents::AmbientAgentTaskId;
@@ -816,12 +815,6 @@ pub struct PromptSuggestion {
     /// The prompt that is used as the input to Agent Mode.
     pub prompt: String,
 
-    /// If this is some, we eagerly pre-fetch the Agent Mode response for this query.
-    pub coding_query_context: Option<Vec<FileLocations>>,
-
-    /// If this is a static prompt suggestion, we store the name of the suggestion type here.
-    pub static_prompt_suggestion_name: Option<String>,
-
     // Whether or not accepting this prompt suggestion should start a new conversation or continue
     // the existing one. Only applies when in agent view; in terminal view, prompt suggestions
     // always start a new conversation.
@@ -829,18 +822,10 @@ pub struct PromptSuggestion {
 }
 
 impl PromptSuggestion {
-    pub fn is_coding_query(&self) -> bool {
-        self.coding_query_context.is_some()
-    }
-
     /// Returns specified label for Prompt Suggestion if it exists, otherwise returns the query
     /// (which is considered to be the "default" label).
     pub fn label(&self) -> &String {
         self.label.as_ref().unwrap_or(&self.prompt)
-    }
-
-    pub fn is_static_prompt_suggestion(&self) -> bool {
-        self.static_prompt_suggestion_name.is_some()
     }
 }
 
@@ -1675,38 +1660,6 @@ pub struct ContextMenuInfo {
     menu_type: ContextMenuType,
 }
 
-impl ContextMenuInfo {
-    // This function should only be used for telemetry
-    pub fn type_for_telemetry(&self) -> &'static str {
-        match self.menu_type {
-            ContextMenuType::BlockList { .. } => "Block",
-            ContextMenuType::Prompt { .. } => "Prompt",
-            ContextMenuType::Input { .. } => "Input",
-            ContextMenuType::AltScreen { .. } => "AltScreen",
-            ContextMenuType::AgentViewEntryConversation { .. } => "AgentViewEntryConversation",
-        }
-    }
-
-    // This function should only be used for telemetry
-    pub fn open_method_for_telemetry(&self) -> &'static str {
-        match self.menu_type {
-            ContextMenuType::BlockList { menu_source } => match menu_source {
-                BlockListMenuSource::BlockOverflowButton { .. } => "BlockOverflowButton",
-                BlockListMenuSource::BlockKeybinding { .. } => "Keybinding",
-                BlockListMenuSource::RegularBlockRightClick { .. } => "RightClick",
-                BlockListMenuSource::RegularTextRightClick { .. } => "RightClick",
-                BlockListMenuSource::RichContentBlockRightClick { .. } => "OutsideBlockRightClick",
-                BlockListMenuSource::RichContentTextRightClick { .. } => "OutsideBlockRightClick",
-                BlockListMenuSource::OutsideBlockRightClick { .. } => "OutsideBlockRightClick",
-            },
-            ContextMenuType::Prompt { .. } => "RightClick",
-            ContextMenuType::Input { .. } => "RightClick",
-            ContextMenuType::AltScreen { .. } => "AltScreen",
-            ContextMenuType::AgentViewEntryConversation { .. } => "RightClick",
-        }
-    }
-}
-
 #[derive(Debug, Copy, Clone)]
 struct ContextMenuState {
     menu_type: ContextMenuType,
@@ -2225,9 +2178,6 @@ pub struct TerminalView {
     // If there is a selected conversation in the view before bootstrapping (from loading a conversation into a new pane),
     // we want to keep the title as the conversation title, so we should ignore the model event setting the title after bootstrapping finishes
     ignore_next_set_title_event: bool,
-    /// `true` when this view hosts a child agent split off into its own
-    /// pane/tab. Drives breadcrumb-vs-pill-bar rendering in the pane header.
-    is_orchestration_split_off: bool,
     is_using_conversation_for_pane_header_title: bool,
 
     /// Mouse state handle for the ambient agent cancel button in the pane header.
@@ -2981,7 +2931,6 @@ impl TerminalView {
             current_repo_path: None,
             terminal_title: Default::default(),
             ignore_next_set_title_event: false,
-            is_orchestration_split_off: false,
             is_using_conversation_for_pane_header_title: false,
             ambient_agent_cancel_mouse_state: Default::default(),
             active_init_project_model: None,
@@ -3416,55 +3365,6 @@ impl TerminalView {
             ctx.notify();
         });
     }
-
-    pub fn attach_plan_as_context(
-        &mut self,
-        ai_document_id: AIDocumentId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.input.update(ctx, |input, ctx| {
-            let content = format!("<plan:{ai_document_id}>");
-            input.append_to_buffer(content.as_str(), ctx);
-            ctx.notify();
-        });
-    }
-
-    /// Marks this view as hosting a split-off child; pane header switches
-    /// from the pill bar to a parent→child breadcrumb row.
-    pub fn mark_as_orchestration_split_off(&mut self, ctx: &mut ViewContext<Self>) {
-        if !self.is_orchestration_split_off {
-            self.is_orchestration_split_off = true;
-            ctx.notify();
-        }
-    }
-
-    /// Clears the split-off marker so the pill bar renders again.
-    pub fn clear_orchestration_split_off(&mut self, ctx: &mut ViewContext<Self>) {
-        if self.is_orchestration_split_off {
-            self.is_orchestration_split_off = false;
-            ctx.notify();
-        }
-    }
-
-    /// Whether this view renders the breadcrumb row instead of the pill bar.
-    pub fn is_orchestration_split_off(&self) -> bool {
-        self.is_orchestration_split_off
-    }
-
-
-    
-
-    
-
-    pub fn is_conversation_selected(&self, _: &AIConversationId, _: &AppContext) -> bool {
-        false
-    }
-
-
-
-    
-
-    
 
     /// Returns true if the window is wide enough to auto-open side panels.
     pub fn can_auto_open_panel(&self) -> bool {
@@ -3920,14 +3820,6 @@ impl TerminalView {
     pub fn active_conversation_id(&self, _ctx: &AppContext) -> Option<AIConversationId> {
         None
     }
-
-    pub fn active_conversation_task_id(&self, _ctx: &AppContext) -> Option<AmbientAgentTaskId> {
-        None
-    }
-
-    pub fn stop_local_agent_conversation(&mut self, _conversation_id: AIConversationId, _ctx: &mut ViewContext<Self>) {}
-
-    pub fn remove_pending_user_query_block(&mut self, _ctx: &mut ViewContext<Self>) {}
 
     pub fn is_input_box_visible(&self, model: &TerminalModel, app: &AppContext) -> bool {
         if model.is_read_only() {
@@ -8001,18 +7893,6 @@ impl TerminalView {
         self.toggle_left_panel_file_tree(true, ctx);
     }
 
-    pub fn create_new_project(&mut self, prompt: String, ctx: &mut ViewContext<Self>) {
-        self.input.update(ctx, |input, ctx| {
-            input.initiate_create_new_project(prompt, ctx);
-        });
-    }
-
-    pub fn agent_clone_repository(&mut self, url: String, ctx: &mut ViewContext<Self>) {
-        self.input.update(ctx, |input, ctx| {
-            input.initiate_clone_repository(url, ctx);
-        });
-    }
-
     pub fn maybe_set_pending_repo_init_path(&mut self, path: PathBuf) {
         self.on_next_block_completed(move |me, ctx| {
             if me
@@ -8594,16 +8474,6 @@ impl TerminalView {
         }
     }
 
-    // Try to execute the provided command. If we cannot execute it now, set it as the pending
-    // command.
-    //
-    // If we set it as pending, the command will execute when we trigger another call to
-    // `execute_pending_command` (either from a `BlockCompleted` or `BootstrapPrecmdDone` event)
-    pub fn execute_command_or_set_pending(&mut self, command: &str, ctx: &mut ViewContext<Self>) {
-        self.set_pending_command(command, ctx);
-        self.execute_pending_command((), ctx);
-    }
-
     fn hide_slow_bootstrap_banner(&mut self, ctx: &mut ViewContext<Self>) {
         if self.is_slow_bootstrap_banner_open {
             self.is_slow_bootstrap_banner_open = false;
@@ -8620,11 +8490,6 @@ impl TerminalView {
 
     pub fn is_login_shell_bootstrapped(&self) -> bool {
         self.is_login_shell_bootstrapped
-    }
-    pub fn has_pending_command_or_awaiting_completion(&self, ctx: &AppContext) -> bool {
-        self.awaiting_pending_command_completion
-            || !self.pending_command_queue.is_empty()
-            || self.input.as_ref(ctx).has_pending_command()
     }
 
     #[cfg(not(target_family = "wasm"))]

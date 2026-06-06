@@ -2717,16 +2717,6 @@ impl Input {
 
     fn open_invoke_skill_selector(&mut self, _ctx: &mut ViewContext<Self>) {}
 
-    pub fn open_plan_menu(
-        &mut self,
-        conversation_id: AIConversationId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.suggestions_mode_model.update(ctx, |model, ctx| {
-            model.set_mode(InputSuggestionsMode::PlanMenu { conversation_id }, ctx);
-        });
-        ctx.notify();
-    }
 
     fn handle_plan_menu_event(&mut self, event: &InlinePlanMenuEvent, ctx: &mut ViewContext<Self>) {
         match event {
@@ -2939,7 +2929,6 @@ impl Input {
         _filename_arg: Option<String>,
         _ctx: &mut ViewContext<Self>,
     ) {}
-    pub fn remove_excess_images(&mut self, _ctx: &mut ViewContext<Self>) {}
 
     pub fn update_image_context_options(&mut self, ctx: &mut ViewContext<Self>) {
         self.editor.update(ctx, move |editor, ctx| {
@@ -3779,11 +3768,6 @@ impl Input {
         };
 
         shared_session_input_state.pending_command_execution_request = None;
-    }
-
-    /// This clears the loading state and input buffer for both the sharer and viewer
-    /// once an agent request is in flight or cancelled.
-    pub fn unfreeze_and_clear_agent_input(&mut self, _ctx: &mut ViewContext<Self>) {
     }
 
     pub fn reset_after_cloud_followup_submission(&mut self, ctx: &mut ViewContext<Self>) {
@@ -7880,8 +7864,6 @@ impl Input {
     ) {
     }
 
-    pub(crate) fn initiate_clone_repository(&mut self, _url: String, _ctx: &mut ViewContext<Self>) {
-    }
 
     /// Handles the user's 'Enter' keypress.
     ///
