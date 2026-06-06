@@ -268,9 +268,17 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 ### AI strip — current state (2026-06-06 session 56)
 
-**Binary**: 727.4 MB (−1.76 MB session 56). 3-gate **90/61/91** (0/0/0 errors).
+**Binary**: 724.4 MB (−4.76 MB session 56). 3-gate **100/71/101** (0/0/0 errors; +10 warnings = exposed Warp-AI execution_profiles dead types, see NEXT).
 
-**Session 56 completed:**
+**`ai/llms.rs` subsystem strip — DONE (4 phases, `a446aa0d`→`0e2fe341`, −3.0 MB, ~3500 LoC):**
+- P1 `a446aa0d`: repoint 9 `LLMId` imports to the `ai` crate (LLMId is re-exported, not owned by llms.rs).
+- P2 `91aa75d3`: relocate `LLMModelHost` enum → `workspaces/workspace.rs` (baked into LlmSettings serialization; only cross-cutting type). llms.rs re-exported it until P4.
+- P3 `d53b3872`: delete inline model-picker UI `terminal/input/models/` (1493 LoC) + `OpenModelSelector` action + `InputSuggestionsMode::ModelSelector` + `/model` command + `InlineMenuType::ModelSelector`. Reached only via /model slash command (no keybinding/toolbar). Two `add_typed_action_view` registrations freed → real shrink.
+- P4 `0e2fe341`: delete `ai/llms.rs` + `llms_tests.rs` + `LLMPreferences` singleton (lib.rs + 4 test regs + input.rs sub + update_manager sync + pane_group restore + terminal_pane write→None) + `server_api/ai.rs` `get_feature_model_choices` + ~290 LoC GraphQL conversions.
+
+**NEXT (session 57): clean the +10 exposed execution_profiles dead types.** Removing `LLMPreferences` (which resolved the active model through `AIExecutionProfilesModel`) left these dead: `AIExecutionProfile`, `CloudAIExecutionProfile`, `CloudAIExecutionProfileModel`, `AIExecutionProfileInfo`, `RunAgentsPermission`, `AskUserQuestionPermission` + `default_info`/`data` methods. They still have references in `persistence/sqlite.rs` + `workspaces/gql_convert.rs` (likely dead serialization paths) — so this is a small strip that touches persistence; verify 3-gate before deleting. **LESSON:** `create_agent_task` (server_api/ai.rs) shows as dead in the DEFAULT gate but is alive via `pane_group/pane/local_harness_launch.rs` (local_fs-gated) — do NOT delete (session-28 feature-gate trap).
+
+**Session 56 earlier work:**
 - Fixed 3 GB `git push` failure: committed Cargo `app/src/target/` build artifacts (450–534 MB blobs) had bloated history; `git filter-repo --path app/src/target --invert-paths` stripped them (3 GB → 15 MB pack), force-pushed clean. Added `target/gate-*` dirs to `.gitignore` (`027c34f5`).
 - `bf386fa1` (−0.63 MB): `ai/agent_conversations_model.rs` (867) + `entry.rs` (521) + orphan tests (2240) + `conversation_utils.rs` deleted. AgentConversationsModel singleton removed from lib.rs + 4 test regs. Callers fixed: agent_icon (task-data lookup dropped), conversation_status_ui (AgentRunDisplayStatus impl dropped), pane_group (LeafContents::AmbientAgent restore collapsed to plain terminal + pending-restoration plumbing removed), slash_commands, auth log_out. NOTE: plan's "32.1K/78.4K lines" was wrong — actual 867+521+2240.
 - `64e4e9f5` (−1.13 MB): exposed-dead ambient task-fetch chain deleted. task.rs: AmbientAgentTask, RunExecution, AmbientAgentLiveSessionState, AmbientAgentTaskState, TaskStatusMessage, TaskStatusErrorCode, RequestUsage, TaskPrincipalInfo + helpers (kept AgentConfigSnapshot, HarnessConfig, AgentSource, AmbientAgentTaskId, normalize_orchestrator_agent_name, cancel_task_*). ai.rs: list_ambient_agent_tasks + get_ambient_agent_task + ListRunsResponse + TaskListFilter + build_list_agent_runs_url. ai_tests.rs: 15 tests. artifacts/mod.rs: deserialize_artifacts. Warnings dropped to 90/61/91 — below session-start baseline 91/61/92.
