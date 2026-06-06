@@ -149,10 +149,6 @@ pub enum FeatureFlag {
 
 
 
-    /// Enables full source code embedding of repos when using codebase context.
-    FullSourceCodeEmbedding,
-
-
     /// If enabled, command palette searches will use Tantivy search instead of the default fuzzy search.
     UseTantivySearch,
 
@@ -165,9 +161,6 @@ pub enum FeatureFlag {
     MSYS2Shells,
 
 
-
-    /// Persist codebase indices to disk.
-    CodebaseIndexPersistence,
 
     /// Enables the AI context menu, or at-menu.
     AIContextMenuEnabled,
@@ -490,11 +483,6 @@ pub const DOGFOOD_FLAGS: &[FeatureFlag] = &[
     FeatureFlag::FileAndDiffSetComments,
     FeatureFlag::SummarizationViaMessageReplacement,
     FeatureFlag::QueueSlashCommand,
-    // These are enabled via 100% experiment on prod warp-server,
-    // but we need to enable here for dogfood builds.
-    FeatureFlag::CodebaseIndexPersistence,
-    FeatureFlag::FullSourceCodeEmbedding,
-    // End manually enabled Code features.
     FeatureFlag::EditableMarkdownMermaid,
     FeatureFlag::CodeReviewScrollPreservation,
     FeatureFlag::GeminiNotifications,

@@ -85,8 +85,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::DefaultAdeberryTheme,
         #[cfg(feature = "command_correction_key")]
         FeatureFlag::CommandCorrectionKey,
-        #[cfg(feature = "full_source_code_embedding")]
-        FeatureFlag::FullSourceCodeEmbedding,
 
         #[cfg(feature = "use_tantivy_search")]
         FeatureFlag::UseTantivySearch,
@@ -104,8 +102,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::EditableMarkdownMermaid,
         #[cfg(feature = "msys2_shells")]
         FeatureFlag::MSYS2Shells,
-#[cfg(feature = "codebase_index_persistence")]
-        FeatureFlag::CodebaseIndexPersistence,
         #[cfg(feature = "ai_context_menu")]
         FeatureFlag::AIContextMenuEnabled,
         #[cfg(feature = "context_line_review_comments")]

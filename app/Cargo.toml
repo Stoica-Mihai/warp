@@ -417,7 +417,6 @@ completions_v2 = [
     "dep:command-signatures-v2",
 ]
 cross_repo_context = []
-codebase_index_persistence = ["full_source_code_embedding"]
 default = [
     "agent_mode",
     "render_continuous_block_selections_with_single_border",
@@ -582,7 +581,6 @@ default = [
     "cloud_mode_input_v2",
     "cloud_mode_setup_v2",
     "handoff_cloud_cloud",
-    "remote_codebase_indexing",
     "solo_user_byok",
     "custom_inference_endpoints",
     "remote_code_review",
@@ -625,7 +623,6 @@ github_pr_prompt_chip = []
 create_project_flow = []
 agent_mode_evals = [
     "integration_tests",
-    "full_source_code_embedding",
     "cross_repo_context",
     "rust-embed/debug-embed",
     "warpui/log_named_telemetry_events",
@@ -698,7 +695,6 @@ predict_am_queries = []
 quake_mode = []
 record_app_active_events = []
 recording_mode = []
-remote_codebase_indexing = ["full_source_code_embedding"]
 
 # This feature should only be enabled when building a release bundle with
 # the bundle script, and can be used to conditionally enable functionality
@@ -757,7 +753,6 @@ autoupdate_ui_revamp = []
 warp_packs = []
 suggested_rules = []
 command_correction_key = []
-full_source_code_embedding = []
 use_tantivy_search = []
 agent_management_popup = []
 simulate_github_unauthed = []
