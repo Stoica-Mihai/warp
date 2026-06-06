@@ -2812,17 +2812,6 @@ impl PaneGroup {
         }
     }
 
-    /// Revert a temporary-replacement swap and clear the orchestration
-    /// split-off marker on the replacement's view, so a later reveal
-    /// renders pills rather than breadcrumbs.
-    fn revert_swap_clearing_split_off(
-        &mut self,
-        replacement_id: PaneId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.panes.revert_temporary_replacement(replacement_id);
-    }
-
     /// Reveal `pane_id` if it's currently the original of an active swap,
     /// then focus it. Used by cross-tab navigation paths that may resolve
     /// to a swapped-out pane; without the reveal, focus would land on an
@@ -2830,7 +2819,7 @@ impl PaneGroup {
     /// neither in the tree nor swap-hidden.
     pub fn reveal_and_focus_pane(&mut self, pane_id: PaneId, ctx: &mut ViewContext<Self>) {
         if let Some(replacement_id) = self.panes.replacement_pane_for_original(pane_id) {
-            self.revert_swap_clearing_split_off(replacement_id, ctx);
+            self.panes.revert_temporary_replacement(replacement_id);
             self.handle_pane_count_change(ctx);
             // The visible content of this slot changed; refresh agent-view
             // back-button labels on both sides.

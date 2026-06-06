@@ -41,7 +41,7 @@ use ordered_float::Float;
 use parking_lot::FairMutex;
 #[cfg(feature = "local_fs")]
 use parking_lot::Mutex;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use session_sharing_protocol::common::{AgentAttachment, ServerConversationToken};
 use settings::{Setting as _, ToggleableSetting};
 use string_offset::{ByteOffset, CharOffset};
@@ -139,7 +139,6 @@ use crate::ai::mcp::TemplatableMCPServerManager;
 use crate::ai::skills::SkillManager;
 use crate::ai::AIRequestUsageModel;
 use crate::appearance::{Appearance, AppearanceEvent};
-use crate::cloud_object::model::actions::ObjectActionType;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::{CloudObject, Space};
 #[cfg(feature = "local_fs")]
@@ -179,7 +178,6 @@ use crate::search::slash_command_menu::static_commands::commands::COMMAND_REGIST
 #[cfg(test)]
 use crate::search::slash_command_menu::static_commands::commands;
 use crate::search::QueryFilter;
-use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::ids::SyncId;
 
 use crate::server::server_api::ServerApi;
@@ -744,7 +742,6 @@ pub enum Event {
     },
     Enter,
     ExecuteCommand(Box<ExecuteCommandEvent>),
-    ExecuteAIQuery,
     EmacsBindingUsed,
     /// The input editor was locally edited and
     /// peers should be notified, if applicable.
@@ -1290,10 +1287,6 @@ pub struct Input {
     /// Whether the most recent intelligent autosuggestion was accepted or not.
     /// Cleared once a command is run.
     was_intelligent_autosuggestion_accepted: bool,
-    /// We store info about the last intelligent autosuggestion because we need it for
-    /// data collection when the command completes, but state is cleared when the command is executed.
-    last_intelligent_autosuggestion_result: Option<IntelligentAutosuggestionResult>,
-
     /// The last block that the user ran. This is used for generating autosuggestions.
     #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
     last_user_block_completed: Option<UserBlockCompleted>,
@@ -1366,15 +1359,6 @@ struct AttachmentChip {
     file_name: String,
     mouse_state_handle: MouseStateHandle,
     index: usize,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct IntelligentAutosuggestionResult {
-    #[serde(rename = "was_autosuggestion_accepted")]
-    pub was_suggestion_accepted: bool,
-    #[serde(rename = "was_autosuggestion_from_ai")]
-    pub is_from_ai: bool,
-    pub predicted_command: String,
 }
 
 /// A map of remote buffer operations that were deferred because
@@ -2348,7 +2332,6 @@ impl Input {
             deferred_remote_operations,
             shared_session_input_state: None,
             was_intelligent_autosuggestion_accepted: false,
-            last_intelligent_autosuggestion_result: None,
             last_user_block_completed: None,
             hoverable_handle: Default::default(),
             terminal_view_id,
@@ -8116,41 +8099,6 @@ impl Input {
     ) -> bool {
         // AI input type is always Shell; queueing never applies.
         false
-    }
-
-    fn submit_ai_query(&mut self, ctx: &mut ViewContext<Self>) {
-        self.editor.update(ctx, |editor, ctx| {
-            editor.abort_attached_images_future_handle(ctx);
-        });
-
-
-        let _has_requests_remaining = AIRequestUsageModel::as_ref(ctx).has_requests_remaining();
-
-
-
-        let ai_query = self.editor.as_ref(ctx).buffer_text(ctx);
-        // We don't send AI requests with empty queries, even if the context is non-empty. We
-        // also don't send a query when the input (query plus context) is over the length limit.
-        // If we haven't calculated the input length, we optimistically as if it is within the
-        // limit. We always check the length before sending making the API request.
-        if ai_query.is_empty() {
-            return;
-        }
-
-        ctx.emit(Event::ExecuteAIQuery);
-
-        if let Some(workflow_state) = self.workflows_state.selected_workflow_state.as_ref() {
-            if let WorkflowType::Cloud(workflow) = &workflow_state.workflow_type {
-                UpdateManager::handle(ctx).update(ctx, move |update_manager, ctx| {
-                    update_manager.record_object_action(
-                        workflow.cloud_object_type_and_id(),
-                        ObjectActionType::Execute,
-                        None,
-                        ctx,
-                    )
-                });
-            }
-        }
     }
 
     /// Returns true if toggling the input mode is disabled.

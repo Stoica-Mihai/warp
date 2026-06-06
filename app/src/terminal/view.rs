@@ -1655,11 +1655,6 @@ impl ContextMenuType {
     }
 }
 
-#[derive(Copy, Clone)]
-pub struct ContextMenuInfo {
-    menu_type: ContextMenuType,
-}
-
 #[derive(Debug, Copy, Clone)]
 struct ContextMenuState {
     menu_type: ContextMenuType,
@@ -12061,15 +12056,6 @@ impl TerminalView {
                 }
 
                 ctx.emit(Event::ExecuteCommand(event.as_ref().clone()));
-            }
-            InputEvent::ExecuteAIQuery => {
-                // For scrolling purposes, treat executing an AI query as executing a command. We'll
-                // also update the scroll position when the rich AI content block is added, but that
-                // has different scroll behavior.
-                self.update_scroll_position_locking(
-                    ScrollPositionUpdate::AfterCommandExecutionStarted,
-                    ctx,
-                );
             }
             InputEvent::SendAgentPrompt {
                 server_conversation_token,

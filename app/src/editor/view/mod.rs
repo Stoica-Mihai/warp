@@ -2962,15 +2962,6 @@ impl EditorView {
         ctx.notify();
     }
 
-    pub fn abort_attached_images_future_handle(&mut self, ctx: &mut ViewContext<Self>) {
-        if let Some(process_attached_images_future_handle) =
-            self.process_attached_images_future_handle.take()
-        {
-            process_attached_images_future_handle.abort();
-        }
-        ctx.emit(Event::ProcessingAttachedImages(false));
-    }
-
     /// The replica ID of the collaborative buffer.
     pub fn replica_id<C: ModelAsRef>(&self, ctx: &C) -> ReplicaId {
         self.editor_model.as_ref(ctx).replica_id(ctx)
