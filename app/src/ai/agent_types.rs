@@ -123,29 +123,6 @@ impl Display for CancellationReason {
     }
 }
 
-impl CancellationReason {
-    pub fn is_follow_up_for_same_conversation(&self) -> bool {
-        matches!(
-            self,
-            CancellationReason::FollowUpSubmitted {
-                is_for_same_conversation: true
-            }
-        )
-    }
-
-    pub fn is_manually_cancelled(&self) -> bool {
-        matches!(self, CancellationReason::ManuallyCancelled)
-    }
-
-    pub fn is_reverted(&self) -> bool {
-        matches!(self, CancellationReason::Reverted)
-    }
-
-    pub fn is_lrc_command_completed(&self) -> bool {
-        matches!(self, CancellationReason::OptimisticCLISubagentCompletion)
-    }
-}
-
 #[allow(unused)]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ProgrammingLanguage {

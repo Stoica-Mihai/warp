@@ -10,7 +10,6 @@ pub mod artifacts;
 pub(crate) mod attachment_utils;
 #[cfg(not(target_family = "wasm"))]
 pub mod aws_credentials;
-pub(crate) mod block_context;
 pub(crate) mod blocklist;
 pub(crate) mod conversation_navigation;
 pub(crate) mod conversation_status_ui;
