@@ -28,9 +28,9 @@ use crate::cloud_object::{
     CloudModelType, CloudObject, CloudObjectEventEntrypoint, CloudObjectLocation,
     GenericCloudObject,
     GenericStringObjectFormat, JsonObjectType, ObjectIdType, ObjectType, Owner,
-    Revision, Space,
+    Revision,
 };
-use crate::drive::folders::{CloudFolderModel, FolderId};
+use crate::drive::folders::FolderId;
 use crate::drive::CloudObjectTypeAndId;
 use crate::env_vars::{CloudEnvVarCollectionModel, EnvVarCollection};
 use crate::network::{NetworkStatus, NetworkStatusEvent, NetworkStatusKind};
@@ -170,13 +170,6 @@ impl UpdateManager {
         self.start_polling_for_updated_objects(ctx);
     }
 
-    pub fn resync_object(
-        &mut self,
-        _cloud_object_type_and_id: &CloudObjectTypeAndId,
-        _ctx: &mut ModelContext<Self>,
-    ) {
-        // Local-only: no server to re-sync with.
-    }
 
     pub fn start_polling_for_updated_objects(&mut self, _ctx: &mut ModelContext<Self>) {
         // Drive server-sync amputated (local-only build): no inbound polling.
@@ -446,39 +439,6 @@ impl UpdateManager {
     }
 
     /// Leaves a shared object. Local-only: no server; emit Success immediately.
-    pub fn leave_object(&mut self, server_id: ServerId, ctx: &mut ModelContext<Self>) {
-        let uid = server_id.uid();
-
-        if CloudModel::as_ref(ctx)
-            .get_by_uid(&uid)
-            .is_none_or(|object| object.metadata().has_pending_online_only_change())
-        {
-            return;
-        }
-
-        let deleted_objects = CloudModel::handle(ctx).update(ctx, |cloud_model, ctx| {
-            cloud_model.delete_object_and_descendants(uid.clone(), ctx)
-        });
-
-        ctx.emit(UpdateManagerEvent::ObjectOperationComplete {
-            result: ObjectOperationResult {
-                success_type: OperationSuccessType::Success,
-                operation: ObjectOperation::Leave,
-                client_id: None,
-                server_id: Some(server_id),
-                num_objects: Some(deleted_objects.len() as i32),
-            },
-        });
-
-        ObjectActions::handle(ctx).update(ctx, |object_actions, ctx| {
-            for (id, _) in deleted_objects.iter() {
-                object_actions.delete_actions_for_object(&id.uid(), ctx);
-            }
-        });
-
-        self.save_to_db([ModelEvent::DeleteObjects { ids: deleted_objects }]);
-    }
-
     /// Given a workflow_id and a destination drive, make a copy of all referenced workflow enums in the destination drive.
     /// Returns the original workflow object if it was modified (in case a future revert is needed), otherwise returns None.
     fn copy_workflow_enums_to_drive(
@@ -910,29 +870,6 @@ impl UpdateManager {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn create_folder(
-        &mut self,
-        name: String,
-        owner: Owner,
-        client_id: ClientId,
-        initial_folder_id: Option<SyncId>,
-        force_expand: bool,
-        initiated_by: InitiatedBy,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        self.create_object(
-            // TODO(INT-789): support creating folders as warp packs
-            CloudFolderModel::new(&name, false),
-            owner,
-            client_id,
-            Default::default(),
-            force_expand,
-            initial_folder_id,
-            initiated_by,
-            ctx,
-        );
-    }
-
     /// Bulk creates a list of generic string objects, all in a single
     /// sqllite write and server api call.  More efficient than calling
     /// create_object for each object.
@@ -1295,58 +1232,6 @@ impl UpdateManager {
         ctx.notify();
     }
 
-    pub fn empty_trash(&mut self, space: Space, ctx: &mut ModelContext<Self>) {
-        let owner = match UserWorkspaces::as_ref(ctx).space_to_owner(space, ctx) {
-            Some(owner) => owner,
-            None => {
-                log::warn!("Tried to empty trash in unsupported space {space:?}");
-                return;
-            }
-        };
-
-        let trashed_ids: Vec<SyncId> = {
-            let cloud_model = CloudModel::as_ref(ctx);
-            cloud_model
-                .get_all_exportable_object_ids()
-                .into_iter()
-                .filter_map(|type_and_id| {
-                    let server_id = type_and_id.server_id()?;
-                    let uid = type_and_id.uid();
-                    let obj = cloud_model.get_by_uid(&uid)?;
-                    if obj.metadata().trashed_ts.is_some() && obj.permissions().owner == owner {
-                        Some(SyncId::ServerId(server_id))
-                    } else {
-                        None
-                    }
-                })
-                .collect()
-        };
-
-        let num_deleted_objects = self.on_object_delete_success(trashed_ids, ctx);
-
-        if num_deleted_objects == 0 {
-            ctx.emit(UpdateManagerEvent::ObjectOperationComplete {
-                result: ObjectOperationResult {
-                    success_type: OperationSuccessType::Rejection,
-                    operation: ObjectOperation::EmptyTrash,
-                    client_id: None,
-                    server_id: None,
-                    num_objects: Some(0),
-                },
-            });
-        } else {
-            ctx.emit(UpdateManagerEvent::ObjectOperationComplete {
-                result: ObjectOperationResult {
-                    success_type: OperationSuccessType::Success,
-                    operation: ObjectOperation::EmptyTrash,
-                    client_id: None,
-                    server_id: None,
-                    num_objects: Some(num_deleted_objects),
-                },
-            });
-        }
-        ctx.notify();
-    }
 
     pub fn on_object_delete_success(
         &mut self,
@@ -1383,26 +1268,6 @@ impl UpdateManager {
         }]);
 
         num_deleted_objects
-    }
-
-    pub fn rename_folder(
-        &mut self,
-        folder_id: SyncId,
-        new_name: String,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let cloud_model = CloudModel::as_ref(ctx);
-        let revision = cloud_model.current_revision(&folder_id).cloned();
-        if let Some(folder) = cloud_model.get_folder(&folder_id) {
-            let new_folder = CloudFolderModel {
-                name: new_name,
-                is_open: folder.model().is_open,
-                is_warp_pack: folder.model().is_warp_pack,
-            };
-            self.update_object(new_folder, folder_id, revision, ctx);
-        } else {
-            log::warn!("Attempted to rename folder that doesn't exist with id: {folder_id:?}");
-        }
     }
 
 }
