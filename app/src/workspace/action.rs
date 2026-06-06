@@ -17,7 +17,7 @@ use super::tab_settings::{
 };
 use super::view::WorkspaceBanner;
 use crate::ai::agent::api::ServerConversationToken;
-use crate::ai::agent::conversation::AIConversationId;
+use crate::ai::agent::conversation_types::AIConversationId;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::drive::WarpDriveItemId;
 use crate::drive::CloudObjectTypeAndId;

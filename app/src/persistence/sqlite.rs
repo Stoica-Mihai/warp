@@ -48,7 +48,7 @@ use super::{
     schema, BlockCompleted, FinishedCommandMetadata, ModelEvent, PersistedData, PersistenceScope,
     StartedCommandMetadata, WriterHandles,
 };
-use crate::ai::agent::conversation::AIConversationId;
+use crate::ai::agent::conversation_types::AIConversationId;
 use crate::ai::ambient_agents::scheduled::{
     CloudScheduledAmbientAgent, CloudScheduledAmbientAgentModel,
 };

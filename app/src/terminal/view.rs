@@ -185,7 +185,7 @@ use super::warpify::success_block::{WarpifySuccessBlock, WarpifySuccessBlockEven
 use super::warpify::trigger_state::{SshBlockState, WarpifyState};
 use super::warpify::WarpificationSource;
 use super::{cli_agent, CLIAgent, GridType};
-use crate::ai::agent::conversation::AIConversationId;
+use crate::ai::agent::conversation_types::AIConversationId;
 use crate::ai::agent::{
     AIAgentActionId, AIAgentPtyWriteMode,
     AgentReviewCommentBatch, FileLocations,

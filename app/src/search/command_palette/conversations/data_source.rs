@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use itertools::Itertools;
 use warpui::{AppContext, Entity};
 
-use crate::ai::agent::conversation::AIConversationId;
+use crate::ai::agent::conversation_types::AIConversationId;
 use crate::ai::conversation_navigation::ConversationNavigationData;
 use crate::search::command_palette::conversations::search::{
     ConversationMatchResult, ConversationSearcher, FuzzyConversationSearcher, MatchedConversation,

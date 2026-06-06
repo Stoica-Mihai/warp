@@ -6,7 +6,7 @@ use serde_bytes_repr::{ByteFmtDeserializer, ByteFmtSerializer};
 use warp_core::command::ExitCode;
 
 use super::AgentInteractionMetadata;
-use crate::ai::agent::conversation::AIConversationId;
+use crate::ai::agent::conversation_types::AIConversationId;
 use crate::ai::agent::task::TaskId;
 use crate::ai::agent::AIAgentActionId;
 use crate::ai::blocklist::cli_controller::LongRunningCommandControlState;

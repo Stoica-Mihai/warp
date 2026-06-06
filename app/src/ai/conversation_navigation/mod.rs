@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use warpui::{AppContext, EntityId, WindowId};
 
 use crate::ai::agent::api::ServerConversationToken;
-use crate::ai::agent::conversation::AIConversationId;
+use crate::ai::agent::conversation_types::AIConversationId;
 use crate::workspace::{PaneViewLocator};
 
 /// Result from matching a conversation.

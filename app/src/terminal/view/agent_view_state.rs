@@ -10,7 +10,7 @@ use warpui::elements::Container;
 use warpui::prelude::{Border, CornerRadius, Radius};
 use warpui::{AppContext, Element, SingletonEntity};
 
-use crate::ai::agent::conversation::AIConversationId;
+use crate::ai::agent::conversation_types::AIConversationId;
 use crate::terminal::input::slash_commands::SlashCommandTrigger;
 
 /// The display mode for an active agent view.

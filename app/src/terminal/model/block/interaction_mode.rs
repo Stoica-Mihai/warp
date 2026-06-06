@@ -3,7 +3,7 @@ use warp_terminal::model::grid::Dimensions;
 use warp_terminal::model::Point;
 
 use super::{Block, SerializedAIMetadata};
-use crate::ai::agent::conversation::AIConversationId;
+use crate::ai::agent::conversation_types::AIConversationId;
 use crate::ai::agent::task::TaskId;
 use crate::ai::agent::AIAgentActionId;
 use crate::ai::blocklist::cli_controller::{

@@ -11,7 +11,7 @@ use warp_core::command::ExitCode;
 use warpui::{App, ModelHandle};
 
 use super::{HistoryEntry, HistoryEvent, PersistedCommand, ShellHost};
-use crate::ai::agent::conversation::AIConversationId;
+use crate::ai::agent::conversation_types::AIConversationId;
 use crate::terminal::model::block::{
     AgentInteractionMetadata, SerializedAIMetadata, SerializedBlock,
 };

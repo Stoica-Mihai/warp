@@ -4,7 +4,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use warpui::{Entity, EntityId, ModelContext, ModelHandle};
 
-use crate::ai::agent::conversation::AIConversationId;
+use crate::ai::agent::conversation_types::AIConversationId;
 use crate::ai::agent::task::TaskId;
 use crate::ai::agent::AIAgentActionId;
 use crate::terminal::model::block::BlockId;

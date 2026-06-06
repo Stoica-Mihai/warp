@@ -1,7 +1,7 @@
 use warpui::{Entity, ModelContext, ModelHandle};
 
 use super::{BufferState, DynamicEnumSuggestionStatus, InputConfig, InputSuggestionsMode};
-use crate::ai::agent::conversation::AIConversationId;
+use crate::ai::agent::conversation_types::AIConversationId;
 use crate::terminal::input::buffer_model::InputBufferModel;
 use crate::terminal::input::inline_menu::InlineMenuType;
 
