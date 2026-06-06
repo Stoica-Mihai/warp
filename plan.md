@@ -266,9 +266,22 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 **Method that worked:** collapse dead `if flag.is_enabled() {…}` branches first (compiles fine with flag still defined — it's just fewer readers), bank green; remove flag def LAST once its readers hit zero. Cascades (banner module, dialog subsystem, URI route, REMOTE_CONTROL, close-session widget) surface as dead-code/unused-import warnings after the readers drop — use `cargo check --features gui` as the worklist oracle. For a subsystem that's reachable only through a now-permanently-false gate (close-confirm dialog, share banners), trace it to its event emitter — if the emitter is itself gated on `shared_session_status().is_sharer()` (always false), the whole chain is dead and removes cleanly. When a UI chip lives in kept agent code, re-gate it on the OTHER (off-by-default) flag rather than ripping the agent subsystem — defers cleanly, preserves default behavior.
 
-### AI strip — current state (2026-06-06 session 55)
+### AI strip — current state (2026-06-06 session 56)
 
-**Binary**: 729.1 MB (−9.7 MB total sessions 53–55). 3-gate **90/60/91** (0/0/0 errors). Handoff: `/tmp/session55-handoff.md`.
+**Binary**: 727.4 MB (−1.76 MB session 56). 3-gate **90/61/91** (0/0/0 errors).
+
+**Session 56 completed:**
+- Fixed 3 GB `git push` failure: committed Cargo `app/src/target/` build artifacts (450–534 MB blobs) had bloated history; `git filter-repo --path app/src/target --invert-paths` stripped them (3 GB → 15 MB pack), force-pushed clean. Added `target/gate-*` dirs to `.gitignore` (`027c34f5`).
+- `bf386fa1` (−0.63 MB): `ai/agent_conversations_model.rs` (867) + `entry.rs` (521) + orphan tests (2240) + `conversation_utils.rs` deleted. AgentConversationsModel singleton removed from lib.rs + 4 test regs. Callers fixed: agent_icon (task-data lookup dropped), conversation_status_ui (AgentRunDisplayStatus impl dropped), pane_group (LeafContents::AmbientAgent restore collapsed to plain terminal + pending-restoration plumbing removed), slash_commands, auth log_out. NOTE: plan's "32.1K/78.4K lines" was wrong — actual 867+521+2240.
+- `64e4e9f5` (−1.13 MB): exposed-dead ambient task-fetch chain deleted. task.rs: AmbientAgentTask, RunExecution, AmbientAgentLiveSessionState, AmbientAgentTaskState, TaskStatusMessage, TaskStatusErrorCode, RequestUsage, TaskPrincipalInfo + helpers (kept AgentConfigSnapshot, HarnessConfig, AgentSource, AmbientAgentTaskId, normalize_orchestrator_agent_name, cancel_task_*). ai.rs: list_ambient_agent_tasks + get_ambient_agent_task + ListRunsResponse + TaskListFilter + build_list_agent_runs_url. ai_tests.rs: 15 tests. artifacts/mod.rs: deserialize_artifacts. Warnings dropped to 90/61/91 — below session-start baseline 91/61/92.
+
+**LESSON (session 56):** `normalize_orchestrator_agent_name` was flagged dead in the default gate but is used by `pane_group/pane/local_harness_launch.rs:66` (a `local_fs`-gated file). Caught it via the injected diagnostic stream when the import broke — restored it. Re-confirms session-28 rule: feature-gated callers hide real users from the default gate; verify all 3 gates.
+
+**Next targets (in order of binary impact):**
+1. `ai/llms.rs` (39.0K) — LLM listing/management
+2. `ai/harness_availability.rs` (11.1K) — harness availability
+3. Small Warp-AI TypedActionView views: `AgentTodosPopupView` (56 lines), `DeleteConversationConfirmationDialog` (175 lines)
+4. `drive/` + `cloud_object/` — Warp Drive cluster (21K+ lines, 144 callers — very complex)
 
 **Session 55 completed:**
 - `f12b1a07`: AgentToastStack deleted (462 lines).
@@ -277,13 +290,6 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - `8aeb0f57`: ai/facts/ cluster deleted — ai/facts/ (2097 lines) + drive/items/ai_fact.rs + ai_fact_collection.rs. −1.9 MB binary.
 - Dead code cleanup: deferred_panes parameter chain removed from restore_pane_leaf/restore_pane_tree, process_deferred_panes deleted; tooltip_text + terminal_view_id removed from UDI.
 - Warnings: 90/60/91 (6 above previous floor; pre-existing dead code in KEEP modules exposed by deletions).
-
-**Next targets (in order of binary impact):**
-1. `ai/agent_conversations_model.rs` + tests (32.1K + 78.4K) — conversation history model
-2. `ai/llms.rs` (39.0K) — LLM listing
-3. `ai/harness_availability.rs` (11.1K) — harness availability
-4. Small Warp-AI TypedActionView views: `AgentTodosPopupView` (56 lines), `DeleteConversationConfirmationDialog` (175 lines)
-5. `drive/` + `cloud_object/` — Warp Drive cluster (21K+ lines, 144 callers — very complex)
 
 **Session 53 state (for reference):**
 - Binary: 736.7 MB. Warnings: 84/56/85. Latest commit `3e442c75`.
