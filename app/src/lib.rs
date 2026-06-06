@@ -122,8 +122,6 @@ pub mod tab_configs;
 pub mod terminal;
 pub mod themes;
 use ::ai::project_context::model::ProjectContextModel;
-pub use ai::agent::todos::AIAgentTodoList;
-pub use ai::agent::{AIAgentActionResultType, FileEdit, TodoOperation};
 use ai::ambient_agents::github_auth_notifier::GitHubAuthNotifier;
 use ai::persisted_workspace::PersistedWorkspace;
 use auth::auth_manager::AuthManager;

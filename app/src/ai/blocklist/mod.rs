@@ -3,10 +3,6 @@ pub(crate) mod cli_controller;
 pub mod code_block;
 pub(crate) mod handoff;
 
-pub(crate) mod request_input;
-pub(crate) mod response_stream_id;
-pub(crate) use request_input::RequestInput;
-pub(crate) use response_stream_id::{ResponseStreamId};
 pub mod history_model {}
 mod input_config;
 pub(crate) mod keystroke_render;
