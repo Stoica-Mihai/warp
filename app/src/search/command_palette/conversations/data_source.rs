@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use itertools::Itertools;
 use warpui::{AppContext, Entity};
 
-use crate::ai::agent::conversation::{AIConversation, AIConversationId};
+use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::conversation_navigation::ConversationNavigationData;
 use crate::search::command_palette::conversations::search::{
     ConversationMatchResult, ConversationSearcher, FuzzyConversationSearcher, MatchedConversation,
@@ -118,10 +118,6 @@ impl DataSource {
     }
 }
 
-fn selected_conversation_in_focused_pane(_app: &AppContext) -> Option<&AIConversation> {
-    None
-}
-
 impl SyncDataSource for DataSource {
     type Action = CommandPaletteItemAction;
 
@@ -179,23 +175,9 @@ impl SyncDataSource for DataSource {
                 })
         };
 
-        // When the query is empty, we want to add the "new conversation" and "fork conversation" items.
+        // When the query is empty, we want to add the "new conversation" item.
         if self.add_conversation_actions && query.text.trim().is_empty() {
             result.map(|mut results| {
-                if !cfg!(target_family = "wasm") {
-                    if let Some(conversation) = selected_conversation_in_focused_pane(app) {
-                        // Only surface the fork option if the selected conversation is done.
-                        if conversation.status().is_done() {
-                            results.push(
-                                ConversationSearchItem::new(ConversationAction::Fork {
-                                    conversation_id: conversation.id(),
-                                    title: conversation.title().unwrap_or_default().to_string(),
-                                })
-                                .into(),
-                            );
-                        }
-                    }
-                }
                 results.push(ConversationSearchItem::new(ConversationAction::New).into());
                 results
             })
