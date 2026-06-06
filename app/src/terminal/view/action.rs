@@ -9,7 +9,6 @@ use warp_util::user_input::UserInput;
 use warpui::elements::HyperlinkUrl;
 use warpui::event::ModifiersState;
 use warpui::units::Lines;
-use warpui::EntityId;
 
 use super::inline_banner::{
     AwsBedrockLoginBannerAction, AwsCliNotInstalledBannerAction,
@@ -20,8 +19,6 @@ use super::{
     NotificationsDiscoveryBannerAction, NotificationsErrorBannerAction, RichContentLink,
     SSHBannerAction, TerminalEditor,
 };
-use crate::ai::agent::conversation::AIConversationId;
-use crate::ai::agent::AIAgentExchangeId;
 use crate::code_review::telemetry_event::CodeReviewPaneEntrypoint;
 use crate::server::ids::SyncId;
 use crate::server::telemetry::{PaletteSource, ToggleBlockFilterSource};
@@ -185,21 +182,6 @@ pub enum TerminalAction {
         position: Vector2F,
     },
     InputContextMenuItem(InputContextMenuAction),
-    /// Open the menu on the specified [`crate::ai::blocklist::AIBlock`] that lists the blocks that
-    /// were attached to the query in the specified [`crate::ai::blocklist::AIAgentExchange`] which
-    /// is part of the specified [`crate::ai::blocklist::AIConversation`].
-    OpenAIBlockAttachedBlocksMenu {
-        ai_block_view_id: EntityId,
-        exchange_id: AIAgentExchangeId,
-        conversation_id: AIConversationId,
-    },
-    /// Open the overflow context menu for an AI block with copy options
-    OpenAIBlockOverflowMenu {
-        ai_block_view_id: EntityId,
-        exchange_id: AIAgentExchangeId,
-        conversation_id: AIConversationId,
-        is_restored: bool,
-    },
     SelectAllBlocks,
     ExpandBlockSelectionAbove,
     ExpandBlockSelectionBelow,
@@ -498,8 +480,6 @@ impl fmt::Debug for TerminalAction {
                 write!(f, "MiddleClickonGrid {{ position: {position:?} }}")
             }
             MiddleClickOnInput => write!(f, "MiddleClickOnInput"),
-            OpenAIBlockAttachedBlocksMenu { .. } => write!(f, "OpenAIBlockAttachedBlocksMenu"),
-            OpenAIBlockOverflowMenu { .. } => write!(f, "OpenAIBlockOverflowMenu"),
             SelectAIAttachedBlock(_) => write!(f, "SelectAIAttachedBlock"),
             DragAndDropFiles(_) => write!(f, "DragAndDropFiles"),
             WarpifySSHSession => write!(f, "WarpifySSHSession"),
