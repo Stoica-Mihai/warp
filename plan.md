@@ -1025,3 +1025,11 @@ BlockClient feeds the Warp-cloud **block-sharing** feature (share a terminal blo
 - **terminal/mod.rs:93** re-export.
 - Cascade: Block type, ShareBlockType, graphql ops (ShareBlock/BlockInput/etc).
 **Execution:** leaf-up — settings (ShowBlocksView+SharedBlocks) → ShareBlockModal+pane_group/terminal_pane/terminal_view wiring → BlockClient/block.rs. Green per increment. Expect real shrink (2 views via add_typed_action_view + graphql ops, live-linked). ~2500 LoC, pane_group render-path — careful, own focused effort.
+
+**BLOCK-SHARING — expanded surface (found during inc-1 attempt; settings is NOT an independent leaf):** removing `SettingsSection::SharedBlocks` cascades to a CustomAction + menu + workspace + modal chain:
+- `util/bindings.rs`: `CustomAction::ViewSharedBlocks` variant (85) + match arm (428).
+- `app_menus.rs:549`: the "View Shared Blocks" menu item (CustomAction::ViewSharedBlocks).
+- `workspace/mod.rs:1154/1158`: `WorkspaceAction::ShowSettingsPage(SettingsSection::SharedBlocks)` + `.with_custom_action(CustomAction::ViewSharedBlocks)`.
+- `share_block_modal.rs:759`: the modal's "view shared blocks" link → ShowSettingsPage(SharedBlocks).
+- settings_view/mod.rs ServerApiProvider import becomes unused after get_block_client removal.
+**Conclusion:** block-sharing is ONE coupled feature spanning settings + CustomAction/menu/keybinding + workspace + ShareBlockModal + pane_group + terminal/view + BlockClient (~2500+ LoC). Must strip as ONE operation (no independent leaf). Execution order: app_menus/bindings/workspace CustomAction::ViewSharedBlocks → settings SharedBlocks page → ShareBlockModal + pane_group/terminal_pane/terminal_view wiring → BlockClient/block.rs. Reverted inc-1 attempt to green (`97f34744`); do the whole thing in a focused session.
