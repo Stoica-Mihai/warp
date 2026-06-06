@@ -1,5 +1,4 @@
 pub mod action;
-mod ai_queries;
 pub(crate) mod async_snapshot_data_source;
 pub mod binding_source;
 pub mod command_palette;

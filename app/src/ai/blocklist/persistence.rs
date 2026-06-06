@@ -1,134 +1,16 @@
 //! Manages how we serialize blocklist AI data for persistence.
 #![cfg_attr(not(feature = "local_fs"), allow(dead_code))]
 
-use std::collections::HashMap;
-use std::sync::Arc;
-
 use anyhow::anyhow;
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
-pub enum AIQueryHistoryOutputStatus {
-    #[default]
-    Unknown,
-    Success,
-    Failure,
-    Partial,
-}
-
-
-use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::{
-    AIAgentActionType, AIAgentAttachment, AIAgentContext, AIAgentExchangeId, AIAgentInput,
-    AIAgentPtyWriteMode, AskUserQuestionItem, FileLocations, PassiveSuggestionResultType,
+    AIAgentActionType, AIAgentPtyWriteMode, AskUserQuestionItem, FileLocations,
     ReadFilesRequest, RequestComputerUseRequest, SearchCodebaseRequest, UseComputerRequest,
-    UserQueryMode,
 };
-use ai::LLMId;
 use crate::terminal::model::block::{BlockId, SerializedBlock};
-
-/// Data we persist for each [`AIAgentExchange`] for use in history. Does not contain output data.
-#[derive(Debug, Deserialize, Clone)]
-pub struct PersistedAIInput {
-    pub(crate) exchange_id: AIAgentExchangeId,
-    pub(crate) conversation_id: AIConversationId,
-    pub(crate) start_ts: DateTime<Local>,
-    pub(crate) inputs: Vec<PersistedAIInputType>,
-    pub(crate) output_status: AIQueryHistoryOutputStatus,
-    pub(crate) working_directory: Option<String>,
-    // TODO(CORE-3546): pub(crate) shell: Option<AvailableShell>,
-    pub(crate) model_id: LLMId,
-    #[allow(unused)]
-    pub(crate) coding_model_id: LLMId,
-}
-
-/// Pieces of data we need to persist for each [`AIAgentExchange`]'s input for session restoration.
-///
-/// Note: Only Query is actually used - it's used for up-arrow history.
-/// TODO(roland): consider removing the ai_queries table and getting queries from tasks as well.
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub(crate) enum PersistedAIInputType {
-    Query {
-        text: String,
-        #[serde(default)]
-        context: Arc<[AIAgentContext]>,
-        #[serde(default)]
-        referenced_attachments: HashMap<String, AIAgentAttachment>,
-    },
-}
-
-impl TryFrom<&AIAgentInput> for PersistedAIInputType {
-    type Error = anyhow::Error;
-
-    fn try_from(input: &AIAgentInput) -> Result<Self, Self::Error> {
-        match input {
-            AIAgentInput::UserQuery {
-                query,
-                context,
-                referenced_attachments,
-                ..
-            } => Ok(Self::Query {
-                text: query.clone(),
-                context: context.clone(),
-                referenced_attachments: referenced_attachments.clone(),
-            }),
-            AIAgentInput::AutoCodeDiffQuery { query, context } => Ok(Self::Query {
-                text: query.clone(),
-                context: context.clone(),
-                referenced_attachments: Default::default(),
-            }),
-            AIAgentInput::PassiveSuggestionResult { suggestion: PassiveSuggestionResultType::Prompt { prompt }, context, .. } => Ok(Self::Query {
-                text: prompt.clone(),
-                context: context.clone(),
-                referenced_attachments: Default::default(),
-            }),
-            AIAgentInput::PassiveSuggestionResult { suggestion: PassiveSuggestionResultType::CodeDiff { .. }, .. } => Err(anyhow!(
-                "PassiveSuggestionResult::CodeDiff is not persisted as a query."
-            )),
-            AIAgentInput::ActionResult { .. }
-            | AIAgentInput::ResumeConversation { .. }
-            | AIAgentInput::InitProjectRules { .. }
-            | AIAgentInput::CreateEnvironment { .. }
-            | AIAgentInput::TriggerPassiveSuggestion { .. }
-            | AIAgentInput::CreateNewProject { .. }
-            | AIAgentInput::CloneRepository { .. }
-            | AIAgentInput::CodeReview { .. }
-            | AIAgentInput::FetchReviewComments { .. }
-            | AIAgentInput::SummarizeConversation { .. }
-            | AIAgentInput::InvokeSkill { .. }
-            | AIAgentInput::StartFromAmbientRunPrompt { .. }
-            | AIAgentInput::MessagesReceivedFromAgents { .. }
-            | AIAgentInput::EventsFromAgents { .. }
-            | AIAgentInput::OrchestrationConfigUpdate { .. } => Err(anyhow::anyhow!(
-                "This input type is not persisted. Only Query inputs are persisted for up-arrow history."
-            )),
-        }
-    }
-}
-
-impl TryFrom<PersistedAIInputType> for AIAgentInput {
-    type Error = anyhow::Error;
-
-    fn try_from(value: PersistedAIInputType) -> Result<Self, Self::Error> {
-        match value {
-            PersistedAIInputType::Query {
-                text,
-                context,
-                referenced_attachments,
-            } => Ok(Self::UserQuery {
-                query: text,
-                context,
-                referenced_attachments,
-                static_query_type: None,
-                user_query_mode: UserQueryMode::default(),
-                running_command: None,
-                intended_agent: None,
-            }),
-        }
-    }
-}
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub(crate) enum PersistedPtyWriteMode {

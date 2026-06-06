@@ -1066,7 +1066,6 @@ pub(crate) fn initialize_app(
         mut restored_user_profiles,
         mut time_of_next_force_object_refresh,
         mut object_actions,
-        _ai_queries,
         persisted_workspaces,
         mut workspace_language_servers,
         mut persisted_projects,
@@ -1085,7 +1084,6 @@ pub(crate) fn initialize_app(
                 sqlite_data.user_profiles,
                 sqlite_data.time_of_next_force_object_refresh,
                 sqlite_data.object_actions,
-                sqlite_data.ai_queries,
                 sqlite_data.codebase_indices,
                 sqlite_data.workspace_language_servers,
                 sqlite_data.projects,
@@ -1097,7 +1095,6 @@ pub(crate) fn initialize_app(
         })
         .unwrap_or_else(|| {
             (
-                Default::default(),
                 Default::default(),
                 Default::default(),
                 Default::default(),

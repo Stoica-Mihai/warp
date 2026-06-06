@@ -38,7 +38,6 @@ use warp_multi_agent_api as api;
 use warpui::{AppContext, Entity, SingletonEntity};
 
 use self::model::{AgentConversation, AgentConversationData, Project};
-use crate::ai::blocklist::PersistedAIInput;
 use crate::ai::mcp::TemplatableMCPServerInstallation;
 use crate::ai::persisted_workspace::EnablementState;
 use crate::app_state::AppState;
@@ -177,7 +176,6 @@ pub struct PersistedData {
     pub user_profiles: Vec<UserProfileWithUID>,
     pub time_of_next_force_object_refresh: Option<DateTime<Utc>>,
     pub object_actions: Vec<ObjectAction>,
-    pub ai_queries: Vec<PersistedAIInput>,
     pub codebase_indices: Vec<CodeWorkspaceMetadata>,
     pub workspace_language_servers: HashMap<PathBuf, HashMap<LSPServerType, EnablementState>>,
     pub multi_agent_conversations: Vec<AgentConversation>,
@@ -293,9 +291,6 @@ pub enum ModelEvent {
     },
     /// Close the SQLite writer thread when the app is about to quit.
     Terminate,
-    UpsertAIQuery {
-        query: Arc<PersistedAIInput>,
-    },
     /// Delete the AI query and related data for a given conversation.
     DeleteAIConversation {
         conversation_id: String,

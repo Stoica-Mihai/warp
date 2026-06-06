@@ -8,7 +8,6 @@ use itertools::Itertools;
 use lazy_static::lazy_static;
 use pathfinder_color::ColorU;
 use pathfinder_geometry::vector::Vector2F;
-use warp_core::features::FeatureFlag;
 use warpui::accessibility::{AccessibilityContent, WarpA11yRole};
 use warpui::elements::{
     resizable_state_handle, Align, AnchorPair, Border, ConstrainedBox, Container, CornerRadius,
@@ -24,7 +23,6 @@ use warpui::{
     ViewContext, ViewHandle, WeakViewHandle,
 };
 
-use super::ai_queries::AIQueriesDataSource;
 use super::env_var_collections::EnvVarCollectionDataSource;
 use super::history::history_data_source_for_session;
 use super::notebooks::notebooks_data_source;
@@ -261,13 +259,6 @@ impl CommandSearchView {
                 );
             }
 
-            if FeatureFlag::AgentMode.is_enabled() && AISettings::as_ref(ctx).is_any_ai_enabled(ctx)
-            {
-                mixer.add_sync_source(
-                    AIQueriesDataSource::new(),
-                    HashSet::from([QueryFilter::PromptHistory]),
-                );
-            }
 
             if History::as_ref(ctx).is_queryable(&session_id) {
                 let source = History::handle(ctx).read(ctx, |history_model, app| {
@@ -435,15 +426,14 @@ impl CommandSearchView {
         {
             use CommandSearchItemAction::*;
             let was_immediately_executed = match &result_action {
-                ExecuteHistory(_) | RunAIQuery(_) => true,
+                ExecuteHistory(_) => true,
 
                 AcceptHistory(_)
                 | AcceptWorkflow(_)
                 | AcceptNotebook(_)
                 | OpenWarpAI
                 | AcceptEnvVarCollection(_)
-                | TranslateUsingWarpAI
-                | AcceptAIQuery(_) => false,
+                | TranslateUsingWarpAI => false,
             };
 
             let (a11y_content, a11y_help_content) = if was_immediately_executed {

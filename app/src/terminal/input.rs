@@ -4668,11 +4668,7 @@ impl Input {
             }
             InputSuggestionsEvent::IgnoreItem { item } => {
                 let command_text = item.text();
-                let suggestion_type = if item.is_ai_query() {
-                    SuggestionType::AIQuery
-                } else {
-                    SuggestionType::ShellCommand
-                };
+                let suggestion_type = SuggestionType::ShellCommand;
 
                 IgnoredSuggestionsModel::handle(ctx).update(ctx, |model, ctx| {
                     model.add_ignored_suggestion(command_text.to_string(), suggestion_type, ctx);
@@ -8207,10 +8203,6 @@ impl Input {
         if ai_query.is_empty() {
             return;
         }
-
-        IgnoredSuggestionsModel::handle(ctx).update(ctx, |model, ctx| {
-            model.remove_ignored_suggestion(ai_query.clone(), SuggestionType::AIQuery, ctx);
-        });
 
         ctx.emit(Event::ExecuteAIQuery);
 

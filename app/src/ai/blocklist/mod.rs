@@ -66,7 +66,7 @@ mod input_stubs {
         pub fn unlocked_if_autodetection_enabled(self, _: bool, _: &warpui::AppContext) -> InputConfig { self.input_config }
     }
 }
-pub(crate) use persistence::{PersistedAIInput, SerializedBlockListItem};
+pub(crate) use persistence::SerializedBlockListItem;
 pub(crate) use view_util::{
     ai_brand_color, ai_indicator_height,
     render_ai_agent_mode_icon, ATTACH_AS_AGENT_MODE_CONTEXT_TEXT,

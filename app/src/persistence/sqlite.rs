@@ -34,7 +34,6 @@ use warpui::{AppContext, SingletonEntity};
 use super::agent::{delete_agent_conversations, upsert_agent_conversation};
 use super::block_list::{
     delete_ai_conversation, delete_blocks, save_block, update_block_agent_view_visibility,
-    upsert_ai_query,
 };
 use super::model::{
     self, ActiveMCPServer, CurrentUserInformation, MCPEnvironmentVariables, NewActiveMCPServer,
@@ -89,7 +88,7 @@ use crate::env_vars::{CloudEnvVarCollection, CloudEnvVarCollectionModel};
 use crate::features::FeatureFlag;
 use crate::notebooks::{CloudNotebook, CloudNotebookModel, NotebookId};
 use crate::persistence::agent::read_agent_conversations;
-use crate::persistence::block_list::{get_all_restored_blocks, read_ai_queries};
+use crate::persistence::block_list::get_all_restored_blocks;
 use crate::persistence::model::{
     NewCloudObjectsRefresh, NewGenericStringObject, NewPersistedObjectAction, NewTeamSettings,
     ProjectRules, UserProfile, CODE_REVIEW_PANE_KIND,
@@ -646,9 +645,6 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
             actions_to_sync: objects_to_sync,
         } => {
             sync_object_actions(connection, objects_to_sync).context("error syncing object actions")
-        }
-        ModelEvent::UpsertAIQuery { query } => {
-            upsert_ai_query(connection, query).context("error upserting AI query")
         }
         ModelEvent::DeleteAIConversation { conversation_id } => {
             delete_ai_conversation(connection, &conversation_id)
@@ -3090,8 +3086,6 @@ fn read_sqlite_data(
             .map(|refresh| refresh.time_of_next_refresh.and_utc())
             .min();
 
-    let ai_queries = read_ai_queries(conn)?;
-
     let codebase_indices = get_all_codebase_index_metadata(conn)?;
     let workspace_language_servers = get_all_workspace_language_servers_by_workspace(conn)?;
     let multi_agent_conversations = read_agent_conversations(conn)?;
@@ -3110,7 +3104,6 @@ fn read_sqlite_data(
         user_profiles,
         time_of_next_force_object_refresh,
         object_actions,
-        ai_queries,
         codebase_indices,
         workspace_language_servers,
         multi_agent_conversations,
