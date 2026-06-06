@@ -19,7 +19,7 @@ use warpui::{
     ViewContext,
 };
 
-use crate::ai::agent::icons::{yellow_running_icon, yellow_stop_icon};
+use crate::ai::agent_icons::{yellow_running_icon, yellow_stop_icon};
 use crate::terminal::view::with_content_item_spacing::{
     CONTENT_HORIZONTAL_PADDING, CONTENT_ITEM_VERTICAL_MARGIN,
 };

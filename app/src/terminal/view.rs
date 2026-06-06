@@ -191,7 +191,7 @@ use crate::ai::agent::{
     AgentReviewCommentBatch, FileLocations,
 };
 #[cfg(feature = "local_fs")]
-use crate::ai::agent::{CurrentHead, DiffBase};
+use crate::ai::agent_types::{CurrentHead, DiffBase};
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::context_chips::toolbar::AgentToolbarItemKind;
 use crate::terminal::view::agent_view_state::get_agent_view_entry_block_position_id;
@@ -13197,7 +13197,7 @@ impl TerminalView {
     #[cfg(feature = "local_fs")]
     pub fn send_diff_context_to_cli_agent_or_rich_input(
         &mut self,
-        file_diffs: &std::collections::HashMap<String, Vec<crate::ai::agent::DiffSetHunk>>,
+        file_diffs: &std::collections::HashMap<String, Vec<crate::ai::agent_types::DiffSetHunk>>,
         ctx: &mut ViewContext<Self>,
     ) -> Option<CliAgentRouting> {
         let text = cli_agent::build_diff_context_prompt(file_diffs);

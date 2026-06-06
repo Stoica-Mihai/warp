@@ -5,7 +5,7 @@ use warpui::units::IntoLines;
 use warpui::App;
 
 use super::*;
-use crate::ai::agent::AIAgentActionId;
+use crate::ai::agent_types::AIAgentActionId;
 use crate::terminal::view::agent_view_state::{
     AgentViewDisplayMode, AgentViewEntryOrigin, AgentViewState,
 };

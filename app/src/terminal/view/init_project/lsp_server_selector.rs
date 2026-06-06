@@ -13,7 +13,7 @@ use warpui::ui_components::text::Span;
 use warpui::{AppContext, Element, SingletonEntity, TypedActionView, ViewContext, ViewHandle};
 
 use super::{InitProjectBlockAction, InitStepBlock};
-use crate::ai::agent::icons::yellow_stop_icon;
+use crate::ai::agent_icons::yellow_stop_icon;
 use crate::terminal::view::toggleable_items::{ToggleableItemBuilder, ToggleableItemsView};
 use crate::terminal::view::inline_action_header::INLINE_ACTION_HORIZONTAL_PADDING;
 use crate::terminal::view::inline_action_icons::icon_size;

@@ -94,7 +94,7 @@ pub use {
 use self::model::{LocalSelections, Selection, UpdateBufferOption};
 use super::soft_wrap::{ClampDirection, DisplayPointAndClampDirection};
 use super::Point;
-use crate::ai::agent::ImageContext;
+use crate::ai::agent_types::ImageContext;
 use crate::ai::blocklist::InputType;
 use crate::appearance::Appearance;
 use crate::editor::accept_autosuggestion_keybinding_view::AcceptAutosuggestionKeybinding;

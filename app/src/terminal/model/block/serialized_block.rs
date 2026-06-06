@@ -7,8 +7,8 @@ use warp_core::command::ExitCode;
 
 use super::AgentInteractionMetadata;
 use crate::ai::agent::conversation_types::AIConversationId;
-use crate::ai::agent::task::TaskId;
-use crate::ai::agent::AIAgentActionId;
+use crate::ai::agent_types::TaskId;
+use crate::ai::agent_types::AIAgentActionId;
 use crate::ai::blocklist::cli_controller::LongRunningCommandControlState;
 use crate::terminal::model::block::{
     has_block_failed, AgentViewVisibility, Block, BlockState, PromptInfo,

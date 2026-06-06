@@ -19,7 +19,7 @@ use warpui::{
     ViewHandle,
 };
 
-use crate::ai::agent::icons::{in_progress_icon, yellow_stop_icon};
+use crate::ai::agent_icons::{in_progress_icon, yellow_stop_icon};
 use crate::terminal::view::keyboard_navigable_buttons::{
     simple_navigation_button, KeyboardNavigableButtonBuilder, KeyboardNavigableButtons,
 };

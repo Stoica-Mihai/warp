@@ -2,6 +2,8 @@
 //! Warp (including Agent Mode).
 pub mod execution_context;
 pub(crate) mod agent;
+pub(crate) mod agent_icons;
+pub(crate) mod agent_types;
 pub mod ambient_agents;
 pub(crate) mod artifact_download;
 pub mod artifacts;

@@ -30,7 +30,7 @@ use super::secrets::RespectObfuscatedSecrets;
 use super::selection::ScrollDelta;
 use super::terminal_model::RangeInModel;
 use crate::ai::agent::conversation_types::AIConversationId;
-use crate::ai::agent::AIAgentActionId;
+use crate::ai::agent_types::AIAgentActionId;
 use crate::terminal::view::agent_view_state::AgentViewState;
 use crate::ai::blocklist::SerializedBlockListItem;
 use crate::terminal::block_filter::BlockFilterQuery;

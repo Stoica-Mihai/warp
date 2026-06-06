@@ -10,7 +10,7 @@ use warpui::elements::{
 use warpui::ui_components::components::UiComponent;
 use warpui::{AppContext, Element, EventContext, SingletonEntity};
 
-use crate::ai::agent::ProgrammingLanguage;
+use crate::ai::agent_types::ProgrammingLanguage;
 use crate::terminal::view::inline_action_header::{
     INLINE_ACTION_HEADER_VERTICAL_PADDING, INLINE_ACTION_HORIZONTAL_PADDING,
 };

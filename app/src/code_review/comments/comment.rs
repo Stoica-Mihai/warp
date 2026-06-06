@@ -4,7 +4,7 @@ use chrono::{DateTime, Local};
 use warp_editor::render::model::LineCount;
 use warp_multi_agent_api::{self as api};
 
-use crate::ai::agent::{CurrentHead, DiffBase};
+use crate::ai::agent_types::{CurrentHead, DiffBase};
 use crate::code::buffer_location::LocalOrRemotePath;
 use crate::code::editor::line::EditorLineLocation;
 use crate::code::editor::EditorReviewComment;

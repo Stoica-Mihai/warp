@@ -39,7 +39,7 @@ use super::selection::ScrollDelta;
 use super::session::{command_executor, Sessions};
 pub use super::BlockId;
 use crate::ai::agent::conversation_types::AIConversationId;
-use crate::ai::agent::redaction::redact_secrets;
+use crate::ai::agent_types::redact_secrets;
 use crate::terminal::view::agent_view_state::AgentViewState;
 use crate::context_chips::prompt_snapshot::PromptSnapshot;
 use crate::server::block::DisplaySetting;

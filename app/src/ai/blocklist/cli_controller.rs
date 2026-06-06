@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use warpui::{Entity, EntityId, ModelContext, ModelHandle};
 
 use crate::ai::agent::conversation_types::AIConversationId;
-use crate::ai::agent::task::TaskId;
-use crate::ai::agent::AIAgentActionId;
+use crate::ai::agent_types::TaskId;
+use crate::ai::agent_types::AIAgentActionId;
 use crate::terminal::model::block::BlockId;
 use crate::terminal::model_events::ModelEventDispatcher;
 use crate::terminal::TerminalModel;

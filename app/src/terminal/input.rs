@@ -119,7 +119,7 @@ use super::view::{
 use super::warpify::SubshellSource;
 use super::{prompt, History, HistoryEntry, SizeInfo, TerminalModel, UpArrowHistoryConfig};
 use crate::ai::agent::conversation_types::AIConversationId;
-use crate::ai::agent::CancellationReason;
+use crate::ai::agent_types::CancellationReason;
 use crate::ai::ambient_agents::telemetry::HandoffEntryPoint;
 use crate::ai::blocklist::cli_controller::CLISubagentController;
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
