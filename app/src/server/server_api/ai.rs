@@ -6,7 +6,6 @@ use cynic::{MutationBuilder, QueryBuilder};
 #[cfg(test)]
 use mockall::automock;
 use warp_core::channel::ChannelState;
-use warp_core::report_error;
 use warp_graphql::mutations::generate_metadata_for_command::{
     GenerateMetadataForCommand, GenerateMetadataForCommandInput, GenerateMetadataForCommandResult,
     GenerateMetadataForCommandStatus, GenerateMetadataForCommandVariables,
@@ -17,12 +16,9 @@ use warp_graphql::queries::get_request_limit_info::{
 };
 use super::auth::AuthClient;
 use super::ServerApi;
-use crate::ai::agent::api::ServerConversationToken;
-use crate::ai::agent::conversation::{AIAgentHarness, ServerAIConversationMetadata};
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 // Re-export ambient agent types for backwards compatibility
 pub use crate::ai::ambient_agents::{AgentConfigSnapshot, AgentSource};
-use crate::ai::artifacts::Artifact;
 use crate::ai::generate_code_review_content::api::{
     GenerateCodeReviewContentRequest, GenerateCodeReviewContentResponse,
 };
@@ -32,7 +28,6 @@ use crate::ai::request_usage_model::RequestLimitInfo;
 use crate::ai::BonusGrant;
 use crate::ai::RequestUsageInfo;
 use crate::drive::workflows::ai_assist::{GeneratedCommandMetadata, GeneratedCommandMetadataError};
-use crate::persistence::model::ConversationUsageMetadata;
 use crate::server::graphql::{get_request_context, get_user_facing_error_message};
 #[cfg(not(feature = "agent_mode_evals"))]
 use crate::{
@@ -246,121 +241,6 @@ impl AIClient for ServerApi {
     }
 }
 
-
-// Conversions for AIConversationMetadata from GraphQL types
-
-fn convert_harness(harness: warp_graphql::ai::AgentHarness) -> AIAgentHarness {
-    match harness {
-        warp_graphql::ai::AgentHarness::Oz => AIAgentHarness::Oz,
-        warp_graphql::ai::AgentHarness::ClaudeCode => AIAgentHarness::ClaudeCode,
-        warp_graphql::ai::AgentHarness::Gemini => AIAgentHarness::Gemini,
-        warp_graphql::ai::AgentHarness::Codex => AIAgentHarness::Codex,
-        warp_graphql::ai::AgentHarness::Other(value) => {
-            report_error!(anyhow!(
-                "Invalid AgentHarness '{value}'. Make sure to update client GraphQL types!"
-            ));
-            AIAgentHarness::Unknown
-        }
-    }
-}
-
-fn convert_usage_metadata(
-    summarized: bool,
-    context_window_usage: f64,
-    credits_spent: f64,
-) -> ConversationUsageMetadata {
-    ConversationUsageMetadata {
-        was_summarized: summarized,
-        context_window_usage: context_window_usage as f32,
-        credits_spent: credits_spent as f32,
-        credits_spent_for_last_block: None,
-        token_usage: vec![],
-        tool_usage_metadata: Default::default(),
-    }
-}
-
-impl TryFrom<warp_graphql::ai::AIConversation> for ServerAIConversationMetadata {
-    type Error = anyhow::Error;
-
-    fn try_from(value: warp_graphql::ai::AIConversation) -> Result<Self, Self::Error> {
-        let usage = convert_usage_metadata(
-            value.usage.usage_metadata.summarized,
-            value.usage.usage_metadata.context_window_usage,
-            value.usage.usage_metadata.credits_spent,
-        );
-        let metadata = value.metadata.try_into()?;
-        let permissions = value.permissions.try_into()?;
-        let ambient_agent_task_id = value
-            .ambient_agent_task_id
-            .map(|id| id.into_inner().parse())
-            .transpose()?;
-        let server_conversation_token =
-            ServerConversationToken::new(value.conversation_id.into_inner());
-
-        // If we fail to parse any artifacts, don't fail the entire conversion -- just don't include them in the list
-        let artifacts = value
-            .artifacts
-            .unwrap_or_default()
-            .into_iter()
-            .filter_map(|a| Artifact::try_from(a).ok())
-            .collect();
-
-        Ok(Self {
-            title: value.title,
-            working_directory: value.working_directory,
-            harness: convert_harness(value.harness),
-            usage,
-            metadata,
-            permissions,
-            ambient_agent_task_id,
-            server_conversation_token,
-            artifacts,
-        })
-    }
-}
-
-impl TryFrom<warp_graphql::queries::list_ai_conversations::AIConversationMetadata>
-    for ServerAIConversationMetadata
-{
-    type Error = anyhow::Error;
-
-    fn try_from(
-        value: warp_graphql::queries::list_ai_conversations::AIConversationMetadata,
-    ) -> Result<Self, Self::Error> {
-        let usage = convert_usage_metadata(
-            value.usage.usage_metadata.summarized,
-            value.usage.usage_metadata.context_window_usage,
-            value.usage.usage_metadata.credits_spent,
-        );
-        let metadata = value.metadata.try_into()?;
-        let permissions = value.permissions.try_into()?;
-        let ambient_agent_task_id = value
-            .ambient_agent_task_id
-            .map(|id| id.into_inner().parse())
-            .transpose()?;
-        let server_conversation_token =
-            ServerConversationToken::new(value.conversation_id.into_inner());
-
-        let artifacts = value
-            .artifacts
-            .unwrap_or_default()
-            .into_iter()
-            .filter_map(|a| Artifact::try_from(a).ok())
-            .collect();
-
-        Ok(Self {
-            title: value.title,
-            working_directory: value.working_directory,
-            harness: convert_harness(value.harness),
-            usage,
-            metadata,
-            permissions,
-            ambient_agent_task_id,
-            server_conversation_token,
-            artifacts,
-        })
-    }
-}
 
 #[cfg(test)]
 #[path = "ai_tests.rs"]

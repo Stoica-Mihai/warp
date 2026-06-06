@@ -3,9 +3,10 @@ use futures::executor::block_on;
 use super::super::auth::CLOUD_AGENT_ID_HEADER;
 use super::super::ServerApi;
 use super::{
-    Artifact, ConnectedSelfHostedWorker, ListConnectedSelfHostedWorkersResponse,
+    ConnectedSelfHostedWorker, ListConnectedSelfHostedWorkersResponse,
     CONNECTED_SELF_HOSTED_WORKERS_PATH,
 };
+use crate::ai::artifacts::Artifact;
 use crate::notebooks::NotebookId;
 
 #[test]
