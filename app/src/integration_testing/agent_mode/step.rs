@@ -9,7 +9,6 @@ use warpui::{async_assert, SingletonEntity};
 
 use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
 use crate::ai::execution_profiles::ActionPermission;
-use crate::ai::llms::{LLMId, LLMPreferences};
 use crate::integration_testing::step::{
     new_step_with_default_assertions, new_step_with_default_assertions_for_pane,
 };
@@ -158,45 +157,6 @@ fn print_conversation_id_assertion(
 
         AssertionOutcome::Success
     }
-}
-
-/// Sets the preferred agent mode LLM. This is the base model for agent and inline AI conversations.
-pub fn set_preferred_agent_mode_llm(llm_id: &str) -> TestStep {
-    let llm_id = LLMId::from(llm_id);
-    TestStep::new(&format!("Set preferred agent mode LLM to {llm_id}")).add_named_assertion(
-        "Update preferred agent mode LLM",
-        move |app, window_id| {
-            let llm_id = llm_id.clone();
-            let terminal_view_id = terminal_view(app, window_id, 0, 0).id();
-            LLMPreferences::handle(app).update(app, |llm_preferences, ctx| {
-                // Validate that the LLM ID is actually available. We only do this
-                // for the base model, since the coding and planning models are
-                // currently unused in the product.
-                assert!(
-                    llm_preferences.is_available_agent_mode_llm(&llm_id),
-                    "LLM ID '{llm_id}' is not a valid agent mode LLM",
-                );
-                llm_preferences.update_preferred_agent_mode_llm(&llm_id, terminal_view_id, ctx);
-            });
-            async_assert!(true, "Successfully updated preferred agent mode LLM")
-        },
-    )
-}
-
-/// Sets the preferred coding LLM. Note that the server currently ignores this.
-pub fn set_preferred_coding_llm(llm_id: &str) -> TestStep {
-    let llm_id = LLMId::from(llm_id);
-    TestStep::new(&format!("Set preferred coding LLM to {llm_id}")).add_named_assertion(
-        "Update preferred coding LLM",
-        move |app, window_id| {
-            let llm_id = llm_id.clone();
-            let terminal_view_id = terminal_view(app, window_id, 0, 0).id();
-            LLMPreferences::handle(app).update(app, |llm_preferences, ctx| {
-                llm_preferences.update_preferred_coding_llm(&llm_id, Some(terminal_view_id), ctx);
-            });
-            async_assert!(true, "Successfully updated preferred coding LLM")
-        },
-    )
 }
 
 fn get_input_data(file_name: &str) -> Cursor<Vec<u8>> {

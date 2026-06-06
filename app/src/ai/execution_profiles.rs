@@ -275,10 +275,3 @@ pub mod profiles {
         pub fn set_context_window_limit(&mut self, _id: ClientProfileId, _limit: Option<u32>, _ctx: &mut ModelContext<Self>) {}
     }
 }
-
-
-pub mod model_menu_items {
-    use crate::ai::llms::LLMInfo;
-
-    pub fn is_auto(_llm: &LLMInfo) -> bool { true }
-}

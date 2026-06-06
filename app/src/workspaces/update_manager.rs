@@ -12,7 +12,6 @@ use super::user_workspaces::{
     UserWorkspaces, WorkspacesMetadataResponse, WorkspacesMetadataWithPricing,
 };
 use super::workspace::WorkspaceUid;
-use crate::ai::llms::LLMPreferences;
 use crate::auth::AuthStateProvider;
 use crate::network::{NetworkStatus, NetworkStatusEvent, NetworkStatusKind};
 use crate::persistence::ModelEvent;
@@ -302,13 +301,6 @@ impl TeamUpdateManager {
                     }
                 } else if let Some(workspace_uid) = workspaces.first().map(|w| w.uid) {
                     self.set_current_workspace_uid(workspace_uid, ctx);
-                }
-
-                if let Some(feature_model_choices) = user_workspaces_access.feature_model_choices {
-                    LLMPreferences::handle(ctx).update(ctx, |llm_preferences, ctx| {
-                        llm_preferences
-                            .update_feature_model_choices(feature_model_choices.try_into(), ctx);
-                    });
                 }
 
                 // Update sqlite

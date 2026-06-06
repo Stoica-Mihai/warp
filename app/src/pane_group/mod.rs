@@ -40,7 +40,6 @@ use crate::ai::agent::conversation::{AIConversation, AIConversationId};
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::blocklist::{InputConfig, SerializedBlockListItem};
 use crate::ai::execution_profiles::profiles::ClientProfileId;
-use ai::LLMId;
 use crate::ai::restored_conversations::RestoredAgentConversations;
 #[cfg(feature = "local_fs")]
 use crate::app_state::CodePaneSnapShot;
@@ -1426,8 +1425,6 @@ impl PaneGroup {
                     ctx,
                 );
 
-                let terminal_view_id = terminal_view.id();
-
                 let pane_data = TerminalPane::new(
                     uuid.0,
                     terminal_manager,
@@ -1439,22 +1436,6 @@ impl PaneGroup {
                 let terminal_pane_id = pane_data.terminal_pane_id();
                 let pane_id = terminal_pane_id.into();
                 pane_contents.insert(pane_id, Box::new(pane_data));
-
-                if let Some(llm_override) = &terminal_snapshot.llm_model_override {
-                    if let Ok(llm_id) = serde_json::from_str::<LLMId>(llm_override) {
-                        log::info!("Selecting base agent model {llm_id} (from terminal snapshot)");
-                        crate::ai::llms::LLMPreferences::handle(ctx).update(
-                            ctx,
-                            |llm_prefs, ctx| {
-                                llm_prefs.update_preferred_agent_mode_llm(
-                                    &llm_id,
-                                    terminal_view_id,
-                                    ctx,
-                                );
-                            },
-                        );
-                    }
-                }
 
 
                 let focus = InitialFocus {

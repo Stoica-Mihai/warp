@@ -13,7 +13,6 @@ use super::{
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 
-use crate::ai::llms::LLMPreferences;
 use crate::app_state::{AmbientAgentPaneSnapshot, LeafContents, TerminalPaneSnapshot};
 use crate::code::buffer_location::LocalOrRemotePath;
 
@@ -267,8 +266,7 @@ impl PaneContent for TerminalPane {
                 })
             }
         } else {
-            let llm_model_override =
-                LLMPreferences::as_ref(app).get_base_llm_override(self.terminal_view(app).id());
+            let llm_model_override = None;
 
             let active_profile_id: Option<crate::server::ids::SyncId> = None;
 

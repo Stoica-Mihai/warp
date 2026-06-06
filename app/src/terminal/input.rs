@@ -137,7 +137,6 @@ use crate::ai::blocklist::{
 };
 use crate::ai::cloud_environments::CloudAmbientAgentEnvironment;
 use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentVersion};
-use crate::ai::llms::{LLMPreferences, LLMPreferencesEvent};
 use crate::ai::mcp::TemplatableMCPServerManager;
 use crate::ai::skills::SkillManager;
 use crate::ai::AIRequestUsageModel;
@@ -2194,13 +2193,6 @@ impl Input {
             me.set_zero_state_hint_text(ctx);
             ctx.notify();
         });
-        ctx.subscribe_to_model(&LLMPreferences::handle(ctx), |me, _, event, ctx| {
-            if let LLMPreferencesEvent::UpdatedActiveAgentModeLLM = event {
-                me.update_image_context_options(ctx);
-                ctx.notify();
-            }
-        });
-
         ctx.subscribe_to_model(&AISettings::handle(ctx), |me, _, event, ctx| {
             me.handle_ai_settings_changed_event(event, ctx)
         });
