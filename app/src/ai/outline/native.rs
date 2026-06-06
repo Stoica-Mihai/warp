@@ -166,14 +166,6 @@ impl RepoOutlines {
         }
     }
 
-    /// Returns the `OutlineStatus` for the given path, if any.
-    pub fn get_outline(&self, path: &Path) -> Option<(&OutlineStatus, PathBuf)> {
-        let Ok(canonicalized_path) = dunce::canonicalize(path) else {
-            return None;
-        };
-        self.get_outline_internal(&canonicalized_path)
-    }
-
     /// Returns the `OutlineStatus` for the given path, if any. The input path has to be canonicalized.
     fn get_outline_internal(&self, path: &Path) -> Option<(&OutlineStatus, PathBuf)> {
         let mut path = path.to_owned();
