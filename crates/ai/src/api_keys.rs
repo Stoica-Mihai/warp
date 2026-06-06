@@ -4,8 +4,6 @@ use warp_multi_agent_api as api;
 use warpui::{Entity, ModelContext, SingletonEntity};
 use warpui_extras::secure_storage::{self, AppContextExt};
 
-pub use crate::aws_credentials::{AwsCredentials, AwsCredentialsState};
-
 const SECURE_STORAGE_KEY: &str = "AiApiKeys";
 
 /// Emitted when user-provided API keys are updated in-memory.
@@ -77,27 +75,9 @@ impl ApiKeys {
     }
 }
 
-/// Controls how AWS credentials are refreshed by [`ApiKeyManager`].
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub enum AwsCredentialsRefreshStrategy {
-    /// Load credentials from the local AWS credential chain (~/.aws). This is the default.
-    #[default]
-    LocalChain,
-    /// Credentials are managed externally via OIDC/STS.
-    /// The task ID is used to scope the STS AssumeRoleWithWebIdentity session.
-    /// The role ARN + region are the info used to assume the IAM role via STS.
-    OidcManaged {
-        task_id: Option<String>,
-        role_arn: String,
-        region: String,
-    },
-}
-
 /// A structure that manages API keys for AI providers.
 pub struct ApiKeyManager {
     keys: ApiKeys,
-    pub(crate) aws_credentials_state: AwsCredentialsState,
-    aws_credentials_refresh_strategy: AwsCredentialsRefreshStrategy,
     secure_storage_write_version: u64,
 }
 
@@ -106,8 +86,6 @@ impl ApiKeyManager {
         let keys = Self::load_keys_from_secure_storage(ctx);
         Self {
             keys,
-            aws_credentials_state: AwsCredentialsState::Missing,
-            aws_credentials_refresh_strategy: AwsCredentialsRefreshStrategy::default(),
             secure_storage_write_version: 0,
         }
     }
@@ -216,30 +194,6 @@ impl ApiKeyManager {
         self.write_keys_to_secure_storage(ctx);
     }
 
-    pub fn set_aws_credentials_state(
-        &mut self,
-        state: AwsCredentialsState,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        self.aws_credentials_state = state;
-        ctx.emit(ApiKeyManagerEvent::KeysUpdated);
-    }
-
-    pub fn aws_credentials_state(&self) -> &AwsCredentialsState {
-        &self.aws_credentials_state
-    }
-
-    pub fn aws_credentials_refresh_strategy(&self) -> AwsCredentialsRefreshStrategy {
-        self.aws_credentials_refresh_strategy.clone()
-    }
-
-    pub fn set_aws_credentials_refresh_strategy(
-        &mut self,
-        strategy: AwsCredentialsRefreshStrategy,
-    ) {
-        self.aws_credentials_refresh_strategy = strategy;
-    }
-
     /// Builds the `CustomModelProviders` registry that ships with every agent request.
     ///
     /// Emits one [`CustomModelProvider`] per configured [`CustomEndpoint`], each populated with
@@ -292,7 +246,6 @@ impl ApiKeyManager {
     pub fn api_keys_for_request(
         &self,
         include_byo_keys: bool,
-        include_aws_bedrock_credentials: bool,
     ) -> Option<api::request::settings::ApiKeys> {
         let anthropic = include_byo_keys
             .then(|| self.keys.anthropic.clone())
@@ -311,27 +264,10 @@ impl ApiKeyManager {
             .flatten()
             .unwrap_or_default();
 
-        // Also include credentials when running with OIDC-managed Bedrock inference, regardless
-        // of the per-user setting flag (which only applies to the local credential chain path).
-        let include_aws = include_aws_bedrock_credentials
-            || matches!(
-                self.aws_credentials_refresh_strategy,
-                AwsCredentialsRefreshStrategy::OidcManaged { .. }
-            );
-        let aws_credentials = include_aws
-            .then(|| match self.aws_credentials_state {
-                AwsCredentialsState::Loaded {
-                    ref credentials, ..
-                } => Some(credentials.clone().into()),
-                _ => None,
-            })
-            .flatten();
-
         if anthropic.is_empty()
             && openai.is_empty()
             && google.is_empty()
             && open_router.is_empty()
-            && aws_credentials.is_none()
         {
             None
         } else {
@@ -341,7 +277,7 @@ impl ApiKeyManager {
                 google,
                 open_router,
                 allow_use_of_warp_credits: false,
-                aws_credentials,
+                aws_credentials: None,
             })
         }
     }

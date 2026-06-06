@@ -149,7 +149,6 @@ use warp_cli::{CliCommand, GlobalOptions};
 use watcher::HomeDirectoryWatcher;
 
 #[cfg(not(target_family = "wasm"))]
-use crate::ai::aws_credentials::AwsCredentialRefresher as _;
 use crate::ai::mcp::{FileBasedMCPManager, FileMCPWatcher};
 use crate::uri::web_intent_parser::maybe_rewrite_web_url_to_intent;
 pub mod workflows;
@@ -1140,13 +1139,7 @@ pub(crate) fn initialize_app(
     });
 
     // Initialize ApiKeyManager after UserWorkspaces so it can subscribe to workspace/settings changes
-    ctx.add_singleton_model(|ctx| {
-        #[cfg_attr(target_family = "wasm", allow(unused_mut))]
-        let mut manager = ::ai::api_keys::ApiKeyManager::new(ctx);
-        #[cfg(not(target_family = "wasm"))]
-        manager.subscribe_to_settings_changes(ctx);
-        manager
-    });
+    ctx.add_singleton_model(::ai::api_keys::ApiKeyManager::new);
 
     ctx.add_singleton_model(AntivirusInfo::new);
 
