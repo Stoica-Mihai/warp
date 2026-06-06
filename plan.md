@@ -1033,3 +1033,36 @@ BlockClient feeds the Warp-cloud **block-sharing** feature (share a terminal blo
 - `share_block_modal.rs:759`: the modal's "view shared blocks" link → ShowSettingsPage(SharedBlocks).
 - settings_view/mod.rs ServerApiProvider import becomes unused after get_block_client removal.
 **Conclusion:** block-sharing is ONE coupled feature spanning settings + CustomAction/menu/keybinding + workspace + ShareBlockModal + pane_group + terminal/view + BlockClient (~2500+ LoC). Must strip as ONE operation (no independent leaf). Execution order: app_menus/bindings/workspace CustomAction::ViewSharedBlocks → settings SharedBlocks page → ShareBlockModal + pane_group/terminal_pane/terminal_view wiring → BlockClient/block.rs. Reverted inc-1 attempt to green (`97f34744`); do the whole thing in a focused session.
+
+---
+
+## BEDROCK strip — EXACT full map (session 58; user: "no Bedrock anything"). LARGE cross-crate + spider-file. Dedicated effort.
+
+Bedrock = Warp's AWS-Bedrock LLM-provider integration (cloud-managed AWS STS identity token mint + login banners + workspace policy). ~15 app files + 6 crates.
+
+**KEY cascade win:** `ManagedSecretManager` (warp_managed_secrets crate) is **Bedrock-ONLY** (app uses it only at lib.rs:1170 + aws_credentials.rs) — MCP uses only the `ManagedSecretValue` TYPE, not the manager. So the whole managed-secret SERVER path cascades out with Bedrock. KEEP `ManagedSecretValue` (MCP secret templating).
+
+**App backend:**
+- `ai/aws_credentials.rs` (whole — AwsCredentialRefresher, issue_task_identity_token OIDC, AwsCredentialsState) + aws_credentials_tests.rs.
+- `server_api/managed_secrets.rs` (ManagedSecretsClient impl, 319) + server_api.rs get_managed_secrets_client + import.
+- lib.rs ManagedSecretManager reg (1170) + import (188).
+- terminal_manager.rs AwsCredentialRefresher use (29).
+
+**App banner UI (spider-file render-path — terminal/view.rs, 25 refs):**
+- inline_banner/aws_bedrock_login.rs (whole) + aws_cli_not_installed.rs (whole) + session_state.rs Bedrock bits + inline_banner/mod.rs exports.
+- terminal/view.rs: InlineBannerType::AwsBedrockLogin (860/870), aws_bedrock_login_banner field (924), render (13902), remove_aws_bedrock_login_banner (5695), handle_aws_bedrock_login_banner_action (5705), run-aws-login (5731), AwsBedrockCredentialsEnabled subscribe (2875), BannerAction wiring (15846/16408), imports (74/78).
+- terminal/view/action.rs Bedrock banner actions.
+
+**App settings/workspace/debug:**
+- settings/ai.rs: aws_bedrock_credentials_enabled + aws_bedrock_auto_login + aws_bedrock_auth_refresh_command + aws_bedrock_login_banner_dismissed (+ AwsBedrockCredentialsEnabled changed-event).
+- workspaces/workspace.rs `LLMModelHost::AwsBedrock` variant (749) + user_workspaces.rs aws_bedrock_host_settings/is_aws_bedrock_available_from_workspace/host_enablement/credentials_toggleable/is_aws_bedrock_credentials_enabled (491-516) + gql_convert.rs:700 + user_workspaces_tests (230/266/320).
+- workspace action/view/mod: DebugResetAwsBedrockLoginBannerDismissed (action.rs:480, view.rs:15727, mod.rs:159).
+
+**Cross-crate (CAUTION):**
+- crates/ai: api_keys.rs (3) + aws_credentials.rs (2) — Bedrock cred types.
+- crates/graphql: api/queries/task_secrets.rs (5) + managed_secrets.rs (4) + get_feature_model_choices.rs AwsBedrock (72) + api/workspace.rs AwsBedrock (287) — graphql Bedrock ops + LLM-host enum variant.
+- crates/managed_secrets: manager.rs (5, Bedrock-specific) — but secret_value.rs (18) is MIXED (ManagedSecretValue is MCP-used → KEEP the type, trim Bedrock-only bits). The whole `ManagedSecretManager`/client trait may be deletable if Bedrock is its only consumer (verify within crate).
+- crates/warp_cli: secret.rs (17) + agent.rs (9) — cross-BINARY Bedrock/secret handling (run `cargo check -p warp_cli`).
+- `LLMModelHost::AwsBedrock` enum-variant cascade: workspace.rs + 2 graphql enums (get_feature_model_choices, workspace) + gql_convert + tests — remove variant + all match arms.
+
+**Execution (dedicated session, green per increment):** (1) banner UI (terminal/view.rs spider wiring + inline_banner files + actions) — biggest/riskiest; (2) settings aws_bedrock_*; (3) workspace LLMModelHost::AwsBedrock variant + accessors + gql + the 2 crate graphql enums; (4) backend aws_credentials + ManagedSecretManager + ManagedSecretsClient + terminal_manager; (5) crates (ai/graphql/managed_secrets-trim/warp_cli). Gate incl `-p warp_cli`. KEEP ManagedSecretValue (MCP). Expect real shrink (OIDC + graphql ops + banners live-linked).
