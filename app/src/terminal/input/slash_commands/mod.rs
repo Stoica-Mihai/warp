@@ -564,9 +564,6 @@ impl Input {
                     return true;
                 }
             }
-            _index if command.name == commands::INDEX.name => {
-                ctx.dispatch_typed_action(&TerminalAction::IndexProjectSpeedbump);
-            }
             _init if command.name == commands::INIT.name => {
                 ctx.dispatch_typed_action(&TerminalAction::InitProject);
             }

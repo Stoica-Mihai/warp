@@ -27,7 +27,6 @@ use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use ::settings::{Setting, ToggleableSetting};
-use ai::index::full_source_code_embedding::manager::CodebaseIndexManager;
 #[cfg(target_os = "macos")]
 use command::blocking::Command;
 use futures::Future;
@@ -10719,7 +10718,6 @@ impl Workspace {
             let (
                 session,
                 pwd_location,
-                path_if_local,
                 is_local,
                 is_wsl_session,
                 session_id,
@@ -10729,14 +10727,12 @@ impl Workspace {
                 let session =
                     active_session_id.and_then(|id| terminal.sessions_model().as_ref(ctx).get(id));
                 let pwd_location = terminal.pwd_as_local_or_remote(ctx);
-                let path_if_local = terminal.active_session_path_if_local(ctx);
                 let is_local = terminal.active_session_is_local(ctx);
                 let is_wsl_session = session.as_ref().map(|s| s.is_wsl()).unwrap_or(false);
                 let has_pending_ssh = terminal.has_pending_ssh_command();
                 (
                     session,
                     pwd_location,
-                    path_if_local,
                     is_local,
                     is_wsl_session,
                     active_session_id,
@@ -10745,7 +10741,6 @@ impl Workspace {
             });
 
             let window_id = ctx.window_id();
-            let working_directory_clone = path_if_local.clone();
             ActiveSession::handle(ctx).update(ctx, |active_session, ctx| {
                 active_session.set_session_state(
                     window_id,
@@ -10754,12 +10749,6 @@ impl Workspace {
                     Some(terminal_handle.id()),
                     ctx,
                 );
-            });
-
-            CodebaseIndexManager::handle(ctx).update(ctx, |manager, _ctx| {
-                if let Some(working_directory) = working_directory_clone {
-                    manager.handle_active_session_changed(working_directory.as_path());
-                }
             });
 
             let is_remote = matches!(is_local, Some(false));
@@ -14574,14 +14563,6 @@ impl Workspace {
 
         if *code_settings.code_as_default_editor.value() {
             context.set.insert(flags::CODE_AS_DEFAULT_EDITOR);
-        }
-
-        if *code_settings.codebase_context_enabled.value() {
-            context.set.insert(flags::IS_CODEBASE_INDEXING_ENABLED);
-        }
-
-        if *code_settings.auto_indexing_enabled.value() {
-            context.set.insert(flags::IS_AUTOINDEXING_ENABLED);
         }
 
         if *input_settings.show_hint_text.value() {

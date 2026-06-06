@@ -154,8 +154,7 @@ impl UserWorkspaces {
     ) -> Self {
         ctx.subscribe_to_model(&CodeSettings::handle(ctx), |_, code_settings_event, ctx| {
             match code_settings_event {
-                CodeSettingsChangedEvent::CodebaseContextEnabled { .. }
-                | CodeSettingsChangedEvent::AutoIndexingEnabled { .. } => {
+                CodeSettingsChangedEvent::CodebaseContextEnabled { .. } => {
                     ctx.emit(UserWorkspacesEvent::CodebaseContextEnablementChanged);
                 }
                 _ => {}

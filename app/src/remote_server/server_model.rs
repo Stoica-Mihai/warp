@@ -3,13 +3,6 @@ use std::future::Future;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use ::ai::index::full_source_code_embedding::manager::{
-    CodebaseIndexManager,
-    FragmentMetadataLookupError as LocalFragmentMetadataLookupError,
-};
-use ::ai::index::full_source_code_embedding::{
-    ContentHash, FragmentMetadata as LocalFragmentMetadata, NodeHash,
-};
 use remote_server::proto::OpenBufferSuccess;
 use repo_metadata::repositories::{DetectedRepositories, RepoDetectionSource};
 use repo_metadata::{RepoMetadataEvent, RepoMetadataModel, RepositoryIdentifier};
@@ -23,10 +16,6 @@ use warpui::platform::TerminationMode;
 use warpui::r#async::{Spawnable, SpawnableOutput, SpawnedFutureHandle};
 use warpui::{Entity, ModelContext, ModelHandle, SingletonEntity};
 
-use super::codebase_index_status::{
-    codebase_index_status_to_proto, not_enabled_codebase_index_status,
-    queued_codebase_index_status,
-};
 use super::diff_state_proto;
 use super::diff_state_tracker::{
     DiffModelKey, DiffStateUpdate, RemoteDiffStateManager, SubscribeOutcome,
@@ -35,17 +24,16 @@ use super::proto::{
     client_message, delete_file_response, discard_files_response, get_diff_state_response,
     get_fragment_metadata_from_hash_response, resolve_conflict_response, run_command_response,
     save_buffer_response, server_message, write_file_response, Abort, Authenticate, BranchInfo,
-    BufferEdit, BufferUpdatedPush, ClientMessage, CloseBuffer, CodebaseIndexLimits,
-    CodebaseIndexStatus, CodebaseIndexStatusUpdated, CodebaseIndexStatusesSnapshot,
+    BufferEdit, BufferUpdatedPush, ClientMessage, CloseBuffer,
+    CodebaseIndexStatus, CodebaseIndexStatusState, CodebaseIndexStatusUpdated,
     DeleteFile, DeleteFileResponse, DeleteFileSuccess, DiscardFilesError,
     DiscardFilesResponse, DiscardFilesSuccess, DropCodebaseIndex, ErrorCode, ErrorResponse,
     FileOperationError,
-    FragmentMetadata as ProtoFragmentMetadata,
     FragmentMetadataLookupError as ProtoFragmentMetadataLookupError,
     FragmentMetadataLookupErrorCode, GetBranchesError, GetBranchesResponse, GetBranchesSuccess,
     GetDiffStateResponse, GetFragmentMetadataFromHashResponse, IndexCodebase, Initialize,
     InitializeResponse,
-    MissingFragmentMetadata, NavigatedToDirectory, NavigatedToDirectoryResponse, OpenBuffer,
+    NavigatedToDirectory, NavigatedToDirectoryResponse, OpenBuffer,
     OpenBufferResponse, ResolveConflict, ResolveConflictResponse,
     ResolveConflictSuccess, ResyncCodebase, RunCommandError, RunCommandErrorCode,
     RunCommandRequest, RunCommandResponse, RunCommandSuccess, SaveBuffer, SaveBufferResponse,
@@ -745,7 +733,6 @@ impl ServerModel {
                     Some(&request_id),
                     server_message::Message::InitializeResponse(response),
                 );
-                self.push_codebase_index_statuses_snapshot(conn_id, ctx);
             }
             HandlerOutcome::Sync(message) => {
                 self.send_server_message(Some(conn_id), Some(&request_id), message);
@@ -760,86 +747,14 @@ impl ServerModel {
         }
     }
 
-    fn push_codebase_index_status(&mut self, repo_path: &Path, ctx: &mut ModelContext<Self>) {
-        let Some(status) = self.codebase_index_status(repo_path, ctx) else {
-            return;
-        };
-        self.push_codebase_index_status_update(status);
-    }
-
-    fn push_codebase_index_status_update(&mut self, status: CodebaseIndexStatus) {
-        self.send_server_message(
-            None,
-            None,
-            server_message::Message::CodebaseIndexStatusUpdated(CodebaseIndexStatusUpdated {
-                status: Some(status),
-            }),
-        );
-    }
-
-    fn push_codebase_index_statuses_snapshot(
-        &mut self,
-        conn_id: ConnectionId,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let snapshot = self.codebase_index_statuses_snapshot(ctx);
-        let status_count = snapshot.statuses.len();
-        log::debug!(
-            "[Remote codebase indexing] Daemon pushing bootstrap codebase index statuses snapshot: conn_id={conn_id} bootstrap_status_count={status_count}"
-        );
-        self.send_server_message(
-            Some(conn_id),
-            None,
-            server_message::Message::CodebaseIndexStatusesSnapshot(snapshot),
-        );
-    }
-    fn codebase_index_statuses_snapshot(
-        &self,
-        ctx: &mut ModelContext<Self>,
-    ) -> CodebaseIndexStatusesSnapshot {
-        let index_manager = CodebaseIndexManager::handle(ctx);
-        let statuses = index_manager
-            .as_ref(ctx)
-            .get_codebase_index_statuses(ctx)
-            .map(|(repo_path, status)| codebase_index_status_to_proto(repo_path.as_path(), &status))
-            .collect();
-        CodebaseIndexStatusesSnapshot { statuses }
-    }
-
-    fn codebase_index_status(
-        &self,
-        repo_path: &Path,
-        ctx: &mut ModelContext<Self>,
-    ) -> Option<CodebaseIndexStatus> {
-        let index_manager = CodebaseIndexManager::handle(ctx);
-        index_manager
-            .as_ref(ctx)
-            .get_codebase_index_status_for_path(repo_path, ctx)
-            .map(|status| codebase_index_status_to_proto(repo_path, &status))
-    }
-
     fn handle_index_codebase(&mut self, msg: IndexCodebase) -> HandlerOutcome {
         let IndexCodebase { repo_path, .. } = msg;
         codebase_index_status_response(not_enabled_codebase_index_status(repo_path))
     }
 
-
     fn handle_resync_codebase(&mut self, msg: ResyncCodebase) -> HandlerOutcome {
         let ResyncCodebase { repo_path, .. } = msg;
         codebase_index_status_response(not_enabled_codebase_index_status(repo_path))
-    }
-
-    fn current_codebase_index_status_or_queued(
-        manager: &CodebaseIndexManager,
-        indexed_repo_path: &Path,
-        ctx: &mut ModelContext<CodebaseIndexManager>,
-    ) -> CodebaseIndexStatus {
-        manager
-            .get_codebase_index_status_for_path(indexed_repo_path, ctx)
-            .map(|status| codebase_index_status_to_proto(indexed_repo_path, &status))
-            .unwrap_or_else(|| {
-                queued_codebase_index_status(indexed_repo_path.to_string_lossy().to_string())
-            })
     }
 
     fn handle_drop_codebase_index(&mut self, msg: DropCodebaseIndex) -> HandlerOutcome {
@@ -853,34 +768,6 @@ impl ServerModel {
             "Remote codebase indexing is not enabled".to_string(),
             None,
         )
-    }
-
-    fn validate_fragment_metadata_lookup(
-        &self,
-        repo_path: &Path,
-        root_hash: &NodeHash,
-        ctx: &mut ModelContext<Self>,
-    ) -> Result<(), LocalFragmentMetadataLookupError> {
-        let Some(status) = CodebaseIndexManager::handle(ctx)
-            .as_ref(ctx)
-            .get_codebase_index_status_for_path(repo_path, ctx)
-        else {
-            return Err(LocalFragmentMetadataLookupError::IndexNotFound);
-        };
-        if !status.has_synced_version() {
-            return Err(LocalFragmentMetadataLookupError::IndexNotSynced);
-        }
-        let Some(current_root_hash) = status.root_hash() else {
-            return Err(LocalFragmentMetadataLookupError::IndexNotSynced);
-        };
-        if current_root_hash != root_hash {
-            return Err(LocalFragmentMetadataLookupError::RootHashMismatch {
-                requested: root_hash.clone(),
-                current: current_root_hash.clone(),
-            });
-        }
-
-        Ok(())
     }
 
     /// Routes a server message to its destination.
@@ -955,11 +842,10 @@ impl ServerModel {
         &mut self,
         msg: Initialize,
         request_id: &RequestId,
-        ctx: &mut ModelContext<Self>,
+        _ctx: &mut ModelContext<Self>,
     ) -> HandlerOutcome {
         log::info!("Handling Initialize (request_id={request_id})");
         self.apply_initialize_auth(&msg);
-        Self::apply_codebase_index_limits(msg.codebase_index_limits.as_ref(), ctx);
 
         let server_version = ChannelState::app_version().unwrap_or("").to_string();
         HandlerOutcome::Sync(server_message::Message::InitializeResponse(
@@ -980,42 +866,16 @@ impl ServerModel {
         );
     }
 
-    fn apply_codebase_index_limits(
-        limits: Option<&CodebaseIndexLimits>,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let Some(limits) = limits else {
-            return;
-        };
-        let max_indices_allowed = limits.max_indices_allowed.map(|limit| limit as usize);
-        let max_files_per_repo = usize::try_from(limits.max_files_per_repo).unwrap_or(usize::MAX);
-        let embedding_generation_batch_size =
-            usize::try_from(limits.embedding_generation_batch_size).unwrap_or(usize::MAX);
-
-        log::info!(
-            "[Remote codebase indexing] Daemon applying codebase index limits: max_indices_allowed={max_indices_allowed:?} max_files_per_repo={max_files_per_repo} embedding_generation_batch_size={embedding_generation_batch_size}"
-        );
-        CodebaseIndexManager::handle(ctx).update(ctx, |manager, ctx| {
-            manager.update_max_limits(
-                max_indices_allowed,
-                max_files_per_repo,
-                embedding_generation_batch_size,
-                ctx,
-            );
-        });
-    }
-
     /// Handles `UpdatePreferences`. This is a notification — no response is sent.
     fn handle_update_preferences(
         &mut self,
         msg: super::proto::UpdatePreferences,
-        ctx: &mut ModelContext<Self>,
+        _ctx: &mut ModelContext<Self>,
     ) {
         log::info!(
             "Handling UpdatePreferences: crash_reporting_enabled={}",
             msg.crash_reporting_enabled
         );
-        Self::apply_codebase_index_limits(msg.codebase_index_limits.as_ref(), ctx);
     }
 
     /// Handles `Authenticate` by replacing the daemon-wide credential.
@@ -2245,6 +2105,18 @@ fn invalid_request_response(message: String) -> HandlerOutcome {
     }))
 }
 
+fn not_enabled_codebase_index_status(repo_path: String) -> CodebaseIndexStatus {
+    CodebaseIndexStatus {
+        repo_path,
+        state: CodebaseIndexStatusState::NotEnabled.into(),
+        last_updated_epoch_millis: None,
+        progress_completed: None,
+        progress_total: None,
+        failure_message: None,
+        root_hash: None,
+    }
+}
+
 fn codebase_index_status_response(status: CodebaseIndexStatus) -> HandlerOutcome {
     HandlerOutcome::Sync(server_message::Message::CodebaseIndexStatusUpdated(
         CodebaseIndexStatusUpdated {
@@ -2270,12 +2142,6 @@ fn canonicalize_index_repo_path(repo_path: &str) -> Result<PathBuf, String> {
         .unwrap_or_else(|| standardized_path.to_local_path_lossy()))
 }
 
-fn missing_fragment_metadata(content_hash: String, message: String) -> MissingFragmentMetadata {
-    MissingFragmentMetadata {
-        content_hash,
-        error: Some(FileOperationError { message }),
-    }
-}
 fn fragment_metadata_lookup_error_response(
     code: FragmentMetadataLookupErrorCode,
     message: String,
@@ -2295,45 +2161,6 @@ fn fragment_metadata_lookup_error_response(
         ),
     )
 }
-
-fn fragment_metadata_lookup_error_response_from_error(
-    error: LocalFragmentMetadataLookupError,
-) -> HandlerOutcome {
-    let (code, message, current_root_hash) = match error {
-        LocalFragmentMetadataLookupError::IndexNotFound => (
-            FragmentMetadataLookupErrorCode::IndexNotFound,
-            "Codebase index not found".to_string(),
-            None,
-        ),
-        LocalFragmentMetadataLookupError::IndexNotSynced => (
-            FragmentMetadataLookupErrorCode::IndexNotSynced,
-            "Codebase index has no synced root hash".to_string(),
-            None,
-        ),
-        LocalFragmentMetadataLookupError::RootHashMismatch { requested, current } => (
-            FragmentMetadataLookupErrorCode::RootHashMismatch,
-            format!("Codebase index root hash mismatch: requested {requested}, current {current}"),
-            Some(current.to_string()),
-        ),
-    };
-
-    fragment_metadata_lookup_error_response(code, message, current_root_hash)
-}
-
-fn fragment_metadata_to_proto(
-    content_hash: &ContentHash,
-    metadata: &LocalFragmentMetadata,
-) -> ProtoFragmentMetadata {
-    ProtoFragmentMetadata {
-        content_hash: content_hash.to_string(),
-        path: metadata.absolute_path.to_string_lossy().to_string(),
-        start_line: metadata.location.start_line as u32,
-        end_line: metadata.location.end_line as u32,
-        byte_start: metadata.location.byte_range.start.as_usize() as u64,
-        byte_end: metadata.location.byte_range.end.as_usize() as u64,
-    }
-}
-
 
 #[cfg(test)]
 #[path = "server_model_tests.rs"]

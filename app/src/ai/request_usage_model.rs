@@ -99,12 +99,6 @@ impl RequestLimitInfo {
     }
 }
 
-pub struct CodebaseContextUsageLimit {
-    pub max_files_per_repo: usize,
-    pub max_indices_allowed: Option<usize>,
-    pub embedding_generation_batch_size: usize,
-}
-
 /// Contains all usage-related information fetched from the server.
 pub struct RequestUsageInfo {
     pub request_limit_info: RequestLimitInfo,
@@ -301,32 +295,6 @@ impl AIRequestUsageModel {
             || is_enterprise_auto_reload_enabled
             || is_self_serve_auto_reload_enabled
             || has_byo_api_key
-    }
-
-    /// Returns the number of indices the user's tier allows them to create and the number of files
-    /// the user's tier allows them to index. If the user is allowed unlimited indices, then the
-    /// max_indices_allowed is None.
-    pub fn codebase_context_limits(&self) -> CodebaseContextUsageLimit {
-        CodebaseContextUsageLimit {
-            max_files_per_repo: self.request_limit_info.max_files_per_repo,
-            max_indices_allowed: if self.request_limit_info.is_unlimited_codebase_indices {
-                None
-            } else {
-                Some(self.request_limit_info.max_codebase_indices)
-            },
-            embedding_generation_batch_size: self
-                .request_limit_info
-                .embedding_generation_batch_size,
-        }
-    }
-
-    /// Returns whether the user has hit their maximum codebase allowance.
-    /// (If the user is allowed unlimited indices, this is vacuously false.)
-    pub fn hit_codebase_index_limit(&self, current_indices: usize) -> bool {
-        self.codebase_context_limits()
-            .max_indices_allowed
-            .map(|lim| current_indices >= lim)
-            .unwrap_or(false)
     }
 
     pub fn next_refresh_time(&self) -> DateTime<Utc> {

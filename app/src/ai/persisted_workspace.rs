@@ -1,13 +1,9 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::SyncSender;
-use std::sync::Arc;
 
-use ai::index::full_source_code_embedding::manager::{
-    CodebaseIndexManager, CodebaseIndexManagerEvent,
-};
 use ai::project_context::model::{ProjectContextModel, ProjectContextModelEvent};
-use ai::workspace::{WorkspaceMetadata, WorkspaceMetadataEvent};
+use ai::workspace::WorkspaceMetadata;
 use anyhow::Context;
 use chrono::Utc;
 use itertools::Itertools;
@@ -17,34 +13,22 @@ use lsp::LanguageId;
 use lsp::LspEvent;
 #[cfg(feature = "local_fs")]
 use lsp::{LspManagerModel, LspServerConfig};
-#[cfg(feature = "local_fs")]
-use repo_metadata::repositories::{DetectedRepositories, DetectedRepositoriesEvent};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "local_fs")]
 use warp_core::channel::ChannelState;
-use warp_core::features::FeatureFlag;
-#[cfg(feature = "local_fs")]
-use warp_util::local_or_remote_path::LocalOrRemotePath;
 #[cfg(feature = "local_fs")]
 use warpui::windowing::WindowManager;
 use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 
-#[cfg(feature = "local_fs")]
-use crate::ai::codebase_auto_indexing::{
-    auto_index_candidate_roots, should_auto_index_codebase, CodebaseAutoIndexingSurface,
-};
-use crate::ai::AIRequestUsageModel;
 #[cfg(feature = "local_fs")]
 use crate::code::language_server_shutdown_manager::LanguageServerShutdownManager;
 use crate::persistence::ModelEvent;
 use crate::report_if_error;
 #[cfg(feature = "local_fs")]
 use crate::server::server_api::ServerApiProvider;
-use crate::settings::CodeSettings;
 #[cfg(feature = "local_fs")]
 use crate::terminal::local_shell::LocalShellState;
 use crate::terminal::TerminalView;
-use crate::workspaces::user_workspaces::{UserWorkspaces, UserWorkspacesEvent};
 #[cfg(feature = "local_fs")]
 use crate::{view_components::DismissibleToast, workspace::ToastStack};
 
@@ -232,75 +216,28 @@ impl PersistedWorkspace {
             })
             .collect();
 
-        if FeatureFlag::FullSourceCodeEmbedding.is_enabled() {
-            ctx.subscribe_to_model(
-                &CodebaseIndexManager::handle(ctx),
-                |me, event, ctx| match event {
-                    CodebaseIndexManagerEvent::IndexMetadataUpdated { root_path, event } => {
-                        me.handle_index_metadata_event(root_path, *event);
-                    }
-                    CodebaseIndexManagerEvent::NewIndexCreated { .. } => {
-                        send_active_indexed_repos_changed_telemetry(ctx);
-                    }
-                    CodebaseIndexManagerEvent::RemoveExpiredIndexMetadata { expired_metadata } => {
-                        // TODO: Disable expired metadata removal once we have other consumers of the workspace metadata.
-                        me.clean_up_expired_metadata(expired_metadata.clone(), ctx);
-                        send_active_indexed_repos_changed_telemetry(ctx);
-                    }
-                    _ => {}
-                },
-            );
+        // Subscribe to ProjectContextModel events to persist rule changes
+        ctx.subscribe_to_model(&ProjectContextModel::handle(ctx), |me, event, _ctx| {
+            if let ProjectContextModelEvent::KnownRulesChanged(delta) = event {
+                let mut events = vec![];
 
-            // Subscribe to changes in workspace settings.
-            ctx.subscribe_to_model(
-                &UserWorkspaces::handle(ctx),
-                |me, user_workspaces_event, ctx| {
-                    if let UserWorkspacesEvent::CodebaseContextEnablementChanged =
-                        user_workspaces_event
-                    {
-                        me.on_settings_changed(ctx);
-                    }
-                },
-            );
-
-            // Subscribe to ProjectContextModel events to persist rule changes
-            ctx.subscribe_to_model(&ProjectContextModel::handle(ctx), |me, event, _ctx| {
-                if let ProjectContextModelEvent::KnownRulesChanged(delta) = event {
-                    let mut events = vec![];
-
-                    if !delta.discovered_rules.is_empty() {
-                        events.push(ModelEvent::UpsertProjectRules {
-                            project_rule_paths: delta.discovered_rules.clone(),
-                        });
-                    }
-
-                    if !delta.deleted_rules.is_empty() {
-                        events.push(ModelEvent::DeleteProjectRules {
-                            path: delta.deleted_rules.clone(),
-                        });
-                    }
-
-                    if !events.is_empty() {
-                        me.save_to_db(events);
-                    }
+                if !delta.discovered_rules.is_empty() {
+                    events.push(ModelEvent::UpsertProjectRules {
+                        project_rule_paths: delta.discovered_rules.clone(),
+                    });
                 }
-            });
-        }
 
-        #[cfg(feature = "local_fs")]
-        if !cfg!(any(
-            test,
-            feature = "fast_dev",
-            feature = "integration_tests"
-        )) && CodebaseIndexManager::as_ref(ctx).is_indexing_enabled()
-        {
-            ctx.subscribe_to_model(&DetectedRepositories::handle(ctx), |me, event, ctx| {
-                let DetectedRepositoriesEvent::DetectedGitRepo { repository, .. } = event;
-                let repo_path = repository.as_ref(ctx).root_dir().to_local_path_lossy();
+                if !delta.deleted_rules.is_empty() {
+                    events.push(ModelEvent::DeleteProjectRules {
+                        path: delta.deleted_rules.clone(),
+                    });
+                }
 
-                me.index_repo(repo_path, ctx);
-            });
-        }
+                if !events.is_empty() {
+                    me.save_to_db(events);
+                }
+            }
+        });
 
         // Collect workspace paths before metadata is moved into Self.
         #[cfg(feature = "local_fs")]
@@ -601,67 +538,11 @@ impl PersistedWorkspace {
             .sum()
     }
 
-    fn on_settings_changed(&mut self, ctx: &mut ModelContext<Self>) {
-        Self::maybe_enable_codebase_indexing(ctx);
-    }
-
-    /// Enables or disables codebase indexing according to the setting.
-    fn maybe_enable_codebase_indexing(ctx: &mut ModelContext<Self>) {
-        CodebaseIndexManager::handle(ctx).update(ctx, |manager, ctx| {
-            if !manager.is_indexing_enabled() {
-                return;
-            }
-            if UserWorkspaces::as_ref(ctx).is_codebase_context_enabled(ctx) {
-                Self::enable_codebase_indexing(manager, ctx);
-            } else {
-                manager.reset_codebase_indexing(ctx);
-            }
-        });
-    }
-
-    fn enable_codebase_indexing(
-        manager: &mut CodebaseIndexManager,
-        ctx: &mut ModelContext<CodebaseIndexManager>,
-    ) {
-        let request_model = AIRequestUsageModel::handle(ctx);
-        let codebase_limits = request_model.as_ref(ctx).codebase_context_limits();
-        manager.update_max_limits(
-            codebase_limits.max_indices_allowed,
-            codebase_limits.max_files_per_repo,
-            codebase_limits.embedding_generation_batch_size,
-            ctx,
-        );
-
-        #[cfg(feature = "local_fs")]
-        if should_auto_index_codebase(CodebaseAutoIndexingSurface::Local, ctx) {
-            let roots = all_working_directories(ctx).into_iter().filter_map(|dir| {
-                DetectedRepositories::as_ref(ctx)
-                    .get_root_for_path(&LocalOrRemotePath::Local(dir))
-                    .and_then(|root| root.to_local_path().map(Path::to_path_buf))
-            });
-            for root in auto_index_candidate_roots(roots, |_| true) {
-                manager.index_directory(root, ctx);
-            }
-        }
-    }
-
     #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
     fn index_repo(&self, directory_path: PathBuf, ctx: &mut ModelContext<Self>) {
         ProjectContextModel::handle(ctx).update(ctx, |model, ctx| {
-            let _ = model.index_and_store_rules(directory_path.clone(), ctx);
+            let _ = model.index_and_store_rules(directory_path, ctx);
         });
-
-        if FeatureFlag::FullSourceCodeEmbedding.is_enabled() {
-            let auto_indexing_enabled = UserWorkspaces::as_ref(ctx)
-                .is_codebase_context_enabled(ctx)
-                && *CodeSettings::as_ref(ctx).auto_indexing_enabled;
-
-            if auto_indexing_enabled {
-                CodebaseIndexManager::handle(ctx).update(ctx, |manager, ctx| {
-                    manager.index_directory(directory_path, ctx);
-                });
-            }
-        }
     }
 
     /// Explicitly registers a directory as a workspace, as if the user had navigated there.
@@ -714,48 +595,6 @@ impl PersistedWorkspace {
         }
     }
 
-    fn handle_index_metadata_event(&mut self, root_path: &PathBuf, event: WorkspaceMetadataEvent) {
-        match event {
-            WorkspaceMetadataEvent::Queried => {
-                if let Some(workspace) = self.workspaces.get_mut(root_path) {
-                    workspace.metadata.queried_ts = Some(Utc::now());
-                }
-                self.persist_metadata_for_index(root_path);
-            }
-            WorkspaceMetadataEvent::Modified => {
-                if let Some(workspace) = self.workspaces.get_mut(root_path) {
-                    workspace.metadata.modified_ts = Some(Utc::now());
-                }
-                self.persist_metadata_for_index(root_path);
-            }
-            WorkspaceMetadataEvent::Created => {
-                let new_metadata = WorkspaceMetadata {
-                    path: root_path.clone(),
-                    navigated_ts: None,
-                    // Count creation as a modification event.
-                    modified_ts: Some(Utc::now()),
-                    queried_ts: None,
-                };
-
-                if let Some(existing) = self.workspaces.get_mut(root_path) {
-                    // Preserve existing language server settings when re-creating
-                    // workspace metadata (e.g. after an expired index is cleaned up
-                    // and the user navigates back to the same directory).
-                    existing.metadata = new_metadata;
-                } else {
-                    self.workspaces.insert(
-                        root_path.clone(),
-                        Workspace {
-                            metadata: new_metadata,
-                            language_servers: HashMap::new(),
-                        },
-                    );
-                }
-                self.persist_metadata_for_index(root_path);
-            }
-        }
-    }
-
     pub fn workspace_for_path(&self, root_path: &Path) -> Option<WorkspaceMetadata> {
         self.workspaces
             .get(root_path)
@@ -770,48 +609,6 @@ impl PersistedWorkspace {
                 index_metadata: Box::new(single_metadata),
             }]);
         }
-    }
-
-    fn clean_up_expired_metadata(
-        &self,
-        indices_to_remove: Arc<Vec<PathBuf>>,
-        _ctx: &mut ModelContext<Self>,
-    ) {
-        log::info!("Cleaning up index metadata from SQLite");
-
-        let indices_to_remove = indices_to_remove.as_ref();
-        self.save_to_db(indices_to_remove.iter().filter_map(|path| {
-            let Some(ws) = self.workspaces.get(path) else {
-                return Some(ModelEvent::DeleteCodebaseIndexMetadata {
-                    repo_path: path.to_path_buf(),
-                });
-            };
-
-            // Skip non-persisted workspaces — they have no DB row to delete.
-            if !ws.is_persisted() {
-                return None;
-            }
-
-            // Don't delete workspace metadata rows for workspaces that have
-            // persisted LSP server settings (Yes/No).
-            //
-            // Deleting workspace_metadata rows would orphan corresponding
-            // workspace_language_server rows (FK'd without ON DELETE CASCADE).
-            // On next app load, the inner_join used to load workspace language
-            // servers will silently drop orphaned rows, making enabled
-            // language servers appear disabled.
-            let has_persisted_servers = ws
-                .language_servers
-                .values()
-                .any(|s| *s != EnablementState::Suggested);
-            if has_persisted_servers {
-                return None;
-            }
-
-            Some(ModelEvent::DeleteCodebaseIndexMetadata {
-                repo_path: path.to_path_buf(),
-            })
-        }));
     }
 
     fn save_to_db(&self, events: impl IntoIterator<Item = ModelEvent>) {
@@ -1151,11 +948,6 @@ impl PersistedWorkspace {
             }
         }
     }
-}
-
-fn send_active_indexed_repos_changed_telemetry<T: Entity>(ctx: &mut ModelContext<T>) {
-    let total = CodebaseIndexManager::as_ref(ctx).num_active_indices();
-    let _hit_max = AIRequestUsageModel::as_ref(ctx).hit_codebase_index_limit(total);
 }
 
 #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]

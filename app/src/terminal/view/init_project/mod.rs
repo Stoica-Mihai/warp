@@ -3,7 +3,6 @@ pub mod model;
 
 use std::path::{Path, PathBuf};
 
-use ai::index::full_source_code_embedding::manager::CodebaseIndexManager;
 use lsp::supported_servers::LSPServerType;
 use lsp_server_selector::{create_lsp_server_selector, LSPServerInfo};
 pub use model::{InitProjectModel, InitProjectModelEvent, InitStepKind};
@@ -49,12 +48,6 @@ pub const LINKABLE_FILES: [&str; 7] = [
     ".github/copilot-instructions.md",
 ];
 
-/// Result of the codebase context/indexing step
-pub enum CodebaseIndexingResult {
-    Accepted,
-    Skipped,
-}
-
 /// Result of the language servers step
 pub enum LanguageServersResult {
     Accepted {
@@ -76,7 +69,6 @@ pub enum CreateEnvironmentResult {
 pub enum InitActionResult {
     /// Welcome step completed (always auto-completes)
     Welcome,
-    CodebaseContext(CodebaseIndexingResult),
     ProjectScopedRules(ProjectScopedRulesResult),
     LanguageServers(LanguageServersResult),
     CreateEnvironment(CreateEnvironmentResult),
@@ -92,13 +84,6 @@ pub enum ProjectScopedRulesResult {
         button_disabled: bool,
     },
     Skipped,
-}
-
-#[derive(Default)]
-struct CodebaseContextMouseStateHandles {
-    index_button: MouseStateHandle,
-    skip_button: MouseStateHandle,
-    view_status_button: MouseStateHandle,
 }
 
 struct ProjectRulesMouseStateHandles {
@@ -130,18 +115,15 @@ impl Default for ProjectRulesMouseStateHandles {
 
 #[derive(Debug, Clone)]
 pub enum InitProjectBlockAction {
-    IndexCodebase(PathBuf),
     SetupLanguageServers {
         server_info: Vec<LSPServerInfo>,
         repo_path: PathBuf,
     },
     SkipLanguageServers,
-    SkipIndex,
     LinkFromExisting(PathBuf),
     GenerateRules,
     RegenerateRules,
     SkipRules,
-    ViewCodebaseContextStatus,
     StartCreateEnvironment,
     SkipCreateEnvironment,
 }
@@ -154,10 +136,6 @@ struct CreateEnvironmentMouseStateHandles {
 
 enum StepState {
     Welcome,
-    CodebaseContext {
-        mouse_states: CodebaseContextMouseStateHandles,
-        keyboard_nav_buttons: Option<ViewHandle<KeyboardNavigableButtons>>,
-    },
     LanguageServersSingle {
         mouse_states: LanguageServersMouseStateHandles,
         keyboard_nav_buttons: Option<ViewHandle<KeyboardNavigableButtons>>,
@@ -208,10 +186,6 @@ impl InitStepBlock {
 
         let state = match step_kind {
             InitStepKind::Welcome => StepState::Welcome,
-            InitStepKind::CodebaseContext => StepState::CodebaseContext {
-                mouse_states: CodebaseContextMouseStateHandles::default(),
-                keyboard_nav_buttons: None,
-            },
             InitStepKind::LanguageServers => {
                 // Determine single vs multiple from model data
                 let is_multiple = model
@@ -267,17 +241,6 @@ impl InitStepBlock {
 
         match (&step.status, &mut self.state) {
             (
-                InitStepStatus::Ready(InitStepData::CodebaseContext { pwd_path }),
-                StepState::CodebaseContext {
-                    mouse_states,
-                    keyboard_nav_buttons,
-                },
-            ) => {
-                let buttons = Self::create_codebase_context_buttons(pwd_path, mouse_states);
-                *keyboard_nav_buttons =
-                    Some(ctx.add_typed_action_view(|_| KeyboardNavigableButtons::new(buttons)));
-            }
-            (
                 InitStepStatus::Ready(InitStepData::LanguageServers { servers, repo_path }),
                 StepState::LanguageServersSingle {
                     mouse_states,
@@ -326,11 +289,7 @@ impl InitStepBlock {
 
     pub fn try_steal_focus(&self, ctx: &mut ViewContext<Self>) {
         match &self.state {
-            StepState::CodebaseContext {
-                keyboard_nav_buttons: Some(buttons),
-                ..
-            }
-            | StepState::LanguageServersSingle {
+            StepState::LanguageServersSingle {
                 keyboard_nav_buttons: Some(buttons),
                 ..
             }
@@ -353,7 +312,6 @@ impl InitStepBlock {
     pub fn step_kind(&self) -> InitStepKind {
         match &self.state {
             StepState::Welcome => InitStepKind::Welcome,
-            StepState::CodebaseContext { .. } => InitStepKind::CodebaseContext,
             StepState::LanguageServersSingle { .. } | StepState::LanguageServersMultiple { .. } => {
                 InitStepKind::LanguageServers
             }
@@ -390,26 +348,6 @@ impl InitStepBlock {
                 "Skip for now.".to_string(),
                 mouse_states.skip_button.clone(),
                 InitProjectBlockAction::SkipLanguageServers,
-                false,
-            ),
-        ]
-    }
-
-    fn create_codebase_context_buttons(
-        pwd_path: &Path,
-        mouse_states: &CodebaseContextMouseStateHandles,
-    ) -> Vec<KeyboardNavigableButtonBuilder> {
-        vec![
-            simple_navigation_button(
-                "Yes, index this codebase.".to_string(),
-                mouse_states.index_button.clone(),
-                InitProjectBlockAction::IndexCodebase(pwd_path.to_path_buf()),
-                false,
-            ),
-            simple_navigation_button(
-                "Skip for now.".to_string(),
-                mouse_states.skip_button.clone(),
-                InitProjectBlockAction::SkipIndex,
                 false,
             ),
         ]
@@ -593,103 +531,6 @@ impl InitStepBlock {
             .with_padding_top(16.)
             .with_border(Border::top(1.).with_border_fill(appearance.theme().outline()))
             .finish()
-    }
-
-    fn render_codebase_context(&self, app: &AppContext) -> Box<dyn Element> {
-        let appearance = Appearance::as_ref(app);
-        let step = self
-            .model
-            .as_ref(app)
-            .get_step(InitStepKind::CodebaseContext);
-
-        let Some(step) = step else {
-            return Empty::new().finish();
-        };
-
-        match &step.status {
-            InitStepStatus::Pending => {
-                // Should not happen for codebase context (computed sync)
-                Empty::new().finish()
-            }
-            InitStepStatus::Ready(_) => {
-                let StepState::CodebaseContext {
-                    keyboard_nav_buttons: Some(action_view),
-                    ..
-                } = &self.state
-                else {
-                    return Empty::new().finish();
-                };
-
-                RenderableAction::new_with_element(
-                    Container::new(ChildView::new(action_view).finish())
-                        .with_background(appearance.theme().surface_1())
-                        .finish(),
-                    app,
-                )
-                .with_header(
-                    HeaderConfig::new(
-                        "Would you like the Agent to index this codebase? This will lead to more efficient and tailored help.",
-                        app,
-                    )
-                    .with_icon(yellow_stop_icon(appearance))
-                    .with_soft_wrap_title(),
-                )
-                .with_background_color(appearance.theme().surface_1().into_solid())
-                .with_content_item_spacing()
-                .render(app)
-                .finish()
-            }
-            InitStepStatus::Running => {
-                // Codebase context doesn't have a "running" state
-                Empty::new().finish()
-            }
-            InitStepStatus::Completed(result) => {
-                self.render_completed_codebase_context(result, app)
-            }
-        }
-    }
-
-    fn render_completed_codebase_context(
-        &self,
-        result: &InitActionResult,
-        app: &AppContext,
-    ) -> Box<dyn Element> {
-        let InitActionResult::CodebaseContext(indexing_result) = result else {
-            return Empty::new().finish();
-        };
-
-        let StepState::CodebaseContext { mouse_states, .. } = &self.state else {
-            return Empty::new().finish();
-        };
-
-        match indexing_result {
-            CodebaseIndexingResult::Accepted => {
-                RenderableAction::new("Codebase index started", app)
-                    .with_icon(Icon::Check.to_warpui_icon(Fill::success()).finish())
-                    .with_action_button(
-                        Appearance::as_ref(app)
-                            .ui_builder()
-                            .button(
-                                ButtonVariant::Outlined,
-                                mouse_states.view_status_button.clone(),
-                            )
-                            .with_text_label("View index status".to_string())
-                            .build()
-                            .on_click(|ctx, _, _| {
-                                ctx.dispatch_typed_action(
-                                    InitProjectBlockAction::ViewCodebaseContextStatus,
-                                );
-                            })
-                            .finish(),
-                    )
-                    .with_content_item_spacing()
-                    .render(app)
-                    .finish()
-            }
-            CodebaseIndexingResult::Skipped => {
-                Self::render_skipped_completion("Codebase index cancelled", app)
-            }
-        }
     }
 
     fn render_language_servers(&self, app: &AppContext) -> Box<dyn Element> {
@@ -1018,7 +859,6 @@ impl View for InitStepBlock {
     fn render(&self, app: &AppContext) -> Box<dyn Element> {
         match self.step_kind() {
             InitStepKind::Welcome => self.render_welcome(app),
-            InitStepKind::CodebaseContext => self.render_codebase_context(app),
             InitStepKind::LanguageServers => self.render_language_servers(app),
             InitStepKind::ProjectScopedRules => self.render_project_rules(app),
             InitStepKind::CreateEnvironment => self.render_create_environment(app),
@@ -1031,27 +871,6 @@ impl TypedActionView for InitStepBlock {
 
     fn handle_action(&mut self, action: &Self::Action, ctx: &mut ViewContext<Self>) {
         match action {
-            InitProjectBlockAction::IndexCodebase(directory) => {
-                CodebaseIndexManager::handle(ctx).update(ctx, |manager, ctx| {
-                    manager.index_directory(directory.clone(), ctx);
-                });
-                self.model.update(ctx, |model, ctx| {
-                    model.mark_step_completed(
-                        InitStepKind::CodebaseContext,
-                        InitActionResult::CodebaseContext(CodebaseIndexingResult::Accepted),
-                        ctx,
-                    );
-                });
-            }
-            InitProjectBlockAction::SkipIndex => {
-                self.model.update(ctx, |model, ctx| {
-                    model.mark_step_completed(
-                        InitStepKind::CodebaseContext,
-                        InitActionResult::CodebaseContext(CodebaseIndexingResult::Skipped),
-                        ctx,
-                    );
-                });
-            }
             InitProjectBlockAction::SetupLanguageServers {
                 server_info,
                 repo_path,
@@ -1184,11 +1003,6 @@ impl TypedActionView for InitStepBlock {
                         InitActionResult::ProjectScopedRules(ProjectScopedRulesResult::Skipped),
                         ctx,
                     );
-                });
-            }
-            InitProjectBlockAction::ViewCodebaseContextStatus => {
-                self.model.update(ctx, |_, ctx| {
-                    ctx.emit(InitProjectModelEvent::ViewCodebaseContextStatus);
                 });
             }
             InitProjectBlockAction::StartCreateEnvironment => {
