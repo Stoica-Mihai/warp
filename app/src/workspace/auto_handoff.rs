@@ -4,7 +4,7 @@ use warpui::{
 };
 
 use super::{AutoCloudHandoffTrigger, Workspace, WorkspaceAction, WorkspaceRegistry};
-use crate::ai::agent::conversation_types::AIConversationId;
+use crate::ai::conversation_types::AIConversationId;
 use crate::settings::AISettings;
 use crate::system::{SystemStats, SystemStatsEvent};
 use crate::terminal::view::TerminalView;

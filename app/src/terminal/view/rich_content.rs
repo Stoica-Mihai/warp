@@ -2,7 +2,7 @@ use warpui::prelude::ChildView;
 use warpui::{Element, EntityId, View, ViewContext, ViewHandle};
 
 use super::{InitStepBlock, InitStepKind};
-use crate::ai::agent::conversation_types::AIConversationId;
+use crate::ai::conversation_types::AIConversationId;
 use crate::terminal::view::agent_view_state::AgentViewEntryOrigin;
 use crate::env_vars::env_var_collection_block::EnvVarCollectionBlock;
 use crate::terminal::block_list_viewport::ScrollPositionUpdate;

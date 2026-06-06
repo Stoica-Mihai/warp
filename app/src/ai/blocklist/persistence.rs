@@ -6,10 +6,11 @@ use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::ai::agent::{
-    AIAgentActionType, AIAgentPtyWriteMode, AskUserQuestionItem, FileLocations,
-    ReadFilesRequest, RequestComputerUseRequest, SearchCodebaseRequest, UseComputerRequest,
+use ai::agent::action::{
+    AIAgentActionType, AIAgentPtyWriteMode, AskUserQuestionItem, ReadFilesRequest,
+    RequestComputerUseRequest, SearchCodebaseRequest, UseComputerRequest,
 };
+use ai::agent::FileLocations;
 use crate::terminal::model::block::{BlockId, SerializedBlock};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]

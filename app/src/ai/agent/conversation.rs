@@ -56,7 +56,7 @@ use crate::terminal::model::block::{
 };
 use crate::GlobalResourceHandlesProvider;
 
-pub use crate::ai::agent::conversation_types::{AIConversationId, ConversationStatus};
+pub use crate::ai::conversation_types::{AIConversationId, ConversationStatus};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TodoStatus {

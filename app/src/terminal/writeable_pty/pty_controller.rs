@@ -9,7 +9,7 @@ use warpui::r#async::block_on;
 use warpui::{Entity, ModelContext, ModelHandle, SingletonEntity};
 
 use super::Message;
-use crate::ai::agent::AIAgentPtyWriteMode;
+use ai::agent::action::AIAgentPtyWriteMode;
 use crate::terminal::input::CommandExecutionSource;
 use crate::terminal::line_editor_status::{LineEditorStatus, LineEditorStatusEvent};
 use crate::terminal::model::ansi::Handler;

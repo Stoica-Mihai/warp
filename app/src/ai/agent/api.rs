@@ -7,5 +7,5 @@ pub use convert_from::{
     MaybeAIAgentOutputMessage, MessageToAIAgentOutputMessageError,
 };
 
-pub use crate::ai::agent::conversation_types::ServerConversationToken;
+pub use crate::ai::conversation_types::ServerConversationToken;
 

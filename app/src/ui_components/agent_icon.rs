@@ -10,7 +10,7 @@
 //! directly by the cross-surface consistency tests in `agent_icon_tests.rs`.
 use warpui::{AppContext, SingletonEntity};
 
-use crate::ai::agent::conversation_types::ConversationStatus;
+use crate::ai::conversation_types::ConversationStatus;
 use crate::terminal::cli_agent_sessions::listener::agent_supports_rich_status;
 use crate::terminal::cli_agent_sessions::CLIAgentSessionsModel;
 use crate::terminal::view::TerminalView;

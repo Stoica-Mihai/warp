@@ -21,7 +21,7 @@ use super::{
     VerticalTabsDetailTargetKind, VerticalTabsSummaryBranchEntry, VerticalTabsSummaryData,
     VerticalTabsSummaryPrimaryLabel,
 };
-use crate::ai::agent::conversation_types::ConversationStatus;
+use crate::ai::conversation_types::ConversationStatus;
 use crate::context_chips::display_chip::GitLineChanges;
 use crate::pane_group::pane::IPaneType;
 use crate::pane_group::{PaneId, TerminalPaneId};

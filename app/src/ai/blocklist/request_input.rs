@@ -4,7 +4,7 @@ use chrono::{DateTime, Local};
 use warp_multi_agent_api::ToolType;
 
 use crate::ai::agent::AIAgentInput;
-use crate::ai::agent::conversation_types::AIConversationId;
+use crate::ai::conversation_types::AIConversationId;
 use crate::ai::agent_types::TaskId;
 use ai::LLMId;
 

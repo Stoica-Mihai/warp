@@ -14,7 +14,7 @@ use warpui::{
 };
 
 use super::{Event, PaneConfiguration, TerminalAction, TerminalViewState};
-use crate::ai::agent::conversation_types::ConversationStatus;
+use crate::ai::conversation_types::ConversationStatus;
 use crate::terminal::view::agent_view_state::agent_view_bg_fill;
 use crate::appearance::Appearance;
 use crate::features::FeatureFlag;

@@ -1,6 +1,6 @@
 use warpui::{EntityId, WindowId};
 
-use crate::ai::agent::conversation_types::AIConversationId;
+use crate::ai::conversation_types::AIConversationId;
 use crate::ai::conversation_navigation::ConversationNavigationData;
 
 #[test]

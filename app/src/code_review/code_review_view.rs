@@ -60,9 +60,7 @@ use super::comments::{attach_pending_imported_comments, AttachedReviewComment, C
 use super::diff_size_limits::DiffSize;
 use super::git_dialog::{GitDialog, GitDialogEvent, GitDialogKind};
 use super::{GlobalCodeReviewEvent, GlobalCodeReviewModel};
-use crate::ai::agent::{
-    AIAgentAttachment, AgentReviewCommentBatch, CurrentHead, DiffBase, DiffSetHunk,
-};
+use crate::ai::agent_types::{AgentReviewCommentBatch, CurrentHead, DiffBase, DiffSetHunk};
 use crate::appearance::Appearance;
 use crate::code::buffer_location::LocalOrRemotePath;
 use crate::code::editor::comment_editor::DEFAULT_COMMENT_MAX_WIDTH;
@@ -5800,15 +5798,14 @@ impl CodeReviewView {
                 });
                 return;
             }
-            if let Some((hunk, lines_added, lines_removed)) =
-                self.extract_diff_hunk_data(&file_path, &line_range)
+            if self
+                .extract_diff_hunk_data(&file_path, &line_range)
+                .is_some()
             {
-                // Create a descriptive key using filename and line range
-                let filename = file_path.clone();
+                // Create a descriptive key using filename and line range.
                 // Use 1-indexed, inclusive line numbers for the user visible range.
-
                 let diff_hunk_key =
-                    format!("{filename}:{}-{}", line_range.start + 1, line_range.end);
+                    format!("{file_path}:{}-{}", line_range.start + 1, line_range.end);
 
                 let attachment_reference = format!("<change:{diff_hunk_key}>",);
 
@@ -5819,45 +5816,6 @@ impl CodeReviewView {
                         input.ensure_agent_mode_for_ai_features(true, None, ctx);
                     });
                 });
-
-                // Convert the diff hunk to a formatted diff string
-                let diff_content = self.format_diff_hunk_content(&hunk);
-
-                // Determine the diff base from the current diff state
-                let diff_base = match self
-                    .diff_state_model
-                    .read(ctx, |model, ctx| model.diff_mode(ctx))
-                {
-                    DiffMode::Head => DiffBase::UncommittedChanges,
-                    DiffMode::MainBranch => {
-                        let main_branch_name = self
-                            .diff_state_model
-                            .read(ctx, |model, ctx| model.get_main_branch_name(ctx));
-
-                        match main_branch_name {
-                            Some(name) => DiffBase::BranchName(name),
-                            None => {
-                                log::warn!(
-                                    "Unable to determine main branch name when inserting diff hunk context."
-                                );
-                                return;
-                            }
-                        }
-                    }
-                    DiffMode::OtherBranch(branch_name) => DiffBase::BranchName(branch_name),
-                };
-
-                // Create the DiffHunk attachment
-                let _attachment = AIAgentAttachment::DiffHunk {
-                    file_path: filename.clone(),
-                    line_range: line_range.clone(),
-                    diff_content,
-                    lines_added,
-                    lines_removed,
-                    current: None, // We don't have current branch info here
-                    base: diff_base,
-                };
-
             }
         }
     }

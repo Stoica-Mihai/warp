@@ -25,7 +25,7 @@ use warpui::{
     ViewContext, ViewHandle, WindowId,
 };
 
-use crate::ai::agent::api::ServerConversationToken;
+use crate::ai::conversation_types::ServerConversationToken;
 use crate::ai::blocklist::SerializedBlockListItem;
 use crate::app_state::{AppState, PaneUuid, WindowSnapshot};
 use crate::appearance::Appearance;

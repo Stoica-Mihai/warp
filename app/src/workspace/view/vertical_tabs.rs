@@ -34,7 +34,7 @@ use warpui::ui_components::components::{UiComponent, UiComponentStyles};
 use warpui::ui_components::text_input::TextInput;
 use warpui::{AppContext, EntityId, SingletonEntity, ViewHandle, WindowId};
 
-use crate::ai::agent::conversation_types::{ConversationStatus, StatusColorStyle};
+use crate::ai::conversation_types::{ConversationStatus, StatusColorStyle};
 use crate::ai::conversation_status_ui::render_status_element;
 use crate::appearance::Appearance;
 use crate::code::editor::{add_color, remove_color};

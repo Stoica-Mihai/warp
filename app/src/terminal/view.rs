@@ -185,11 +185,10 @@ use super::warpify::success_block::{WarpifySuccessBlock, WarpifySuccessBlockEven
 use super::warpify::trigger_state::{SshBlockState, WarpifyState};
 use super::warpify::WarpificationSource;
 use super::{cli_agent, CLIAgent, GridType};
-use crate::ai::agent::conversation_types::AIConversationId;
-use crate::ai::agent::{
-    AIAgentActionId, AIAgentPtyWriteMode,
-    AgentReviewCommentBatch, FileLocations,
-};
+use crate::ai::conversation_types::AIConversationId;
+use crate::ai::agent_types::{AIAgentActionId, AgentReviewCommentBatch};
+use ai::agent::action::AIAgentPtyWriteMode;
+use ai::agent::FileLocations;
 #[cfg(feature = "local_fs")]
 use crate::ai::agent_types::{CurrentHead, DiffBase};
 use crate::ai::ambient_agents::AmbientAgentTaskId;

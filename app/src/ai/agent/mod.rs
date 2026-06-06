@@ -1,13 +1,10 @@
 pub(crate) mod conversation;
-pub(crate) mod conversation_types;
 pub(crate) mod conversation_yaml;
 pub(crate) mod todos;
 
 pub(crate) mod api;
 pub(crate) mod comment;
-pub(crate) mod icons;
 pub(crate) mod linearization;
-pub(crate) mod redaction;
 pub(crate) mod task;
 mod task_store;
 pub(super) mod telemetry;
@@ -23,7 +20,7 @@ use std::time::Duration;
 pub use ai::agent::action::*;
 pub use ai::agent::action_result::*;
 use ai::agent::orchestration_config::{OrchestrationConfig, OrchestrationConfigStatus};
-pub use ai::agent::{AIAgentCitation, FileLocations};
+pub use ai::agent::AIAgentCitation;
 use ai::skills::ParsedSkill;
 use chrono::{DateTime, Local, TimeDelta};
 use comment::ReviewComment;

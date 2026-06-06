@@ -13,7 +13,7 @@ use warp_core::ui::theme::color::internal_colors;
 use warp_core::ui::theme::WarpTheme;
 use warpui::color::ColorU;
 
-use crate::ai::agent::icons::{
+use crate::ai::agent_icons::{
     failed_icon, gray_stop_icon, in_progress_icon, succeeded_icon, yellow_stop_icon,
 };
 use crate::ui_components::icons::Icon;

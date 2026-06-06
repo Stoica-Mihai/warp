@@ -5,7 +5,7 @@ use warpui::color::ColorU;
 use warpui::elements::{ConstrainedBox, Container, CornerRadius, Radius};
 use warpui::Element;
 
-use crate::ai::agent::conversation_types::{ConversationStatus, StatusColorStyle};
+use crate::ai::conversation_types::{ConversationStatus, StatusColorStyle};
 use crate::ui_components::icons::Icon;
 
 /// Padding around the status icon

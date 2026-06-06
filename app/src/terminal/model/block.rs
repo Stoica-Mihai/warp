@@ -38,7 +38,7 @@ use super::secrets::RespectObfuscatedSecrets;
 use super::selection::ScrollDelta;
 use super::session::{command_executor, Sessions};
 pub use super::BlockId;
-use crate::ai::agent::conversation_types::AIConversationId;
+use crate::ai::conversation_types::AIConversationId;
 use crate::ai::agent_types::redact_secrets;
 use crate::terminal::view::agent_view_state::AgentViewState;
 use crate::context_chips::prompt_snapshot::PromptSnapshot;

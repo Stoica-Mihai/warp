@@ -3,7 +3,7 @@ pub use ai::document::{AIDocumentId, AIDocumentVersion};
 use chrono::{DateTime, Local};
 use warpui::{Entity, ModelContext, SingletonEntity};
 
-use crate::ai::agent::conversation_types::AIConversationId;
+use crate::ai::conversation_types::AIConversationId;
 
 pub enum AIDocumentModelEvent {}
 

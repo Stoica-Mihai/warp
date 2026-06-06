@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use warpui::platform::FullscreenState;
 use warpui::{AppContext, SingletonEntity as _};
 
-use crate::ai::agent::conversation_types::AIConversationId;
+use crate::ai::conversation_types::AIConversationId;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::blocklist::{InputConfig, SerializedBlockListItem};
 use crate::code::editor_management::CodeSource;
