@@ -268,7 +268,7 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 ### AI strip — current state (2026-06-06 session 56)
 
-**Binary**: 724.4 MB (−4.76 MB session 56). 3-gate **100/71/101** (0/0/0 errors; +10 warnings = exposed Warp-AI execution_profiles dead types, see NEXT).
+**Binary**: 724.4 MB (−4.76 MB session 56). 3-gate **92/63/93** (0/0/0 errors). The llms strip's +10 exposed warnings: 8 cleared in `e5c1bd54` (dead AIExecutionProfile cluster), remaining +2 are generic terminal-input UDI builder methods (KEEP per policy).
 
 **`ai/llms.rs` subsystem strip — DONE (4 phases, `a446aa0d`→`0e2fe341`, −3.0 MB, ~3500 LoC):**
 - P1 `a446aa0d`: repoint 9 `LLMId` imports to the `ai` crate (LLMId is re-exported, not owned by llms.rs).
@@ -276,7 +276,9 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - P3 `d53b3872`: delete inline model-picker UI `terminal/input/models/` (1493 LoC) + `OpenModelSelector` action + `InputSuggestionsMode::ModelSelector` + `/model` command + `InlineMenuType::ModelSelector`. Reached only via /model slash command (no keybinding/toolbar). Two `add_typed_action_view` registrations freed → real shrink.
 - P4 `0e2fe341`: delete `ai/llms.rs` + `llms_tests.rs` + `LLMPreferences` singleton (lib.rs + 4 test regs + input.rs sub + update_manager sync + pane_group restore + terminal_pane write→None) + `server_api/ai.rs` `get_feature_model_choices` + ~290 LoC GraphQL conversions.
 
-**NEXT (session 57): clean the +10 exposed execution_profiles dead types.** Removing `LLMPreferences` (which resolved the active model through `AIExecutionProfilesModel`) left these dead: `AIExecutionProfile`, `CloudAIExecutionProfile`, `CloudAIExecutionProfileModel`, `AIExecutionProfileInfo`, `RunAgentsPermission`, `AskUserQuestionPermission` + `default_info`/`data` methods. They still have references in `persistence/sqlite.rs` + `workspaces/gql_convert.rs` (likely dead serialization paths) — so this is a small strip that touches persistence; verify 3-gate before deleting. **LESSON:** `create_agent_task` (server_api/ai.rs) shows as dead in the DEFAULT gate but is alive via `pane_group/pane/local_harness_launch.rs` (local_fs-gated) — do NOT delete (session-28 feature-gate trap).
+**execution_profiles cleanup DONE (`e5c1bd54`):** deleted the dead AIExecutionProfile data cluster (struct + cloud-object StringModel/JsonModel impls + CloudAIExecutionProfile aliases + RunAgentsPermission + AskUserQuestionPermission + AIExecutionProfileInfo + zero-caller model methods). Kept ActionPermission/WriteToPtyPermission/ComputerUsePermission (settings), ClientProfileId + AIExecutionProfilesModel singleton. `JsonObjectType::AIExecutionProfile` lives in `warp_server_client` crate (untouched, outside `-p warp` gate); persistence arm stays inert. −174 LoC, binary flat (was never constructed → already dead-stripped).
+
+**NEXT (session 57):** `ai/harness_availability.rs` (11.1K), small Warp-AI TypedActionViews (`AgentTodosPopupView`, `DeleteConversationConfirmationDialog`), then the `drive/` + `cloud_object/` Warp Drive cluster. **LESSON:** `create_agent_task` (server_api/ai.rs) shows dead in the DEFAULT gate but is alive via `pane_group/pane/local_harness_launch.rs` (local_fs-gated) — do NOT delete (session-28 feature-gate trap). Also note `JsonObjectType` is defined in the `warp_server_client` crate — variant removal there is outside the `-p warp` gate (run `cargo check -p warp_server_client` if touched).
 
 **Session 56 earlier work:**
 - Fixed 3 GB `git push` failure: committed Cargo `app/src/target/` build artifacts (450–534 MB blobs) had bloated history; `git filter-repo --path app/src/target --invert-paths` stripped them (3 GB → 15 MB pack), force-pushed clean. Added `target/gate-*` dirs to `.gitignore` (`027c34f5`).
