@@ -2,7 +2,6 @@ pub mod add_invite_link_domain_restriction;
 pub mod add_object_guests;
 pub mod bulk_create_objects;
 pub mod confirm_file_artifact_upload;
-pub mod create_agent_task;
 pub mod create_anonymous_user;
 pub mod create_file_artifact_upload_target;
 pub mod create_folder;

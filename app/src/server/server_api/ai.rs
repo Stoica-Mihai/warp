@@ -7,9 +7,6 @@ use cynic::{MutationBuilder, QueryBuilder};
 use mockall::automock;
 use warp_core::channel::ChannelState;
 use warp_core::report_error;
-use warp_graphql::mutations::create_agent_task::{
-    CreateAgentTask, CreateAgentTaskInput, CreateAgentTaskResult, CreateAgentTaskVariables,
-};
 use warp_graphql::mutations::generate_metadata_for_command::{
     GenerateMetadataForCommand, GenerateMetadataForCommandInput, GenerateMetadataForCommandResult,
     GenerateMetadataForCommandStatus, GenerateMetadataForCommandVariables,
@@ -91,14 +88,6 @@ pub trait AIClient: 'static + Send + Sync {
     async fn list_connected_self_hosted_workers(
         &self,
     ) -> Result<ListConnectedSelfHostedWorkersResponse, anyhow::Error>;
-
-    async fn create_agent_task(
-        &self,
-        prompt: String,
-        environment_uid: Option<String>,
-        parent_run_id: Option<String>,
-        config: Option<AgentConfigSnapshot>,
-    ) -> anyhow::Result<AmbientAgentTaskId, anyhow::Error>;
 
     async fn cancel_ambient_agent_task(
         &self,
@@ -213,45 +202,6 @@ impl AIClient for ServerApi {
             warp_graphql::queries::get_request_limit_info::UserResult::Unknown => {
                 Err(anyhow!("failed to get request limit info"))
             }
-        }
-    }
-
-    async fn create_agent_task(
-        &self,
-        prompt: String,
-        environment_uid: Option<String>,
-        parent_run_id: Option<String>,
-        config: Option<AgentConfigSnapshot>,
-    ) -> anyhow::Result<AmbientAgentTaskId, anyhow::Error> {
-        // Serialize the config to JSON if provided
-        let agent_config_snapshot = config
-            .map(|c| serde_json::to_string(&c))
-            .transpose()
-            .map_err(|e| anyhow!("Failed to serialize agent config: {e}"))?;
-
-        let variables = CreateAgentTaskVariables {
-            input: CreateAgentTaskInput {
-                prompt,
-                environment_uid: environment_uid.map(|uid| uid.into()),
-                parent_run_id: parent_run_id.map(|run_id| run_id.into()),
-                agent_config_snapshot,
-            },
-            request_context: get_request_context(),
-        };
-
-        let operation = CreateAgentTask::build(variables);
-        let response = self.send_graphql_request(operation, None).await?;
-
-        match response.create_agent_task {
-            CreateAgentTaskResult::CreateAgentTaskOutput(output) => output
-                .task_id
-                .into_inner()
-                .parse()
-                .map_err(|e| anyhow!("Failed to parse task ID from server: {e}")),
-            CreateAgentTaskResult::UserFacingError(e) => {
-                Err(anyhow!(get_user_facing_error_message(e)))
-            }
-            CreateAgentTaskResult::Unknown => Err(anyhow!("failed to create agent task")),
         }
     }
 
