@@ -268,7 +268,7 @@ use crate::terminal::settings::{SpacingMode, TerminalSettings};
 use crate::terminal::shell::ShellType;
 use crate::terminal::view::ssh_file_upload::FileUploadId;
 use crate::terminal::view::{
-    ConversationRestorationInNewPaneType, LeftPanelTargetView, SyncEvent, SyncInputType,
+    LeftPanelTargetView, SyncEvent, SyncInputType,
     TerminalAction, NOTIFICATIONS_TROUBLESHOOT_URL,
 };
 use crate::terminal::warpify::settings::WarpifySettings;
@@ -2484,7 +2484,6 @@ impl Workspace {
                         NewSessionSource::Window,
                         None,  /* previous_active_window */
                         None,  /* chosen_shell */
-                        None,  /* ai_conversation */
                         false, /* hide_homepage */
                         ctx,
                     );
@@ -2721,7 +2720,6 @@ impl Workspace {
                 NewSessionSource::Window,
                 previous_active_window,
                 shell,
-                None,  /* ai_conversation */
                 false, /* hide_homepage */
                 ctx,
             );
@@ -2856,7 +2854,6 @@ impl Workspace {
             NewSessionSource::Tab,
             Some(ctx.window_id()),
             None,
-            None,
             false,
             ctx,
         );
@@ -2877,7 +2874,6 @@ impl Workspace {
         self.add_new_session_tab_internal_with_default_session_mode_behavior(
             NewSessionSource::Tab,
             Some(ctx.window_id()),
-            None,
             None,
             false,
             ctx,
@@ -5473,7 +5469,6 @@ impl Workspace {
                     NewSessionSource::Tab,
                     None,
                     None,
-                    None,
                     false,
                     ctx,
                 );
@@ -7954,7 +7949,6 @@ impl Workspace {
             NewSessionSource::Tab,
             Some(ctx.window_id()),
             None,
-            None,
             hide_homepage,
             ctx,
         );
@@ -7976,7 +7970,6 @@ impl Workspace {
             NewSessionSource::Tab,
             Some(ctx.window_id()),
             Some(shell),
-            None,
             false,
             ctx,
         );
@@ -7988,7 +7981,6 @@ impl Workspace {
         new_session_source: NewSessionSource,
         previous_session_window_id: Option<WindowId>,
         chosen_shell: Option<AvailableShell>,
-        conversation_restoration: Option<ConversationRestorationInNewPaneType>,
         hide_homepage: bool,
         ctx: &mut ViewContext<Self>,
     ) {
@@ -7996,7 +7988,6 @@ impl Workspace {
             new_session_source,
             previous_session_window_id,
             chosen_shell,
-            conversation_restoration,
             hide_homepage,
             ctx,
         );
@@ -8007,31 +7998,20 @@ impl Workspace {
         new_session_source: NewSessionSource,
         previous_session_window_id: Option<WindowId>,
         chosen_shell: Option<AvailableShell>,
-        conversation_restoration: Option<ConversationRestorationInNewPaneType>,
         hide_homepage: bool,
         ctx: &mut ViewContext<Self>,
     ) {
-        // If restoring a conversation, use its initial working directory if it exists
-        let startup_directory_from_conversation = conversation_restoration
-            .as_ref()
-            .and_then(|restoration| restoration.initial_working_directory())
-            .map(PathBuf::from)
-            .filter(|path| path.is_dir());
-
-        let startup_directory = startup_directory_from_conversation.or_else(|| {
-            self.get_new_tab_startup_directory(
-                new_session_source,
-                previous_session_window_id,
-                chosen_shell.as_ref(),
-                ctx,
-            )
-        });
+        let startup_directory = self.get_new_tab_startup_directory(
+            new_session_source,
+            previous_session_window_id,
+            chosen_shell.as_ref(),
+            ctx,
+        );
 
         self.add_tab_with_pane_layout(
             PanesLayout::SingleTerminal(Box::new(NewTerminalOptions {
                 shell: chosen_shell,
                 initial_directory: startup_directory,
-                conversation_restoration,
                 hide_homepage,
                 ..Default::default()
             })),
@@ -11915,7 +11895,6 @@ impl Workspace {
             NewSessionSource::Tab,
             Some(ctx.window_id()),
             None,
-            None,
             false,
             ctx,
         );
@@ -14944,9 +14923,8 @@ impl TypedActionView for Workspace {
                     NewSessionSource::Tab,
                     Some(window_id),
                     None,
-                    None,
                     *hide_homepage,
-                            ctx,
+                    ctx,
                 );
                 ctx.notify();
             }

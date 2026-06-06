@@ -331,7 +331,6 @@ fn create_already_fullscreen_parent_pane_data(
         HashMap::new(),
         IsSharedSessionCreator::No,
         None,
-        None,
         ctx,
     );
     let pane_id = pane_data.terminal_pane_id().into();

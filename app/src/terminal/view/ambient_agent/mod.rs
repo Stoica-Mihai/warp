@@ -32,7 +32,6 @@ pub fn create_cloud_mode_view(
         },
         resources,
         None,
-        None,
         view_bounds_size,
         window_id,
         ctx,

@@ -102,7 +102,7 @@ use settings::{Setting, ToggleableSetting};
 use ssh_file_upload::{FileUpload, FileUploadEvent};
 use sum_tree::SeekBias;
 use uuid::Uuid;
-use vec1::{vec1, Vec1};
+use vec1::vec1;
 use warp_core::channel::ChannelState;
 use warp_core::command::ExitCode;
 use warp_core::context_flag::ContextFlag;
@@ -186,7 +186,7 @@ use super::warpify::trigger_state::{SshBlockState, WarpifyState};
 use super::warpify::WarpificationSource;
 use super::{cli_agent, CLIAgent, GridType};
 use crate::ai::agent::api::ServerConversationToken;
-use crate::ai::agent::conversation::{AIConversation, AIConversationId};
+use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::{
     AIAgentActionId, AIAgentExchangeId, AIAgentPtyWriteMode,
     AgentReviewCommentBatch, FileLocations,
@@ -2111,67 +2111,6 @@ impl DropTargetData for TerminalDropTargetData {
     }
 }
 
-/// How conversations are restored into a freshly created terminal pane.
-#[derive(Clone, Debug)]
-pub enum ConversationRestorationInNewPaneType {
-    /// Restore conversations from persistence during app startup.
-    Startup {
-        conversations: Vec1<AIConversation>,
-        active_conversation_id: Option<AIConversationId>,
-    },
-    /// Load a conversation for the cloud conversation viewer or CLI.
-    Historical {
-        conversation: AIConversation,
-        should_use_live_appearance: bool,
-        ambient_agent_task_id: Option<AmbientAgentTaskId>,
-    },
-    /// Fork an existing conversation into this new pane.
-    Forked {
-        conversation: AIConversation,
-        has_initial_query: bool,
-    },
-}
-
-impl ConversationRestorationInNewPaneType {
-    pub fn is_forked(&self) -> bool {
-        matches!(self, Self::Forked { .. })
-    }
-
-    pub fn is_startup(&self) -> bool {
-        matches!(self, Self::Startup { .. })
-    }
-
-    pub fn should_show_restore_context_hint(&self) -> bool {
-        match self {
-            Self::Startup { .. } => false,
-            Self::Forked {
-                has_initial_query, ..
-            } => !has_initial_query,
-            Self::Historical { .. } => true,
-        }
-    }
-
-    pub fn should_use_live_appearance(&self) -> bool {
-        match self {
-            Self::Forked { .. } => true,
-            Self::Historical {
-                should_use_live_appearance,
-                ..
-            } => *should_use_live_appearance,
-            Self::Startup { .. } => false,
-        }
-    }
-
-    pub fn initial_working_directory(&self) -> Option<String> {
-        match self {
-            Self::Historical { conversation, .. } | Self::Forked { conversation, .. } => {
-                conversation.initial_working_directory()
-            }
-            Self::Startup { .. } => None,
-        }
-    }
-}
-
 pub struct TerminalView {
     pub model: Arc<FairMutex<TerminalModel>>,
     view_handle: WeakViewHandle<Self>,
@@ -2659,7 +2598,6 @@ impl TerminalView {
         model_event_sender: Option<SyncSender<persistence::ModelEvent>>,
         current_prompt: ModelHandle<PromptType>,
         _initial_input_config: Option<InputConfig>,
-        _conversation_restoration: Option<ConversationRestorationInNewPaneType>,
         inactive_pty_reads_rx: Option<async_broadcast::InactiveReceiver<Arc<Vec<u8>>>>,
         ctx: &mut ViewContext<Self>,
     ) -> Self {

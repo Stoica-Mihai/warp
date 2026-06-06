@@ -48,7 +48,7 @@ use crate::terminal::model_events::ModelEventDispatcher;
 use crate::terminal::session_settings::SessionSettings;
 use crate::terminal::shared_session::IsSharedSessionCreator;
 use crate::terminal::shell::ShellName;
-use crate::terminal::view::{ConversationRestorationInNewPaneType, Event as TerminalViewEvent};
+use crate::terminal::view::Event as TerminalViewEvent;
 use crate::terminal::warpify::settings::WarpifySettings;
 use crate::terminal::writeable_pty::pty_controller::{EventLoopSendError, EventLoopSender};
 use crate::terminal::writeable_pty::terminal_manager_util::{
@@ -155,7 +155,6 @@ impl TerminalManager {
         _is_shared_session_creator: IsSharedSessionCreator,
         resources: TerminalViewResources,
         restored_blocks: Option<&Vec<SerializedBlockListItem>>,
-        conversation_restoration: Option<ConversationRestorationInNewPaneType>,
         user_default_shell_unsupported_banner_model_handle: ModelHandle<BannerState>,
         initial_size: Vector2F,
         model_event_sender: Option<SyncSender<ModelEvent>>,
@@ -196,32 +195,8 @@ impl TerminalManager {
 
         let wsl_name_or_shell_starter = ShellStarter::init(preferred_shell.clone());
 
-        // If we have explicit non-empty restored_blocks, prioritize those (these come from db on startup).
-        // Otherwise if there's a conversation we're restoring, get blocks from those (including when
-        // restored_blocks is missing or an empty vec).
-        let all_restored_blocks = restored_blocks
-            .filter(|blocks| !blocks.is_empty())
-            .cloned()
-            .or_else(|| match &conversation_restoration {
-                Some(ConversationRestorationInNewPaneType::Historical { conversation, .. })
-                | Some(ConversationRestorationInNewPaneType::Forked { conversation, .. }) => {
-                    Some(conversation.to_serialized_blocklist_items())
-                }
-                Some(ConversationRestorationInNewPaneType::Startup { conversations, .. }) => {
-                    let mut items: Vec<_> = conversations
-                        .iter()
-                        .flat_map(|c| c.to_serialized_blocklist_items())
-                        .collect();
-                    // Because there are multiple conversations that may have interleaved timestamps, we need to sort by start_ts
-                    items.sort_by_key(|item| item.start_ts());
-                    if items.is_empty() {
-                        None
-                    } else {
-                        Some(items)
-                    }
-                }
-                _ => None,
-            });
+        // Restored command blocks come from the db on startup.
+        let all_restored_blocks = restored_blocks.filter(|blocks| !blocks.is_empty()).cloned();
 
         // Create the terminal model with all restored blocks
         log::info!(
@@ -275,23 +250,8 @@ impl TerminalManager {
         let has_restored_command_blocks = all_restored_blocks
             .as_ref()
             .is_some_and(|blocks| !blocks.is_empty());
-        let has_conversation_restoration = matches!(
-            &conversation_restoration,
-            Some(
-                ConversationRestorationInNewPaneType::Startup { .. }
-                    | ConversationRestorationInNewPaneType::Historical { .. }
-            )
-        );
-        let is_historical = matches!(
-            &conversation_restoration,
-            Some(ConversationRestorationInNewPaneType::Historical { .. })
-        );
         // Create the view.
         let cloned_model = model.clone();
-        let should_use_live_appearance = conversation_restoration
-            .as_ref()
-            .map(|restoration| restoration.should_use_live_appearance())
-            .unwrap_or(false);
         let view = ctx.add_typed_action_view(window_id, |ctx| {
             let size_info = cloned_model.lock().block_list().size().to_owned();
             TerminalView::new(
@@ -305,24 +265,17 @@ impl TerminalManager {
                 model_event_sender.clone(),
                 prompt_type.clone(),
                 initial_input_config,
-                conversation_restoration,
                 Some(inactive_pty_reads_rx.clone()),
                 ctx,
             )
         });
 
-        // We need to append the session restoration separator to the block list if there are any
-        // restored blocks (command blocks or AI conversations) to show.
-        // Add separator if we have restored command blocks or we're restoring from historical or startup.
-        let should_show_restoration_separator = (has_conversation_restoration
-            || has_restored_command_blocks)
-            && !should_use_live_appearance;
-
-        if should_show_restoration_separator {
+        // Append a session-restoration separator when restored command blocks are shown.
+        if has_restored_command_blocks {
             model
                 .lock()
                 .block_list_mut()
-                .append_session_restoration_separator_to_block_list(is_historical);
+                .append_session_restoration_separator_to_block_list(false);
         }
 
         wire_up_pty_controller_with_view(
