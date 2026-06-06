@@ -18,7 +18,6 @@ pub(crate) mod get_relevant_files;
 pub(crate) mod persisted_workspace;
 pub mod request_usage_model;
 pub(crate) mod skills;
-pub(crate) mod voice;
 pub use request_usage_model::*;
 use warpui::AppContext;
 pub mod cloud_agent_config;

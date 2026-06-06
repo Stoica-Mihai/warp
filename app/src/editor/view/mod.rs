@@ -3,8 +3,6 @@ mod figma_utils;
 mod model;
 mod movement;
 mod snapshot;
-#[cfg(feature = "voice_input")]
-mod voice;
 
 use core::f32;
 use std::borrow::Cow;
@@ -1351,8 +1349,6 @@ pub enum BaselinePositionComputationMethod {
     Default,
 }
 
-// Re-export voice transcription types for backwards compatibility
-pub use crate::voice::transcriber::{Transcriber, VoiceTranscriber};
 
 /// Similar to [`ImageContext`], but contains un-processed and un-resized image data.
 #[derive(Clone)]
