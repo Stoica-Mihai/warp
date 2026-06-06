@@ -1100,7 +1100,7 @@ The remaining cloud/AI lives woven into the core render/state "spider" files. Th
 - Enum-variant cascades (ContextMenuAction/TerminalAction/WorkspaceAction AI variants, LLMModelHost::AwsBedrock): remove variant + ALL match arms together; compiler enumerates break sites.
 
 ## Suggested order (least → most coupled)
-(a) block-sharing → (b) residual dead AI handlers (investigator-found) → (c) Bedrock (app banners → settings → workspace enum → backend → crates → warp_cli). Each green. Expect the real binary payoff here (banners/modals/OIDC/graphql ops are live-linked through the spider files).
+(a) block-sharing ✅ DONE (`cecfc791`, −2.20 MB, session 59) → (b) residual dead AI handlers (investigator-found) → (c) Bedrock (app banners → settings → workspace enum → backend → crates → warp_cli). Each green. Expect the real binary payoff here (banners/modals/OIDC/graphql ops are live-linked through the spider files).
 
 ## Risk
 Spider files are render/state core — a bad cut breaks the GUI silently (compiles, mis-renders). After each sub-strip: 3-gate + `cargo build --bin sublight --features gui` + launch-smoke if possible. This is why it's LAST and dedicated.
