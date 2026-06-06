@@ -21,7 +21,6 @@ use crate::notebooks::CloudNotebookModel;
 use crate::network::NetworkStatus;
 use crate::server::ids::ServerId;
 #[cfg(test)]
-use crate::server::server_api::team::MockTeamClient;
 #[cfg(test)]
 use crate::server::server_api::workspace::MockWorkspaceClient;
 use crate::server::server_api::ServerApiProvider;
@@ -66,7 +65,6 @@ fn initialize_app(
     app: &mut App,
     cached_objects: Vec<Box<dyn CloudObject>>,
 ) {
-    let team_client_mock = Arc::new(MockTeamClient::new());
     let workspace_client_mock = Arc::new(MockWorkspaceClient::new());
 
     // Add the necessary singleton models to the App
@@ -77,7 +75,6 @@ fn initialize_app(
     app.add_singleton_model(AuthManager::new_for_test);
     app.add_singleton_model(|ctx| {
         UserWorkspaces::mock(
-            team_client_mock.clone(),
             workspace_client_mock.clone(),
             vec![TEST_WORKSPACE.clone()],
             ctx,

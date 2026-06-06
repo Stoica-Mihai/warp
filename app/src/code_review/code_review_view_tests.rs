@@ -32,7 +32,6 @@ use crate::code_review::diff_state::{DiffStateModel, FileDiff, GitFileStatus};
 use crate::code_review::editor_state::CodeReviewEditorState;
 use crate::code_review::GlobalCodeReviewModel;
 use crate::pane_group::WorkingDirectoriesModel;
-use crate::server::server_api::team::MockTeamClient;
 use crate::server::server_api::workspace::MockWorkspaceClient;
 use crate::server::server_api::ServerApiProvider;
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
@@ -80,7 +79,6 @@ fn initialize_test_app(app: &mut App) {
     app.add_singleton_model(|_| GlobalCodeReviewModel);
     app.add_singleton_model(|ctx| {
         UserWorkspaces::mock(
-            Arc::new(MockTeamClient::new()),
             Arc::new(MockWorkspaceClient::new()),
             vec![],
             ctx,
