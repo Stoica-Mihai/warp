@@ -268,7 +268,9 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 ### AI strip — current state (2026-06-06 session 56)
 
-**Binary**: 721.5 MB (−7.65 MB session 56). 3-gate **94/65/95** (0/0/0 errors).
+**Binary**: 721.4 MB (−7.75 MB session 56). 3-gate **94/65/95** (0/0/0 errors).
+
+**Dead TypedActionViews DONE (`118b87bb`, −0.09 MB):** AgentTodosPopupView (empty stub, init-only keybinding, never instantiated) + DeleteConversationConfirmationDialog (zero-caller show_*(), dead UI — trigger removed in prior strips). Removed only the dialog-specific flag from the generic current_workspace_state struct.
 
 **harness-availability + auth-secret FTUX subsystem DONE (`2f380d2a`, −2.89 MB, −2428 LoC):** deleted ai/harness_availability.rs (HarnessAvailabilityModel) + ambient_agent auth_secret_ftux_view/dropdown (TypedActionView regs → real shrink) + ai/auth_secret_types.rs + ai/harness_display.rs + entire ai/cloud_agent_settings.rs (all 7 fields zero-caller after model-picker/orchestration strips) + workspace create_auth_secret_modal (already-unreachable dead UI — its OpenCreateAuthSecretModal dispatcher was gone) + server get_available_harnesses. Kept ActionPermission/WriteToPtyPermission/ComputerUsePermission + convert_harness. **LESSON:** harness_display.rs ALSO held `From<AIAgentHarness> for Harness` + `PartialEq<Harness>` used by surviving conversation.rs (trait impls — invisible to symbol greps); relocated them to conversation.rs (caught via E0308). Always build after deleting a file with trait impls.
 
@@ -280,7 +282,7 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - P3 `d53b3872`: delete inline model-picker UI `terminal/input/models/` (1493 LoC) + `OpenModelSelector` action + `InputSuggestionsMode::ModelSelector` + `/model` command + `InlineMenuType::ModelSelector`. Reached only via /model slash command (no keybinding/toolbar). Two `add_typed_action_view` registrations freed → real shrink.
 - P4 `0e2fe341`: delete `ai/llms.rs` + `llms_tests.rs` + `LLMPreferences` singleton (lib.rs + 4 test regs + input.rs sub + update_manager sync + pane_group restore + terminal_pane write→None) + `server_api/ai.rs` `get_feature_model_choices` + ~290 LoC GraphQL conversions.
 
-**NEXT (session 57):** small Warp-AI TypedActionViews (`AgentTodosPopupView`, `DeleteConversationConfirmationDialog`), then the `drive/` + `cloud_object/` Warp Drive cluster. **LESSON:** `create_agent_task` (server_api/ai.rs) shows dead in the DEFAULT gate but is alive via `pane_group/pane/local_harness_launch.rs` (local_fs-gated) — do NOT delete (session-28 feature-gate trap). Also note `JsonObjectType` is defined in the `warp_server_client` crate — variant removal there is outside the `-p warp` gate (run `cargo check -p warp_server_client` if touched).
+**NEXT (session 57):** the `drive/` + `cloud_object/` Warp Drive cluster (21K+, 144 callers). **LESSON:** `create_agent_task` (server_api/ai.rs) shows dead in the DEFAULT gate but is alive via `pane_group/pane/local_harness_launch.rs` (local_fs-gated) — do NOT delete (session-28 feature-gate trap). Also note `JsonObjectType` is defined in the `warp_server_client` crate — variant removal there is outside the `-p warp` gate (run `cargo check -p warp_server_client` if touched).
 
 **Session 56 earlier work:**
 - Fixed 3 GB `git push` failure: committed Cargo `app/src/target/` build artifacts (450–534 MB blobs) had bloated history; `git filter-repo --path app/src/target --invert-paths` stripped them (3 GB → 15 MB pack), force-pushed clean. Added `target/gate-*` dirs to `.gitignore` (`027c34f5`).
