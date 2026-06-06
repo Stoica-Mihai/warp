@@ -262,12 +262,6 @@ mio = { version = "1.1.1", features = ["os-poll", "os-ext"] }
 tokio.workspace = true
 tokio-util.workspace = true
 
-# AWS SDK (loading credentials for BYO LLM)
-aws-config = { version = "1.8.16", features = ["credentials-login"] }
-aws-credential-types = "1"
-aws-sdk-sts = { version = "1", default-features = false, features = ["default-https-client", "rt-tokio"] }
-aws-types = "1"
-
 mcp.workspace = true
 rmcp = { workspace = true, features = [
     "auth",
