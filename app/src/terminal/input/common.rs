@@ -296,8 +296,6 @@ pub(super) fn add_input_suggestions_overlays(
         InputSuggestionsMode::SlashCommands => {}
         // Conversation menu is rendered separately via inline_conversation_menu_view
         InputSuggestionsMode::ConversationMenu => {}
-        // Model selector is rendered separately via inline_model_selector_view
-        InputSuggestionsMode::ModelSelector => {}
         // Profile selector is rendered separately via inline_profile_selector_view
         InputSuggestionsMode::ProfileSelector => {}
         // Prompts menu is rendered separately via inline_prompts_menu_view

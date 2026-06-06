@@ -284,15 +284,6 @@ pub static NEW: LazyLock<StaticCommand> = LazyLock::new(|| StaticCommand {
     argument: Some(Argument::optional().with_execute_on_selection()),
 });
 
-pub static MODEL: LazyLock<StaticCommand> = LazyLock::new(|| StaticCommand {
-    name: "/model",
-    description: "Switch the base agent model",
-    icon_path: "bundled/svg/oz.svg",
-    availability: Availability::AGENT_VIEW | Availability::AI_ENABLED,
-    auto_enter_ai_mode: true,
-    argument: None,
-});
-
 pub static HOST: LazyLock<StaticCommand> = LazyLock::new(|| StaticCommand {
     name: "/host",
     description: "Switch the cloud agent execution host",
@@ -611,7 +602,6 @@ fn all_commands() -> Vec<StaticCommand> {
         USAGE,
         CONVERSATIONS,
         EXPORT_TO_CLIPBOARD,
-        MODEL.clone(),
     ];
 
     commands.push(OPEN_CODE_REVIEW);

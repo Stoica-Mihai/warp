@@ -256,10 +256,6 @@ impl Input {
 
         let mut column = Flex::column();
         let is_slash_commands = self.suggestions_mode_model.as_ref(app).is_slash_commands();
-        let is_model_selector = self
-            .suggestions_mode_model
-            .as_ref(app)
-            .is_inline_model_selector();
         let is_prompts_menu = self.suggestions_mode_model.as_ref(app).is_prompts_menu();
         let is_inline_history_menu = FeatureFlag::InlineHistoryMenu.is_enabled()
             && self
@@ -273,9 +269,7 @@ impl Input {
             InputMode::PinnedToBottom => {
                 column.add_children(
                     [
-                        if is_model_selector {
-                            Some(ChildView::new(&self.inline_model_selector_view).finish())
-                        } else if is_slash_commands {
+                        if is_slash_commands {
                             Some(ChildView::new(&self.inline_slash_commands_view).finish())
                         } else if is_prompts_menu {
                             Some(ChildView::new(&self.inline_prompts_menu_view).finish())
@@ -296,9 +290,7 @@ impl Input {
                 column.add_children(
                     [
                         Some(input),
-                        if is_model_selector {
-                            Some(ChildView::new(&self.inline_model_selector_view).finish())
-                        } else if is_slash_commands {
+                        if is_slash_commands {
                             Some(ChildView::new(&self.inline_slash_commands_view).finish())
                         } else if is_prompts_menu {
                             Some(ChildView::new(&self.inline_prompts_menu_view).finish())
@@ -332,9 +324,7 @@ impl Input {
 
                 column.add_child(input);
 
-                if is_model_selector && should_render_below {
-                    column.add_child(ChildView::new(&self.inline_model_selector_view).finish());
-                } else if is_slash_commands && should_render_below {
+                if is_slash_commands && should_render_below {
                     column.add_child(ChildView::new(&self.inline_slash_commands_view).finish());
                 } else if is_prompts_menu && should_render_below {
                     column.add_child(ChildView::new(&self.inline_prompts_menu_view).finish());

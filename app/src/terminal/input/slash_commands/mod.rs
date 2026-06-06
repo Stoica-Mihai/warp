@@ -608,9 +608,6 @@ impl Input {
             _environment if command.name == commands::ENVIRONMENT.name => {
                 return false;
             }
-            _models if command.name == commands::MODEL.name => {
-                self.open_model_selector(ctx);
-            }
             _prompts if command.name == commands::PROMPTS.name => {
                 if false {
                     self.apply_v2_slash_section_filter(CloudModeV2Section::Prompts, ctx);

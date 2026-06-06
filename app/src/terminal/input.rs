@@ -7,7 +7,6 @@ pub(crate) mod handoff_compose;
 pub mod inline_history;
 pub mod inline_menu;
 pub mod message_bar;
-pub mod models;
 pub mod plans;
 pub mod prompts;
 pub mod repos;
@@ -208,9 +207,6 @@ use crate::terminal::cli_agent_sessions::{
 use crate::terminal::input::buffer_model::InputBufferModel;
 use crate::terminal::input::inline_history::InlineHistoryMenuView;
 use crate::terminal::input::inline_menu::InlineMenuPositioner;
-use crate::terminal::input::models::{
-    InlineModelSelectorEvent, InlineModelSelectorTab, InlineModelSelectorView,
-};
 use crate::terminal::input::plans::{InlinePlanMenuEvent, InlinePlanMenuView};
 use crate::terminal::input::prompts::{InlinePromptsMenuEvent, InlinePromptsMenuView};
 use crate::terminal::input::repos::{InlineReposMenuEvent, InlineReposMenuView};
@@ -445,7 +441,6 @@ pub enum TelemetryInputSuggestionsMode {
     DynamicWorkflowEnumSuggestions,
     SlashCommands,
     ConversationMenu,
-    ModelSelector,
     ProfileSelector,
     PromptsMenu,
     SkillMenu,
@@ -575,8 +570,6 @@ pub enum InputSuggestionsMode {
     /// Conversation menu mode for selecting AI conversations.
     ConversationMenu,
 
-    /// Model selector mode for selecting the Agent base model.
-    ModelSelector,
     /// Profile selector mode for selecting an execution profile.
     ProfileSelector,
 
@@ -637,7 +630,6 @@ impl InputSuggestionsMode {
             self,
             Self::SlashCommands
                 | Self::ConversationMenu
-                | Self::ModelSelector
                 | Self::PromptsMenu
                 | Self::UserQueryMenu { .. }
                 | Self::InlineHistoryMenu { .. }
@@ -674,7 +666,6 @@ impl InputSuggestionsMode {
             } => Some("Search queries to rewind to"),
             InputSuggestionsMode::ConversationMenu => Some("Search conversations"),
             InputSuggestionsMode::SkillMenu => Some("Search skills"),
-            InputSuggestionsMode::ModelSelector => Some("Search models"),
             InputSuggestionsMode::ProfileSelector => Some("Search profiles"),
             InputSuggestionsMode::PromptsMenu => Some("Search prompts"),
             InputSuggestionsMode::IndexedReposMenu => Some("Search indexed repos"),
@@ -927,8 +918,6 @@ pub enum InputAction {
 
     DismissCloudModeV2SlashCommandsMenu,
 
-    /// Opens the model selector menu.
-    OpenModelSelector,
 
     /// Triggers a slash command from a custom keybinding. The string is the command name.
     TriggerSlashCommandFromKeybinding(&'static str),
@@ -1367,8 +1356,6 @@ pub struct Input {
     /// Inline repos switcher menu.
     inline_repos_menu_view: ViewHandle<InlineReposMenuView>,
 
-    /// Inline model selector for choosing the Agent base model.
-    inline_model_selector_view: ViewHandle<InlineModelSelectorView>,
     /// Inline skill selector for /open-skill command.
     inline_skill_selector_view: ViewHandle<InlineSkillSelectorView>,
 
@@ -2260,21 +2247,6 @@ impl Input {
             me.handle_repos_menu_event(event, ctx);
         });
 
-        let inline_model_selector_view = ctx.add_view(|ctx| {
-            InlineModelSelectorView::new(
-                terminal_view_id,
-                suggestions_mode_model.clone(),
-                &buffer_model,
-                cli_subagent_controller.clone(),
-                &inline_terminal_menu_positioner,
-                ctx,
-            )
-        });
-        ctx.subscribe_to_view(&inline_model_selector_view, |me, _, event, ctx| {
-            me.handle_inline_model_selector_event(event, ctx);
-        });
-
-
         let inline_prompts_menu_view = ctx.add_view(|ctx| {
             InlinePromptsMenuView::new(
                 suggestions_mode_model.clone(),
@@ -2457,7 +2429,6 @@ impl Input {
             cloud_mode_v2_slash_commands_view,
             inline_plan_menu_view,
             inline_repos_menu_view,
-            inline_model_selector_view,
             inline_prompts_menu_view,
             inline_skill_selector_view,
             skill_selector_should_invoke: false,
@@ -2750,77 +2721,6 @@ impl Input {
         }
     }
 
-    fn handle_inline_model_selector_event(
-        &mut self,
-        event: &InlineModelSelectorEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            InlineModelSelectorEvent::SelectedModel {
-                id,
-                selected_tab,
-                ..
-            } => {
-                match selected_tab {
-                    InlineModelSelectorTab::BaseAgent => {
-                        LLMPreferences::handle(ctx).update(ctx, |preferences, ctx| {
-                            preferences.update_preferred_agent_mode_llm(
-                                id,
-                                self.terminal_view_id,
-                                ctx,
-                            );
-                        });
-                    }
-                    InlineModelSelectorTab::FullTerminalUse => {}
-                }
-                // Accept path: close the model selector.
-                if self
-                    .suggestions_mode_model
-                    .as_ref(ctx)
-                    .is_inline_model_selector()
-                    && !self
-                        .inline_model_selector_view
-                        .as_ref(ctx)
-                        .filter_results_by_input()
-                {
-                    // The user had a pre-existing prompt; restore it (do NOT clear buffer).
-                    self.suggestions_mode_model.update(ctx, |model, ctx| {
-                        model.close_and_restore_buffer(ctx);
-                    });
-                    ctx.notify();
-                } else {
-                    // Clear the buffer for:
-                    //  1) Selector open AND input was used as filter query — close menu, then clear.
-                    //  2) Selector not open — just clear.
-                    if self
-                        .suggestions_mode_model
-                        .as_ref(ctx)
-                        .is_inline_model_selector()
-                    {
-                        self.suggestions_mode_model.update(ctx, |model, ctx| {
-                            model.set_mode(InputSuggestionsMode::Closed, ctx);
-                        });
-                        ctx.notify();
-                    }
-                    self.clear_buffer_and_reset_undo_stack(ctx);
-                }
-            }
-            InlineModelSelectorEvent::Dismissed => {
-                if self
-                    .suggestions_mode_model
-                    .as_ref(ctx)
-                    .is_inline_model_selector()
-                {
-                    self.suggestions_mode_model.update(ctx, |model, ctx| {
-                        model.close_and_restore_buffer(ctx);
-                    });
-                    ctx.notify();
-                }
-            }
-        }
-        self.focus_input_box(ctx);
-    }
-
     fn handle_inline_prompts_menu_event(
         &mut self,
         event: &InlinePromptsMenuEvent,
@@ -2898,15 +2798,6 @@ impl Input {
             self.focus_input_box(ctx);
         }
     }
-
-    fn open_model_selector(&mut self, ctx: &mut ViewContext<Self>) {
-        self.suggestions_mode_model.update(ctx, |model, ctx| {
-            model.set_mode(InputSuggestionsMode::ModelSelector, ctx);
-        });
-
-        ctx.notify();
-    }
-
 
     fn open_prompts_menu(&mut self, ctx: &mut ViewContext<Self>) {
         self.suggestions_mode_model.update(ctx, |model, ctx| {
@@ -4930,10 +4821,6 @@ impl Input {
                         // Conversation menu selection is handled separately
                         // This shouldn't be reached since conversation menu doesn't use InputSuggestions
                     }
-                    InputSuggestionsMode::ModelSelector => {
-                        // Model selector selection is handled separately
-                        // This shouldn't be reached since model selector doesn't use InputSuggestions
-                    }
                     InputSuggestionsMode::ProfileSelector => {
                         // Profile selector selection is handled separately.
                         // This shouldn't be reached since profile selector doesn't use InputSuggestions
@@ -5082,10 +4969,6 @@ impl Input {
             }
             InputSuggestionsMode::ConversationMenu => {
                 // Conversation menu selection is handled separately
-                false
-            }
-            InputSuggestionsMode::ModelSelector => {
-                // Model selector selection is handled separately
                 false
             }
             InputSuggestionsMode::ProfileSelector => {
@@ -5328,12 +5211,6 @@ impl Input {
                 });
                 true
             }
-            InputSuggestionsMode::ModelSelector => {
-                self.inline_model_selector_view.update(ctx, |view, ctx| {
-                    view.select_up(ctx);
-                });
-                true
-            }
             InputSuggestionsMode::PromptsMenu => {
                 self.inline_prompts_menu_view.update(ctx, |view, ctx| {
                     view.select_up(ctx);
@@ -5438,16 +5315,8 @@ impl Input {
 
     /// Asks the currently active inline menu whether the buffer should be restored on dismiss
     /// (defaulting to true for any inline menus that don't have specific behavior requirements for this decision).
-    fn should_restore_buffer_on_inline_menu_dismiss(&self, ctx: &ViewContext<Self>) -> bool {
-        match self.suggestions_mode_model.as_ref(ctx).mode() {
-            // If the input is not being used as a search on the model menu
-            // we should not restore/revert the changes to the input on-dismiss.
-            InputSuggestionsMode::ModelSelector => self
-                .inline_model_selector_view
-                .as_ref(ctx)
-                .filter_results_by_input(),
-            _ => true,
-        }
+    fn should_restore_buffer_on_inline_menu_dismiss(&self, _ctx: &ViewContext<Self>) -> bool {
+        true
     }
 
     fn editor_escape(&mut self, ctx: &mut ViewContext<Self>) {
@@ -5591,12 +5460,6 @@ impl Input {
                 ..
             } => {
                 self.rewind_menu_view.update(ctx, |view, ctx| {
-                    view.select_down(ctx);
-                });
-                true
-            }
-            InputSuggestionsMode::ModelSelector => {
-                self.inline_model_selector_view.update(ctx, |view, ctx| {
                     view.select_down(ctx);
                 });
                 true
@@ -6295,9 +6158,6 @@ impl Input {
                     InputSuggestionsMode::ConversationMenu => {
                         // Conversation menu handles its own state
                     }
-                    InputSuggestionsMode::ModelSelector => {
-                        // Model selector handles its own state
-                    }
                     InputSuggestionsMode::ProfileSelector => {
                         // Profile selector handles its own state
                     }
@@ -6400,9 +6260,6 @@ impl Input {
                         }
                         InputSuggestionsMode::ConversationMenu => {
                             // Conversation menu handles its own selection state
-                        }
-                        InputSuggestionsMode::ModelSelector => {
-                            // Model selector handles its own selection state
                         }
                         InputSuggestionsMode::ProfileSelector => {
                             // Profile selector handles its own selection state
@@ -7890,16 +7747,6 @@ impl Input {
 
     fn input_shift_tab(&mut self, ctx: &mut ViewContext<Self>) {
         match self.suggestions_mode_model.as_ref(ctx).mode() {
-            // If the model selector is open and has multiple tabs,
-            // shift + tab should cycle between them.
-            InputSuggestionsMode::ModelSelector => {
-                if self
-                    .inline_model_selector_view
-                    .update(ctx, |view, ctx| view.select_next_tab(ctx))
-                {
-                    return;
-                }
-            }
             // If the inline history menu is open and has multiple tabs,
             // shift + tab should cycle between them.
             InputSuggestionsMode::InlineHistoryMenu { .. } => {
@@ -8370,16 +8217,6 @@ impl Input {
 
         ctx.emit(Event::Enter);
 
-        if self
-            .suggestions_mode_model
-            .as_ref(ctx)
-            .is_inline_model_selector()
-        {
-            self.inline_model_selector_view
-                .update(ctx, |view, ctx| view.accept_selected_item(false, ctx));
-            return;
-        }
-
         if self.suggestions_mode_model.as_ref(ctx).is_prompts_menu() {
             self.inline_prompts_menu_view
                 .update(ctx, |view, ctx| view.accept_selected_item(ctx));
@@ -8538,12 +8375,6 @@ impl Input {
             } => {
                 let editor_model = self.editor.read(ctx, |view, ctx| view.snapshot_model(ctx));
                 self.get_enum_suggestions_async(command.clone(), editor_model, ctx);
-            }
-            InputSuggestionsMode::ModelSelector
-                if FeatureFlag::InlineMenuHeaders.is_enabled() =>
-            {
-                self.inline_model_selector_view
-                    .update(ctx, |view, ctx| view.accept_selected_item(true, ctx));
             }
             InputSuggestionsMode::UserQueryMenu { .. } => {
                 self.user_query_menu_view
@@ -9597,9 +9428,6 @@ impl TypedActionView for Input {
                         .update(ctx, |model, ctx| model.disable(ctx));
                     self.close_slash_commands_menu(ctx);
                 }
-            }
-            InputAction::OpenModelSelector => {
-                self.open_model_selector(ctx);
             }
             InputAction::FigmaAddButtonClicked => {
                 TemplatableMCPServerManager::handle(ctx).update(ctx, |manager, ctx| {
