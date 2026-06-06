@@ -1066,3 +1066,41 @@ Bedrock = Warp's AWS-Bedrock LLM-provider integration (cloud-managed AWS STS ide
 - `LLMModelHost::AwsBedrock` enum-variant cascade: workspace.rs + 2 graphql enums (get_feature_model_choices, workspace) + gql_convert + tests — remove variant + all match arms.
 
 **Execution (dedicated session, green per increment):** (1) banner UI (terminal/view.rs spider wiring + inline_banner files + actions) — biggest/riskiest; (2) settings aws_bedrock_*; (3) workspace LLMModelHost::AwsBedrock variant + accessors + gql + the 2 crate graphql enums; (4) backend aws_credentials + ManagedSecretManager + ManagedSecretsClient + terminal_manager; (5) crates (ai/graphql/managed_secrets-trim/warp_cli). Gate incl `-p warp_cli`. KEEP ManagedSecretValue (MCP). Expect real shrink (OIDC + graphql ops + banners live-linked).
+
+---
+
+# SPIDER-FILE PASS — plan (the final big effort; Step 8 of the removal order)
+
+The remaining cloud/AI lives woven into the core render/state "spider" files. This is the explicitly-LAST step: excise AI/cloud branches while PRESERVING render + the kept CLI-agent feature. Do as a dedicated session (or several), green per increment.
+
+## Files + surface (measured session 58)
+| file | LoC | AI/cloud refs* |
+|---|---|---|
+| `terminal/view.rs` | 17,302 | ~565 |
+| `workspace/view.rs` | 17,757 | ~428 |
+| `terminal/input.rs` | 9,428 | ~437 |
+| `pane_group/mod.rs` | 5,080 | ~96 |
+| `root_view.rs` | 1,735 | few |
+*raw grep `agent|conversation|cloud|share_block|bedrock|handoff|ambient|ai_` — OVERCOUNTS: most `agent` hits are the KEPT vendor-CLI-agent feature.
+
+## CRITICAL keep/remove rule
+- **KEEP:** vendor CLI agents (claude/codex/gemini/aider as PTY processes) — `cli_agent`, `cli_agent_sessions`, `cli_controller`, plugin_manager, the CLI-agent footer/rich-input, AgentReviewCommentBatch/code-review feed, `conversation_status_ui`/agent_icon (CLI status), `ConversationStatus`, `AIConversationId`/`ServerConversationToken` (persistence ids), MCP, `ManagedSecretValue`, generic terminal blocks/render.
+- **REMOVE:** Warp-AI/cloud branches — block-sharing, Bedrock banners, remaining ambient-agent/cloud-handoff hooks, dead AI-action/context-menu variants, any `is_logged_in`/cloud-gated branches now always-false.
+- Distinguish by NAME + caller: "agent" alone is usually CLI (keep); "ambient_agent"/"cloud"/"handoff"/"bedrock"/"share_block"/Warp-AI-conversation = remove. Verify each (Teams lesson: names lie, e.g. TeamUpdateManager polled workspaces).
+
+## Sub-strips (each has a recorded EXACT map above)
+1. **block-sharing** (see "BLOCK-SHARING — expanded surface") — ShareBlockModal + ShowBlocksView + BlockClient + CustomAction::ViewSharedBlocks + the terminal/view context-menu→Event::ShareModalOpened→pane_group chain. ~2500 LoC. Self-contained-ish within the spider files.
+2. **Bedrock** (see "BEDROCK strip — EXACT full map") — banner UI in terminal/view + backend + settings + workspace LLMModelHost::AwsBedrock + 6 crates incl warp_cli. Largest; cross-crate. ManagedSecretManager Bedrock-only (cascades; keep ManagedSecretValue).
+3. **Residual AI handlers/branches** in terminal/view.rs + input.rs: leftover ambient-agent/cloud-handoff/AI-action hooks not yet stripped — enumerate via investigator before cutting (many already neutered/dead from sessions 51–57).
+
+## Technique (proven this strip)
+- Exact-map-first per sub-strip (investigator: file:line + live-vs-dead + KEEP/REMOVE per symbol). NO blind cuts — the spider files are where wrong-picture cuts break render.
+- Collapse flag-gated branches first (flag stays → green), drop the branch when readers=0. Cargo-feature-gated AI (like voice) → drop feature, sweep cfg sites.
+- Per-sub-strip green commit; 3-gate + `-p warp_cli` + GUI build each. Revert-to-green if a sub-strip proves coupled mid-cut (block-sharing inc-1 lesson).
+- Enum-variant cascades (ContextMenuAction/TerminalAction/WorkspaceAction AI variants, LLMModelHost::AwsBedrock): remove variant + ALL match arms together; compiler enumerates break sites.
+
+## Suggested order (least → most coupled)
+(a) block-sharing → (b) residual dead AI handlers (investigator-found) → (c) Bedrock (app banners → settings → workspace enum → backend → crates → warp_cli). Each green. Expect the real binary payoff here (banners/modals/OIDC/graphql ops are live-linked through the spider files).
+
+## Risk
+Spider files are render/state core — a bad cut breaks the GUI silently (compiles, mis-renders). After each sub-strip: 3-gate + `cargo build --bin sublight --features gui` + launch-smoke if possible. This is why it's LAST and dedicated.
