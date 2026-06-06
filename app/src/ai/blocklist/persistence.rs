@@ -26,7 +26,7 @@ use crate::ai::agent::{
     ReadFilesRequest, RequestComputerUseRequest, SearchCodebaseRequest, UseComputerRequest,
     UserQueryMode,
 };
-use crate::ai::llms::LLMId;
+use ai::LLMId;
 use crate::terminal::model::block::{BlockId, SerializedBlock};
 
 /// Data we persist for each [`AIAgentExchange`] for use in history. Does not contain output data.

@@ -9,7 +9,7 @@ use crate::ai::agent::{
     AIAgentActionType, AIAgentExchange, AIAgentOutput, AIAgentOutputMessageType,
     AIAgentOutputStatus, MessageId, Shared,
 };
-use crate::ai::llms::LLMId;
+use ai::LLMId;
 use crate::test_util::ai_agent_tasks::{
     create_api_subtask, create_api_task, create_message, create_subagent_tool_call_message,
 };

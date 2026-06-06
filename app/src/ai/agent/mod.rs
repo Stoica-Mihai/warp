@@ -37,7 +37,7 @@ use warp_editor::render::model::LineCount;
 use warp_multi_agent_api::{diff_hunk as diff_hunk_api, AgentEvent, AgentType};
 
 pub use self::api::{MaybeAIAgentOutputMessage, MessageToAIAgentOutputMessageError};
-use super::llms::LLMId;
+use ai::LLMId;
 use crate::ai::block_context::BlockContext;
 fn are_all_text_sections_empty(sections: &[AIAgentTextSection]) -> bool {
     sections.iter().all(|s| matches!(s, AIAgentTextSection::PlainText { text } if text.text().is_empty()))

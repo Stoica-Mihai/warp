@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use warpui::AppContext;
 
-use crate::ai::llms::LLMId;
+use ai::LLMId;
 use crate::cloud_object::model::generic_string_model::{
     GenericStringModel, GenericStringObjectId, StringModel,
 };
@@ -236,7 +236,7 @@ impl JsonModel for AIExecutionProfile {
 pub mod profiles {
     use warpui::{Entity, ModelContext, SingletonEntity};
     pub use super::AIExecutionProfile;
-    use crate::ai::llms::LLMId;
+    use ai::LLMId;
 
     #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
     pub struct ClientProfileId(pub usize);

@@ -10,7 +10,7 @@ use crate::ai::agent::{
     AIAgentOutputMessageType, AIAgentOutputStatus, FinishedAIAgentOutput, MessageId, Shared,
     SubagentCall,
 };
-use crate::ai::llms::LLMId;
+use ai::LLMId;
 
 fn create_test_exchange() -> AIAgentExchange {
     AIAgentExchange {

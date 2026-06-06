@@ -40,7 +40,7 @@ use crate::ai::agent::conversation::{AIConversation, AIConversationId};
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::blocklist::{InputConfig, SerializedBlockListItem};
 use crate::ai::execution_profiles::profiles::ClientProfileId;
-use crate::ai::llms::LLMId;
+use ai::LLMId;
 use crate::ai::restored_conversations::RestoredAgentConversations;
 #[cfg(feature = "local_fs")]
 use crate::app_state::CodePaneSnapShot;

@@ -6,7 +6,7 @@ use warp_multi_agent_api::ToolType;
 use crate::ai::agent::AIAgentInput;
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::task::TaskId;
-use crate::ai::llms::LLMId;
+use ai::LLMId;
 
 #[derive(Debug)]
 pub struct RequestInput {
