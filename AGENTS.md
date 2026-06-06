@@ -56,7 +56,7 @@ telemetry · wasm-orphan crates · onboarding crate + flags · Sentry crash-repo
 - `15d8b1a7`: AGENTS.md updated with generic-feature dead-code policy (CRITICAL session 40 note).
 - Warnings: 199/76/200 → 188/72/189.
 
-**NEXT (session 57):** Warp Drive PANEL is now gone; what remains under drive/ is generic (folders, workflow modal editors, export, settings, items types relocated). Remaining cloud surfaces to evaluate: `server_api/ai.rs` residual dead trait methods, `ai/ambient_agents/` remnants, or a warning-floor sweep. The `cloud_object/` module is generic infra (KEEP). See plan.md "AI strip — current state" for full handoff.
+**NEXT (session 57):** Two frontiers mapped in detail in plan.md ("NEXT TARGETS — mapped 2026-06-06"). **(A, recommended) Codebase-indexing / embeddings** — ALIVE + cloud-coupled (sends code to Warp servers), isolated `crates/ai/src/index/full_source_code_embedding/` subtree (~11.8K LoC) with clean StoreClient seam; spans warp+ai+graphql crates. **(B, bigger) Core AI agent `ai/agent/`** — 17K LoC tangle; extract 3 light types (ConversationStatus/AIConversationId/ServerConversationToken) first, then the AIConversation keystone collapses. Do A before B. `cloud_object/` is generic infra (KEEP).
 
 **CRITICAL LESSON (session 23):** `-p warp` gate does NOT cover `warp_cli` or `managed_secrets` crates. After any FeatureFlag variant sweep, also run `cargo check -p warp_cli -p managed_secrets`. Scan all crates for `FeatureFlag::` references before committing a sweep.
 
