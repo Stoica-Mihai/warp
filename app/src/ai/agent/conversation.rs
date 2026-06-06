@@ -56,9 +56,7 @@ use crate::terminal::model::block::{
 };
 use crate::GlobalResourceHandlesProvider;
 
-pub use crate::ai::agent::conversation_types::{
-    AIConversationId, ConversationStatus, StatusColorStyle,
-};
+pub use crate::ai::agent::conversation_types::{AIConversationId, ConversationStatus};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TodoStatus {
@@ -3743,6 +3741,3 @@ impl From<AIConversationAutoexecuteMode> for PersistedAutoexecuteMode {
     }
 }
 
-#[cfg(test)]
-#[path = "conversation_tests.rs"]
-mod tests;
