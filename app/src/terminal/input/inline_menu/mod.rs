@@ -16,7 +16,7 @@ pub use view::{
     InlineMenuHeaderConfig, InlineMenuRowAction, InlineMenuView,
 };
 
-use super::{InputSuggestionsMode, UserQueryMenuAction};
+use super::InputSuggestionsMode;
 
 /// Identifies a specific inline menu type.
 #[derive(
@@ -41,7 +41,6 @@ pub enum InlineMenuType {
     ProfileSelector,
     PromptsMenu,
     SkillMenu,
-    UserQueryMenu,
     InlineHistoryMenu,
     IndexedReposMenu,
     PlanMenu,
@@ -55,7 +54,6 @@ impl InlineMenuType {
             InlineMenuType::ProfileSelector => "/Profiles",
             InlineMenuType::PromptsMenu => "/Prompts",
             InlineMenuType::SkillMenu => "/Skills",
-            InlineMenuType::UserQueryMenu => "/Fork",
             InlineMenuType::InlineHistoryMenu => "History",
             InlineMenuType::IndexedReposMenu => "/Repos",
             InlineMenuType::PlanMenu => "/Plans",
@@ -69,10 +67,6 @@ impl InlineMenuType {
             InputSuggestionsMode::ProfileSelector => Some(InlineMenuType::ProfileSelector),
             InputSuggestionsMode::PromptsMenu => Some(InlineMenuType::PromptsMenu),
             InputSuggestionsMode::SkillMenu => Some(InlineMenuType::SkillMenu),
-            InputSuggestionsMode::UserQueryMenu {
-                action: UserQueryMenuAction::ForkFrom,
-                ..
-            } => Some(InlineMenuType::UserQueryMenu),
             InputSuggestionsMode::InlineHistoryMenu { .. } => {
                 Some(InlineMenuType::InlineHistoryMenu)
             }

@@ -144,22 +144,6 @@ pub static SET_TAB_COLOR: LazyLock<StaticCommand> = LazyLock::new(|| StaticComma
     argument: Some(Argument::required().with_hint_text(SET_TAB_COLOR_HINT.as_str())),
 });
 
-pub static FORK: LazyLock<StaticCommand> = LazyLock::new(|| {
-    let hint_text = "<optional prompt to send in forked conversation>";
-    StaticCommand {
-        name: "/fork",
-        description: "Fork the current conversation in a new pane or a new tab",
-        icon_path: "bundled/svg/arrow-split.svg",
-        availability: Availability::AGENT_VIEW
-            | Availability::ACTIVE_CONVERSATION
-            | Availability::NO_LRC_CONTROL
-            | Availability::AI_ENABLED
-            | Availability::NOT_CLOUD_AGENT,
-        auto_enter_ai_mode: true,
-        argument: Some(Argument::optional().with_hint_text(hint_text)),
-    }
-});
-
 pub static MOVE_TO_CLOUD: LazyLock<StaticCommand> = LazyLock::new(|| StaticCommand {
     name: "/handoff",
     description: "Hand off this conversation to a cloud agent",
@@ -405,18 +389,6 @@ pub static FORK_AND_COMPACT: LazyLock<StaticCommand> = LazyLock::new(|| {
     }
 });
 
-pub const FORK_FROM: StaticCommand = StaticCommand {
-    name: "/fork-from",
-    description: "Fork conversation from a specific query",
-    icon_path: "bundled/svg/arrow-split.svg",
-    availability: Availability::AGENT_VIEW
-        .union(Availability::NO_LRC_CONTROL)
-        .union(Availability::AI_ENABLED)
-        .union(Availability::NOT_CLOUD_AGENT),
-    auto_enter_ai_mode: true,
-    argument: None,
-};
-
 pub static CONTINUE_LOCALLY: LazyLock<StaticCommand> = LazyLock::new(|| {
     let hint_text = "<optional prompt to send in forked conversation>";
     StaticCommand {
@@ -590,7 +562,6 @@ fn all_commands() -> Vec<StaticCommand> {
 
     if !cfg!(target_family = "wasm") {
         commands.extend([
-            FORK.clone(),
             FORK_AND_COMPACT.clone(),
             CONTINUE_LOCALLY.clone(),
         ]);

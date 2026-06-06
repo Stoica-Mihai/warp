@@ -34,9 +34,7 @@ use crate::terminal::input::inline_menu::{InlineMenuAction, InlineMenuType};
 use crate::terminal::input::slash_command_model::{
     SlashCommandEntryState, UpdatedSlashCommandModel,
 };
-use crate::terminal::input::{
-    CompletionsTrigger, Event, Input, InputSuggestionsMode, UserQueryMenuAction,
-};
+use crate::terminal::input::{CompletionsTrigger, Event, Input, InputSuggestionsMode};
 #[cfg(feature = "local_fs")]
 use crate::terminal::model::session::Session;
 use crate::terminal::view::TerminalAction;
@@ -660,13 +658,6 @@ impl Input {
                     // same as the footer chip.
                     self.activate_cloud_handoff_compose(HandoffEntryPoint::SlashCommand, ctx);
                 }
-            }
-            _fork if command.name == commands::FORK.name => {
-                show_error_toast("AI not available".to_owned(), ctx);
-            }
-            _fork_from if command.name == commands::FORK_FROM.name => {
-                self.open_user_query_menu(UserQueryMenuAction::ForkFrom, ctx);
-                return true;
             }
             #[cfg(not(target_family = "wasm"))]
             _continue_locally if command.name == commands::CONTINUE_LOCALLY.name => {

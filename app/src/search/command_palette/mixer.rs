@@ -51,9 +51,6 @@ pub enum CommandPaletteItemAction {
         conversation_id: AIConversationId,
         terminal_view_id: Option<EntityId>,
     },
-    ForkConversation {
-        conversation_id: AIConversationId,
-    },
     OpenLaunchConfiguration {
         config: Arc<LaunchConfig>,
         /// See [`OpenLaunchConfigArg::open_in_active_window`].
@@ -109,7 +106,6 @@ impl CommandPaletteItemAction {
             } => ItemSummary::Conversation {
                 id: *conversation_id,
             },
-            CommandPaletteItemAction::ForkConversation { .. } => ItemSummary::ForkConversation,
             CommandPaletteItemAction::NewSession { source } => ItemSummary::NewSession {
                 id: source.id().clone(),
             },
@@ -205,7 +201,6 @@ pub enum ItemSummary {
     Conversation {
         id: AIConversationId,
     },
-    ForkConversation,
     NewConversation,
     /// No-op action (used for non-interactable separator items that don't do anything on click).
     NoOp,

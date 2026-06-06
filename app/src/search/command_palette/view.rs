@@ -45,7 +45,7 @@ use crate::settings::CtrlTabBehavior;
 use crate::terminal::keys_settings::KeysSettings;
 use crate::themes::theme::WarpTheme;
 use crate::view_components::DismissibleToast;
-use crate::workspace::{active_terminal_in_window, ForkedConversationDestination, WorkspaceAction};
+use crate::workspace::{active_terminal_in_window, WorkspaceAction};
 use crate::ToastStack;
 
 lazy_static! {
@@ -805,16 +805,6 @@ impl View {
                     conversation_id,
                     terminal_view_id,
                     restore_layout: None,
-                });
-            }
-            CommandPaletteItemAction::ForkConversation { conversation_id } => {
-                ctx.dispatch_typed_action(&WorkspaceAction::ForkAIConversation {
-                    conversation_id,
-                    fork_from_exchange: None,
-                    summarize_after_fork: false,
-                    summarization_prompt: None,
-                    initial_prompt: None,
-                    destination: ForkedConversationDestination::SplitPane,
                 });
             }
             CommandPaletteItemAction::OpenLaunchConfiguration {

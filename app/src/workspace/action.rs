@@ -11,7 +11,6 @@ use warpui::geometry::vector::Vector2F;
 use warpui::platform::Cursor;
 use warpui::{EntityId, WindowId};
 
-use super::global_actions::{ForkFromExchange, ForkedConversationDestination};
 use super::tab_settings::{
     VerticalTabsCompactSubtitle, VerticalTabsDisplayGranularity, VerticalTabsPrimaryInfo,
     VerticalTabsTabItemMode, VerticalTabsViewMode,
@@ -405,30 +404,6 @@ pub enum WorkspaceAction {
         /// Otherwise, fall back to the user's setting.
         restore_layout: Option<RestoreConversationLayout>,
     },
-    /// Fork an existing AI conversation.
-    /// Optionally summarizes the conversation after forking and/or sends an initial prompt.
-    ForkAIConversation {
-        conversation_id: AIConversationId,
-        /// When Some, fork from the given response (or exchange if `fork_from_exact_exchange`
-        /// is true). When None, fork from the last exchange.
-        fork_from_exchange: Option<ForkFromExchange>,
-        /// Whether to summarize the conversation after forking.
-        summarize_after_fork: bool,
-        /// Prompt to use for summarization when `summarize_after_fork` is true.
-        summarization_prompt: Option<String>,
-        /// Initial prompt to send in the forked conversation (sent after summarization if enabled).
-        initial_prompt: Option<String>,
-        /// Where to open the forked conversation.
-        destination: ForkedConversationDestination,
-    },
-    /// Fork an existing AI conversation into a new pane and prefill the input with a local
-    /// continuation command (selecting all text).
-    #[cfg(not(target_family = "wasm"))]
-    ContinueConversationLocally {
-        conversation_id: AIConversationId,
-    },
-    /// Insert the /fork slash command into the active terminal's input.
-    InsertForkSlashCommand,
     /// Open a local-to-cloud handoff pane next to the active conversation
     /// (REMOTE-1486). Triggered by the `/move-to-cloud` slash command
     /// and the footer chip of the same name. The dispatch site reads the
@@ -602,8 +577,6 @@ impl WorkspaceAction {
     pub fn should_save_app_state_on_action(&self) -> bool {
         use WorkspaceAction::*;
         match self {
-            #[cfg(not(target_family = "wasm"))]
-            ContinueConversationLocally { .. } => true,
             ActivateTab(_)
             | ActivateTabByNumber(_)
             | ActivatePrevTab
@@ -648,7 +621,6 @@ impl WorkspaceAction {
             | OpenFileInNewTab { .. }
             | RestoreOrNavigateToConversation { .. }
             | NewCodeFile
-            | ForkAIConversation { .. }
             | SummarizeAIConversation { .. }
             | OpenRepository { .. }
             | SelectTabConfig(_)
@@ -766,7 +738,6 @@ impl WorkspaceAction {
             | RunAISuggestedCommand { .. }
             | RunCommand { .. }
             | InsertInInput { .. }
-            | InsertForkSlashCommand
             | QueuePromptForConversation { .. }
             | AttemptLoginGatedAIUpgrade
             | UndoTrash(_)

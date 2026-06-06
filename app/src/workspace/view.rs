@@ -194,7 +194,6 @@ use crate::search::command_search::searcher::{
     AcceptedHistoryItem, AcceptedWorkflow, CommandSearchItemAction,
 };
 use crate::search::command_search::view::{CommandSearchEvent, CommandSearchView};
-use crate::search::slash_command_menu::static_commands::commands;
 use crate::search::{self, QueryFilter};
 use crate::server::cloud_objects::update_manager::{
     ObjectOperation, OperationSuccessType, UpdateManager, UpdateManagerEvent,
@@ -338,7 +337,6 @@ use crate::workspace::view::left_panel::{
     LeftPanelAction, LeftPanelEvent, LeftPanelView, ToolPanelView,
 };
 use crate::workspace::view::right_panel::{RightPanelEvent, RightPanelView};
-use crate::workspace::{ForkFromExchange, ForkedConversationDestination};
 use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::{report_if_error, GlobalResourceHandles};
 
@@ -8462,18 +8460,6 @@ impl Workspace {
     /// a server-side fork is created first so the new conversation immediately gets
     /// cloud storage and a server identity.
     #[allow(clippy::too_many_arguments)]
-    fn fork_ai_conversation(
-        &mut self,
-        _conversation_id: AIConversationId,
-        _fork_from_exchange: Option<ForkFromExchange>,
-        _summarize_after_fork: bool,
-        _summarization_prompt: Option<String>,
-        _initial_prompt: Option<String>,
-        _destination: ForkedConversationDestination,
-        _ctx: &mut ViewContext<Self>,
-    ) {
-    }
-
     fn summarize_active_ai_conversation(
         &mut self,
         _prompt: Option<String>,
@@ -15718,55 +15704,10 @@ impl TypedActionView for Workspace {
                     ctx,
                 );
             }
-            ForkAIConversation {
-                conversation_id,
-                fork_from_exchange,
-                summarize_after_fork,
-                summarization_prompt,
-                initial_prompt,
-                destination,
-            } => {
-                self.fork_ai_conversation(
-                    *conversation_id,
-                    *fork_from_exchange,
-                    *summarize_after_fork,
-                    summarization_prompt.clone(),
-                    initial_prompt.clone(),
-                    *destination,
-                    ctx,
-                );
-            }
-            #[cfg(not(target_family = "wasm"))]
-            ContinueConversationLocally { conversation_id } => {
-                self.fork_ai_conversation(
-                    *conversation_id,
-                    None,
-                    false,
-                    None,
-                    None,
-                    ForkedConversationDestination::SplitPane,
-                    ctx,
-                );
-            }
             SummarizeAIConversation { prompt, .. } => {
                 self.summarize_active_ai_conversation(prompt.clone(), ctx);
             }
             QueuePromptForConversation { .. } => {}
-            InsertForkSlashCommand => {
-                self.active_tab_pane_group().update(ctx, |pane_group, ctx| {
-                    if let Some(terminal_view) = pane_group.active_session_view(ctx) {
-                        terminal_view.update(ctx, |terminal, ctx| {
-                            terminal.input().update(ctx, |input, ctx| {
-                                input.replace_buffer_content(
-                                    &format!("{} ", commands::FORK.name),
-                                    ctx,
-                                );
-                                ctx.focus_self();
-                            });
-                        });
-                    }
-                });
-            }
             CreatePersonalAIPrompt => {
                 if let Some(personal_drive) = UserWorkspaces::as_ref(ctx).personal_drive(ctx) {
                     let source = WorkflowOpenSource::New {

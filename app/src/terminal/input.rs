@@ -18,7 +18,6 @@ pub mod suggestions_mode_model;
 mod terminal;
 mod terminal_message_bar;
 mod universal;
-pub mod user_query;
 
 use std::any::Any;
 use std::borrow::Cow;
@@ -218,7 +217,6 @@ use crate::terminal::input::suggestions_mode_model::{
     InputSuggestionsModeEvent, InputSuggestionsModeModel,
 };
 use crate::terminal::input::terminal_message_bar::TerminalInputMessageBar;
-use crate::terminal::input::user_query::{UserQueryMenuEvent, UserQueryMenuView};
 use crate::terminal::model::session::active_session::ActiveSession;
 use crate::terminal::package_installers::command_at_cursor_has_common_package_installer_prefix;
 use crate::terminal::universal_developer_input::AtContextMenuDisabledReason;
@@ -251,7 +249,7 @@ use crate::workflows::workflow_enum::EnumVariants;
 use crate::workflows::{self, WorkflowSelectionSource, WorkflowSource, WorkflowType};
 use crate::workspace::sync_inputs::SyncedInputState;
 use crate::workspace::{
-    CommandSearchOptions, ForkFromExchange, ForkedConversationDestination, InitContent, ToastStack, WorkspaceAction,
+    CommandSearchOptions, InitContent, ToastStack, WorkspaceAction,
 };
 #[allow(unused_imports)]
 use crate::ASSETS;
@@ -576,12 +574,6 @@ pub enum InputSuggestionsMode {
     /// Prompts menu mode for /prompts command.
     PromptsMenu,
 
-    /// User query menu mode for selecting a query point (e.g., fork-from, rewind).
-    UserQueryMenu {
-        action: UserQueryMenuAction,
-        conversation_id: AIConversationId,
-    },
-
     /// Inline history menu mode for selecting commands and conversations from history.
     InlineHistoryMenu {
         original_input_config: Option<InputConfig>,
@@ -597,11 +589,6 @@ pub enum InputSuggestionsMode {
 
     /// Mode indicating that no suggestion UI is being shown.
     Closed,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum UserQueryMenuAction {
-    ForkFrom,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -627,7 +614,6 @@ impl InputSuggestionsMode {
             Self::SlashCommands
                 | Self::ConversationMenu
                 | Self::PromptsMenu
-                | Self::UserQueryMenu { .. }
                 | Self::InlineHistoryMenu { .. }
                 | Self::PlanMenu { .. }
         ) || (FeatureFlag::InlineRepoMenu.is_enabled() && matches!(self, Self::IndexedReposMenu))
@@ -652,10 +638,6 @@ impl InputSuggestionsMode {
     /// Returns the placeholder text for this mode, if it has a custom one.
     pub fn placeholder_text(&self) -> Option<&'static str> {
         match self {
-            InputSuggestionsMode::UserQueryMenu {
-                action: UserQueryMenuAction::ForkFrom,
-                ..
-            } => Some("Search queries"),
             InputSuggestionsMode::ConversationMenu => Some("Search conversations"),
             InputSuggestionsMode::SkillMenu => Some("Search skills"),
             InputSuggestionsMode::ProfileSelector => Some("Search profiles"),
@@ -1357,8 +1339,6 @@ pub struct Input {
     /// Inline prompts menu for /prompts command.
     inline_prompts_menu_view: ViewHandle<InlinePromptsMenuView>,
 
-    /// Inline menu for selecting a query point when forking a conversation.
-    user_query_menu_view: ViewHandle<UserQueryMenuView>,
 
     /// Inline history menu for up-arrow with conversations and commands.
     inline_history_menu_view: ViewHandle<InlineHistoryMenuView>,
@@ -2255,17 +2235,6 @@ impl Input {
             me.handle_inline_skill_selector_event(event, ctx);
         });
 
-        let user_query_menu_view = ctx.add_view(|ctx| {
-            UserQueryMenuView::new(
-                AIConversationId::default(),
-                suggestions_mode_model.clone(),
-                &inline_terminal_menu_positioner,
-                &buffer_model,
-                ctx,
-            )
-        });
-
-
         let inline_plan_menu_view = ctx.add_view(|ctx| {
             InlinePlanMenuView::new(
                 AIConversationId::default(),
@@ -2401,7 +2370,6 @@ impl Input {
             inline_prompts_menu_view,
             inline_skill_selector_view,
             skill_selector_should_invoke: false,
-            user_query_menu_view,
             inline_history_menu_view,
             inline_terminal_menu_positioner,
             cached_agent_mode_hint_text: None,
@@ -2843,68 +2811,6 @@ impl Input {
         ctx.notify();
     }
 
-    fn handle_user_query_menu_event(
-        &mut self,
-        event: &UserQueryMenuEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if !self.suggestions_mode_model.as_ref(ctx).is_user_query_menu() {
-            log::error!("handle_user_query_menu_event called when mode is not UserQueryMenu");
-            return;
-        }
-
-        match event {
-            UserQueryMenuEvent::SelectedQuery { exchange_id } => {
-                ctx.emit(Event::ScrollToExchange {
-                    exchange_id: *exchange_id,
-                });
-            }
-            UserQueryMenuEvent::AcceptedQuery {
-                exchange_id,
-                cmd_enter,
-            } => {
-                let Some(conversation_id) = self
-                    .suggestions_mode_model
-                    .as_ref(ctx)
-                    .user_query_conversation_id()
-                else {
-                    log::error!("No conversation_id in UserQueryMenu mode when accepting");
-                    return;
-                };
-
-                let destination = if *cmd_enter {
-                    ForkedConversationDestination::SplitPane
-                } else {
-                    ForkedConversationDestination::CurrentPane
-                };
-                ctx.dispatch_typed_action(&WorkspaceAction::ForkAIConversation {
-                    conversation_id,
-                    fork_from_exchange: Some(ForkFromExchange {
-                        exchange_id: *exchange_id,
-                        fork_from_exact_exchange: false,
-                    }),
-                    summarize_after_fork: false,
-                    summarization_prompt: None,
-                    initial_prompt: None,
-                    destination,
-                });
-
-    
-                self.suggestions_mode_model.update(ctx, |model, ctx| {
-                    model.set_mode(InputSuggestionsMode::Closed, ctx);
-                });
-                ctx.notify();
-                self.clear_buffer_and_reset_undo_stack(ctx);
-            }
-            UserQueryMenuEvent::Dismissed => {
-                self.suggestions_mode_model.update(ctx, |model, ctx| {
-                    model.close_and_restore_buffer(ctx);
-                });
-                ctx.notify();
-            }
-        }
-    }
-
     fn handle_inline_history_menu_event(
         &mut self,
         event: &inline_history::InlineHistoryMenuEvent,
@@ -2986,7 +2892,6 @@ impl Input {
         ctx.notify();
     }
 
-    fn open_user_query_menu(&mut self, _action: UserQueryMenuAction, _ctx: &mut ViewContext<Self>) {}
 
     fn open_inline_history_menu(&mut self, ctx: &mut ViewContext<Self>) {
         if !FeatureFlag::InlineHistoryMenu.is_enabled() {
@@ -4749,9 +4654,6 @@ impl Input {
                     InputSuggestionsMode::SkillMenu => {
                         // Skill menu selection is handled via InlineSkillSelectorView
                     }
-                    InputSuggestionsMode::UserQueryMenu { .. } => {
-                        // User query menu selection is handled separately
-                    }
                     InputSuggestionsMode::InlineHistoryMenu { .. } => {
                         // Inline history menu selection is handled separately
                         // This shouldn't be reached since inline history menu doesn't use InputSuggestions
@@ -4899,10 +4801,6 @@ impl Input {
             }
             InputSuggestionsMode::SkillMenu => {
                 // Skill menu selection is handled via InlineSkillSelectorView
-                false
-            }
-            InputSuggestionsMode::UserQueryMenu { .. } => {
-                // User query menu selection is handled separately
                 false
             }
             InputSuggestionsMode::InlineHistoryMenu { .. } => {
@@ -5111,15 +5009,6 @@ impl Input {
                 true
             }
             InputSuggestionsMode::ConversationMenu => true,
-            InputSuggestionsMode::UserQueryMenu {
-                action: UserQueryMenuAction::ForkFrom,
-                ..
-            } => {
-                self.user_query_menu_view.update(ctx, |view, ctx| {
-                    view.select_up(ctx);
-                });
-                true
-            }
             InputSuggestionsMode::PromptsMenu => {
                 self.inline_prompts_menu_view.update(ctx, |view, ctx| {
                     view.select_up(ctx);
@@ -5355,15 +5244,6 @@ impl Input {
                 true
             }
             InputSuggestionsMode::ConversationMenu => true,
-            InputSuggestionsMode::UserQueryMenu {
-                action: UserQueryMenuAction::ForkFrom,
-                ..
-            } => {
-                self.user_query_menu_view.update(ctx, |view, ctx| {
-                    view.select_down(ctx);
-                });
-                true
-            }
             InputSuggestionsMode::PromptsMenu => {
                 self.inline_prompts_menu_view.update(ctx, |view, ctx| {
                     view.select_down(ctx);
@@ -6067,9 +5947,6 @@ impl Input {
                     InputSuggestionsMode::SkillMenu => {
                         // Skill menu handles its own state
                     }
-                    InputSuggestionsMode::UserQueryMenu { .. } => {
-                        // User query menu handles its own state
-                    }
                     InputSuggestionsMode::InlineHistoryMenu { .. } => {
                         let mismatched = self.inline_history_menu_view
                             .as_ref(ctx)
@@ -6169,9 +6046,6 @@ impl Input {
                         }
                         InputSuggestionsMode::SkillMenu => {
                             // Skill menu handles its own selection state
-                        }
-                        InputSuggestionsMode::UserQueryMenu { .. } => {
-                            // User query menu handles its own selection state
                         }
                         InputSuggestionsMode::InlineHistoryMenu { .. } => {
                             // Inline history menu handles its own selection state
@@ -8137,10 +8011,6 @@ impl Input {
             self.inline_skill_selector_view
                 .update(ctx, |view, ctx| view.accept_selected_item(ctx));
             return;
-        } else if self.suggestions_mode_model.as_ref(ctx).is_user_query_menu() {
-            self.user_query_menu_view
-                .update(ctx, |view, ctx| view.accept_selected_item(false, ctx));
-            return;
         } else if self
             .suggestions_mode_model
             .as_ref(ctx)
@@ -8271,10 +8141,6 @@ impl Input {
             } => {
                 let editor_model = self.editor.read(ctx, |view, ctx| view.snapshot_model(ctx));
                 self.get_enum_suggestions_async(command.clone(), editor_model, ctx);
-            }
-            InputSuggestionsMode::UserQueryMenu { .. } => {
-                self.user_query_menu_view
-                    .update(ctx, |view, ctx| view.accept_selected_item(true, ctx));
             }
             InputSuggestionsMode::IndexedReposMenu => {
                 self.inline_repos_menu_view

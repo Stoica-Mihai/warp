@@ -8230,22 +8230,6 @@ impl TerminalView {
     }
 }
 
-/// Builds the context-menu label for forking an AI conversation from a given query.
-fn fork_label_for_query(query: &str) -> String {
-    if query.is_empty() {
-        "Fork from last query".to_string()
-    } else {
-        let first_line = query.lines().next().unwrap_or(query).trim();
-        let chars: Vec<char> = first_line.chars().take(21).collect();
-        let (truncated, suffix) = if chars.len() > 20 {
-            (chars[..20].iter().collect::<String>(), "…")
-        } else {
-            (chars.iter().collect::<String>(), "")
-        };
-        format!("Fork from \"{truncated}{suffix}\"")
-    }
-}
-
 impl TerminalView {
     fn resize_alt_screen_redundantly(&mut self, ctx: &mut ViewContext<Self>) {
         use futures_lite::StreamExt;

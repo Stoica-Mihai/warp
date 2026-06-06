@@ -290,12 +290,6 @@ impl DataSourceStore {
                 None
             }
 
-            ItemSummary::ForkConversation => {
-                // The forked conversation item should not show up in the recent command list,
-                // as its use is specific to the conversation filter.
-                None
-            }
-
             ItemSummary::NoOp => {
                 // No-op action (used for non-interactable separator items that don't do anything on click).
                 None
