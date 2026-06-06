@@ -4,10 +4,7 @@ use warp_server_client::cloud_object::CloudObjectUpsertParams;
 // Re-exported from warp_server_client.
 pub use warp_server_client::ids::FolderId;
 
-use super::items::folder::WarpDriveFolder;
-use super::items::WarpDriveItem;
 use super::CloudObjectTypeAndId;
-use crate::appearance::Appearance;
 use crate::cloud_object::{
     CloudModelType,
     GenericCloudObject, ObjectType, Space,
@@ -84,15 +81,4 @@ impl CloudModelType for CloudFolderModel {
         true
     }
 
-    fn to_warp_drive_item(
-        &self,
-        id: SyncId,
-        _appearance: &Appearance,
-        folder: &CloudFolder,
-    ) -> Option<Box<dyn WarpDriveItem>> {
-        Some(Box::new(WarpDriveFolder::new(
-            self.cloud_object_type_and_id(id),
-            folder.clone(),
-        )))
-    }
 }

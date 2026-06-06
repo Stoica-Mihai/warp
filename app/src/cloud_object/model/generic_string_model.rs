@@ -6,12 +6,10 @@ use warp_server_client::cloud_object::CloudObjectUpsertParams;
 // Re-exported from warp_server_client.
 pub use warp_server_client::ids::GenericStringObjectId;
 
-use crate::appearance::Appearance;
 use crate::cloud_object::{
     CloudModelType, CloudObject, GenericCloudObject, GenericStringObjectFormat,
     GenericStringObjectUniqueKey, ObjectType, SerializedModel,
 };
-use crate::drive::items::WarpDriveItem;
 use crate::drive::CloudObjectTypeAndId;
 use crate::persistence::ModelEvent;
 use crate::server::ids::SyncId;
@@ -82,17 +80,6 @@ pub trait StringModel: Clone + Debug + PartialEq + Send + Sync + 'static {
 
     /// Sets the display name for this model
     fn set_display_name(&mut self, _name: &str) {}
-
-    /// Creates a new warp drive item for this model type. Returns None
-    /// if this object does not render in Warp Drive.
-    fn to_warp_drive_item(
-        &self,
-        _id: SyncId,
-        _appearance: &Appearance,
-        _object: &Self::CloudObjectType,
-    ) -> Option<Box<dyn WarpDriveItem>> {
-        None
-    }
 
     /// Returns whether this model type should clear on a unique key conflict.
     fn should_clear_on_unique_key_conflict(&self) -> bool {
@@ -247,14 +234,6 @@ where
         self.string_model.renders_in_warp_drive()
     }
 
-    fn to_warp_drive_item(
-        &self,
-        id: SyncId,
-        appearance: &Appearance,
-        object: &GenericCloudObject<GenericStringObjectId, Self>,
-    ) -> Option<Box<dyn WarpDriveItem>> {
-        self.string_model.to_warp_drive_item(id, appearance, object)
-    }
 }
 
 impl<M, S> GenericStringModel<M, S>

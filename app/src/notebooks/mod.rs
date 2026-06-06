@@ -16,13 +16,10 @@ use warp_server_client::cloud_object::CloudObjectUpsertParams;
 use warpui::AppContext;
 
 use crate::ai::document::ai_document_model::AIDocumentId;
-use crate::appearance::Appearance;
 use crate::cloud_object::{
     CloudModelType,
     GenericCloudObject, ObjectType, Owner,
 };
-use crate::drive::items::notebook::WarpDriveNotebook;
-use crate::drive::items::WarpDriveItem;
 use crate::drive::CloudObjectTypeAndId;
 use crate::persistence::ModelEvent;
 use crate::server::ids::{ServerId, SyncId};
@@ -87,18 +84,6 @@ impl CloudModelType for CloudNotebookModel {
         true
     }
 
-    fn to_warp_drive_item(
-        &self,
-        id: SyncId,
-        _appearance: &Appearance,
-        notebook: &CloudNotebook,
-    ) -> Option<Box<dyn WarpDriveItem>> {
-        Some(Box::new(WarpDriveNotebook::new(
-            self.cloud_object_type_and_id(id),
-            notebook.clone(),
-            notebook.model().ai_document_id.is_some(),
-        )))
-    }
 }
 
 /// This is the notebook_id in the database associated with this notebook.

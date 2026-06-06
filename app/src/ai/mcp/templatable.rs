@@ -4,7 +4,6 @@ use chrono::DateTime;
 use handlebars::get_arguments;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use warp_core::ui::appearance::Appearance;
 
 use crate::cloud_object::model::generic_string_model::{
     GenericStringModel, GenericStringObjectId, StringModel,
@@ -14,9 +13,7 @@ use crate::cloud_object::{
     CloudObjectUuid, GenericCloudObject, GenericStringObjectFormat, GenericStringObjectUniqueKey,
     JsonObjectType, UniquePer,
 };
-use crate::drive::items::WarpDriveItem;
 use crate::server::datetime_ext::DateTimeExt;
-use crate::server::ids::SyncId;
 
 const UNIQUENESS_KEY_PREFIX: &str = "templatable_mcp_server";
 
@@ -247,14 +244,6 @@ impl StringModel for TemplatableMCPServer {
         false
     }
 
-    fn to_warp_drive_item(
-        &self,
-        _id: SyncId,
-        _appearance: &Appearance,
-        _templatable_mcp_server: &CloudTemplatableMCPServer,
-    ) -> Option<Box<dyn WarpDriveItem>> {
-        None
-    }
 }
 
 impl JsonModel for TemplatableMCPServer {

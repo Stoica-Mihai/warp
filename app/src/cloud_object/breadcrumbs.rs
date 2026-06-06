@@ -2,7 +2,7 @@ use warpui::AppContext;
 
 use super::{CloudObject, Space};
 use crate::drive::folders::CloudFolder;
-use crate::drive::items::WarpDriveItemId;
+use crate::drive::WarpDriveItemId;
 use crate::drive::CloudObjectTypeAndId;
 use crate::ui_components::breadcrumb::Breadcrumb;
 

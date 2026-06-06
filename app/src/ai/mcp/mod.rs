@@ -8,7 +8,6 @@ use diesel::{QueryDsl, RunQueryDsl, SqliteConnection};
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
-use warp_core::ui::appearance::Appearance;
 use warp_core::ui::Icon;
 
 use crate::cloud_object::model::generic_string_model::{
@@ -19,14 +18,10 @@ use crate::cloud_object::{
     CloudObjectUuid, GenericCloudObject, GenericStringObjectFormat, GenericStringObjectUniqueKey,
     JsonObjectType,
 };
-use crate::drive::items::mcp_server::WarpDriveMCPServer;
-use crate::drive::items::WarpDriveItem;
-use crate::drive::CloudObjectTypeAndId;
 #[cfg(not(target_family = "wasm"))]
 use crate::persistence::model::MCPEnvironmentVariables;
 #[cfg(not(target_family = "wasm"))]
 use crate::server::datetime_ext::DateTimeExt;
-use crate::server::ids::SyncId;
 
 pub mod manager;
 pub mod templatable_manager;
@@ -201,20 +196,6 @@ impl StringModel for MCPServer {
         false
     }
 
-    fn to_warp_drive_item(
-        &self,
-        id: SyncId,
-        _appearance: &Appearance,
-        mcp_server: &CloudMCPServer,
-    ) -> Option<Box<dyn WarpDriveItem>> {
-        Some(Box::new(WarpDriveMCPServer::new(
-            CloudObjectTypeAndId::GenericStringObject {
-                object_type: GenericStringObjectFormat::Json(JsonObjectType::MCPServer),
-                id,
-            },
-            mcp_server.clone(),
-        )))
-    }
 }
 
 impl JsonModel for MCPServer {

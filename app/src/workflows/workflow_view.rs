@@ -47,7 +47,7 @@ use crate::cloud_object::{
 };
 use crate::drive::cloud_object_styling::warp_drive_icon_color;
 use crate::drive::drive_helpers::has_feature_gated_anonymous_user_reached_workflow_limit;
-use crate::drive::items::WarpDriveItemId;
+use crate::drive::WarpDriveItemId;
 use crate::cloud_object::model::view::ContentEditability;
 use warp_server_client::drive::sharing::SharingAccessLevel;
 use crate::drive::workflows::ai_assist::GeneratedCommandMetadataError;

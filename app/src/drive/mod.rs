@@ -1,32 +1,39 @@
-mod cloud_object_naming_dialog;
 pub mod cloud_object_styling;
 pub mod drive_helpers;
-pub mod empty_trash_confirmation_dialog;
 pub mod export;
 pub mod folders;
-pub(crate) mod index;
-pub mod items;
-pub mod panel;
 pub mod settings;
 pub mod workflows;
 
-use std::cmp::Ordering;
 use std::fmt;
 
-pub use index::DriveIndexVariant;
-pub use panel::{DrivePanel, DrivePanelEvent};
 use serde::{Deserialize, Serialize};
 use warp_core::user_preferences::GetUserPreferences as _;
 pub use warp_server_client::drive::CloudObjectTypeAndId;
 use warpui::AppContext;
 
-use crate::cloud_object::model::view::{CloudViewModel, UpdateTimestamp};
-use crate::cloud_object::{CloudObject, ObjectType};
+use crate::cloud_object::{ObjectType, Space};
 use crate::server::ids::ServerId;
 use crate::ui_components::icons::Icon;
-use crate::workflows::CloudWorkflow;
 
-type SortByComparator<'a> = dyn FnMut(&&dyn CloudObject, &&dyn CloudObject) -> Ordering + 'a;
+pub const MIN_SIDEBAR_WIDTH: f32 = 250.;
+pub const MAX_SIDEBAR_WIDTH_RATIO: f32 = 0.75;
+
+#[derive(Copy, Clone, PartialEq)]
+pub enum DriveIndexVariant {
+    MainIndex,
+    Trash,
+}
+
+/// This uniquely identifies an item in Warp Drive index
+/// Includes spaces (which CloudObjectTypeAndId does not entail)
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+pub enum WarpDriveItemId {
+    MCPServerCollection,
+    Object(CloudObjectTypeAndId),
+    Space(Space),
+    Trash,
+}
 
 #[derive(Debug, Clone, Eq, PartialEq, Default)]
 pub struct OpenWarpDriveObjectSettings {
@@ -144,79 +151,3 @@ pub enum DriveSortOrder {
     ByObjectType,
 }
 
-impl DriveSortOrder {
-    /// Returns the comparator that can be used for sorting items returned by
-    /// CloudModel::cloud_objects_in_space, for example (so more specifically, on the iterator of
-    /// type Iterator<Item = &'_ dyn CloudObject>)
-    pub fn sort_by<'a>(
-        &self,
-        cloud_model: &'a CloudViewModel,
-        update_timestamp: UpdateTimestamp,
-        app: &'a AppContext,
-    ) -> Box<SortByComparator<'a>> {
-        match self {
-            // Sorts newly-created objects to be at the top of the list
-            Self::ByTimestamp => Box::new(
-                move |a: &&dyn CloudObject, b: &&dyn CloudObject| -> Ordering {
-                    cloud_model
-                        .object_sorting_timestamp(*a, update_timestamp, app)
-                        .cmp(&cloud_model.object_sorting_timestamp(*b, update_timestamp, app))
-                        .reverse()
-                },
-            ),
-            Self::AlphabeticalDescending => Box::new(
-                move |a: &&dyn CloudObject, b: &&dyn CloudObject| -> Ordering {
-                    a.display_name()
-                        .to_lowercase()
-                        .cmp(&b.display_name().to_lowercase())
-                },
-            ),
-            Self::AlphabeticalAscending => Box::new(
-                move |a: &&dyn CloudObject, b: &&dyn CloudObject| -> Ordering {
-                    b.display_name()
-                        .to_lowercase()
-                        .cmp(&a.display_name().to_lowercase())
-                },
-            ),
-            Self::ByObjectType => Box::new(
-                move |a: &&dyn CloudObject, b: &&dyn CloudObject| -> Ordering {
-                    let order = |obj: &&dyn CloudObject| match obj.object_type() {
-                        ObjectType::Folder => 0,
-                        ObjectType::GenericStringObject(_) => 1,
-                        ObjectType::Notebook => 2,
-                        ObjectType::Workflow => {
-                            let Some(workflow) = obj.as_any().downcast_ref::<CloudWorkflow>()
-                            else {
-                                return 3;
-                            };
-
-                            if workflow.model().data.is_agent_mode_workflow() {
-                                4
-                            } else {
-                                3
-                            }
-                        }
-                    };
-
-                    // First compare by object type ordering, then by display name alphabetically if equal
-                    order(a).cmp(&order(b)).then_with(|| {
-                        a.display_name()
-                            .to_lowercase()
-                            .cmp(&b.display_name().to_lowercase())
-                    })
-                },
-            ),
-        }
-    }
-
-    /// Returns the text that is used to display the sorting option in the KnowledgeIndex's sorting menu
-    pub fn menu_text(&self, index_variant: DriveIndexVariant) -> &str {
-        match (self, index_variant) {
-            (DriveSortOrder::ByTimestamp, DriveIndexVariant::MainIndex) => "Last updated",
-            (DriveSortOrder::ByTimestamp, DriveIndexVariant::Trash) => "Last trashed",
-            (DriveSortOrder::AlphabeticalDescending, _) => "A to Z",
-            (DriveSortOrder::AlphabeticalAscending, _) => "Z to A",
-            (DriveSortOrder::ByObjectType, _) => "Type",
-        }
-    }
-}
