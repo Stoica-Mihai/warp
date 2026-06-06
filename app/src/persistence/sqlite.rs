@@ -31,10 +31,7 @@ use warpui::platform::FullscreenState;
 use warpui::windowing::{MIN_WINDOW_HEIGHT, MIN_WINDOW_WIDTH};
 use warpui::{AppContext, SingletonEntity};
 
-use super::agent::{delete_agent_conversations, upsert_agent_conversation};
-use super::block_list::{
-    delete_ai_conversation, delete_blocks, save_block, update_block_agent_view_visibility,
-};
+use super::block_list::{delete_blocks, save_block, update_block_agent_view_visibility};
 use super::model::{
     self, ActiveMCPServer, CurrentUserInformation, MCPEnvironmentVariables, NewActiveMCPServer,
     NewApp, NewCommand, NewFolder, NewNotebook, NewTab, NewTeam, NewWindow,
@@ -87,7 +84,6 @@ use crate::drive::OpenWarpDriveObjectSettings;
 use crate::env_vars::{CloudEnvVarCollection, CloudEnvVarCollectionModel};
 use crate::features::FeatureFlag;
 use crate::notebooks::{CloudNotebook, CloudNotebookModel, NotebookId};
-use crate::persistence::agent::read_agent_conversations;
 use crate::persistence::block_list::get_all_restored_blocks;
 use crate::persistence::model::{
     NewCloudObjectsRefresh, NewGenericStringObject, NewPersistedObjectAction, NewTeamSettings,
@@ -645,26 +641,6 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
             actions_to_sync: objects_to_sync,
         } => {
             sync_object_actions(connection, objects_to_sync).context("error syncing object actions")
-        }
-        ModelEvent::DeleteAIConversation { conversation_id } => {
-            delete_ai_conversation(connection, &conversation_id)
-                .context("error deleting AI conversation")
-        }
-        ModelEvent::UpdateMultiAgentConversation {
-            conversation_id,
-            updated_tasks,
-            conversation_data,
-        } => upsert_agent_conversation(
-            connection,
-            &conversation_id,
-            &updated_tasks,
-            conversation_data,
-        )
-        .map_err(anyhow::Error::from),
-        ModelEvent::DeleteMultiAgentConversations { conversation_ids } => {
-            delete_agent_conversations(connection, conversation_ids)
-                .map_err(anyhow::Error::from)
-                .context("error deleting multi-agent conversation")
         }
         ModelEvent::UpsertCurrentUserInformation { user_information } => {
             upsert_current_user_information(connection, user_information)
@@ -3088,7 +3064,6 @@ fn read_sqlite_data(
 
     let codebase_indices = get_all_codebase_index_metadata(conn)?;
     let workspace_language_servers = get_all_workspace_language_servers_by_workspace(conn)?;
-    let multi_agent_conversations = read_agent_conversations(conn)?;
     let projects = get_all_projects(conn)?;
     let project_rules = get_all_project_rules(conn)?;
     let ignored_suggestions = get_all_ignored_suggestions(conn)?;
@@ -3106,7 +3081,6 @@ fn read_sqlite_data(
         object_actions,
         codebase_indices,
         workspace_language_servers,
-        multi_agent_conversations,
         projects,
         project_rules,
         ignored_suggestions,

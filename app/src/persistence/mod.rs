@@ -2,7 +2,6 @@
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "local_fs")] {
-        pub mod agent;
         mod block_list;
         mod cloud_objects;
         mod sqlite;
@@ -34,10 +33,9 @@ pub use sqlite::establish_ro_connection;
 use uuid::Uuid;
 use warp_core::command::ExitCode;
 use warp_graphql::scalars::time::ServerTimestamp;
-use warp_multi_agent_api as api;
 use warpui::{AppContext, Entity, SingletonEntity};
 
-use self::model::{AgentConversation, AgentConversationData, Project};
+use self::model::Project;
 use crate::ai::mcp::TemplatableMCPServerInstallation;
 use crate::ai::persisted_workspace::EnablementState;
 use crate::app_state::AppState;
@@ -178,7 +176,6 @@ pub struct PersistedData {
     pub object_actions: Vec<ObjectAction>,
     pub codebase_indices: Vec<CodeWorkspaceMetadata>,
     pub workspace_language_servers: HashMap<PathBuf, HashMap<LSPServerType, EnablementState>>,
-    pub multi_agent_conversations: Vec<AgentConversation>,
     pub projects: Vec<Project>,
     pub project_rules: Vec<ProjectRulePath>,
     pub ignored_suggestions: Vec<(String, SuggestionType)>,
@@ -291,19 +288,6 @@ pub enum ModelEvent {
     },
     /// Close the SQLite writer thread when the app is about to quit.
     Terminate,
-    /// Delete the AI query and related data for a given conversation.
-    DeleteAIConversation {
-        conversation_id: String,
-    },
-    UpdateMultiAgentConversation {
-        conversation_id: String,
-        updated_tasks: Vec<api::Task>,
-        conversation_data: AgentConversationData,
-    },
-    DeleteMultiAgentConversations {
-        conversation_ids: Vec<String>,
-    },
-
     UpsertCurrentUserInformation {
         user_information: PersistedCurrentUserInformation,
     },

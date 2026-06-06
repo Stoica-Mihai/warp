@@ -164,22 +164,3 @@ pub(super) fn update_block_agent_view_visibility(
         .execute(conn)?;
     Ok(())
 }
-
-pub(super) fn delete_ai_conversation(
-    conn: &mut SqliteConnection,
-    conversation_id_str: &str,
-) -> anyhow::Result<()> {
-    use schema::ai_queries::dsl as queries_dsl;
-
-    conn.transaction::<_, Error, _>(|conn| {
-        // Delete the AI query
-        diesel::delete(
-            queries_dsl::ai_queries.filter(queries_dsl::conversation_id.eq(conversation_id_str)),
-        )
-        .execute(conn)?;
-
-        Ok(())
-    })?;
-
-    Ok(())
-}
