@@ -1357,7 +1357,6 @@ pub(crate) fn initialize_app(
     crate::view_components::find::init(ctx);
     prompt::editor_modal::init(ctx);
     undo_close::init(ctx);
-    billing::shared_objects_creation_denied_modal::init(ctx);
     tab_configs::new_worktree_modal::init(ctx);
     tab_configs::params_modal::init(ctx);
     env_vars::env_var_collection_block::init(ctx);
