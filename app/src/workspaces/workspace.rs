@@ -746,7 +746,6 @@ mod tests;
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum LLMModelHost {
     DirectApi,
-    AwsBedrock,
     CustomEndpoint,
     #[serde(other)]
     Unknown,

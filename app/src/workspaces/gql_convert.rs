@@ -697,7 +697,7 @@ impl From<warp_graphql::workspace::LlmModelHost> for crate::workspaces::workspac
         use warp_graphql::workspace::LlmModelHost as GqlLlmModelHost;
         match gql_host {
             GqlLlmModelHost::DirectApi => Self::DirectApi,
-            GqlLlmModelHost::AwsBedrock => Self::AwsBedrock,
+            GqlLlmModelHost::AwsBedrock => Self::Unknown,
             GqlLlmModelHost::CustomEndpoint => Self::CustomEndpoint,
             GqlLlmModelHost::Other(value) => {
                 report_error!(anyhow!(
