@@ -4,7 +4,6 @@ pub(crate) mod auto_handoff;
 #[cfg(target_os = "macos")]
 mod cli_install;
 pub(crate) mod cross_window_tab_drag;
-pub mod delete_conversation_confirmation_dialog;
 mod global_actions;
 pub mod header_toolbar_editor;
 pub mod header_toolbar_item;
@@ -97,7 +96,6 @@ pub fn init(app: &mut AppContext) {
     native_modal::init(app);
     lightbox_view::init(app);
     rewind_confirmation_dialog::init(app);
-    delete_conversation_confirmation_dialog::init(app);
     crate::tab_configs::remove_confirmation_dialog::init(app);
     tab_configs::session_config_modal::init(app);
     view::global_search::view::GlobalSearchView::init(app);

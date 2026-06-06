@@ -98,7 +98,6 @@ pub struct WorkspaceState {
     pub is_agent_toolbar_editor_open: bool,
     pub is_header_toolbar_editor_open: bool,
     pub is_rewind_confirmation_dialog_open: bool,
-    pub is_delete_conversation_confirmation_dialog_open: bool,
     pub is_native_quit_modal_open: bool,
     pub is_shared_objects_creation_denied_modal_open: bool,
     pub is_tab_config_params_modal_open: bool,
