@@ -187,7 +187,7 @@ use super::warpify::WarpificationSource;
 use super::{cli_agent, CLIAgent, GridType};
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::agent::{
-    AIAgentActionId, AIAgentExchangeId, AIAgentPtyWriteMode,
+    AIAgentActionId, AIAgentPtyWriteMode,
     AgentReviewCommentBatch, FileLocations,
 };
 #[cfg(feature = "local_fs")]
@@ -335,7 +335,6 @@ use crate::terminal::model::block::{
 };
 use crate::terminal::model::blocks::{
     BlockFilter, BlockHeight, BlockHeightSummary, BlockList, BlockListPoint, Gap,
-    RemovableBlocklistItem,
 };
 use crate::terminal::model::escape_sequences::{self, EscCodes, ToEscapeSequence, C1};
 use crate::terminal::model::grid::grid_handler::{FragmentBoundary, TermMode};
@@ -366,7 +365,7 @@ use crate::terminal::view::inline_banner::{
 };
 use crate::terminal::view::passive_suggestions::PromptSuggestionResolution;
 pub use crate::terminal::view::rich_content::{
-    AIBlockMetadata, AgentViewEntryMetadata, RichContent, RichContentInsertionPosition,
+    AgentViewEntryMetadata, RichContent, RichContentInsertionPosition,
     RichContentMetadata,
 };
 use crate::terminal::view::ssh_file_upload::FileUploadId;
@@ -1762,8 +1761,6 @@ pub struct BlocklistAIRenderContext {
     ///
     selected_conversation_id: Option<AIConversationId>,
 
-    /// The IDs of exchanges in the selected conversation.
-    exchange_ids: Option<HashSet<AIAgentExchangeId>>,
 
     /// `true` if we should highlight pending and active context in this conversation.
     pub should_highlight_context: bool,
@@ -1779,13 +1776,6 @@ impl BlocklistAIRenderContext {
     /// Returns `true` if there's an active AI conversation.
     pub fn has_active_conversation(&self) -> bool {
         self.selected_conversation_id.is_some()
-    }
-
-    /// Returns `true` if the exchange with the given ID is in the active conversation.
-    pub fn is_exchange_in_active_conversation(&self, id: &AIAgentExchangeId) -> bool {
-        self.exchange_ids
-            .as_ref()
-            .is_some_and(|active_exchange_ids| active_exchange_ids.contains(id))
     }
 
     pub fn context_inclusion_state_for_block(
@@ -1819,27 +1809,6 @@ impl BlocklistAIRenderContext {
     pub fn context_color_for_block(&self, block: &Block, theme: &WarpTheme) -> Option<ColorU> {
         match self.context_inclusion_state_for_block(block) {
             Some(AIContextInclusionState::Active) => self.context_color(theme),
-            _ => None,
-        }
-    }
-
-    /// Returns the AI context stripe color to use for rich content, if any,
-    pub fn context_color_for_rich_content(
-        &self,
-        rich_content: &RichContentMetadata,
-        theme: &WarpTheme,
-    ) -> Option<ColorU> {
-        match rich_content {
-            RichContentMetadata::AIBlock(ai_metadata)
-                if self.is_exchange_in_active_conversation(&ai_metadata.exchange_id) =>
-            {
-                self.context_color(theme)
-            }
-            RichContentMetadata::AIOnboardingBlock { exchange_id, .. }
-                if self.is_exchange_in_active_conversation(exchange_id) =>
-            {
-                self.context_color(theme)
-            }
             _ => None,
         }
     }
@@ -2989,7 +2958,6 @@ impl TerminalView {
             ai_render_context: Rc::new(RefCell::new(BlocklistAIRenderContext {
             block_ids: Default::default(),
             selected_conversation_id: None,
-            exchange_ids: None,
             should_highlight_context: false,
             is_ai_input_enabled: false,
             has_pending_context_selected_text: false,
@@ -11773,7 +11741,6 @@ impl TerminalView {
         // except for the rich content block with a matching view ID.
         for rich_content in self.rich_content_views.iter() {
             match rich_content.metadata() {
-                Some(RichContentMetadata::AIBlock(_ai_metadata)) => {}
                 Some(RichContentMetadata::EnvVarCollectionBlock {
                     env_var_collection_block_handle,
                     ..
@@ -12487,9 +12454,6 @@ impl TerminalView {
                     flavor: *flavor,
                 });
             }
-            InputEvent::ScrollToExchange { exchange_id } => {
-                self.scroll_to_exchange(*exchange_id, ctx);
-            }
             InputEvent::RegisterPluginListener(agent) => {
                 self.register_cli_agent_listener_without_session_start_event(*agent, ctx);
             }
@@ -13139,34 +13103,6 @@ impl TerminalView {
     fn scroll_to(&mut self, block_index: BlockIndex, ctx: &mut ViewContext<Self>) {
         self.update_scroll_position_locking(
             ScrollPositionUpdate::ScrollToTopOfBlock { block_index },
-            ctx,
-        );
-    }
-
-    /// Scrolls the view to the AI block associated with the given exchange ID.
-    fn scroll_to_exchange(&mut self, exchange_id: AIAgentExchangeId, ctx: &mut ViewContext<Self>) {
-        // Find the rich content view with the matching exchange_id.
-        let Some(view_id) = self.rich_content_views.iter().find_map(|rc| {
-            rc.ai_block_metadata()
-                .filter(|meta| meta.exchange_id == exchange_id)
-                .map(|_| rc.view_id())
-        }) else {
-            return;
-        };
-
-        // Get the TotalIndex from the model.
-        let Some(index) = self
-            .model
-            .lock()
-            .block_list()
-            .removable_blocklist_item_position(&RemovableBlocklistItem::RichContent(view_id))
-            .copied()
-        else {
-            return;
-        };
-
-        self.update_scroll_position_locking(
-            ScrollPositionUpdate::ScrollToTopOfRichContent { index },
             ctx,
         );
     }

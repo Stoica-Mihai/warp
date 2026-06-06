@@ -3,7 +3,6 @@ use warpui::{Element, EntityId, View, ViewContext, ViewHandle};
 
 use super::{InitStepBlock, InitStepKind};
 use crate::ai::agent::conversation::AIConversationId;
-use crate::ai::agent::AIAgentExchangeId;
 use crate::terminal::view::agent_view_state::AgentViewEntryOrigin;
 use crate::env_vars::env_var_collection_block::EnvVarCollectionBlock;
 use crate::terminal::block_list_viewport::ScrollPositionUpdate;
@@ -32,13 +31,6 @@ pub enum RichContentInsertionPosition {
     /// keep this item at the end by reordering it after any subsequent insertions.
     /// Only one item can be pinned at a time.
     PinToBottom,
-}
-
-/// Metadata for an AI block rich content.
-#[derive(Clone, Debug)]
-pub struct AIBlockMetadata {
-    pub exchange_id: AIAgentExchangeId,
-    pub conversation_id: AIConversationId,
 }
 
 /// Metadata for an agent view entry rich content.
@@ -135,10 +127,6 @@ impl RichContent {
         self.metadata.as_mut()
     }
 
-    pub fn is_ai_block(&self) -> bool {
-        matches!(self.metadata, Some(RichContentMetadata::AIBlock(_)))
-    }
-
     pub fn is_usage_footer(&self) -> bool {
         matches!(self.metadata, Some(RichContentMetadata::UsageFooter))
     }
@@ -180,13 +168,6 @@ impl RichContent {
         }
     }
 
-    pub fn ai_block_metadata(&self) -> Option<&AIBlockMetadata> {
-        match &self.metadata {
-            Some(RichContentMetadata::AIBlock(metadata)) => Some(metadata),
-            _ => None,
-        }
-    }
-
     pub fn agent_view_entry_metadata(&self) -> Option<&AgentViewEntryMetadata> {
         match &self.metadata {
             Some(RichContentMetadata::AgentViewEntry(metadata)) => Some(metadata),
@@ -204,11 +185,6 @@ impl RichContent {
 /// `RichContent` view-specific metadata required for rendering in the `BlocklistElement`.
 #[derive(Clone, Debug)]
 pub enum RichContentMetadata {
-    AIBlock(AIBlockMetadata),
-    AIOnboardingBlock {
-        /// The ID corresponding to the `AIAgentExchange` represented in this block.
-        exchange_id: AIAgentExchangeId,
-    },
     UsageFooter,
     InitStep {
         step_kind: InitStepKind,

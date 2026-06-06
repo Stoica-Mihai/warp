@@ -1427,7 +1427,7 @@ impl BlockListElement {
 
         if self.is_mouse_position_within_bounds(position) {
             ctx.dispatch_typed_action(TerminalAction::CloseContextMenu);
-            let mut should_redetermine_focus = true;
+            let should_redetermine_focus = true;
 
             match self.coord_to_point(
                 SnackbarPoint::within_snackbar(position),
@@ -1535,7 +1535,7 @@ impl BlockListElement {
                         }
                         // While rich content blocks can't be selected like command blocks,
                         // text selections can still originate in them (i.e. with AI blocks)
-                        Some(BlockHeightItem::RichContent(RichContentItem { view_id, .. })) => {
+                        Some(BlockHeightItem::RichContent(RichContentItem { .. })) => {
                             let bounds = self
                                 .bounds
                                 .expect("Bounds should be set before event dispatching");
@@ -1548,12 +1548,6 @@ impl BlockListElement {
 
                             if self.snackbar_header_state().mouse_down(position, ctx) {
                                 return true;
-                            }
-
-                            if let Some(RichContentMetadata::AIBlock { .. }) =
-                                self.rich_content_metadata.get(view_id)
-                            {
-                                should_redetermine_focus = false;
                             }
 
                             ctx.dispatch_typed_action(TerminalAction::BlockSelect {
@@ -3840,23 +3834,8 @@ impl Element for BlockListElement {
                 VisibleItem::RichContent {
                     view_id, height_px, ..
                 } => {
-                    let block_origin = grid_origin;
                     if let Some(rich_content) = self.rich_content_elements.get_mut(view_id) {
                         rich_content.paint(grid_origin, ctx, app);
-                    }
-
-                    let ai_render_context = self.ai_render_context.borrow();
-                    if let Some(ai_context_color) = self
-                        .rich_content_metadata
-                        .get(view_id)
-                        .and_then(|metadata| {
-                            ai_render_context
-                                .context_color_for_rich_content(metadata, &self.warp_theme)
-                        })
-                    {
-                        ctx.scene.start_layer(ClipBounds::ActiveLayer);
-                        draw_flag_pole(block_origin, *height_px, ai_context_color, ctx);
-                        ctx.scene.stop_layer();
                     }
 
                     draw_border_above_block = true;

@@ -119,7 +119,7 @@ use super::view::{
 use super::warpify::SubshellSource;
 use super::{prompt, History, HistoryEntry, SizeInfo, TerminalModel, UpArrowHistoryConfig};
 use crate::ai::agent::conversation::AIConversationId;
-use crate::ai::agent::{AIAgentExchangeId, CancellationReason};
+use crate::ai::agent::CancellationReason;
 use crate::ai::ambient_agents::telemetry::HandoffEntryPoint;
 use crate::ai::blocklist::cli_controller::CLISubagentController;
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
@@ -821,9 +821,6 @@ pub enum Event {
     /// If `initial_prompt` is `Some`, it should prefill the local agent prompt but not auto-send.
     ExitCloudModeAndStartLocalAgent {
         initial_prompt: Option<String>,
-    },
-    ScrollToExchange {
-        exchange_id: AIAgentExchangeId,
     },
     RegisterPluginListener(CLIAgent),
     #[cfg(not(target_family = "wasm"))]
