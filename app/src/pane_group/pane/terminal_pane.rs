@@ -13,7 +13,6 @@ use super::{
 use crate::ai::agent::conversation::AIConversationId;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 
-use crate::ai::conversation_utils;
 use crate::ai::llms::LLMPreferences;
 use crate::app_state::{AmbientAgentPaneSnapshot, LeafContents, TerminalPaneSnapshot};
 use crate::code::buffer_location::LocalOrRemotePath;
@@ -532,9 +531,6 @@ fn kill_agent_conversation(
             "KillAgentConversation: no terminal view found for conversation {conversation_id:?}"
         );
     }
-    // Delete (not remove): drop the conversation from sqlite + cloud so a
-    // killed child does not resurrect on restart.
-    conversation_utils::delete_conversation(conversation_id, owner_terminal_view_id, ctx);
 }
 
 /// Attaches a terminal view to the pane group by subscribing to its events

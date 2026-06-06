@@ -9,7 +9,6 @@ use warpui::{App, SingletonEntity, ViewHandle, WindowId};
 use watcher::HomeDirectoryWatcher;
 
 use super::settings::initialize_history_persistence_for_tests;
-use crate::ai::agent_conversations_model::AgentConversationsModel;
 use crate::ai::ambient_agents::github_auth_notifier::GitHubAuthNotifier;
 use crate::ai::blocklist::SerializedBlockListItem;
 use crate::ai::connected_self_hosted_workers::ConnectedSelfHostedWorkersModel;
@@ -119,7 +118,6 @@ pub fn initialize_app_for_terminal_view(app: &mut App) {
     app.add_singleton_model(AIDocumentModel::new);
     app.add_singleton_model(ByoLlmAuthBannerSessionState::new);
     app.add_singleton_model(|_| GitHubAuthNotifier::new());
-    app.add_singleton_model(AgentConversationsModel::new);
     app.add_singleton_model(PersistedWorkspace::new_for_test);
 
     app.update(experiments::init);

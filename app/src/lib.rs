@@ -131,7 +131,6 @@ use ::ai::index::DEFAULT_SYNC_REQUESTS_PER_MIN;
 use ::ai::project_context::model::ProjectContextModel;
 pub use ai::agent::todos::AIAgentTodoList;
 pub use ai::agent::{AIAgentActionResultType, FileEdit, TodoOperation};
-use ai::agent_conversations_model::AgentConversationsModel;
 use ai::ambient_agents::github_auth_notifier::GitHubAuthNotifier;
 use ai::persisted_workspace::PersistedWorkspace;
 use auth::auth_manager::AuthManager;
@@ -1523,9 +1522,6 @@ pub(crate) fn initialize_app(
 
     // AIDocumentModel subscribes to UpdateManager so that it can be notified when notebooks are created on the server.
     ctx.add_singleton_model(AIDocumentModel::new);
-
-    // AgentConversationsModel subscribes to UpdateManager for RTC task updates.
-    ctx.add_singleton_model(AgentConversationsModel::new);
 
     // ByoLlmAuthBannerSessionState tracks dismissal of the BYO LLM auth banner (e.g., AWS Bedrock login).
     ctx.add_singleton_model(ByoLlmAuthBannerSessionState::new);

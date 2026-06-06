@@ -21,7 +21,6 @@ use watcher::HomeDirectoryWatcher;
 use workflows::workflow::{Argument, ArgumentType, Workflow};
 
 use super::*;
-use crate::ai::agent_conversations_model::AgentConversationsModel;
 use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
 use crate::ai::harness_availability::HarnessAvailabilityModel;
 use crate::ai::llms::LLMPreferences;
@@ -173,7 +172,6 @@ pub fn initialize_app(app: &mut App) {
     app.add_singleton_model(|_| {
         crate::ai::ambient_agents::github_auth_notifier::GitHubAuthNotifier::new()
     });
-    app.add_singleton_model(AgentConversationsModel::new);
     app.add_singleton_model(PersistedWorkspace::new_for_test);
     // `LocalShellState` captures the user's interactive login-shell PATH (used
     // for MCP/sbx executable resolution). Tests don't exercise that capture, so

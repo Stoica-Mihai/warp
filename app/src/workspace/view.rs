@@ -119,15 +119,12 @@ use super::util::{
 use super::{util, ActiveSession, TabBarDropTargetData, TabBarLocation, WorkspaceRegistry};
 use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::conversation::AIConversationId;
-#[cfg(target_family = "wasm")]
-use crate::ai::agent_conversations_model::AgentConversationsModelEvent;
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
 use crate::ai::ambient_agents::telemetry::HandoffEntryPoint;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::blocklist::SerializedBlockListItem;
 use crate::ai::cloud_agent_settings::CloudAgentSettings;
 use crate::ai::persisted_workspace::PersistedWorkspace;
-use crate::ai::conversation_utils;
 use crate::ai::execution_context::WarpAiExecutionContext;
 use crate::terminal::view::AskAIType;
 use crate::app_state::{
@@ -16632,12 +16629,7 @@ impl TypedActionView for Workspace {
                     self.insert_in_input(&query, true, false, true, ctx);
                 }
             }
-            ExecuteDeleteConversation {
-                conversation_id,
-                terminal_view_id,
-            } => {
-                conversation_utils::delete_conversation(*conversation_id, *terminal_view_id, ctx);
-
+            ExecuteDeleteConversation { .. } => {
                 ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
                     toast_stack.add_ephemeral_toast(
                         DismissibleToast::success("Conversation deleted".to_string()),

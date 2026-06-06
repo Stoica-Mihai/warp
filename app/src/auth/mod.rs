@@ -15,7 +15,6 @@ use warp_core::user_preferences::GetUserPreferences as _;
 use warpui::modals::{AlertDialogWithCallbacks, ModalButton};
 use warpui::{AppContext, SingletonEntity};
 
-use crate::ai::agent_conversations_model::AgentConversationsModel;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::code::editor_management::{CodeEditorStatus, CodeEditorSummary};
 use crate::env_vars::manager::EnvVarCollectionManager;
@@ -176,9 +175,6 @@ pub fn log_out(app: &mut AppContext) {
 
     AuthManager::handle(app).update(app, |auth_manager, ctx| {
         auth_manager.log_out(ctx);
-    });
-    AgentConversationsModel::handle(app).update(app, |agent_conversations_model, _| {
-        agent_conversations_model.reset();
     });
     CloudModel::handle(app).update(app, |cloud_model, _| {
         cloud_model.reset();

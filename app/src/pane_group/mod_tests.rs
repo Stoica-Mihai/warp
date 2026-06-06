@@ -17,7 +17,6 @@ use watcher::HomeDirectoryWatcher;
 
 use super::*;
 use crate::ai::agent::conversation::{AIConversation, AIConversationId};
-use crate::ai::agent_conversations_model::AgentConversationsModel;
 use crate::ai::ambient_agents::github_auth_notifier::GitHubAuthNotifier;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::document::ai_document_model::AIDocumentModel;
@@ -143,7 +142,6 @@ fn initialize_app(app: &mut App) {
     app.add_singleton_model(AIDocumentModel::new);
     app.add_singleton_model(|_| History::new(vec![]));
     app.add_singleton_model(|_| GitHubAuthNotifier::new());
-    app.add_singleton_model(AgentConversationsModel::new);
     app.add_singleton_model(remote_server::manager::RemoteServerManager::new);
 }
 

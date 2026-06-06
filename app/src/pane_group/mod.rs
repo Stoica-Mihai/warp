@@ -1,9 +1,7 @@
 use std::any::Any;
-use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsString;
 use std::path::PathBuf;
-use std::rc::Rc;
 use std::sync::mpsc::SyncSender;
 use std::sync::Arc;
 
@@ -38,12 +36,7 @@ use warpui::{
     ViewHandle, WeakViewHandle, WindowId,
 };
 
-use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::conversation::{AIConversation, AIConversationId};
-use crate::ai::agent_conversations_model::{
-    AgentConversationEntryId, AgentConversationNavigationSubject, AgentConversationsModel,
-    AgentConversationsModelEvent,
-};
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::blocklist::{InputConfig, SerializedBlockListItem};
 use crate::ai::execution_profiles::profiles::ClientProfileId;
@@ -119,9 +112,7 @@ use crate::util::openable_file_type::FileTarget;
 use crate::view_components::ToastFlavor;
 use crate::workflows::workflow::Workflow;
 use crate::workflows::{WorkflowSelectionSource, WorkflowSource, WorkflowType};
-use crate::workspace::{
-    self, CommandSearchOptions, PaneViewLocator, TabBarLocation, WorkspaceAction,
-};
+use crate::workspace::{self, CommandSearchOptions, PaneViewLocator, TabBarLocation};
 use crate::report_if_error;
 
 mod child_agent;
@@ -769,10 +760,6 @@ pub struct PaneGroup {
     /// If the right panel is maximized
     pub is_right_panel_maximized: bool,
 
-    /// Ambient agent panes whose task data was not yet cached at restoration time.
-    /// Entries are removed as each task's data arrives and the pane is replaced.
-    pending_ambient_agent_conversation_restorations: HashMap<AmbientAgentTaskId, PaneId>,
-
     /// Maps child agent conversation IDs to their hidden pane IDs, so they can
     /// be revealed from the parent's status card.
     child_agent_panes: HashMap<AIConversationId, PaneId>,
@@ -908,19 +895,6 @@ type InitialLayoutCallback = Box<
         &mut ViewContext<PaneGroup>,
     ) -> (PaneData, InitialFocus),
 >;
-
-/// The restoration path for an ambient agent pane.
-enum AmbientRestoreKind {
-    /// Active shared session
-    SharedSession,
-    /// Conversation data isn't loaded yet — show a loading pane and
-    /// defer the real restoration to the pending-restoration subscription
-    /// (which waits for the data to be loaded async).
-    PendingRestoration { task_id: AmbientAgentTaskId },
-    /// If there's no task ID to restore, we open a fresh cloud mode pane
-    /// (this is a valid state from when a user quits with an empty cloud mode pane).
-    NewCloudConversation,
-}
 
 impl PaneGroup {
     /// Executes the provided callback for each TerminalView contained within
@@ -1300,7 +1274,6 @@ impl PaneGroup {
         user_default_shell_unsupported_banner_model_handle: ModelHandle<BannerState>,
         view_size: Vector2F,
         model_event_sender: Option<SyncSender<ModelEvent>>,
-        pending_ambient_restorations: &mut Vec<(AmbientAgentTaskId, PaneId)>,
     ) -> anyhow::Result<(PaneData, InitialFocus)> {
         match root {
             PaneNodeSnapshot::Leaf(leaf) => Self::restore_pane_leaf(
@@ -1312,7 +1285,6 @@ impl PaneGroup {
                 user_default_shell_unsupported_banner_model_handle,
                 view_size,
                 model_event_sender,
-                pending_ambient_restorations,
             ),
             PaneNodeSnapshot::Branch(pane) => {
                 let mut len = 0;
@@ -1342,7 +1314,6 @@ impl PaneGroup {
                         user_default_shell_unsupported_banner_model_handle.clone(),
                         view_size,
                         model_event_sender.clone(),
-                        pending_ambient_restorations,
                     ) {
                         Ok((child, child_focus)) => {
                             len += child.len();
@@ -1377,7 +1348,6 @@ impl PaneGroup {
         user_default_shell_unsupported_banner_model_handle: ModelHandle<BannerState>,
         view_size: Vector2F,
         model_event_sender: Option<SyncSender<ModelEvent>>,
-        pending_ambient_restorations: &mut Vec<(AmbientAgentTaskId, PaneId)>,
     ) -> anyhow::Result<(PaneData, InitialFocus)> {
         let custom_vertical_tabs_title = leaf.custom_vertical_tabs_title.clone();
         let result = match leaf.contents {
@@ -1603,61 +1573,8 @@ impl PaneGroup {
                 Ok((PaneData::new(pane_id), focus))
             }
             LeafContents::AmbientAgent(snapshot) => {
-                let task_data = snapshot.task_id.map(|task_id| {
-                    let task = AgentConversationsModel::handle(ctx).update(ctx, |model, ctx| {
-                        model.get_or_async_fetch_task_data(&task_id, ctx)
-                    });
-                    (task_id, task)
-                });
-
-                let restore_kind = match &task_data {
-                    Some((task_id, Some(_))) => {
-                        match AgentConversationsModel::resolve_open_action(
-                            AgentConversationNavigationSubject::Entry(
-                                AgentConversationEntryId::AmbientRun(*task_id),
-                            ),
-                            None,
-                            ctx,
-                        ) {
-                            Some(WorkspaceAction::OpenOrAttachAmbientAgentConversation {
-                                ..
-                            }) => AmbientRestoreKind::SharedSession,
-                            // Transcript viewer and other non-session actions depend on conversation metadata from
-                            // BlocklistAIHistoryModel, which is loaded asynchronously.
-                            // Defer to the pending-restoration handler so it can retry once that metadata arrives.
-                            _ => task_data
-                                .as_ref()
-                                .map(|(tid, _)| AmbientRestoreKind::PendingRestoration {
-                                    task_id: *tid,
-                                })
-                                .unwrap_or(AmbientRestoreKind::NewCloudConversation),
-                        }
-                    }
-                    Some((task_id, None)) => {
-                        AmbientRestoreKind::PendingRestoration { task_id: *task_id }
-                    }
-                    None => AmbientRestoreKind::NewCloudConversation,
-                };
-
-                let mut pending_task: Option<AmbientAgentTaskId> = None;
-                let (terminal_view, terminal_manager) = match restore_kind {
-                    AmbientRestoreKind::SharedSession => {
-                        Self::create_ambient_agent_terminal(resources, view_size, ctx)
-                    }
-                    AmbientRestoreKind::PendingRestoration { task_id } => {
-                        let (view, manager) = Self::create_loading_terminal_manager_and_view(
-                            resources,
-                            view_size,
-                            ctx.window_id(),
-                            ctx,
-                        );
-                        pending_task = Some(task_id);
-                        (view, manager)
-                    }
-                    AmbientRestoreKind::NewCloudConversation => {
-                        Self::create_ambient_agent_terminal(resources, view_size, ctx)
-                    }
-                };
+                let (terminal_view, terminal_manager) =
+                    Self::create_ambient_agent_terminal(resources, view_size, ctx);
 
                 let pane_data = TerminalPane::new(
                     snapshot.uuid,
@@ -1669,11 +1586,6 @@ impl PaneGroup {
                 let terminal_pane_id = pane_data.terminal_pane_id();
                 let pane_id = terminal_pane_id.into();
                 pane_contents.insert(pane_id, Box::new(pane_data));
-
-                if let Some(task_id) = pending_task {
-                    // Defer restoration to after the task data is loaded.
-                    pending_ambient_restorations.push((task_id, pane_id));
-                }
 
                 let focus = InitialFocus {
                     focused_pane: leaf.is_focused.then_some(pane_id),
@@ -2153,7 +2065,6 @@ impl PaneGroup {
             right_panel_open: false,
             left_panel_open: false,
             is_right_panel_maximized: false,
-            pending_ambient_agent_conversation_restorations: HashMap::new(),
             child_agent_panes: HashMap::new(),
             transitively_shared_child_panes: HashMap::new(),
             child_agent_origin: None,
@@ -2455,158 +2366,6 @@ impl PaneGroup {
         (terminal_view, terminal_manager)
     }
 
-    /// Stores the pending ambient agent restorations, triggers async fetches for
-    /// their task data, and sets up a single long-lived subscription that will
-    /// process each pane as its task data arrives.
-    fn register_pending_ambient_restorations(
-        &mut self,
-        pending: Vec<(AmbientAgentTaskId, PaneId)>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        for (task_id, _) in &pending {
-            AgentConversationsModel::handle(ctx).update(ctx, |model, ctx| {
-                model.get_or_async_fetch_task_data(task_id, ctx);
-            });
-        }
-
-        self.pending_ambient_agent_conversation_restorations = pending.into_iter().collect();
-
-        let conversations_model = AgentConversationsModel::handle(ctx);
-        ctx.subscribe_to_model(&conversations_model, |me, _, event, ctx| {
-            me.handle_pending_ambient_restoration_event(event, ctx);
-        });
-    }
-
-    /// Subscription handler that processes pending ambient agent pane restorations
-    /// whenever task data is updated or conversations finish loading.
-    fn handle_pending_ambient_restoration_event(
-        &mut self,
-        event: &AgentConversationsModelEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        if !matches!(
-            event,
-            AgentConversationsModelEvent::TasksUpdated
-                | AgentConversationsModelEvent::ConversationsLoaded
-        ) {
-            return;
-        }
-
-        if self
-            .pending_ambient_agent_conversation_restorations
-            .is_empty()
-        {
-            return;
-        }
-
-        let ready_tasks: Vec<_> = self
-            .pending_ambient_agent_conversation_restorations
-            .keys()
-            .filter(|task_id| {
-                AgentConversationsModel::as_ref(ctx)
-                    .get_task_data(task_id)
-                    .is_some()
-            })
-            .copied()
-            .collect();
-
-        let resources = TerminalViewResources {
-            tips_completed: self.tips_completed.clone(),
-            server_api: self.server_api.clone(),
-            model_event_sender: self.model_event_sender.clone(),
-        };
-        let view_size = Self::estimated_view_bounds(ctx).size();
-
-        for task_id in ready_tasks {
-            let Some(pane_id) = self
-                .pending_ambient_agent_conversation_restorations
-                .remove(&task_id)
-            else {
-                continue;
-            };
-            let Some(task) = AgentConversationsModel::as_ref(ctx).get_task_data(&task_id) else {
-                continue;
-            };
-
-            match AgentConversationsModel::resolve_open_action(
-                AgentConversationNavigationSubject::Entry(AgentConversationEntryId::AmbientRun(
-                    task.task_id,
-                )),
-                None,
-                ctx,
-            ) {
-                Some(WorkspaceAction::OpenOrAttachAmbientAgentConversation {
-                    session_id: _,
-                    task_id: _,
-                }) => {
-                    let (view, terminal_manager) =
-                        Self::create_ambient_agent_terminal(resources.clone(), view_size, ctx);
-                    let new_pane = TerminalPane::new(
-                        Uuid::new_v4().as_bytes().to_vec(),
-                        terminal_manager,
-                        view,
-                        self.model_event_sender.clone(),
-                        ctx,
-                    );
-                    self.replace_pane(pane_id, new_pane, false, ctx);
-                }
-                Some(WorkspaceAction::OpenConversationTranscriptViewer {
-                    conversation_id,
-                    ambient_agent_task_id,
-                }) => {
-                    if let Some(target_view) = self.terminal_view_from_pane_id(pane_id, ctx) {
-                        Self::fetch_and_load_transcript(
-                            target_view,
-                            conversation_id,
-                            ambient_agent_task_id,
-                            ctx,
-                        );
-                    } else {
-                        self.pending_ambient_agent_conversation_restorations
-                            .insert(task_id, pane_id);
-                    }
-                }
-                _ => {
-                    self.replace_pane_with_new_cloud_conversation(pane_id, ctx);
-                }
-            }
-        }
-    }
-
-    /// Fetches conversation data and loads it into the given transcript viewer.
-    fn fetch_and_load_transcript(
-        target_view: ViewHandle<TerminalView>,
-        server_conversation_token: ServerConversationToken,
-        ambient_agent_task_id: Option<AmbientAgentTaskId>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let _ = (target_view, server_conversation_token, ambient_agent_task_id, ctx);
-    }
-
-    /// Replaces a pane with a new cloud conversation.
-    fn replace_pane_with_new_cloud_conversation(
-        &mut self,
-        pane_id: PaneId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let resources = TerminalViewResources {
-            tips_completed: self.tips_completed.clone(),
-            server_api: self.server_api.clone(),
-            model_event_sender: self.model_event_sender.clone(),
-        };
-        let view_size = Self::estimated_view_bounds(ctx).size();
-        let (view, terminal_manager) =
-            Self::create_ambient_agent_terminal(resources, view_size, ctx);
-        let new_pane = TerminalPane::new(
-            Uuid::new_v4().as_bytes().to_vec(),
-            terminal_manager,
-            view,
-            self.model_event_sender.clone(),
-            ctx,
-        );
-        self.replace_pane(pane_id, new_pane, false, ctx);
-    }
-
     /// Initial layout for a [`PaneGroup`] with a single ambient agent pane.
     fn initial_ambient_agent_pane(
         resources: TerminalViewResources,
@@ -2695,11 +2454,6 @@ impl PaneGroup {
             user_default_shell_unsupported_banner_model_handle.clone();
         let model_event_sender_clone = model_event_sender.clone();
 
-        // Shared container so pending ambient restorations collected inside the
-        // layout closure can be accessed after `new_internal` returns.
-        let pending_ambient = Rc::new(RefCell::new(Vec::new()));
-        let pending_ambient_for_closure = pending_ambient.clone();
-
         let initial_layout = move |resources,
                                    pane_contents: &mut HashMap<PaneId, Box<dyn AnyPaneContent>>,
                                    pane_history: &mut Vec<PaneId>,
@@ -2717,7 +2471,6 @@ impl PaneGroup {
                     model_event_sender_clone,
                 ),
                 PanesLayout::Snapshot(panes_snapshot) => {
-                    let mut pending_restorations = Vec::new();
                     let result = Self::restore_pane_tree(
                         *panes_snapshot,
                         block_lists,
@@ -2727,7 +2480,6 @@ impl PaneGroup {
                         unsupported_banner_model_handle.clone(),
                         view_bounds.size(),
                         model_event_sender_clone.clone(),
-                        &mut pending_restorations,
                     )
                     .unwrap_or_else(|err| {
                         log::warn!("Error restoring pane tree: {err:#}");
@@ -2742,8 +2494,6 @@ impl PaneGroup {
                             ctx,
                         )
                     });
-
-                    *pending_ambient_for_closure.borrow_mut() = pending_restorations;
 
                     result
                 }
@@ -2768,7 +2518,7 @@ impl PaneGroup {
             }
         };
 
-        let mut pane_group = Self::new_internal(
+        let pane_group = Self::new_internal(
             tips_completed,
             user_default_shell_unsupported_banner_model_handle,
             server_api,
@@ -2776,13 +2526,6 @@ impl PaneGroup {
             Box::new(initial_layout),
             ctx,
         );
-
-        // The closure has now run — register any pending ambient restorations
-        // that need to wait for task data from the server.
-        let pending = pending_ambient.take();
-        if !pending.is_empty() {
-            pane_group.register_pending_ambient_restorations(pending, ctx);
-        }
 
         pane_group
     }

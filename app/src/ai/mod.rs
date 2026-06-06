@@ -2,7 +2,6 @@
 //! Warp (including Agent Mode).
 pub mod execution_context;
 pub(crate) mod agent;
-pub(crate) mod agent_conversations_model;
 pub mod ambient_agents;
 pub(crate) mod artifact_download;
 pub mod artifacts;
@@ -16,7 +15,6 @@ pub(crate) mod blocklist;
 pub(crate) mod codebase_auto_indexing;
 pub(crate) mod conversation_navigation;
 pub(crate) mod conversation_status_ui;
-pub(crate) mod conversation_utils;
 pub(crate) mod document;
 pub(crate) mod get_relevant_files;
 pub mod harness_availability;
