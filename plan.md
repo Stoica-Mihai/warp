@@ -268,7 +268,9 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 ### AI strip — current state (2026-06-06 session 56)
 
-**Binary**: 721.4 MB (−7.75 MB session 56). 3-gate **94/65/95** (0/0/0 errors).
+**Binary**: 718.7 MB (−10.4 MB session 56). 3-gate **108/79/109** (0/0/0 errors; +14 vs 94/65/95 = generic cloud_object/ sorting/timestamp dead code exposed by the Warp Drive panel removal, KEEP per session-40 policy).
+
+**Warp Drive sidebar PANEL stripped (2 phases, −2.67 MB, ~9000 LoC):** P1 `644c340b` severed the entry point (DrivePanel registration + ToolPanelView::WarpDrive + ~60 sites in left_panel/view.rs + lib.rs init). P2 `d3e93af3` deleted the dead cluster (index.rs 5332 + panel.rs + items/ + 2 dialogs + tests), relocated the 2 generic types it defined (DriveIndexVariant, WarpDriveItemId → drive/mod.rs, ~200 refs), removed dead to_warp_drive_item from the generic CloudObject trait + 8 impls. **KEPT generic:** cloud_object/ (CloudObjectTypeAndId/CloudModel/GenericCloudObject/JsonObjectType), drive/folders, drive/workflows (modal editors), export, settings, cloud_object_styling, drive_helpers, OpenWarpDriveObject*, DriveObjectType. **LESSON:** the investigator initially mis-classified index.rs/items/ as "drive-internal-only" — but DriveIndexVariant/WarpDriveItemId/DriveIndexAction were entangled with generic cloud_object persistence + env_vars/mcp views (~200 refs). Verify trait-impl usage (grep `.method(` call sites, not just `impl`) before deleting a file with trait impls. OpenWarpDrive/ToggleWarpDrive workspace actions left as no-op seams (still dispatchable; could remove the action variants later).
 
 **Dead TypedActionViews DONE (`118b87bb`, −0.09 MB):** AgentTodosPopupView (empty stub, init-only keybinding, never instantiated) + DeleteConversationConfirmationDialog (zero-caller show_*(), dead UI — trigger removed in prior strips). Removed only the dialog-specific flag from the generic current_workspace_state struct.
 
