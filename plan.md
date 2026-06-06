@@ -1007,3 +1007,6 @@ Executed the full map above. Phase 1: dropped Cargo feature `voice_input` + `gui
 
 ### TEAMS backend strip — ✅ DONE (session 58, `0b...` see git: "strip dead Teams backend")
 Executed per the exact map (5 KEEP-traps all honored). Removed 15 dead TeamClient CRUD methods (team.rs 727→109) + ~18 UserWorkspaces CRUD wrappers/callbacks + team_client field + ctor params + lib.rs arg + CreateTeamResponse + ~22 graphql mutation imports + ~20 test-file mock args. KEPT: workspaces_metadata, TeamUpdateManager (workspace polling), team read-accessors, shared callbacks, stripe-billing. **3-gate 0/0/0, warnings 106/87/106 = baseline, warp_cli clean, −3.05 MB → 692.3 MB. ~1000 LoC.** No wrong-picture — the 5 traps were caught in mapping (workspaces_metadata / TeamUpdateManager-misnamed / read-accessors / stripe-billing-live / shared-callbacks).
+
+### Referrals server fetch — ✅ DONE (session 58, "strip dead Referrals server fetch")
+ReferralsClient (get_referral_info/send_invite) was dead-at-runtime (query_referral_status early-returns when not logged in). Deleted referral.rs + get_referrals_client + the fetch methods/wiring. KEPT ReferralThemeStatus (persisted theme-unlock survives) + theme_chooser. −0.59 MB → 691.7 MB. 3-gate 0/0/0, baseline warnings.
