@@ -155,9 +155,7 @@ use crate::drive::export::ExportManager;
 use crate::drive::items::WarpDriveItemId;
 use crate::drive::settings::{WarpDriveSettings, WarpDriveSettingsChangedEvent};
 use crate::drive::workflows::modal::{WorkflowModal, WorkflowModalEvent};
-use crate::drive::{
-    CloudObjectTypeAndId, DriveObjectType, DrivePanel, DrivePanelEvent, OpenWarpDriveObjectSettings,
-};
+use crate::drive::{CloudObjectTypeAndId, DriveObjectType, OpenWarpDriveObjectSettings};
 use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextOptions,
@@ -2699,7 +2697,7 @@ impl Workspace {
                 LeftPanelDisplayedTab::GlobalSearch => ToolPanelView::GlobalSearch {
                     entry_focus: GlobalSearchEntryFocus::Results,
                 },
-                LeftPanelDisplayedTab::WarpDrive => ToolPanelView::WarpDrive,
+                LeftPanelDisplayedTab::WarpDrive => ToolPanelView::ProjectExplorer,
             };
             lp.restore_active_view_from_snapshot(active_view, ctx);
             lp.set_active_pane_group(pane_group.clone(), &self.working_directories_model, ctx);
@@ -2916,35 +2914,11 @@ impl Workspace {
         });
     }
 
-    /// Sets focused to the index of either the selected object or the first item in WD
-    fn reset_focused_index_in_warp_drive(
-        &mut self,
-        should_scroll: bool,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        ctx.focus(&self.left_panel_view);
-
-        self.update_warp_drive_view(ctx, |drive_panel, ctx| {
-            drive_panel.reset_focused_index_in_warp_drive(should_scroll, ctx);
-        });
-    }
-
     pub fn has_warp_drive_initialized_sections(
         &self,
-        app: &AppContext,
+        _app: &AppContext,
     ) -> impl Future<Output = ()> {
-        self.left_panel_view
-            .as_ref(app)
-            .warp_drive_view()
-            .as_ref(app)
-            .has_warp_drive_initialized_sections(app)
-    }
-
-    /// Check if Warp Drive view is focused within.
-    /// Routes to the appropriate Warp Drive panel.
-    fn is_warp_drive_view_focused(&self, ctx: &mut ViewContext<Self>) -> bool {
-        let app = ctx;
-        self.left_panel_view.is_self_or_child_focused(app)
+        std::future::ready(())
     }
 
     fn current_focus_region(&self, ctx: &mut ViewContext<Self>) -> FocusRegion {
@@ -3132,14 +3106,10 @@ impl Workspace {
     /// This function shifts focus to the panel on the left.
     fn focus_left_panel(&mut self, ctx: &mut ViewContext<Self>) {
         if self.active_tab_pane_group().is_self_or_child_focused(ctx) {
-            if self.current_workspace_state.is_warp_drive_open {
-                self.reset_focused_index_in_warp_drive(true, ctx);
-            } else if self.is_theme_chooser_open() {
+            if self.is_theme_chooser_open() {
                 ctx.focus(&self.theme_chooser_view);
             }
-        } else if self.is_warp_drive_view_focused(ctx)
-            || self.theme_chooser_view.is_self_or_child_focused(ctx)
-        {
+        } else if self.theme_chooser_view.is_self_or_child_focused(ctx) {
             self.focus_active_tab(ctx);
         }
 
@@ -3149,14 +3119,10 @@ impl Workspace {
 
     fn focus_right_panel(&mut self, ctx: &mut ViewContext<Self>) {
         if self.active_tab_pane_group().is_self_or_child_focused(ctx) {
-            if self.current_workspace_state.is_warp_drive_open {
-                self.reset_focused_index_in_warp_drive(true, ctx);
-            } else if self.is_theme_chooser_open() {
+            if self.is_theme_chooser_open() {
                 ctx.focus(&self.theme_chooser_view);
             }
-        } else if self.is_warp_drive_view_focused(ctx)
-            || self.theme_chooser_view.is_self_or_child_focused(ctx)
-        {
+        } else if self.theme_chooser_view.is_self_or_child_focused(ctx) {
             self.focus_active_tab(ctx);
         }
 
@@ -4149,9 +4115,6 @@ impl Workspace {
             LeftPanelEvent::FileTree(pane_group_event) => {
                 let pane_group = self.active_tab_pane_group().clone();
                 self.handle_file_tree_event(pane_group, pane_group_event, ctx);
-            }
-            LeftPanelEvent::WarpDrive(drive_event) => {
-                self.handle_warp_drive_event(drive_event, ctx);
             }
             LeftPanelEvent::OpenFileWithTarget {
                 location,
@@ -5671,11 +5634,6 @@ impl Workspace {
         if !self.current_workspace_state.is_warp_drive_open {
             self.set_selected_object(None, ctx);
             self.focus_active_tab(ctx);
-        }
-
-        // Reset focused index when opening/toggling Warp Drive open
-        if self.current_workspace_state.is_warp_drive_open {
-            self.reset_focused_index_in_warp_drive(true, ctx);
         }
 
         ctx.notify();
@@ -9285,20 +9243,12 @@ impl Workspace {
     /// We do not want to focus Warp Drive, instead we want to focus the editor of the open object.
     fn view_in_warp_drive(&mut self, item_id: WarpDriveItemId, ctx: &mut ViewContext<Self>) {
         self.open_left_panel(ctx);
-        self.left_panel_view.update(ctx, |left_panel, ctx| {
-            left_panel.handle_action(&LeftPanelAction::WarpDrive, ctx);
-        });
 
         if let WarpDriveItemId::Object(object_id) = item_id {
             CloudModel::handle(ctx).update(ctx, |model, ctx| {
                 model.force_expand_object_and_ancestors_cloud_id(object_id, ctx);
             });
         }
-        self.update_warp_drive_view(ctx, |warp_drive, ctx| {
-            warp_drive.scroll_item_into_view(item_id, ctx);
-            warp_drive.expand_section_for_drive_item_id(item_id, ctx);
-            warp_drive.initialize_drive_section_states(ctx);
-        });
     }
 
     /// This function is used when we want to view an item in Warp Drive AND focus Warp Drive.
@@ -9308,41 +9258,18 @@ impl Workspace {
         ctx: &mut ViewContext<Self>,
     ) {
         self.view_in_warp_drive(item_id, ctx);
-
-        self.update_warp_drive_view(ctx, |warp_drive, ctx| {
-            warp_drive.reset_and_open_to_main_index(ctx);
-            warp_drive.set_focused_item(item_id, ctx);
-        });
         ctx.notify();
-    }
-
-    /// Updates the left panel's warp drive view.
-    fn update_warp_drive_view<F>(&mut self, ctx: &mut ViewContext<Self>, update_fn: F)
-    where
-        F: FnOnce(&mut DrivePanel, &mut ViewContext<DrivePanel>),
-    {
-        self.left_panel_view.update(ctx, |left_panel, ctx| {
-            left_panel.warp_drive_view().update(ctx, |warp_drive, ctx| {
-                update_fn(warp_drive, ctx);
-            });
-        });
     }
 
     fn move_to_drive_space(
         &mut self,
-        cloud_object_type_and_id: CloudObjectTypeAndId,
-        space: Space,
-        ctx: &mut ViewContext<Self>,
+        _cloud_object_type_and_id: CloudObjectTypeAndId,
+        _space: Space,
+        _ctx: &mut ViewContext<Self>,
     ) {
-        self.update_warp_drive_view(ctx, |warp_drive, ctx| {
-            warp_drive.move_object_to_team_owner(cloud_object_type_and_id, space, ctx);
-        });
     }
 
-    fn set_focused_index(&mut self, index: Option<usize>, ctx: &mut ViewContext<Self>) {
-        self.update_warp_drive_view(ctx, |warp_drive, ctx| {
-            warp_drive.set_focused_index(index, ctx);
-        });
+    fn set_focused_index(&mut self, _index: Option<usize>, ctx: &mut ViewContext<Self>) {
         ctx.notify();
     }
 
@@ -10441,26 +10368,7 @@ impl Workspace {
                 );
             }
             pane_group::Event::OpenAddPromptPane { initial_content } => {
-                if UserWorkspaces::as_ref(ctx).personal_drive(ctx).is_some() {
-                    self.update_warp_drive_view(ctx, |drive_view, ctx| {
-                        if let Some(initial_content) = initial_content {
-                            drive_view.create_workflow_with_content(
-                                Space::Personal,
-                                None,
-                                initial_content.clone(),
-                                true, // is_for_agent_mode
-                                ctx,
-                            );
-                        } else {
-                            drive_view.open_cloud_object_dialog(
-                                DriveObjectType::AgentModeWorkflow,
-                                Space::Personal,
-                                None,
-                                ctx,
-                            );
-                        }
-                    });
-                }
+                let _ = initial_content;
             }
             pane_group::Event::OpenFilesPalette { source } => {
                 self.open_palette_action(PaletteMode::Files, *source, None, ctx);
@@ -10473,7 +10381,7 @@ impl Workspace {
                     self.left_panel_view
                         .read(ctx, |left_panel, _| match target_view {
                             LeftPanelTargetView::FileTree => left_panel.is_file_tree_active(),
-                            LeftPanelTargetView::WarpDrive => left_panel.is_warp_drive_active(),
+                            LeftPanelTargetView::WarpDrive => false,
                         });
 
                 if self.active_tab_pane_group().as_ref(ctx).left_panel_open && is_target_active {
@@ -10487,10 +10395,12 @@ impl Workspace {
                     }
                     self.left_panel_view.update(ctx, |left_panel, ctx| {
                         let action = match target_view {
-                            LeftPanelTargetView::FileTree => LeftPanelAction::ProjectExplorer,
-                            LeftPanelTargetView::WarpDrive => LeftPanelAction::WarpDrive,
+                            LeftPanelTargetView::FileTree => Some(LeftPanelAction::ProjectExplorer),
+                            LeftPanelTargetView::WarpDrive => None,
                         };
-                        left_panel.handle_action_with_force_open(&action, *force_open, ctx);
+                        if let Some(action) = action {
+                            left_panel.handle_action_with_force_open(&action, *force_open, ctx);
+                        }
                     });
                 }
             }
@@ -10916,74 +10826,6 @@ impl Workspace {
                 self.right_panel_view.update(ctx, |right_panel, ctx| {
                     right_panel.update_session_env(false, false, ctx);
                 });
-            }
-        }
-    }
-
-    fn handle_warp_drive_event(&mut self, event: &DrivePanelEvent, ctx: &mut ViewContext<Self>) {
-        match event {
-            DrivePanelEvent::RunWorkflow(workflow) => {
-                self.run_cloud_workflow_in_active_input(
-                    workflow.as_ref().clone(),
-                    WorkflowSelectionSource::WarpDrive,
-                    TerminalSessionFallbackBehavior::default(),
-                    ctx,
-                );
-            }
-            DrivePanelEvent::InvokeEnvironmentVariables {
-                env_var_collection,
-                in_subshell,
-            } => {
-                self.invoke_environment_variables(
-                    env_var_collection.as_ref().clone(),
-                    *in_subshell,
-                    ctx,
-                );
-            }
-            DrivePanelEvent::OpenTeamSettingsPage => {
-                self.show_settings_with_section(Some(SettingsSection::Account), ctx);
-            }
-            DrivePanelEvent::OpenWorkflowModalWithNew {
-                space,
-                initial_folder_id,
-            } => {
-                self.open_workflow_modal(*space, *initial_folder_id, ctx);
-            }
-            DrivePanelEvent::OpenWorkflowModalWithCloudWorkflow(workflow_id) => {
-                self.open_workflow_with_existing(
-                    *workflow_id,
-                    &OpenWarpDriveObjectSettings::default(),
-                    ctx,
-                );
-            }
-            DrivePanelEvent::OpenSearch => {
-                self.open_palette_action(
-                    PaletteMode::WarpDrive,
-                    PaletteSource::WarpDrive,
-                    None,
-                    ctx,
-                );
-            }
-            DrivePanelEvent::OpenNotebook(source) => {
-                self.open_notebook(source, &OpenWarpDriveObjectSettings::default(), ctx, true)
-            }
-            DrivePanelEvent::OpenEnvVarCollection(source) => {
-                self.open_env_var_collection(source, false, ctx)
-            }
-            DrivePanelEvent::OpenWorkflowInPane(source, mode) => self.open_workflow_in_pane(
-                source,
-                &OpenWarpDriveObjectSettings::default(),
-                *mode,
-                ctx,
-            ),
-            DrivePanelEvent::OpenMCPServerCollection => {
-                self.show_settings_with_section(Some(SettingsSection::MCPServers), ctx);
-            }
-            DrivePanelEvent::FocusWarpDrive => {
-                ctx.focus(&self.left_panel_view);
-            }
-            DrivePanelEvent::OpenSharedObjectsCreationDeniedModal(object_type, team_uid) => {
-                self.open_shared_objects_creation_denied_modal(*object_type, *team_uid, ctx)
             }
         }
     }
@@ -11871,10 +11713,6 @@ impl Workspace {
     }
 
     fn set_selected_object(&mut self, id: Option<WarpDriveItemId>, ctx: &mut ViewContext<Self>) {
-        // Set Warp drive index selected state
-        self.update_warp_drive_view(ctx, |drive_panel, ctx| {
-            drive_panel.set_selected_object(id, ctx);
-        });
         // If WD open, show the highlighted object (force expand necessary ancestors)
         if self.current_workspace_state.is_warp_drive_open {
             if let Some(id) = id {
@@ -12436,11 +12274,10 @@ impl Workspace {
                         .left_panel_views
                         .first()
                         .copied()
-                        .unwrap_or(ToolPanelView::WarpDrive)
+                        .unwrap_or(ToolPanelView::ProjectExplorer)
                     {
                         ToolPanelView::ProjectExplorer => "Project explorer",
                         ToolPanelView::GlobalSearch { .. } => "Global search",
-                        ToolPanelView::WarpDrive => "Warp Drive",
                     }
                 } else {
                     "Tools panel"
@@ -12489,11 +12326,10 @@ impl Workspace {
                 .left_panel_views
                 .first()
                 .copied()
-                .unwrap_or(ToolPanelView::WarpDrive)
+                .unwrap_or(ToolPanelView::ProjectExplorer)
             {
                 ToolPanelView::ProjectExplorer => "Project explorer",
                 ToolPanelView::GlobalSearch { .. } => "Global search",
-                ToolPanelView::WarpDrive => "Warp Drive",
             }
         } else {
             "Tools panel"
@@ -15041,9 +14877,6 @@ impl Workspace {
                 entry_focus: GlobalSearchEntryFocus::Results,
             });
         }
-        if WarpDriveSettings::is_warp_drive_enabled(ctx) {
-            views.push(ToolPanelView::WarpDrive);
-        }
         views
     }
 
@@ -15530,16 +15363,7 @@ impl TypedActionView for Workspace {
             CreateTeamNotebook => {
                 let team_uid = self.team_uid(ctx);
                 if let Some(team_uid) = team_uid {
-                    self.update_warp_drive_view(ctx, |drive_panel, ctx| {
-                        drive_panel.open_cloud_object_dialog(
-                            DriveObjectType::Notebook {
-                                is_ai_document: false,
-                            },
-                            Space::Team { team_uid },
-                            None,
-                            ctx,
-                        );
-                    });
+                    let _ = team_uid;
                     self.current_workspace_state.is_warp_drive_open = true;
                     ctx.notify();
                 }
@@ -15560,14 +15384,7 @@ impl TypedActionView for Workspace {
             CreateTeamEnvVarCollection => {
                 let team_uid = self.team_uid(ctx);
                 if let Some(team_uid) = team_uid {
-                    self.update_warp_drive_view(ctx, |drive_panel, ctx| {
-                        drive_panel.open_cloud_object_dialog(
-                            DriveObjectType::EnvVarCollection,
-                            Space::Team { team_uid },
-                            None,
-                            ctx,
-                        );
-                    });
+                    let _ = team_uid;
                     self.current_workspace_state.is_warp_drive_open = true;
                     ctx.notify();
                 }
@@ -15608,28 +15425,13 @@ impl TypedActionView for Workspace {
                 }
             }
             CreatePersonalFolder => {
-                self.update_warp_drive_view(ctx, |drive_panel, ctx| {
-                    drive_panel.open_cloud_object_dialog(
-                        DriveObjectType::Folder,
-                        Space::Personal,
-                        None,
-                        ctx,
-                    );
-                });
                 self.current_workspace_state.is_warp_drive_open = true;
                 ctx.notify();
             }
             CreateTeamFolder => {
                 let team_uid = self.team_uid(ctx);
                 if let Some(team_uid) = team_uid {
-                    self.update_warp_drive_view(ctx, |drive_panel, ctx| {
-                        drive_panel.open_cloud_object_dialog(
-                            DriveObjectType::Folder,
-                            Space::Team { team_uid },
-                            None,
-                            ctx,
-                        );
-                    });
+                    let _ = team_uid;
                     self.current_workspace_state.is_warp_drive_open = true;
                     ctx.notify();
                 }
@@ -15642,11 +15444,7 @@ impl TypedActionView for Workspace {
                 self.finish_tab_rename(ctx);
                 self.current_workspace_state.is_tab_being_dragged = true;
             }
-            OpenWarpDrive => {
-                if WarpDriveSettings::is_warp_drive_enabled(ctx) {
-                    self.open_left_panel_view(&LeftPanelAction::WarpDrive, ctx);
-                }
-            }
+            OpenWarpDrive => {}
             ToggleLeftPanel => {
                 let active_pane_group = self.active_tab_pane_group().clone();
                 let was_open = active_pane_group.read(ctx, |pg, _| pg.left_panel_open);
@@ -15656,13 +15454,6 @@ impl TypedActionView for Workspace {
                     return;
                 }
 
-                let file_tree_active = self
-                    .left_panel_view
-                    .read(ctx, |lp, _| lp.is_file_tree_active());
-                let warp_drive_active = self
-                    .left_panel_view
-                    .read(ctx, |lp, _| lp.is_warp_drive_active());
-
                 self.toggle_left_panel(ctx);
 
                 let is_open = active_pane_group.read(ctx, |pg, _| pg.left_panel_open);
@@ -15671,11 +15462,6 @@ impl TypedActionView for Workspace {
                     self.left_panel_view.update(ctx, |left_panel, ctx| {
                         left_panel.focus_active_view_on_entry(ctx);
                     });
-
-                    if file_tree_active {
-                    } else if warp_drive_active {
-                        // Tools panel opened with Warp Drive as the active view
-                    }
                 }
             }
             ToggleRightPanel => {
@@ -16028,9 +15814,7 @@ impl TypedActionView for Workspace {
                 self.view_in_and_focus_warp_drive(*item_id, ctx);
             }
             UndoTrash(cloud_object_type_and_id) => {
-                self.update_warp_drive_view(ctx, |warp_drive, ctx| {
-                    warp_drive.undo_trash(cloud_object_type_and_id, ctx);
-                });
+                let _ = cloud_object_type_and_id;
             }
             TerminateApp => {
                 ctx.terminate_app(TerminationMode::Cancellable, None);
@@ -16406,13 +16190,7 @@ impl TypedActionView for Workspace {
                     self.toggle_left_panel_view(&LeftPanelAction::ProjectExplorer, is_showing, ctx);
                 }
             }
-            ToggleWarpDrive => {
-                if WarpDriveSettings::is_warp_drive_enabled(ctx) {
-                    let is_showing =
-                        self.left_panel_view.as_ref(ctx).active_view() == ToolPanelView::WarpDrive;
-                    self.toggle_left_panel_view(&LeftPanelAction::WarpDrive, is_showing, ctx);
-                }
-            }
+            ToggleWarpDrive => {}
             ToggleGlobalSearch => {
                 if FeatureFlag::GlobalSearch.is_enabled()
                     && *CodeSettings::as_ref(ctx).show_global_search

@@ -1390,7 +1390,6 @@ pub(crate) fn initialize_app(
     billing::shared_objects_creation_denied_modal::init(ctx);
     tab_configs::new_worktree_modal::init(ctx);
     tab_configs::params_modal::init(ctx);
-    drive::index::init(ctx);
     env_vars::env_var_collection_block::init(ctx);
     terminal::ssh::install_tmux::init(ctx);
     terminal::ssh::warpify::init(ctx);
