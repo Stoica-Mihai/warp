@@ -1,4 +1,5 @@
 pub(crate) mod conversation;
+pub(crate) mod conversation_types;
 pub(crate) mod conversation_yaml;
 pub(crate) mod todos;
 

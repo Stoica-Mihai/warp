@@ -1,24 +1,17 @@
 use std::collections::{HashMap, HashSet};
-use std::fmt::Display;
 
 use ai::agent::orchestration_config::{OrchestrationConfig, OrchestrationConfigStatus};
 use ai::document::AIDocumentId;
 use chrono::{DateTime, Local, TimeZone};
 use itertools::Itertools as _;
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use vec1::{Size0Error, Vec1};
 use warp_cli::agent::Harness;
 use warp_core::command::ExitCode;
 use warp_core::execution_mode::AppExecutionMode;
 use warp_core::features::FeatureFlag;
-use warp_core::ui::appearance::Appearance;
-use warp_core::ui::theme::color::internal_colors;
-use warp_core::ui::theme::WarpTheme;
 use warp_multi_agent_api::response_event::stream_finished;
 use warp_multi_agent_api::response_event::stream_finished::TokenUsage;
 use warp_multi_agent_api::{self as api};
-use warpui::color::ColorU;
 use warpui::{EntityId, ModelContext, SingletonEntity};
 
 use super::api::ServerConversationToken;
@@ -40,9 +33,6 @@ use crate::ai::agent::api::convert_conversation::{
     ConvertToExchanges,
 };
 use crate::ai::agent::comment::CodeReview;
-use crate::ai::agent::icons::{
-    failed_icon, gray_stop_icon, in_progress_icon, succeeded_icon, yellow_stop_icon,
-};
 use crate::ai::agent::linearization::compute_task_depths;
 use crate::ai::agent::todos::AIAgentTodoList;
 use crate::ai::agent::{
@@ -64,8 +54,11 @@ use crate::terminal::general_settings::GeneralSettings;
 use crate::terminal::model::block::{
     AgentInteractionMetadata, AgentViewVisibility, BlockId, SerializedAIMetadata, SerializedBlock,
 };
-use crate::ui_components::icons::Icon;
 use crate::GlobalResourceHandlesProvider;
+
+pub use crate::ai::agent::conversation_types::{
+    AIConversationId, ConversationStatus, StatusColorStyle,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TodoStatus {
@@ -3605,36 +3598,6 @@ pub enum UpdateConversationError {
     NoPendingRequest,
 }
 
-/// A globally unique ID for a conversation with an AI agent.
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct AIConversationId(Uuid);
-
-impl Display for AIConversationId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl AIConversationId {
-    pub fn new() -> Self {
-        Self(Uuid::new_v4())
-    }
-}
-
-impl Default for AIConversationId {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl TryFrom<String> for AIConversationId {
-    type Error = anyhow::Error;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        Ok(Self(Uuid::try_parse(&value)?))
-    }
-}
-
 /// The harness that produced an agent conversation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AIAgentHarness {
@@ -3777,117 +3740,6 @@ impl From<AIConversationAutoexecuteMode> for PersistedAutoexecuteMode {
             AIConversationAutoexecuteMode::RespectUserSettings => Self::RespectUserSettings,
             AIConversationAutoexecuteMode::RunToCompletion => Self::RunToCompletion,
         }
-    }
-}
-
-#[derive(Clone, Copy)]
-pub enum StatusColorStyle {
-    /// Foreground-blend colors (`ansi_fg`) used by the regular status badge.
-    Standard,
-    /// Background-blend colors (`ansi_bg`) used by the cloud overlay badge.
-    Cloud,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum ConversationStatus {
-    /// Agent is running.
-    InProgress,
-
-    /// The last turn of the agent finished with success.
-    Success,
-
-    /// The last turn of the agent completed with error.
-    Error,
-
-    /// The last turn of the agent was cancelled by the user.
-    Cancelled,
-
-    /// The last turn of the agent resulted in an action whose execution is blocked by the user.
-    Blocked { blocked_action: String },
-}
-
-impl std::fmt::Display for ConversationStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ConversationStatus::InProgress => write!(f, "In progress"),
-            ConversationStatus::Success => write!(f, "Done"),
-            ConversationStatus::Error => write!(f, "Error"),
-            ConversationStatus::Cancelled => write!(f, "Cancelled"),
-            ConversationStatus::Blocked { .. } => write!(f, "Blocked"),
-        }
-    }
-}
-
-impl ConversationStatus {
-    pub fn render_icon(&self, appearance: &Appearance) -> warpui::elements::Icon {
-        match self {
-            ConversationStatus::InProgress => in_progress_icon(appearance),
-            ConversationStatus::Success => succeeded_icon(appearance),
-            ConversationStatus::Blocked { .. } => yellow_stop_icon(appearance),
-            ConversationStatus::Error => failed_icon(appearance),
-            ConversationStatus::Cancelled => gray_stop_icon(appearance),
-        }
-    }
-
-    pub fn status_icon_and_color(
-        &self,
-        theme: &WarpTheme,
-        color_style: StatusColorStyle,
-    ) -> (Icon, ColorU) {
-        match self {
-            ConversationStatus::InProgress => (
-                Icon::ClockLoader,
-                match color_style {
-                    StatusColorStyle::Standard => theme.ansi_fg_magenta(),
-                    StatusColorStyle::Cloud => theme.ansi_bg_magenta(),
-                },
-            ),
-            ConversationStatus::Success => (
-                Icon::Check,
-                match color_style {
-                    StatusColorStyle::Standard => theme.ansi_fg_green(),
-                    StatusColorStyle::Cloud => theme.ansi_bg_green(),
-                },
-            ),
-            ConversationStatus::Error => (
-                Icon::Triangle,
-                match color_style {
-                    StatusColorStyle::Standard => theme.ansi_fg_red(),
-                    StatusColorStyle::Cloud => theme.ansi_bg_red(),
-                },
-            ),
-            ConversationStatus::Cancelled => (Icon::StopFilled, internal_colors::neutral_5(theme)),
-            ConversationStatus::Blocked { .. } => (
-                Icon::StopFilled,
-                match color_style {
-                    StatusColorStyle::Standard => theme.ansi_fg_yellow(),
-                    StatusColorStyle::Cloud => theme.ansi_bg_yellow(),
-                },
-            ),
-        }
-    }
-
-    pub fn is_in_progress(&self) -> bool {
-        matches!(self, ConversationStatus::InProgress)
-    }
-
-    pub fn is_blocked(&self) -> bool {
-        matches!(self, ConversationStatus::Blocked { .. })
-    }
-
-    pub fn is_cancelled(&self) -> bool {
-        matches!(self, ConversationStatus::Cancelled)
-    }
-
-    pub fn is_done(&self) -> bool {
-        matches!(
-            self,
-            ConversationStatus::Success | ConversationStatus::Error | ConversationStatus::Cancelled
-        )
-    }
-
-    pub fn is_error(&self) -> bool {
-        matches!(self, ConversationStatus::Error)
     }
 }
 
