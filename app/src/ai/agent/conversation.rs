@@ -3645,6 +3645,24 @@ pub enum AIAgentHarness {
     Unknown,
 }
 
+impl From<AIAgentHarness> for Harness {
+    fn from(harness: AIAgentHarness) -> Self {
+        match harness {
+            AIAgentHarness::Oz => Harness::Oz,
+            AIAgentHarness::ClaudeCode => Harness::Claude,
+            AIAgentHarness::Gemini => Harness::Gemini,
+            AIAgentHarness::Codex => Harness::Codex,
+            AIAgentHarness::Unknown => Harness::Unknown,
+        }
+    }
+}
+
+impl PartialEq<Harness> for AIAgentHarness {
+    fn eq(&self, other: &Harness) -> bool {
+        Harness::from(*self) == *other
+    }
+}
+
 /// Metadata for an AI conversation, containing all information from the GraphQL API
 /// except the full task list data.
 #[derive(Debug, Clone)]

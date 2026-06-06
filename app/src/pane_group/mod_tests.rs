@@ -21,7 +21,6 @@ use crate::ai::ambient_agents::github_auth_notifier::GitHubAuthNotifier;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::document::ai_document_model::AIDocumentModel;
 use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
-use crate::ai::harness_availability::HarnessAvailabilityModel;
 use crate::ai::mcp::templatable_manager::TemplatableMCPServerManager;
 use crate::ai::mcp::{FileBasedMCPManager, FileMCPWatcher};
 use crate::ai::outline::RepoOutlines;
@@ -114,7 +113,6 @@ fn initialize_app(app: &mut App) {
     app.add_singleton_model(|ctx| {
         AIRequestUsageModel::new_for_test(ServerApiProvider::as_ref(ctx).get_ai_client(), ctx)
     });
-    app.add_singleton_model(HarnessAvailabilityModel::new);
     #[cfg(feature = "voice_input")]
     app.add_singleton_model(voice_input::VoiceInput::new);
     #[cfg(feature = "local_fs")]

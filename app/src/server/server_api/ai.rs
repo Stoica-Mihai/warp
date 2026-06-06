@@ -34,9 +34,6 @@ use warp_graphql::mutations::update_merkle_tree::{
 use warp_graphql::queries::codebase_context_config::{
     CodebaseContextConfigQuery, CodebaseContextConfigResult, CodebaseContextConfigVariables,
 };
-use warp_graphql::queries::get_available_harnesses::{
-    GetAvailableHarnesses, GetAvailableHarnessesVariables,
-};
 use warp_graphql::queries::get_relevant_fragments::{
     GetRelevantFragmentsQuery, GetRelevantFragmentsResult, GetRelevantFragmentsVariables,
 };
@@ -61,7 +58,6 @@ use crate::ai::artifacts::Artifact;
 use crate::ai::generate_code_review_content::api::{
     GenerateCodeReviewContentRequest, GenerateCodeReviewContentResponse,
 };
-use crate::ai::harness_availability::HarnessAvailability;
 #[cfg(feature = "agent_mode_evals")]
 use crate::ai::request_usage_model::RequestLimitInfo;
 #[cfg(not(feature = "agent_mode_evals"))]
@@ -121,7 +117,6 @@ pub trait AIClient: 'static + Send + Sync {
     async fn get_request_limit_info(&self) -> Result<RequestUsageInfo, anyhow::Error>;
 
 
-    async fn get_available_harnesses(&self) -> Result<Vec<HarnessAvailability>, anyhow::Error>;
     async fn list_connected_self_hosted_workers(
         &self,
     ) -> Result<ListConnectedSelfHostedWorkersResponse, anyhow::Error>;
@@ -261,42 +256,6 @@ impl AIClient for ServerApi {
             }
             warp_graphql::queries::get_request_limit_info::UserResult::Unknown => {
                 Err(anyhow!("failed to get request limit info"))
-            }
-        }
-    }
-
-    async fn get_available_harnesses(&self) -> Result<Vec<HarnessAvailability>, anyhow::Error> {
-        let variables = GetAvailableHarnessesVariables {
-            request_context: get_request_context(),
-        };
-        let operation = GetAvailableHarnesses::build(variables);
-        let response = self.send_graphql_request(operation, None).await?;
-
-        match response.user {
-            warp_graphql::queries::get_available_harnesses::UserResult::UserOutput(output) => {
-                Ok(output
-                    .user
-                    .available_harnesses
-                    .harnesses
-                    .into_iter()
-                    .map(|h| HarnessAvailability {
-                        harness: convert_harness(h.harness).into(),
-                        display_name: h.display_name,
-                        enabled: h.enabled,
-                        available_models: h
-                            .available_models
-                            .into_iter()
-                            .map(|m| crate::ai::harness_availability::HarnessModelInfo {
-                                id: m.id.into_inner(),
-                                display_name: m.display_name,
-                                reasoning_level: m.reasoning_level,
-                            })
-                            .collect(),
-                    })
-                    .collect())
-            }
-            warp_graphql::queries::get_available_harnesses::UserResult::Unknown => {
-                Err(anyhow!("Failed to get available harnesses"))
             }
         }
     }

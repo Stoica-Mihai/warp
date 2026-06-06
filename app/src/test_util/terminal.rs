@@ -14,7 +14,6 @@ use crate::ai::blocklist::SerializedBlockListItem;
 use crate::ai::connected_self_hosted_workers::ConnectedSelfHostedWorkersModel;
 use crate::ai::document::ai_document_model::AIDocumentModel;
 use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
-use crate::ai::harness_availability::HarnessAvailabilityModel;
 use crate::ai::mcp::gallery::MCPGalleryManager;
 use crate::ai::mcp::templatable_manager::TemplatableMCPServerManager;
 use crate::ai::outline::RepoOutlines;
@@ -83,7 +82,6 @@ pub fn initialize_app_for_terminal_view(app: &mut App) {
     app.add_singleton_model(|_| ActiveSession::default());
     app.add_singleton_model(|_| AuthStateProvider::new_for_test());
     app.add_singleton_model(AuthManager::new_for_test);
-    app.add_singleton_model(HarnessAvailabilityModel::new);
     app.add_singleton_model(ConnectedSelfHostedWorkersModel::new);
     app.add_singleton_model(DirectoryWatcher::new);
     app.add_singleton_model(|_| DetectedRepositories::default());

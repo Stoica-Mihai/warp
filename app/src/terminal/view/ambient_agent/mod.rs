@@ -1,10 +1,5 @@
-mod auth_secret_ftux_dropdown;
-mod auth_secret_ftux_view;
 mod view_impl;
 
-pub use auth_secret_ftux_view::{
-    AuthSecretFtuxAction, AuthSecretFtuxView, AuthSecretFtuxViewEvent,
-};
 use warpui::geometry::vector::Vector2F;
 use warpui::{AppContext, ModelHandle, ViewHandle, WindowId};
 
