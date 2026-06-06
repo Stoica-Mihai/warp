@@ -15784,8 +15784,6 @@ impl TypedActionView for TerminalView {
                 "Use file picker to select a git repository".to_owned(),
                 WarpA11yRole::PopoverRole,
             )),
-            #[cfg(feature = "voice_input")]
-            ToggleCLIAgentVoiceInput(_) => Empty,
             // Below are actions that are most likely irrelevant to users or are very noisy and the
             // debug version shouldn't be announced.
             Scroll { .. }
@@ -16187,12 +16185,6 @@ impl TypedActionView for TerminalView {
                     input.set_input_mode_terminal(true, ctx);
                 });
                 ctx.notify();
-            }
-            #[cfg(feature = "voice_input")]
-            ToggleCLIAgentVoiceInput(source) => {
-                self.input.update(ctx, |input, ctx| {
-                    input.toggle_voice_input(source, ctx);
-                });
             }
             HyperlinkClick(hyperlink) => {
                 ctx.notify();

@@ -201,15 +201,11 @@ pub struct UniversalDeveloperInputButtonBar {
 
 #[derive(Debug, Clone)]
 pub enum UniversalDeveloperInputButtonBarAction {
-    #[cfg(feature = "voice_input")]
-    ToggleVoiceInput,
     SelectFile,
     OpenSlashCommandMenu,
 }
 
 pub enum UniversalDeveloperInputButtonBarEvent {
-    #[cfg(feature = "voice_input")]
-    ToggleVoiceInput(voice_input::VoiceInputToggledFrom),
     InputTypeSelected(InputType),
     EnableAutoDetection,
     SelectFile,
@@ -229,20 +225,11 @@ impl UniversalDeveloperInputButtonBar {
         let button_size = ButtonSize::UDIButton;
 
         let mic_button_view = ctx.add_typed_action_view(|_ctx| {
-            #[cfg_attr(not(feature = "voice_input"), allow(unused_mut))]
-            let mut button = ActionButton::new("", PromptIconButtonTheme::new(false))
+            let button = ActionButton::new("", PromptIconButtonTheme::new(false))
                 .with_icon(Icon::Microphone)
                 .with_tooltip("Voice input")
                 .with_size(button_size)
                 .with_tooltip_alignment(TooltipAlignment::Left);
-            #[cfg(feature = "voice_input")]
-            {
-                button = button.on_click(|ctx| {
-                    ctx.dispatch_typed_action(
-                        UniversalDeveloperInputButtonBarAction::ToggleVoiceInput,
-                    );
-                });
-            }
             button
         });
 
@@ -532,8 +519,6 @@ impl View for UniversalDeveloperInputButtonBar {
     fn render(&self, app: &AppContext) -> Box<dyn warpui::Element> {
         let appearance = Appearance::as_ref(app);
         let theme = appearance.theme();
-        #[cfg(feature = "voice_input")]
-        let is_voice_input_enabled = AISettings::as_ref(app).is_voice_input_enabled(app);
 
         // Helper function to create a 1px vertical divider
         let create_divider = || {
@@ -565,10 +550,6 @@ impl View for UniversalDeveloperInputButtonBar {
 
             buttons = buttons.with_child(ChildView::new(&self.slash_command_button).finish());
 
-            #[cfg(feature = "voice_input")]
-            if is_voice_input_enabled {
-                buttons = buttons.with_child(ChildView::new(&self.mic_button).finish());
-            }
 
             buttons = buttons.with_child(ChildView::new(&self.file_button).finish());
 
@@ -601,12 +582,6 @@ impl TypedActionView for UniversalDeveloperInputButtonBar {
         ctx: &mut ViewContext<Self>,
     ) {
         match action {
-            #[cfg(feature = "voice_input")]
-            UniversalDeveloperInputButtonBarAction::ToggleVoiceInput => {
-                ctx.emit(UniversalDeveloperInputButtonBarEvent::ToggleVoiceInput(
-                    voice_input::VoiceInputToggledFrom::Button,
-                ));
-            }
             UniversalDeveloperInputButtonBarAction::SelectFile => {
                 ctx.emit(UniversalDeveloperInputButtonBarEvent::SelectFile);
             }

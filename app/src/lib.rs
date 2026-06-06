@@ -1006,7 +1006,6 @@ pub(crate) fn initialize_app(
 
     let server_api_provider = ctx
         .add_singleton_model(|ctx| ServerApiProvider::new(auth_state.clone(), None, ctx));
-    let server_api = server_api_provider.as_ref(ctx).get();
     let ai_client = server_api_provider.as_ref(ctx).get_ai_client();
 
     ctx.add_singleton_model(|_ctx| AuthStateProvider::new(auth_state.clone()));
