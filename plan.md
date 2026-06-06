@@ -942,3 +942,38 @@ Full cut surface verified — `AIConversation`/`AIAgentOutput`/`Task` mass has Z
 **Teams backend strip (most-contained, ~MEDIUM, own focused session):** (1) remove team-management methods from UserWorkspaces (send_team_invite_email/reset_invite_links/invite-domain-restrictions/rename/discoverability/ownership/roles — ~15 wrappers + team_client field + param in both new() ctors) + fix the settings_view/main_page.rs:801 + auth/mod.rs:180 TeamUpdateManager refs; (2) delete TeamUpdateManager (workspaces/update_manager.rs) + its lib.rs/auth/test regs; (3) delete TeamClient trait + team.rs + ServerApiProvider::get_team_client + the 2 lib.rs caller args; (4) cascade DiscoverableTeam/WorkspacesMetadataWithPricing/invite types if orphaned. CAUTION: UserWorkspaces is load-bearing (local workspace state) — keep workspaces_metadata if it backs local workspace listing; verify each team method is truly UI-stripped-dead before removing. Risky (core model) — do with fresh focus, not tail-of-session.
 
 **Peripheral server/ targets (cleaner, smaller):** voice_transcriber + ai/voice (editor voice→server transcription, a removable feature, MEDIUM); network_logging/network_log_* (generic HTTP inspector — likely KEEP). telemetry/events.rs metadata structs are threaded through ~10 files (NOT dead — defer). retry_strategies plan-deferred.
+
+---
+
+## VOICE feature — EXACT full map (session 58, verified file-by-file)
+
+Voice = local mic capture (cpal) → WAV → **warp-server `/ai/transcribe`** (Wispr/OpenAI) → text inserted into editor/terminal input. **Server-backed (needs Warp backend) → strip target.** Gated by Cargo feature `voice_input` (optional dep; `gui = ["voice_input"]`; NOT in default features, so default + `--tests` gates already compile with it OFF).
+
+### Strategy: 2 phases. Phase 1 (drop feature) auto-removes all cfg-gated wiring; Phase 2 deletes the unconditional residue.
+
+**A. Cargo feature `voice_input` (drop in Phase 1):**
+- `app/Cargo.toml:206` `voice_input = { workspace = true, optional = true }` · `:614` `gui = [… "voice_input"]` · `:716` `voice_input = ["dep:voice_input"]`
+- `Cargo.toml:67` workspace member `voice_input = { path = "crates/voice_input" }`
+- **`crates/voice_input/` (422 LoC)** — the whole audio-capture crate (cpal mic, rubato resample, WAV/base64): VoiceInput singleton, VoiceInputState, VoiceInputToggledFrom, VoiceSessionResult, StartListeningError. DELETE crate.
+
+**B. `#[cfg(feature="voice_input")]`-GATED (vanish automatically when feature dropped — confirmed gated):**
+- `editor/view/mod.rs:6-7` `mod voice;` → the **whole 589-line `editor/view/voice.rs`** + mod.rs voice items at :60/:104/:123/:1036 (EditorAction::ToggleVoiceInput, fields, VOICE consts region).
+- `lib.rs:1387` `VoiceInput::new` singleton reg.
+- `root_view.rs:195-200` global actions (abort_voice_input / maybe_stop_active_voice_input) + `:1169` fns + key handling (1662-1685).
+- `terminal/universal_developer_input.rs` ToggleVoiceInput action+event+render (204/211/238/535/568/604) + set_voice_is_listening.
+- `terminal/view/action.rs:247` ToggleCLIAgentVoiceInput.
+- `terminal/input.rs:3274` handler.
+- key sites (verify gated): `editor/view/element.rs:458`, `terminal/alt_screen/alt_screen_element.rs:556`, `terminal/block_list_element.rs:2699` (VoiceInputToggledFrom::Key).
+- ~15 `*_tests.rs` `#[cfg(feature="voice_input")] add_singleton_model(voice_input::VoiceInput::new)` regs.
+
+**C. UNCONDITIONAL (compiles with feature off → must DELETE explicitly in Phase 2):**
+- `app/src/voice/` (mod.rs + transcriber.rs, 49 LoC) — `Transcriber` trait + `VoiceTranscriber` singleton. lib.rs:86 `mod voice;`.
+- `app/src/ai/voice/` (mod + transcribe/ api types, ~160 LoC) — TranscribeRequest/Response/Provider/OpenAIProperties/WisprProperties. ai/mod.rs:21 `pub(crate) mod voice;`.
+- `app/src/server/voice_transcriber.rs` (41 LoC) — ServerVoiceTranscriber (impl Transcriber via server_api.transcribe). server/mod.rs:12.
+- `lib.rs:1389` `VoiceTranscriber::new(ServerVoiceTranscriber::new(...))` reg (NOT gated — only the VoiceInput reg above it is) + imports :139/:148.
+- `server/server_api.rs` — `transcribe()` method (931-975) + `TranscribeError` enum (334) + TranscribeRequest/Response imports (44).
+- `settings/ai.rs` — `VoiceInputToggleKey` enum (105-213+) + `is_voice_input_enabled()` (1532) + settings `dismissed_voice_input_new_feature_popup` (865) / `explicitly_interacted_with_voice` (878) + interacted logic (1782-1805).
+- `workspaces/workspace.rs:319` `is_voice_enabled` field (WarpAiPolicy) + `gql_convert.rs:170` + `user_workspaces.rs:450-462` `is_voice_enabled()` (uses `cfg!(feature="voice_input")`).
+- `editor/view/mod.rs:133` `VOICE_ERROR_TOAST_TEXT` (+ VOICE_LIMIT_HIT) consts + `:1355` `pub use …VoiceTranscriber` re-export — verify gated vs not.
+
+**Scope: 58 files touch "voice"; ~30 are cfg-gated (vanish via feature drop) or test-regs; ~12-15 unconditional files need explicit edits + 1 crate deletion.** Cascade to watch: FeaturePopup "Try Voice Input" (NewFeaturePopupLabel) usage; AISettings entered_agent_mode_num_times is SHARED (keep); UserWorkspaces is load-bearing (only remove is_voice_enabled method + policy field). 3-gate + the gui build (`--features gui` pulls voice_input today — after the strip, gui must drop it). This is a real MEDIUM (whole crate + Cargo feature + 2 input surfaces + settings + workspace policy), NOT a small clean feature.
