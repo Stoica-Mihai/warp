@@ -12,7 +12,6 @@ pub mod telemetry;
 
 pub use task::{
     cancel_task_silently, cancel_task_with_toast, AgentConfigSnapshot, AgentSource,
-    AmbientAgentLiveSessionState, AmbientAgentTask, AmbientAgentTaskState,
 };
 
 #[derive(Debug, thiserror::Error)]

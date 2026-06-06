@@ -7,7 +7,6 @@ use ai::index::full_source_code_embedding::{
 };
 use anyhow::anyhow;
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
 use cynic::{MutationBuilder, QueryBuilder};
 use itertools::Itertools;
 #[cfg(test)]
@@ -60,9 +59,7 @@ use crate::ai::agent::api::ServerConversationToken;
 use crate::ai::agent::conversation::{AIAgentHarness, ServerAIConversationMetadata};
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 // Re-export ambient agent types for backwards compatibility
-pub use crate::ai::ambient_agents::{
-    AgentConfigSnapshot, AgentSource, AmbientAgentTask, AmbientAgentTaskState,
-};
+pub use crate::ai::ambient_agents::{AgentConfigSnapshot, AgentSource};
 use crate::ai::artifacts::Artifact;
 use crate::ai::generate_code_review_content::api::{
     GenerateCodeReviewContentRequest, GenerateCodeReviewContentResponse,
@@ -103,115 +100,6 @@ impl InitialSnapshotToken {
 }
 
 
-/// Filter parameters for listing ambient agent tasks.
-#[derive(Clone, Debug, Default)]
-pub struct TaskListFilter {
-    pub creator_uid: Option<String>,
-    pub updated_after: Option<DateTime<Utc>>,
-    pub created_after: Option<DateTime<Utc>>,
-    pub created_before: Option<DateTime<Utc>>,
-    pub states: Option<Vec<AmbientAgentTaskState>>,
-    pub source: Option<AgentSource>,
-    pub environment_id: Option<String>,
-    pub skill_spec: Option<String>,
-    pub schedule_id: Option<String>,
-    pub ancestor_run_id: Option<String>,
-    pub config_name: Option<String>,
-    pub model_id: Option<String>,
-    pub search_query: Option<String>,
-    pub cursor: Option<String>,
-}
-
-pub(crate) fn build_list_agent_runs_url(limit: i32, filter: &TaskListFilter) -> String {
-    let mut url = format!("agent/runs?limit={limit}");
-
-    let mut push = |key: &str, value: &str| {
-        url.push('&');
-        url.push_str(key);
-        url.push('=');
-        url.push_str(urlencoding::encode(value).as_ref());
-    };
-
-    if let Some(creator_uid) = filter.creator_uid.as_deref() {
-        push("creator", creator_uid);
-    }
-    if let Some(updated_after) = filter.updated_after {
-        push("updated_after", &updated_after.to_rfc3339());
-    }
-    if let Some(created_after) = filter.created_after {
-        push("created_after", &created_after.to_rfc3339());
-    }
-    if let Some(created_before) = filter.created_before {
-        push("created_before", &created_before.to_rfc3339());
-    }
-    if let Some(states) = filter.states.as_ref() {
-        for state in states {
-            if let Some(value) = state.as_query_param() {
-                push("state", value);
-            }
-        }
-    }
-    if let Some(source) = filter.source.as_ref() {
-        push("source", source.as_str());
-    }
-    if let Some(environment_id) = filter.environment_id.as_deref() {
-        push("environment_id", environment_id);
-    }
-    if let Some(skill_spec) = filter.skill_spec.as_deref() {
-        push("skill_spec", skill_spec);
-    }
-    if let Some(schedule_id) = filter.schedule_id.as_deref() {
-        push("schedule_id", schedule_id);
-    }
-    if let Some(ancestor_run_id) = filter.ancestor_run_id.as_deref() {
-        push("ancestor_run_id", ancestor_run_id);
-    }
-    if let Some(config_name) = filter.config_name.as_deref() {
-        push("name", config_name);
-    }
-    if let Some(model_id) = filter.model_id.as_deref() {
-        push("model_id", model_id);
-    }
-    if let Some(search_query) = filter.search_query.as_deref() {
-        push("q", search_query);
-    }
-    if let Some(cursor) = filter.cursor.as_deref() {
-        push("cursor", cursor);
-    }
-
-    url
-}
-
-struct ListRunsResponse {
-    runs: Vec<AmbientAgentTask>,
-}
-
-impl<'de> serde::Deserialize<'de> for ListRunsResponse {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        #[derive(serde::Deserialize)]
-        struct RawResponse {
-            runs: Vec<serde_json::Value>,
-        }
-
-        let raw = RawResponse::deserialize(deserializer)?;
-        let mut runs = Vec::with_capacity(raw.runs.len());
-
-        for task_value in raw.runs.into_iter() {
-            match serde_json::from_value::<AmbientAgentTask>(task_value) {
-                Ok(task) => runs.push(task),
-                Err(e) => {
-                    // Log the error and skip this task instead of failing the entire request
-                    report_error!(anyhow!("Failed to deserialize ambient agent task: {}", e));
-                }
-            }
-        }
-
-        Ok(ListRunsResponse { runs })
-    }
-}
 
 #[derive(Clone, serde::Deserialize, Debug, PartialEq, Eq)]
 pub struct ConnectedSelfHostedWorker {
@@ -268,17 +156,6 @@ pub trait AIClient: 'static + Send + Sync {
         parent_run_id: Option<String>,
         config: Option<AgentConfigSnapshot>,
     ) -> anyhow::Result<AmbientAgentTaskId, anyhow::Error>;
-
-    async fn list_ambient_agent_tasks(
-        &self,
-        limit: i32,
-        filter: TaskListFilter,
-    ) -> anyhow::Result<Vec<AmbientAgentTask>, anyhow::Error>;
-
-    async fn get_ambient_agent_task(
-        &self,
-        task_id: &AmbientAgentTaskId,
-    ) -> anyhow::Result<AmbientAgentTask, anyhow::Error>;
 
     async fn cancel_ambient_agent_task(
         &self,
@@ -573,26 +450,6 @@ impl AIClient for ServerApi {
     ) -> anyhow::Result<ListConnectedSelfHostedWorkersResponse, anyhow::Error> {
         self.get_public_api(CONNECTED_SELF_HOSTED_WORKERS_PATH)
             .await
-    }
-
-    async fn list_ambient_agent_tasks(
-        &self,
-        limit: i32,
-        filter: TaskListFilter,
-    ) -> anyhow::Result<Vec<AmbientAgentTask>, anyhow::Error> {
-        let url = build_list_agent_runs_url(limit, &filter);
-        let response: ListRunsResponse = self.get_public_api(&url).await?;
-        Ok(response.runs)
-    }
-
-    async fn get_ambient_agent_task(
-        &self,
-        task_id: &AmbientAgentTaskId,
-    ) -> anyhow::Result<AmbientAgentTask, anyhow::Error> {
-        let response: AmbientAgentTask = self
-            .get_public_api(&format!("agent/runs/{task_id}"))
-            .await?;
-        Ok(response)
     }
 
     async fn cancel_ambient_agent_task(
