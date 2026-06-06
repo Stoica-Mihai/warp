@@ -25,7 +25,6 @@ use crate::ai::mcp::gallery::MCPGalleryManager;
 use crate::ai::mcp::templatable_manager::TemplatableMCPServerManager;
 use crate::ai::outline::RepoOutlines;
 use crate::ai::persisted_workspace::PersistedWorkspace;
-use crate::ai::restored_conversations::RestoredAgentConversations;
 use crate::ai::skills::SkillManager;
 use crate::ai::AIRequestUsageModel;
 use crate::auth::auth_manager::AuthManager;
@@ -155,7 +154,6 @@ pub fn initialize_app(app: &mut App) {
 
     app.update(experiments::init);
     AltScreenReporting::register(app);
-    app.add_singleton_model(|_| RestoredAgentConversations::new(vec![]));
     app.add_singleton_model(OneTimeModalModel::new);
     app.add_singleton_model(|_| WorkspaceRegistry::new());
     app.add_singleton_model(|_| ToastStack);

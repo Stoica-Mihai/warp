@@ -16,7 +16,6 @@ pub(crate) mod document;
 pub(crate) mod get_relevant_files;
 pub(crate) mod persisted_workspace;
 pub mod request_usage_model;
-pub(crate) mod restored_conversations;
 pub(crate) mod skills;
 pub(crate) mod voice;
 pub use request_usage_model::*;

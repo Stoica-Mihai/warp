@@ -206,7 +206,6 @@ use crate::ai::connected_self_hosted_workers::ConnectedSelfHostedWorkersModel;
 use crate::ai::document::ai_document_model::AIDocumentModel;
 use crate::ai::mcp::{MCPGalleryManager, TemplatableMCPServerManager};
 use crate::ai::outline::RepoOutlines;
-use crate::ai::restored_conversations::RestoredAgentConversations;
 use crate::ai::skills::SkillManager;
 use crate::ai::AIRequestUsageModel;
 use crate::antivirus::AntivirusInfo;
@@ -1070,7 +1069,6 @@ pub(crate) fn initialize_app(
         _ai_queries,
         persisted_workspaces,
         mut workspace_language_servers,
-        mut multi_agent_conversations,
         mut persisted_projects,
         mut persisted_project_rules,
         mut persisted_ignored_suggestions,
@@ -1090,7 +1088,6 @@ pub(crate) fn initialize_app(
                 sqlite_data.ai_queries,
                 sqlite_data.codebase_indices,
                 sqlite_data.workspace_language_servers,
-                sqlite_data.multi_agent_conversations,
                 sqlite_data.projects,
                 sqlite_data.project_rules,
                 sqlite_data.ignored_suggestions,
@@ -1100,7 +1097,6 @@ pub(crate) fn initialize_app(
         })
         .unwrap_or_else(|| {
             (
-                Default::default(),
                 Default::default(),
                 Default::default(),
                 Default::default(),
@@ -1134,7 +1130,6 @@ pub(crate) fn initialize_app(
         time_of_next_force_object_refresh = None;
         object_actions = Default::default();
         workspace_language_servers = Default::default();
-        multi_agent_conversations = Default::default();
         persisted_projects = Default::default();
         persisted_project_rules = Default::default();
         persisted_ignored_suggestions = Default::default();
@@ -1416,7 +1411,6 @@ pub(crate) fn initialize_app(
         )
     });
 
-    ctx.add_singleton_model(move |_| RestoredAgentConversations::new(multi_agent_conversations));
     ctx.add_singleton_model(|_| CLIAgentSessionsModel::new());
 
     if launch_mode.supports_indexing() {

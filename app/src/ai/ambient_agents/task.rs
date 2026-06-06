@@ -2,12 +2,6 @@
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use warp_cli::agent::Harness;
-use warpui::{SingletonEntity, View, ViewContext};
-
-use super::AmbientAgentTaskId;
-use crate::server::server_api::ServerApiProvider;
-use crate::view_components::DismissibleToast;
-use crate::workspace::ToastStack;
 
 /// Runtime configuration snapshot for agent execution.
 ///
@@ -187,41 +181,5 @@ impl AgentSource {
         }
     }
 
-}
-
-
-/// Cancel an ambient agent task and show a toast with the result.
-pub fn cancel_task_with_toast<V: View>(task_id: AmbientAgentTaskId, ctx: &mut ViewContext<V>) {
-    let ai_client = ServerApiProvider::handle(ctx).as_ref(ctx).get_ai_client();
-    let window_id = ctx.window_id();
-    ctx.spawn(
-        async move { ai_client.cancel_ambient_agent_task(&task_id).await },
-        move |_view, result, ctx| {
-            let message = match result {
-                Ok(()) => "Task cancelled".to_string(),
-                Err(e) => {
-                    log::error!("Failed to cancel task: {e}");
-                    format!("Failed to cancel task: {e}")
-                }
-            };
-            ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                let toast = DismissibleToast::default(message);
-                toast_stack.add_ephemeral_toast(toast, window_id, ctx);
-            });
-        },
-    );
-}
-
-/// Cancel an ambient agent task without surfacing a toast to the user.
-pub fn cancel_task_silently<V: View>(task_id: AmbientAgentTaskId, ctx: &mut ViewContext<V>) {
-    let ai_client = ServerApiProvider::handle(ctx).as_ref(ctx).get_ai_client();
-    ctx.spawn(
-        async move { ai_client.cancel_ambient_agent_task(&task_id).await },
-        move |_view, result, _| {
-            if let Err(e) = result {
-                log::error!("Failed to cancel task: {e}");
-            }
-        },
-    );
 }
 

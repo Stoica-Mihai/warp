@@ -349,46 +349,6 @@ pub enum TerminalAction {
     ResolvePromptSuggestion(PromptSuggestionResolution),
     AwsBedrockLoginBanner(AwsBedrockLoginBannerAction),
     AwsCliNotInstalledBanner(AwsCliNotInstalledBannerAction),
-    /// Reveal a hidden child agent pane from the orchestrator status card.
-    RevealChildAgent {
-        conversation_id: AIConversationId,
-    },
-    /// Switch the active terminal view's agent view to display the given
-    /// conversation in place, without spawning or revealing a separate pane.
-    /// Used by the orchestration pill bar to navigate the current pane to a
-    /// sibling/parent conversation.
-    SwitchAgentViewToConversation {
-        conversation_id: AIConversationId,
-    },
-    /// Open a child agent conversation in a separate pane (split off from
-    /// the orchestrator). Dispatched from the orchestration pill bar's
-    /// 3-dot overflow menu ("Open in new pane"). For child agents that have
-    /// a hidden pane in `child_agent_panes` this reveals the existing pane;
-    /// for already-visible panes it focuses the existing pane.
-    OpenChildAgentInNewPane {
-        conversation_id: AIConversationId,
-    },
-    /// Open a child agent conversation in a separate tab. V2-of-V2 stub:
-    /// dispatched from the orchestration pill bar's 3-dot overflow menu
-    /// ("Open in new tab"). For now this falls back to the same path as
-    /// `OpenChildAgentInNewPane` until tab-level routing is wired through.
-    OpenChildAgentInNewTab {
-        conversation_id: AIConversationId,
-    },
-    /// Stop a child agent conversation: cancel the in-flight ambient task
-    /// (if any) and the local conversation's controller. The conversation
-    /// itself stays alive so the user can still navigate to it. Dispatched
-    /// from the orchestration pill bar's 3-dot overflow menu ("Stop agent").
-    StopAgentConversation {
-        conversation_id: AIConversationId,
-    },
-    /// Kill a child agent conversation: stop it if running, best-effort cancel
-    /// any backing cloud task, then remove the conversation from local history.
-    /// Dispatched from the orchestration pill bar's 3-dot overflow menu
-    /// ("Kill agent").
-    KillAgentConversation {
-        conversation_id: AIConversationId,
-    },
     /// Toggle PTY recording for this session.
     ToggleSessionRecording,
     /// Toggle the rich input editor for composing a prompt to send to a CLI agent.
@@ -628,12 +588,6 @@ impl fmt::Debug for TerminalAction {
             ResolvePromptSuggestion(..) => write!(f, "ResolvePromptSuggestion"),
             AwsBedrockLoginBanner(action) => write!(f, "AwsBedrockLoginBanner({action:?})"),
             AwsCliNotInstalledBanner(action) => write!(f, "AwsCliNotInstalledBanner({action:?})"),
-            RevealChildAgent { .. } => write!(f, "RevealChildAgent"),
-            SwitchAgentViewToConversation { .. } => write!(f, "SwitchAgentViewToConversation"),
-            OpenChildAgentInNewPane { .. } => write!(f, "OpenChildAgentInNewPane"),
-            OpenChildAgentInNewTab { .. } => write!(f, "OpenChildAgentInNewTab"),
-            StopAgentConversation { .. } => write!(f, "StopAgentConversation"),
-            KillAgentConversation { .. } => write!(f, "KillAgentConversation"),
             ToggleSessionRecording => write!(f, "ToggleSessionRecording"),
             ToggleCLIAgentRichInput => write!(f, "ToggleCLIAgentRichInput"),
         }

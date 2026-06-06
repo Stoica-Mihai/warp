@@ -10,9 +10,7 @@ pub mod scheduled;
 pub mod task;
 pub mod telemetry;
 
-pub use task::{
-    cancel_task_silently, cancel_task_with_toast, AgentConfigSnapshot, AgentSource,
-};
+pub use task::{AgentConfigSnapshot, AgentSource};
 
 #[derive(Debug, thiserror::Error)]
 #[error("Invalid task ID: {0}")]

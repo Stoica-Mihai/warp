@@ -25,7 +25,6 @@ use crate::ai::mcp::templatable_manager::TemplatableMCPServerManager;
 use crate::ai::mcp::{FileBasedMCPManager, FileMCPWatcher};
 use crate::ai::outline::RepoOutlines;
 use crate::ai::persisted_workspace::PersistedWorkspace;
-use crate::ai::restored_conversations::RestoredAgentConversations;
 use crate::ai::skills::SkillManager;
 use crate::ai::AIRequestUsageModel;
 use crate::cloud_object::model::persistence::CloudModel;
@@ -121,7 +120,6 @@ fn initialize_app(app: &mut App) {
     #[cfg(feature = "voice_input")]
     app.add_singleton_model(voice_input::VoiceInput::new);
     app.add_singleton_model(|_| GPUState::new());
-    app.add_singleton_model(|_| RestoredAgentConversations::new(vec![]));
     app.add_singleton_model(OneTimeModalModel::new);
     let global_resource_handles = GlobalResourceHandles::mock(app);
     app.add_singleton_model(|_| GlobalResourceHandlesProvider::new(global_resource_handles));

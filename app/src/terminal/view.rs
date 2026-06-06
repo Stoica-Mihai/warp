@@ -1670,44 +1670,6 @@ pub enum Event {
         title: Option<String>,
         body: String,
     },
-    /// Emitted when the user clicks a child agent row in the status card to reveal
-    /// its hidden pane.
-    RevealChildAgent {
-        conversation_id: AIConversationId,
-    },
-    /// Emitted when the user clicks a pill in the orchestration pill bar.
-    /// The pane group swaps visibility instead of cloning the conversation.
-    SwapPaneToConversation {
-        conversation_id: AIConversationId,
-    },
-    /// Emitted by `OrchestrationViewerModel` when a child of a shared-session
-    /// orchestration first reports a `session_id`. The pane group materializes
-    /// a dedicated hidden shared-session viewer pane for the child, with its
-    /// own `TerminalView`, `BlocklistAIController`, and viewer-side `Network`
-    /// joining the child's session. Subsequent pill clicks navigate to the
-    /// hidden pane via the existing `SwapPaneToConversation` mechanism.
-    EnsureSharedSessionViewerChildPane {
-        conversation_id: AIConversationId,
-        session_id: session_sharing_protocol::common::SessionId,
-    },
-    /// Emitted when "Open in new tab" is picked from a child pill's 3-dot menu.
-    /// Bubbles up to the workspace to create the new tab.
-    OpenChildAgentInNewTab {
-        conversation_id: AIConversationId,
-    },
-    /// Emitted when "Open in new pane" is picked from a child pill's 3-dot menu.
-    /// Reuses the existing dedicated child pane to preserve in-flight state.
-    OpenChildAgentInNewPane {
-        conversation_id: AIConversationId,
-    },
-    /// Emitted when "Stop agent" is picked from a child pill's 3-dot menu.
-    StopAgentConversation {
-        conversation_id: AIConversationId,
-    },
-    /// Emitted when "Kill agent" is picked from a child pill's 3-dot menu.
-    KillAgentConversation {
-        conversation_id: AIConversationId,
-    },
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -16213,12 +16175,6 @@ impl TypedActionView for TerminalView {
             | AwsBedrockLoginBanner(_)
             | AwsCliNotInstalledBanner(_)
             | ExecuteRewindFromInlineMenu { .. }
-            | RevealChildAgent { .. }
-            | SwitchAgentViewToConversation { .. }
-            | OpenChildAgentInNewPane { .. }
-            | OpenChildAgentInNewTab { .. }
-            | StopAgentConversation { .. }
-            | KillAgentConversation { .. }
             | ToggleCLIAgentRichInput
             | ToggleSessionRecording => Empty,
         }
@@ -16858,42 +16814,6 @@ impl TypedActionView for TerminalView {
             }
             CancelAmbientAgentTask => {
                 ctx.notify();
-            }
-            RevealChildAgent { conversation_id } => {
-                ctx.emit(Event::RevealChildAgent {
-                    conversation_id: *conversation_id,
-                });
-            }
-            SwitchAgentViewToConversation { conversation_id } => {
-                // Pill-bar nav: every child has a hidden pane, so swap to it.
-                ctx.emit(Event::SwapPaneToConversation {
-                    conversation_id: *conversation_id,
-                });
-            }
-            OpenChildAgentInNewPane { conversation_id } => {
-                // Reveal the existing child pane as a sibling; preserves
-                // in-flight state. Don't touch `self`'s active conversation
-                // — `self` is the child view, swapped into the orchestrator's slot.
-                ctx.emit(Event::OpenChildAgentInNewPane {
-                    conversation_id: *conversation_id,
-                });
-            }
-            OpenChildAgentInNewTab { conversation_id } => {
-                // Workspace re-parents the existing child pane into a new tab.
-                // Don't touch `self`'s active conversation (same reason as above).
-                ctx.emit(Event::OpenChildAgentInNewTab {
-                    conversation_id: *conversation_id,
-                });
-            }
-            StopAgentConversation { conversation_id } => {
-                ctx.emit(Event::StopAgentConversation {
-                    conversation_id: *conversation_id,
-                });
-            }
-            KillAgentConversation { conversation_id } => {
-                ctx.emit(Event::KillAgentConversation {
-                    conversation_id: *conversation_id,
-                });
             }
             ToggleSessionRecording => {
                 self.pty_recorder.update(ctx, |recorder, ctx| {
