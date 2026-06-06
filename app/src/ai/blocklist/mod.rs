@@ -5,10 +5,8 @@ pub(crate) mod handoff;
 
 pub(crate) mod request_input;
 pub(crate) mod response_stream_id;
-pub(crate) mod session_context;
 pub(crate) use request_input::RequestInput;
 pub(crate) use response_stream_id::{ResponseStreamId};
-pub(crate) use session_context::SessionContext;
 pub mod history_model {}
 mod input_config;
 pub(crate) mod keystroke_render;

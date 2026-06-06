@@ -14,7 +14,6 @@ pub(crate) mod conversation_navigation;
 pub(crate) mod conversation_status_ui;
 pub(crate) mod document;
 pub(crate) mod get_relevant_files;
-pub(crate) mod local_child_harnesses;
 pub(crate) mod persisted_workspace;
 pub mod request_usage_model;
 pub(crate) mod restored_conversations;

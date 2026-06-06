@@ -190,12 +190,6 @@ impl AgentSource {
 }
 
 
-/// Returns the trimmed orchestrator agent name, or `None` when empty / whitespace-only.
-pub fn normalize_orchestrator_agent_name(raw: &str) -> Option<String> {
-    let trimmed = raw.trim();
-    (!trimmed.is_empty()).then(|| trimmed.to_string())
-}
-
 /// Cancel an ambient agent task and show a toast with the result.
 pub fn cancel_task_with_toast<V: View>(task_id: AmbientAgentTaskId, ctx: &mut ViewContext<V>) {
     let ai_client = ServerApiProvider::handle(ctx).as_ref(ctx).get_ai_client();
