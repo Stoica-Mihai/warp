@@ -1,8 +1,7 @@
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use settings::macros::define_settings_group;
-use settings::{RespectUserSyncSetting, SupportedPlatforms, SyncToCloud};
+use settings::SyncToCloud;
 
 use crate::cloud_object::model::generic_string_model::{
     GenericStringModel, GenericStringObjectId, StringModel,
@@ -11,17 +10,6 @@ use crate::cloud_object::model::json_model::{JsonModel, JsonSerializer};
 use crate::cloud_object::{
     GenericCloudObject, GenericStringObjectFormat, GenericStringObjectUniqueKey, JsonObjectType, UniquePer,
 };
-define_settings_group!(CloudPreferencesSettings, settings: [
-   settings_sync_enabled: IsSettingsSyncEnabled {
-       type: bool,
-       default: false,
-       supported_platforms: SupportedPlatforms::ALL,
-       sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::No),
-       private: false,
-       toml_path: "account.is_settings_sync_enabled",
-       description: "Whether settings are synced across devices via the cloud.",
-   },
-]);
 
 pub type CloudPreference = GenericCloudObject<GenericStringObjectId, CloudPreferenceModel>;
 pub type CloudPreferenceModel = GenericStringModel<Preference, JsonSerializer>;
