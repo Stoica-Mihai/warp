@@ -1040,7 +1040,7 @@ BlockClient feeds the Warp-cloud **block-sharing** feature (share a terminal blo
 
 Bedrock = Warp's AWS-Bedrock LLM-provider integration (cloud-managed AWS STS identity token mint + login banners + workspace policy). ~15 app files + 6 crates.
 
-**KEY cascade win:** `ManagedSecretManager` (warp_managed_secrets crate) is **Bedrock-ONLY** (app uses it only at lib.rs:1170 + aws_credentials.rs) — MCP uses only the `ManagedSecretValue` TYPE, not the manager. So the whole managed-secret SERVER path cascades out with Bedrock. KEEP `ManagedSecretValue` (MCP secret templating).
+**CORRECTION (session 59 re-map — the claim below was WRONG):** ~~`ManagedSecretManager` is Bedrock-ONLY~~. FALSE. `ManagedSecretManager` is GENERIC: `list_secrets()` + `get_task_secrets()` feed MCP/agent task-secret injection (Anthropic BYOK, OpenAI, raw values). Only its `issue_task_identity_token()` method is Bedrock-specific (AWS STS). **KEEP** the whole manager + `ManagedSecretsClient` + `server_api/managed_secrets.rs` + `get_managed_secrets_client` + lib.rs registration + `ManagedSecretValue` type (3 generic variants). **REMOVE** only the Bedrock bits: `issue_task_identity_token` call path, the 2 Bedrock `ManagedSecretValue` variants (AnthropicBedrockAccessKey/ApiKey) + constructors, and everything in the Bedrock surface below. Backend cut is much smaller than the old map assumed.
 
 **App backend:**
 - `ai/aws_credentials.rs` (whole — AwsCredentialRefresher, issue_task_identity_token OIDC, AwsCredentialsState) + aws_credentials_tests.rs.
