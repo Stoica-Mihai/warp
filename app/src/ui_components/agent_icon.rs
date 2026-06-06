@@ -35,14 +35,7 @@ pub(crate) fn terminal_view_agent_icon_variant(
     let cli_agent_session = CLIAgentSessionsModel::as_ref(app).session(terminal_view.id());
 
     // Resolve the ambient task id from [`TerminalView::ambient_agent_task_id_for_details_panel`],
-    // falling back to the selected conversation's server metadata for restored cloud transcripts.
-    let ambient_task_id = terminal_view
-        .ambient_agent_task_id_for_details_panel(app)
-        .or_else(|| {
-            terminal_view
-                .selected_conversation_server_metadata(app)
-                .and_then(|m| m.ambient_agent_task_id)
-        });
+    let ambient_task_id = terminal_view.ambient_agent_task_id_for_details_panel(app);
     let is_ambient = terminal_view.is_ambient_agent_session(app) || ambient_task_id.is_some();
     let inputs = TerminalIconInputs {
         is_ambient,

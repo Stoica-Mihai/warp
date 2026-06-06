@@ -24,7 +24,6 @@ use warpui::platform::keyboard::KeyCode;
 use warpui::platform::OperatingSystem;
 use warpui::{AppContext, Entity, EntityId, ModelContext, SingletonEntity, UpdateModel};
 
-use crate::ai::agent::conversation::AIConversation;
 use crate::ai::request_usage_model::RequestLimitInfo;
 use crate::auth::AuthStateProvider;
 use crate::report_if_error;
@@ -1587,16 +1586,6 @@ impl AISettings {
     pub fn is_cloud_handoff_enabled(&self, _app: &warpui::AppContext) -> bool {
         false
     }
-    pub fn is_cloud_handoff_enabled_for_conversation(
-        &self,
-        conversation: Option<&AIConversation>,
-        app: &warpui::AppContext,
-    ) -> bool {
-        self.is_cloud_handoff_enabled(app)
-            && !conversation
-                .is_some_and(|conversation| is_orchestration_conversation(conversation, app))
-    }
-
     pub fn is_cloud_handoff_enabled_for_terminal_view(
         &self,
         terminal_view_id: EntityId,
@@ -1609,15 +1598,6 @@ impl AISettings {
     pub fn is_ampersand_handoff_enabled(&self, app: &warpui::AppContext) -> bool {
         self.is_cloud_handoff_enabled(app) && !*self.should_force_disable_ampersand_handoff
     }
-    pub fn is_ampersand_handoff_enabled_for_conversation(
-        &self,
-        conversation: Option<&AIConversation>,
-        app: &warpui::AppContext,
-    ) -> bool {
-        self.is_cloud_handoff_enabled_for_conversation(conversation, app)
-            && !*self.should_force_disable_ampersand_handoff
-    }
-
     pub fn is_ampersand_handoff_enabled_for_terminal_view(
         &self,
         terminal_view_id: EntityId,
@@ -1921,9 +1901,6 @@ impl AISettings {
     }
 }
 
-fn is_orchestration_conversation(conversation: &AIConversation, _app: &AppContext) -> bool {
-    conversation.has_parent_agent()
-}
 /// Singleton model that caches compiled regexes for the `cli_agent_footer_enabled_commands`
 /// setting. Each entry pairs a compiled regex with the CLI agent it maps to.
 pub struct CompiledCommandsForCodingAgentToolbar {

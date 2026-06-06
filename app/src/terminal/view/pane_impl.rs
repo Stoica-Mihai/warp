@@ -14,9 +14,7 @@ use warpui::{
 };
 
 use super::{Event, PaneConfiguration, TerminalAction, TerminalViewState};
-use crate::ai::agent::conversation::{
-    AIConversation, ConversationStatus, ServerAIConversationMetadata,
-};
+use crate::ai::agent::conversation::ConversationStatus;
 use crate::terminal::view::agent_view_state::agent_view_bg_fill;
 use crate::appearance::Appearance;
 use crate::features::FeatureFlag;
@@ -558,23 +556,6 @@ impl TerminalView {
         false
     }
 
-    fn selected_conversation_for_user_facing_chrome<'a>(
-        &'a self,
-        _ctx: &'a AppContext,
-    ) -> Option<&'a AIConversation> {
-        None
-    }
-
-    fn selected_conversation_display_title_for_chrome(
-        &self,
-        conversation: &AIConversation,
-        _is_ambient_agent: bool,
-    ) -> String {
-        conversation
-            .title()
-            .expect("checked above that title exists")
-    }
-
     /// Returns `true` while a cloud-mode ambient agent run is still spinning up. This covers
     /// both the `WaitingForSession` phase (env being provisioned, "Connecting to Host") and
     /// the post-session pre-first-exchange phase (session ready, harness not started, no
@@ -583,81 +564,34 @@ impl TerminalView {
         false
     }
 
-    /// Selected conversation status for chrome, or [`ConversationStatus::InProgress`] while the
-    /// active block is long-running (terminal-derived; not mirrored in history events) or while
-    /// a cloud-mode ambient agent is still in its environment-setup phase.
+    /// Selected conversation status for chrome. Warp AI conversations are stripped, so this only
+    /// surfaces [`ConversationStatus::InProgress`] while the active block is long-running or a
+    /// cloud-mode ambient agent is still in its environment-setup phase.
     pub fn selected_conversation_status(&self, ctx: &AppContext) -> Option<ConversationStatus> {
         let long_running = self.is_long_running();
         let cloud_setup = self.is_in_cloud_agent_setup_phase(ctx);
-
-        let Some(conversation) = self.selected_conversation_for_user_facing_chrome(ctx) else {
-            // Ambient agent tabs can show Oz chrome without a filtered "chrome" conversation;
-            // still surface busy while a long-running shell command is active or the cloud
-            // environment is spinning up.
-            if (long_running || cloud_setup) && self.is_ambient_agent_session(ctx) {
-                return Some(ConversationStatus::InProgress);
-            }
-            return None;
-        };
-
-        if long_running || cloud_setup {
+        if (long_running || cloud_setup) && self.is_ambient_agent_session(ctx) {
             return Some(ConversationStatus::InProgress);
         }
-
-        if self.selected_conversation_is_empty(ctx) {
-            return None;
-        }
-
-        Some(conversation.status().clone())
+        None
     }
 
-    pub fn selected_conversation_is_empty(&self, ctx: &AppContext) -> bool {
-        self.selected_conversation_for_user_facing_chrome(ctx)
-            .is_some_and(|conversation| conversation.is_empty())
-    }
-
-    /// Returns the conversation status for display purposes, suppressing the status when the
-    /// conversation is empty (no exchanges yet) AND nothing else makes the run "busy". This
-    /// avoids showing a misleading "In progress" indicator on a brand-new conversation; real
-    /// InProgress states (long-running shell commands, cloud-environment setup) come through
-    /// because [`Self::selected_conversation_status`] surfaces them as `InProgress`.
     pub fn selected_conversation_status_for_display(
         &self,
         ctx: &AppContext,
     ) -> Option<ConversationStatus> {
-        let status = self.selected_conversation_status(ctx)?;
-        if matches!(status, ConversationStatus::InProgress)
-            || !self.selected_conversation_is_empty(ctx)
-        {
-            Some(status)
-        } else {
-            None
-        }
+        self.selected_conversation_status(ctx)
     }
 
-    pub fn selected_conversation_display_title(&self, ctx: &AppContext) -> Option<String> {
-        let is_ambient_agent = self.is_ambient_agent_session(ctx);
-        self.selected_conversation_for_user_facing_chrome(ctx)
-            .map(|conversation| {
-                self.selected_conversation_display_title_for_chrome(conversation, is_ambient_agent)
-            })
-    }
-
-    /// Server metadata for the selected conversation, if any.
-    pub fn selected_conversation_server_metadata<'a>(
-        &'a self,
-        ctx: &'a AppContext,
-    ) -> Option<&'a ServerAIConversationMetadata> {
-        self.selected_conversation_for_user_facing_chrome(ctx)
-            .and_then(AIConversation::server_metadata)
+    pub fn selected_conversation_display_title(&self, _ctx: &AppContext) -> Option<String> {
+        None
     }
 
     pub fn selected_conversation_latest_user_prompt_for_tab_name(
         &self,
-        ctx: &AppContext,
+        _ctx: &AppContext,
     ) -> Option<String> {
-        self.selected_conversation_for_user_facing_chrome(ctx)
-            .and_then(AIConversation::latest_user_query)
+        None
     }
 
     fn selected_cli_agent_title_for_chrome(&self, ctx: &AppContext) -> Option<String> {

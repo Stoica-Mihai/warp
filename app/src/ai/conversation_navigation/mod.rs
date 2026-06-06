@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use warpui::{AppContext, EntityId, WindowId};
 
 use crate::ai::agent::api::ServerConversationToken;
-use crate::ai::agent::conversation::{AIConversation, AIConversationId};
+use crate::ai::agent::conversation::AIConversationId;
 use crate::workspace::{PaneViewLocator};
 
 /// Result from matching a conversation.
@@ -55,44 +55,6 @@ impl Ord for ConversationNavigationData {
 }
 
 impl ConversationNavigationData {
-    #[allow(clippy::too_many_arguments)]
-    pub fn from_ai_conversation(
-        conversation: &AIConversation,
-        terminal_view_id: Option<EntityId>,
-        window_id: Option<WindowId>,
-        pane_view_locator: Option<PaneViewLocator>,
-        initial_working_directory: Option<String>,
-        is_selected: bool,
-        is_in_active_pane: bool,
-        is_closed: bool,
-    ) -> Self {
-        let initial_query = conversation.initial_query();
-        let title = conversation
-            .title()
-            .unwrap_or_else(|| "Untitled conversation".to_string());
-        let last_updated = conversation
-            .latest_exchange()
-            .map(|exchange| exchange.start_time)
-            .unwrap_or_else(chrono::Local::now);
-
-        Self {
-            id: conversation.id(),
-            title,
-            initial_query,
-            last_updated,
-            terminal_view_id,
-            window_id,
-            pane_view_locator,
-            initial_working_directory,
-            latest_working_directory: conversation.current_working_directory(),
-            is_selected,
-            is_in_active_pane,
-            is_closed,
-            server_conversation_token: conversation.server_conversation_token().cloned(),
-        }
-    }
-
-
     pub fn id(&self) -> AIConversationId {
         self.id
     }
