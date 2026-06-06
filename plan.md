@@ -1010,3 +1010,18 @@ Executed per the exact map (5 KEEP-traps all honored). Removed 15 dead TeamClien
 
 ### Referrals server fetch — ✅ DONE (session 58, "strip dead Referrals server fetch")
 ReferralsClient (get_referral_info/send_invite) was dead-at-runtime (query_referral_status early-returns when not logged in). Deleted referral.rs + get_referrals_client + the fetch methods/wiring. KEPT ReferralThemeStatus (persisted theme-unlock survives) + theme_chooser. −0.59 MB → 691.7 MB. 3-gate 0/0/0, baseline warnings.
+
+---
+
+## BLOCK-SHARING strip — EXACT map (session 58; BlockClient is LIVE UI, not a dead strip)
+
+BlockClient feeds the Warp-cloud **block-sharing** feature (share a terminal block to cloud / view+unshare shared blocks). LIVE UI, ~2,526 LoC. Real strip target per fork goal, but a MEDIUM touching pane_group (spider file). Surface:
+- **Delete files:** `terminal/share_block_modal.rs` (1536 — ShareBlockModal/ShareBlockModalEvent/ShareBlockType), `settings_view/show_blocks_view.rs` (805 — ShowBlocksView/ShowBlocksEvent), `server_api/block.rs` (185 — BlockClient trait+impl: unshare_block/save_block/blocks_owned_by_user/generate_shared_block_title + Block type + ShareBlock/etc graphql ops).
+- **pane_group/mod.rs:** `share_block_modal` field (733) + `terminal_with_open_share_block_modal` (728) + ShareBlockModal creation (1909) + handle_share_block_modal_event (2328) + ShareBlockModalEvent import/handling + init (1969/1970).
+- **terminal/view.rs:** `OpenShareBlockModal` action (1114) + handler + the block-context-menu "Share Block" action that dispatches it.
+- **pane_group/pane/terminal_pane.rs:404-405:** the open-modal trigger.
+- **settings_view/mod.rs:** `SettingsSection::SharedBlocks` (178/195/244) + ShowBlocksView creation (925) + nav item (1023) + macro arm (855); **settings_page.rs:** `SharedBlocks(ViewHandle<ShowBlocksView>)` variant (98/114).
+- **server_api.rs:** get_block_client (1174) + `use block::BlockClient` (21) + `pub mod block`.
+- **terminal/mod.rs:93** re-export.
+- Cascade: Block type, ShareBlockType, graphql ops (ShareBlock/BlockInput/etc).
+**Execution:** leaf-up — settings (ShowBlocksView+SharedBlocks) → ShareBlockModal+pane_group/terminal_pane/terminal_view wiring → BlockClient/block.rs. Green per increment. Expect real shrink (2 views via add_typed_action_view + graphql ops, live-linked). ~2500 LoC, pane_group render-path — careful, own focused effort.
