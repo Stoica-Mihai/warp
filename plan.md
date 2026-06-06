@@ -771,3 +771,27 @@ This sequence unblocks the real LoC reduction + binary shrink.
 
 ### Known upstream gaps (found while stripping — not our bugs, out of scope)
 - **Alacritty importer ignores modern config layout.** `app/src/settings/import/alacritty_parser.rs` `AlacrittyConfig` deserializes **top-level** `import` + `colors` only. Alacritty ≥0.13 moved `import` (and several keys) under `[general]`, so a config using `[general].import = [...]` parses to `import: None` → theme never resolved → `is_valid()` false → 0 configs → `HAS_SETTINGS_TO_IMPORT_FLAG` never set → "Import External Settings" command stays hidden. Verified via production parse path (`Config::create_from_external_configs::<AlacrittyConfig>`): `CONFIGS_COUNT=0` with `[general].import`, `=1` with top-level `[colors.*]`. Fix (if ever wanted, beyond strip scope): add a `general: Option<{ import: Vec<String> }>` field + merge it into top-level. Workaround for testing the import UI: inline `[colors.*]` at top level.
+
+---
+
+## KEYSTONE: ai/agent/ core deletion plan (mapped 2026-06-06, session 57)
+
+Two investigator passes mapped the full boundary. `AIConversation`/`AIAgentOutput`/`Task` have **ZERO production constructors** (all data flows from dead conversation.rs / api deserialization). The entire `ai/agent/` core + its blocklist-rendering + AIBlock-UI + persistence consumers are vestigial.
+
+**KEEP (generic, live external consumers):**
+- `ai/agent/conversation_types.rs` — AIConversationId/ConversationStatus/StatusColorStyle/ServerConversationToken (depends only on icons.rs). Used by CLI session status, search UI, persistence schema.
+- `ai/agent/icons.rs` (58 LoC) — failed/in_progress/succeeded/yellow_stop/gray_stop icons; LIVE consumers: env_var_collection_block.rs, init_project/lsp_server_selector.rs, init_project/mod.rs.
+- blocklist GENERIC (70%): code_block.rs, keystroke_render.rs, prompt.rs/prompt/, view_util.rs, input_config.rs (InputConfig/InputType shell-vs-AI toggle), mod.rs, `SerializedBlockListItem` (persistence.rs:464 — command-block session restore, used by pane_group/persistence).
+
+**DELETE (dead AI core):** everything else in ai/agent/ — conversation.rs + mod.rs (the giant) + api/ + task.rs + task_store.rs + comment.rs + linearization.rs + todos/ + redaction.rs + telemetry.rs + util.rs + conversation_yaml.rs + all *_tests.rs.
+
+**CASCADE consumers (delete with it):** blocklist AI-only files (persistence.rs PersistedAIInput/PersistedAIInputType/PersistedAIAgentActionType/AIQueryHistoryOutputStatus, request_input.rs, response_stream_id.rs, queued_query.rs, handoff/, block_tests.rs); persistence agent cluster (agent.rs read/upsert/delete_agent_conversations + SqliteData.multi_agent_conversations field mod.rs:183 + ModelEvent::Update/DeleteMultiAgentConversation{,s} mod.rs:303/308 + sqlite.rs:657-670 handlers + crates/persistence model.rs:870 AgentConversation/990 AgentConversationData + schema.rs:11 agent_conversations table — NOTE writer emit is conversation.rs:2812, dies with the struct).
+
+**VERIFY-DON'T-TRUST (investigator conflict):** `ai/blocklist/cli_controller.rs` (CLISubagentController) — investigator says dead, but AGENTS.md session-10/11 history says it's live for the KEPT CLI-agent rich-input/detection feature. CHECK callers before deleting.
+
+### Cut order (each a green 3-gate commit):
+- **STEP 1 — AIBlock context-menu + fork/rewind UI surface.** Files: terminal/view.rs, terminal/view/action.rs, terminal/view/context_menu.rs, workspace/action.rs, workspace/view.rs, workspace/global_actions.rs, workspace/mod.rs, search/command_palette/view.rs (:811), terminal/input.rs (:2904). Delete: ContextMenuAction AI variants (CopyAIBlock/Query/Output/Conversation, CopyAgentCommand/GitBranch, SavePromptAsAgentModeWorkflow, ForkAIConversation/FromBlock/FromExactExchange) + Debug arms + handlers (view.rs ~14870-14936); TerminalAction OpenAIBlockOverflowMenu/RewindAIConversation/ExecuteRewindAIConversation (action.rs:197/204/212) + handlers + accessibility (view.rs ~16093/16247); ContextMenuType::AIBlockOverflowMenu (view.rs:1733 + arms 1769/1789/1810/17024); context_menu.rs 6 methods (ai_block_copying_menu_items, conversation_text, copy_conversation_text, fork_ai_conversation, create_copy_debugging_menu_item, open_ai_block_overflow_context_menu — KEEP generic show_context_menu); view.rs show_rewind_confirmation_dialog/rewind_ai_conversation/fork_label_for_query/copy_conversation_text; workspace ForkAIConversation/ExecuteRewindAIConversation/ShowRewindConfirmationDialog actions + global_actions fork_ai_conversation + ForkAIConversationParams/ForkFromExchange/ForkedConversationDestination + the command-palette/input dispatchers. (All handlers are no-op or dead-dispatch — investigator-confirmed.)
+- **STEP 2 — AIBlock inline rendering refs.** Remaining fork/rewind/AIBlock-render call sites in blocklist rendering (rich_content / block_list_element).
+- **STEP 3 — blocklist AI-only types.** persistence.rs PersistedAI* cluster (keep SerializedBlockListItem), request_input.rs, response_stream_id.rs, queued_query.rs, handoff/, block_tests.rs + mod.rs decls/re-exports. (Verify cli_controller first.)
+- **STEP 4 — ai/agent/ core + persistence agent cluster.** Delete the core (keep conversation_types.rs + icons.rs), the persistence agent cluster, repoint any AIConversationId/ConversationStatus imports that went through ai::agent::conversation:: re-exports → conversation_types.
+
