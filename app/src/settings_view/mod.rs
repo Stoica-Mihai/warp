@@ -43,7 +43,7 @@ use crate::appearance::Appearance;
 
 use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
-    TextColors, TextOptions,
+    TextOptions,
 };
 use crate::menu::{self, Menu, MenuItem, MenuItemFields};
 use crate::pane_group::focus_state::PaneFocusHandle;
@@ -133,15 +133,6 @@ const SECTION_BORDER_WIDTH: f32 = 1.;
 
 const POSITION_ID: &str = "settings_pane";
 
-pub(super) fn editor_text_colors(appearance: &Appearance) -> TextColors {
-    let theme = appearance.theme();
-    TextColors {
-        default_color: theme.active_ui_text_color(),
-        disabled_color: theme.disabled_ui_text_color(),
-        hint_color: theme.disabled_ui_text_color(),
-    }
-}
-
 #[derive(PartialEq, Eq)]
 pub enum SettingsViewEvent {
     Pane(PaneEvent),
@@ -165,9 +156,9 @@ pub enum SettingsViewEvent {
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Hash)]
 pub enum SettingsSection {
     About,
-    #[default]
     Account,
     MCPServers,
+    #[default]
     Appearance,
     Features,
     Keybindings,
@@ -986,7 +977,6 @@ impl SettingsView {
         ]);
 
         let mut nav_items = vec![
-            SettingsNavItem::Page(SettingsSection::Account),
             SettingsNavItem::Umbrella(SettingsUmbrella::new(
                 "Code",
                 vec![
