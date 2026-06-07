@@ -329,7 +329,6 @@ use crate::terminal::session_settings::{
     ToolbarChipSelection, DEFAULT_THRESHOLD_FOR_LONG_RUNNING_NOTIFICATION,
 };
 use crate::terminal::settings::{TerminalSettings, TerminalSettingsChangedEvent};
-use crate::terminal::ssh::ssh_detection::SshInteractiveSessionDetected;
 use crate::terminal::view::inline_banner::{
     AliasExpansionBannerState,
     NotificationsDiscoveryBannerState, NotificationsErrorBannerState,

@@ -30,7 +30,6 @@ use crate::terminal::model::mouse::MouseState;
 use crate::terminal::model::selection::{SelectAction, SelectionDirection};
 use crate::terminal::model::terminal_model::{BlockIndex, WithinModel};
 use crate::terminal::model::SecretHandle;
-use crate::terminal::ssh::error::SshErrorBlockAction;
 use crate::terminal::view::passive_suggestions::PromptSuggestionResolution;
 use crate::terminal::view::RichContentSecretTooltipInfo;
 use crate::workflows::workflow::Workflow;
