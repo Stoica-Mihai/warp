@@ -209,7 +209,6 @@ pub enum TerminalAction {
     ShowInitializationBlock,
     /// This is for debugging, dev only for now
     LoadAgentModeConversation,
-    ShowWarpifySettings,
     /// Opens a pending input attachment image in the workspace lightbox before
     /// the attachment has been submitted with a user query.
     OpenAttachmentLightbox {
@@ -437,7 +436,6 @@ impl fmt::Debug for TerminalAction {
             ClearMarkedText => write!(f, "ClearMarkedText"),
             ShowInitializationBlock => write!(f, "ShowInitializationBlock"),
             LoadAgentModeConversation => write!(f, "LoadAgentModeConversation"),
-            ShowWarpifySettings => write!(f, "ShowWarpifySettings"),
             OpenAttachmentLightbox { index } => {
                 write!(f, "OpenAttachmentLightbox({index:?})")
             }

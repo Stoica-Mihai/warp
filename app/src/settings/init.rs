@@ -27,7 +27,6 @@ use crate::terminal::ligature_settings::LigatureSettings;
 use crate::terminal::safe_mode_settings::SafeModeSettings;
 use crate::terminal::session_settings::{SessionSettings, SessionSettingsChangedEvent};
 use crate::terminal::settings::TerminalSettings;
-use crate::terminal::warpify::settings::WarpifySettings;
 use crate::terminal::BlockListSettings;
 use crate::undo_close::UndoCloseSettings;
 use crate::window_settings::WindowSettings;
@@ -78,7 +77,6 @@ pub fn register_all_settings(ctx: &mut AppContext) {
     AppIconSettings::register(ctx);
     AppEditorSettings::register(ctx);
     InputSettings::register(ctx);
-    WarpifySettings::register(ctx);
     AltScreenReporting::register(ctx);
     UndoCloseSettings::register(ctx);
     SshSettings::register(ctx);

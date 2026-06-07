@@ -1,5 +1,4 @@
 pub mod render;
-pub mod settings;
 
 use channel_versions::overrides::TargetOS;
 use warpui::AssetProvider;

@@ -2536,12 +2536,7 @@ impl TerminalView {
             Banner::new(BannerTextContent::formatted_text(vec![
                 FormattedTextFragment::plain_text("Seems like your completions are not working ("),
                 FormattedTextFragment::hyperlink("more info", CONTROLMASTER_ISSUES_URL),
-                FormattedTextFragment::plain_text("). Enabling the SSH extension in "),
-                FormattedTextFragment::hyperlink_action(
-                    "settings",
-                    TerminalAction::ShowWarpifySettings,
-                ),
-                FormattedTextFragment::plain_text(" may resolve this issue."),
+                FormattedTextFragment::plain_text(")."),
             ]))
         });
 
@@ -14160,10 +14155,6 @@ impl TypedActionView for TerminalView {
                 "Showed initialization block",
                 WarpA11yRole::TextareaRole,
             )),
-            ShowWarpifySettings => Custom(AccessibilityContent::new_without_help(
-                "Opened Warpify Settings",
-                WarpA11yRole::ButtonRole,
-            )),
             OpenFilesPalette { .. } => Custom(AccessibilityContent::new_without_help(
                 "Opened file search palette",
                 WarpA11yRole::ButtonRole,
@@ -14629,7 +14620,6 @@ impl TypedActionView for TerminalView {
             ClearMarkedText => self.clear_marked_text_on_terminal(ctx),
             ShowInitializationBlock => self.show_initialization_block(),
             LoadAgentModeConversation => {}
-            ShowWarpifySettings => ctx.emit(Event::OpenSettings(SettingsSection::Appearance)),
             OpenAttachmentLightbox { .. } => {}
             ToggleAutoexecuteMode => {}
             ToggleQueueNextPrompt => {}
