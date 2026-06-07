@@ -194,100 +194,34 @@ impl UserWorkspaces {
     ///
     /// In the future, we should store active AI enablement on the policy directly. For now, we
     /// proxy whether active AI by checking whether any active AI feature is enabled.
+    // Teams are not supported in Sublight; team AI policies always fall back to unrestricted.
     pub fn is_active_ai_allowed(&self) -> bool {
-        self.current_team().is_none_or(|team| {
-            team.billing_metadata
-                .tier
-                .warp_ai_policy
-                .is_none_or(|policy| {
-                    policy.is_prompt_suggestions_toggleable
-                        || policy.is_next_command_enabled
-                        || policy.is_code_suggestions_toggleable
-                        || policy.is_git_operations_ai_enabled
-                })
-        })
+        true
     }
 
-    /// Returns `true` if the current team's enterprise status allows AI features that have an
-    /// enterprise gate. Non-enterprise teams always pass; enterprise teams pass only if they
-    /// are on the Warp Plan or the build is dogfood (both our internal Warp team and dogfood
-    /// team are billed as enterprise).
     pub fn ai_allowed_for_current_team(&self) -> bool {
-        !self
-            .current_team()
-            .is_some_and(|team| team.billing_metadata.customer_type == CustomerType::Enterprise)
-            || self
-                .current_team()
-                .is_some_and(|team| team.billing_metadata.is_warp_plan())
-            || ChannelState::channel().is_dogfood()
+        true
     }
 
-    /// Whether Prompt Suggestions should be toggleable for the current user, based on the active policies.
-    /// Note that the value may be incorrect if called before the team's billing metadata has been fetched.
     pub fn is_prompt_suggestions_toggleable(&self) -> bool {
-        self.current_team()
-            // If the user has no team, they can toggle prompt suggestions (no restrictions).
-            .is_none_or(|team| {
-                team.billing_metadata
-                    .tier
-                    .warp_ai_policy
-                    .is_some_and(|policy| policy.is_prompt_suggestions_toggleable)
-            })
+        true
     }
 
-    /// Whether Code Suggestions should be toggleable for the current user, based on the active policies.
-    /// Note that the value may be incorrect if called before the team's billing metadata has been fetched.
     pub fn is_code_suggestions_toggleable(&self) -> bool {
-        self.current_team()
-            // If the user has no team, they can toggle code suggestions (no restrictions).
-            .is_none_or(|team| {
-                team.billing_metadata
-                    .tier
-                    .warp_ai_policy
-                    .is_some_and(|policy| policy.is_code_suggestions_toggleable)
-            })
+        true
     }
 
-    /// Whether Next Command should be toggleable for the current user, based on the active policies.
-    /// Note that the value may be incorrect if called before the team's billing metadata has been fetched.
     pub fn is_next_command_enabled(&self) -> bool {
-        self.current_team()
-            // If the user has no team, they can toggle Next Command (no restrictions).
-            .is_none_or(|team| {
-                team.billing_metadata
-                    .tier
-                    .warp_ai_policy
-                    .is_some_and(|policy| policy.is_next_command_enabled)
-            })
+        true
     }
 
-    /// Whether Git Operations AI is enabled for the current user, based on the active policies.
-    /// Note that the value may be incorrect if called before the team's billing metadata has been fetched.
     pub fn is_git_operations_ai_enabled(&self) -> bool {
-        self.current_team()
-            // If the user has no team, they can toggle Git Operations AI (no restrictions).
-            .is_none_or(|team| {
-                team.billing_metadata
-                    .tier
-                    .warp_ai_policy
-                    .is_some_and(|policy| policy.is_git_operations_ai_enabled)
-            })
+        true
     }
 
-    /// Whether voice input should be toggleable for the current user, based on the active policies.
-    /// Note that the value may be incorrect if called before the team's billing metadata has been fetched.
     /// If voice input support is not compiled into this build, always returns `false`.
     pub fn is_voice_enabled(&self) -> bool {
         false
-            && self
-                .current_team()
-                // If the user has no team, they can toggle Voice (no restrictions).
-                .is_none_or(|team| {
-                    team.billing_metadata
-                        .tier
-                        .warp_ai_policy
-                        .is_some_and(|policy| policy.is_voice_enabled)
-                })
     }
 
     /// Whether BYO API key is enabled for the current user, based on the active policies.
@@ -327,15 +261,12 @@ impl UserWorkspaces {
     /// Returns the AI autonomy settings that are enforced by the workspace for all its members.
     /// If a setting is `None`, the workspace doesn't enforce a particular setting.
     pub fn ai_autonomy_settings(&self) -> AiAutonomySettings {
-        self.current_team()
-            .map(|team| team.organization_settings.ai_autonomy_settings.clone())
-            .unwrap_or_default()
+        AiAutonomySettings::default()
     }
 
     /// Returns the sandboxed agent settings enforced by the workspace, if any.
     pub fn sandboxed_agent_settings(&self) -> Option<SandboxedAgentSettings> {
-        self.current_team()
-            .and_then(|team| team.organization_settings.sandboxed_agent_settings.clone())
+        None
     }
 
     /// Returns true iff AI autonomy features are allowed for this client.
@@ -346,43 +277,11 @@ impl UserWorkspaces {
     /// if so, we'll fall back to their billing metadata's value. Once we've migrated everyone
     /// into org settings, we should remove `is_enabled` from the policy and delete this function.
     pub fn is_ai_autonomy_allowed(&self) -> bool {
-        self.current_team().is_none_or(|team| {
-            let settings = &team.organization_settings.ai_autonomy_settings;
-            let all_settings_none = settings.apply_code_diffs_setting.is_none()
-                && settings.read_files_setting.is_none()
-                && settings.read_files_allowlist.is_none()
-                && settings.execute_commands_setting.is_none()
-                && settings.execute_commands_allowlist.is_none()
-                && settings.execute_commands_denylist.is_none();
-
-            if all_settings_none {
-                team.billing_metadata
-                    .tier
-                    .ai_autonomy_policy
-                    .is_some_and(|policy| policy.is_enabled)
-            } else {
-                true
-            }
-        })
+        true
     }
 
-    // Returns a Vec of the user's active spaces, based on their
-    // team membership.
-    pub fn team_spaces(&self) -> Vec<Space> {
-        if let Some(workspace) = self.current_workspace() {
-            workspace
-                .teams
-                .iter()
-                .map(|team| Space::Team { team_uid: team.uid })
-                .collect()
-        } else {
-            // If the user has no workspace, they have no team spaces.
-            vec![]
-        }
-    }
-
-    // Returns a Vec of the user's active spaces, based on their
-    // team membership. Includes the "Personal Space" by default.
+    // Returns a Vec of the user's active spaces. Includes the "Personal Space" by default.
+    // Teams are not supported in Sublight, so there are no team spaces.
     pub fn all_user_spaces(&self, ctx: &AppContext) -> Vec<Space> {
         if AuthStateProvider::as_ref(ctx)
             .get()
@@ -393,7 +292,6 @@ impl UserWorkspaces {
         }
 
         let mut spaces = Vec::new();
-        spaces.extend(self.team_spaces().iter());
 
         if FeatureFlag::SharedWithMe.is_enabled()
             && CloudModel::as_ref(ctx).has_directly_shared_objects(self, ctx)
@@ -577,89 +475,40 @@ impl UserWorkspaces {
     }
 
     pub fn is_telemetry_force_enabled(&self) -> bool {
-        self.current_team()
-            .map(|team| team.organization_settings.telemetry_settings.force_enabled)
-            .unwrap_or(false)
+        false
     }
 
+    // Teams are not supported in Sublight; team org-settings always fall back to defaults.
     pub fn is_enterprise_secret_redaction_enabled(&self) -> bool {
-        self.current_team()
-            .map(|team| team.organization_settings.secret_redaction_settings.enabled)
-            .unwrap_or(false)
+        false
     }
 
     pub fn get_enterprise_secret_redaction_regex_list(&self) -> Vec<EnterpriseSecretRegex> {
-        self.current_team()
-            .map(|team| {
-                team.organization_settings
-                    .secret_redaction_settings
-                    .regexes
-                    .clone()
-            })
-            .unwrap_or_default()
+        Vec::new()
     }
 
     pub fn get_ugc_collection_enablement_setting(&self) -> UgcCollectionEnablementSetting {
-        self.current_team()
-            .map(|team| {
-                team.organization_settings
-                    .ugc_collection_settings
-                    .setting
-                    .clone()
-            })
-            .unwrap_or_default()
+        UgcCollectionEnablementSetting::default()
     }
 
     pub fn get_cloud_conversation_storage_enablement_setting(&self) -> AdminEnablementSetting {
-        self.current_team()
-            .map(|team| {
-                team.organization_settings
-                    .cloud_conversation_storage_settings
-                    .setting
-                    .clone()
-            })
-            .unwrap_or_default()
+        AdminEnablementSetting::default()
     }
 
     pub fn is_ai_allowed_in_remote_sessions(&self) -> bool {
-        self.current_team()
-            .map(|team| {
-                team.organization_settings
-                    .ai_permissions_settings
-                    .allow_ai_in_remote_sessions
-            })
-            .unwrap_or(true)
+        true
     }
 
     pub fn get_remote_session_regex_list(&self) -> Vec<Regex> {
-        self.current_team()
-            .map(|team| {
-                team.organization_settings
-                    .ai_permissions_settings
-                    .remote_session_regex_list
-                    .clone()
-            })
-            .unwrap_or_default()
+        Vec::new()
     }
 
     pub fn is_anyone_with_link_sharing_enabled(&self) -> bool {
-        self.current_team()
-            .map(|team| {
-                team.organization_settings
-                    .link_sharing_settings
-                    .anyone_with_link_sharing_enabled
-            })
-            .unwrap_or(true)
+        true
     }
 
     pub fn is_direct_link_sharing_enabled(&self) -> bool {
-        self.current_team()
-            .map(|team| {
-                team.organization_settings
-                    .link_sharing_settings
-                    .direct_link_sharing_enabled
-            })
-            .unwrap_or(true)
+        true
     }
 
     /// Returns the codebase context settings, taking into account the organization,
@@ -683,8 +532,7 @@ impl UserWorkspaces {
     }
 
     pub fn default_host_slug(&self) -> Option<&str> {
-        self.current_team()
-            .and_then(|team| team.organization_settings.default_host_slug.as_deref())
+        None
     }
 
     /// Returns the team-level agent attribution setting.
@@ -692,23 +540,14 @@ impl UserWorkspaces {
     /// Use this to decide whether the user's attribution toggle should be locked
     /// (`Enable`/`Disable`) or editable (`RespectUserSetting`).
     pub fn get_agent_attribution_setting(&self) -> AdminEnablementSetting {
-        self.current_team()
-            .map(|team| team.organization_settings.enable_warp_attribution.clone())
-            .unwrap_or_default()
+        AdminEnablementSetting::default()
     }
 
     /// Returns only the organization-specific codebase context enablement setting.
     /// Do not use this function to determine whether codebase context is generally enabled --
     /// use `is_codebase_context_enabled` instead.
     pub fn team_allows_codebase_context(&self) -> AdminEnablementSetting {
-        self.current_team()
-            .map(|team| {
-                team.organization_settings
-                    .codebase_context_settings
-                    .setting
-                    .clone()
-            })
-            .unwrap_or_default()
+        AdminEnablementSetting::default()
     }
 
 }
