@@ -22,7 +22,7 @@ use warp_core::execution_mode::AppExecutionMode;
 use warp_core::features::FeatureFlag;
 use warpui::platform::keyboard::KeyCode;
 use warpui::platform::OperatingSystem;
-use warpui::{AppContext, Entity, EntityId, ModelContext, SingletonEntity, UpdateModel};
+use warpui::{AppContext, Entity, ModelContext, SingletonEntity, UpdateModel};
 
 use crate::ai::request_usage_model::RequestLimitInfo;
 use crate::auth::AuthStateProvider;
@@ -1327,26 +1327,6 @@ define_settings_group!(AISettings, settings: [
         description: "Whether the Warp Agent adds an attribution co-author line to commit messages and pull requests it creates.",
     }
 
-    should_force_disable_cloud_handoff: ShouldForceDisableCloudHandoff {
-        type: bool,
-        default: false,
-        supported_platforms: SupportedPlatforms::DESKTOP,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: false,
-        toml_path: "agents.warp_agent.other.should_force_disable_cloud_handoff",
-        description: "Whether to force-disable local-to-cloud handoff.",
-    }
-
-    should_force_disable_ampersand_handoff: ShouldForceDisableAmpersandHandoff {
-        type: bool,
-        default: false,
-        supported_platforms: SupportedPlatforms::DESKTOP,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: false,
-        toml_path: "agents.warp_agent.other.should_force_disable_ampersand_handoff",
-        description: "Whether to force-disable the & prefix for cloud handoff compose mode.",
-    }
-
 ]);
 
 impl AISettings {
@@ -1518,32 +1498,6 @@ impl AISettings {
         FeatureFlag::OrchestrationV2.is_enabled() && self.is_any_ai_enabled(app)
     }
 
-    /// Returns true when local-to-cloud handoff is effectively enabled.
-    /// False when the user/org has disabled it, cloud conversations are off,
-    /// or AI is globally off.
-    pub fn is_cloud_handoff_enabled(&self, _app: &warpui::AppContext) -> bool {
-        false
-    }
-    pub fn is_cloud_handoff_enabled_for_terminal_view(
-        &self,
-        terminal_view_id: EntityId,
-        app: &warpui::AppContext,
-    ) -> bool {
-        let _ = (terminal_view_id, app);
-        false
-    }
-
-    pub fn is_ampersand_handoff_enabled(&self, app: &warpui::AppContext) -> bool {
-        self.is_cloud_handoff_enabled(app) && !*self.should_force_disable_ampersand_handoff
-    }
-    pub fn is_ampersand_handoff_enabled_for_terminal_view(
-        &self,
-        terminal_view_id: EntityId,
-        app: &warpui::AppContext,
-    ) -> bool {
-        self.is_cloud_handoff_enabled_for_terminal_view(terminal_view_id, app)
-            && !*self.should_force_disable_ampersand_handoff
-    }
 
 
     /// Determines whether a quota reset banner should be displayed to the user.

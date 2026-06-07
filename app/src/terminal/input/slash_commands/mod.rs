@@ -16,8 +16,6 @@ use warp_core::ui::theme::AnsiColorIdentifier;
 use warp_util::path::{CleanPathResult, LineAndColumnArg};
 use warpui::{AppContext, SingletonEntity, ViewContext};
 
-#[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-use crate::ai::ambient_agents::telemetry::HandoffEntryPoint;
 use crate::terminal::view::agent_view_state::AgentViewEntryOrigin;
 
 use crate::ai::blocklist::InputTypeAutoDetectionSource;
@@ -631,33 +629,6 @@ impl Input {
             }
             _cost if command.name == commands::COST.name => {
                 show_error_toast("AI not available".to_owned(), ctx);
-            }
-            #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-            _move_to_cloud if command.name == commands::MOVE_TO_CLOUD.name => {
-                if !AISettings::as_ref(ctx)
-                    .is_cloud_handoff_enabled_for_terminal_view(self.terminal_view_id, ctx)
-                {
-                    return false;
-                }
-                let prompt = argument
-                    .map(|argument| argument.trim())
-                    .filter(|argument| !argument.is_empty())
-                    .map(str::to_owned);
-                if let Some(prompt) = prompt {
-                    // `/handoff query` auto-submits, same as `& query`.
-                    let _ = (prompt, self.collect_cloud_launch_attachments(ctx));
-                    ctx.dispatch_typed_action_deferred(
-                        WorkspaceAction::OpenLocalToCloudHandoffPane {
-                            launch: None,
-                            environment_id: None,
-                            entry_point: HandoffEntryPoint::SlashCommand,
-                        },
-                    );
-                } else {
-                    // `/handoff` with no query enters `&` compose mode,
-                    // same as the footer chip.
-                    self.activate_cloud_handoff_compose(HandoffEntryPoint::SlashCommand, ctx);
-                }
             }
             #[cfg(not(target_family = "wasm"))]
             _continue_locally if command.name == commands::CONTINUE_LOCALLY.name => {

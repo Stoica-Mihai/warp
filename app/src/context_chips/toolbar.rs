@@ -1,9 +1,7 @@
 use serde::{Deserialize, Serialize};
-use warpui::SingletonEntity;
 
 use crate::context_chips::{agent_footer_available_chips, available_chips, ContextChipKind};
 use crate::features::FeatureFlag;
-use crate::settings::AISettings;
 use crate::ui_components::icons::Icon;
 
 /// Declares which footer(s) a toolbar item is available in.
@@ -66,9 +64,6 @@ pub enum AgentToolbarItemKind {
 
     // Agent view only – shows fast-forward (auto-approve) toggle in the footer
     FastForwardToggle,
-
-    // Agent view only – "Hand off to cloud" chip.
-    HandoffToCloud,
 }
 
 impl AgentToolbarItemKind {
@@ -80,8 +75,7 @@ impl AgentToolbarItemKind {
             Self::ModelSelector
             | Self::NLDToggle
             | Self::ContextWindowUsage
-            | Self::FastForwardToggle
-            | Self::HandoffToCloud => ToolbarAvailability::AgentViewOnly,
+            | Self::FastForwardToggle => ToolbarAvailability::AgentViewOnly,
             Self::FileExplorer | Self::RichInput | Self::Settings => {
                 ToolbarAvailability::CLIAgentOnly
             }
@@ -100,7 +94,6 @@ impl AgentToolbarItemKind {
             Self::RichInput => "Rich Input",
             Self::Settings => "Settings",
             Self::FastForwardToggle => "Fast Forward",
-            Self::HandoffToCloud => "Hand off to cloud",
         }
     }
 
@@ -116,37 +109,14 @@ impl AgentToolbarItemKind {
             Self::RichInput => Some(Icon::TextInput),
             Self::Settings => Some(Icon::Settings),
             Self::FastForwardToggle => Some(Icon::FastForward),
-            // The bundled `upload-cloud-01.svg` (cloud-with-upward-arrow) is the
-            // closest fit among the existing icons for V0; design may swap it later.
-            Self::HandoffToCloud => Some(Icon::UploadCloud),
-        }
-    }
-
-    /// Whether this item should remain visible during `&` handoff-compose mode.
-    /// Only items relevant to composing a cloud run are shown.
-    pub(crate) fn is_available_during_handoff_compose(&self) -> bool {
-        match self {
-            Self::ContextChip(ContextChipKind::ShellGitBranch) => true,
-            Self::ModelSelector | Self::VoiceInput | Self::FileAttach => true,
-            Self::ContextChip(_)
-            | Self::NLDToggle
-            | Self::ContextWindowUsage
-            | Self::FastForwardToggle
-            | Self::HandoffToCloud
-            | Self::FileExplorer
-            | Self::RichInput
-            | Self::Settings => false,
         }
     }
 
     /// Whether this item should be included in the toolbar given the current app state.
     /// Feature-flag checks live in `all_available()` / `default_*()`. This method
     /// handles runtime conditions that depend on user settings or workspace state.
-    pub fn is_available(&self, app: &warpui::AppContext) -> bool {
-        match self {
-            Self::HandoffToCloud => AISettings::as_ref(app).is_cloud_handoff_enabled(app),
-            _ => true,
-        }
+    pub fn is_available(&self, _app: &warpui::AppContext) -> bool {
+        true
     }
 
     pub fn is_context_chip(&self) -> bool {

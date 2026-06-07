@@ -106,8 +106,6 @@ use super::util::{
 use super::{util, ActiveSession, TabBarDropTargetData, TabBarLocation, WorkspaceRegistry};
 use crate::ai::conversation_types::ServerConversationToken;
 use crate::ai::conversation_types::AIConversationId;
-#[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-use crate::ai::ambient_agents::telemetry::HandoffEntryPoint;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::blocklist::SerializedBlockListItem;
 use crate::ai::persisted_workspace::PersistedWorkspace;
@@ -9135,18 +9133,6 @@ impl Workspace {
         });
     }
 
-    /// Opens a local-to-cloud handoff pane in place over the active local pane.
-    /// Triggered by `/move-to-cloud`, `&` compose mode, and the handoff footer chip.
-    #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-    fn start_local_to_cloud_handoff(
-        &mut self,
-        
-        _environment_id: Option<SyncId>,
-        _entry_point: HandoffEntryPoint,
-        _ctx: &mut ViewContext<Self>,
-    ) {
-    }
-
     /// Finishes the handoff after the fork RPC returns by restoring the forked
     pub(crate) fn handle_file_tree_event(
         &mut self,
@@ -14713,22 +14699,6 @@ impl TypedActionView for Workspace {
             OpenSettingsFile => {
                 let path = crate::settings::user_preferences_toml_file_path();
                 self.add_tab_for_code_file(path, None, ctx);
-            }
-            OpenLocalToCloudHandoffPane {
-                launch: _,
-                environment_id,
-                entry_point,
-            } => {
-                #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
-                self.start_local_to_cloud_handoff(
-                    *environment_id,
-                    *entry_point,
-                    ctx,
-                );
-                #[cfg(not(all(feature = "local_fs", not(target_family = "wasm"))))]
-                {
-                    let _ = (environment_id, entry_point);
-                }
             }
             OpenNetworkLogPane => {
                 self.open_network_log_pane(ctx);

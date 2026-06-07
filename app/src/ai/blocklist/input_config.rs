@@ -24,8 +24,6 @@ pub enum InputTypeAutoDetectionSource {
     AskAi,
     SlashCommand,
     InlineAgentViewEntry,
-    CloudHandoffEnter,
-    CloudHandoffExit,
     AgentModePrefix,
     InlineCodeReviewSend,
     SessionSharingApply,
