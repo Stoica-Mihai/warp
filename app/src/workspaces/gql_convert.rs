@@ -5,7 +5,7 @@ use regex::Regex;
 use warp_graphql::billing::{
     AiAutonomyPolicy as GqlAiAutonomyPolicy, AmbientAgentsPolicy as GqlAmbientAgentsPolicy,
     BillingCycleUsageHistory as GqlBillingCycleUsageHistory, BillingMetadata as GqlBillingMetadata,
-    BonusGrant as GqlBonusGrant, ByoApiKeyPolicy as GqlByoApiKeyPolicy,
+    ByoApiKeyPolicy as GqlByoApiKeyPolicy,
     CodebaseContextPolicy as GqlCodebaseContextPolicy, CustomerType as GqlCustomerType,
     DelinquencyStatus as GqlDelinquencyStatus,
     EnterpriseCreditsAutoReloadPolicy as GqlEnterpriseCreditsAutoReloadPolicy,
@@ -59,7 +59,6 @@ use super::workspace::{
 use crate::ai::execution_profiles::{
     ActionPermission, ComputerUsePermission, WriteToPtyPermission,
 };
-use crate::ai::{BonusGrant, BonusGrantScope};
 use crate::auth::UserUid;
 use crate::cloud_object::{
     ServerAmbientAgentEnvironment, ServerCloudObject,
@@ -535,17 +534,6 @@ impl From<GqlDelinquencyStatus> for DelinquencyStatus {
             GqlDelinquencyStatus::Unpaid => DelinquencyStatus::Unpaid,
             GqlDelinquencyStatus::TeamLimitExceeded => DelinquencyStatus::TeamLimitExceeded,
             GqlDelinquencyStatus::Other(_) => DelinquencyStatus::Unknown,
-        }
-    }
-}
-
-impl BonusGrant {
-    pub fn from_gql_bonus_grant(bonus_grant: GqlBonusGrant, scope: BonusGrantScope) -> Self {
-        Self {
-            expiration: bonus_grant.expiration.map(|exp| exp.utc()),
-            grant_type: bonus_grant.grant_type,
-            request_credits_remaining: bonus_grant.request_credits_remaining,
-            scope,
         }
     }
 }

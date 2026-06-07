@@ -26,7 +26,6 @@ use crate::ai::mcp::templatable_manager::TemplatableMCPServerManager;
 use crate::ai::outline::RepoOutlines;
 use crate::ai::persisted_workspace::PersistedWorkspace;
 use crate::ai::skills::SkillManager;
-use crate::ai::AIRequestUsageModel;
 use crate::auth::auth_manager::AuthManager;
 use crate::auth::AuthStateProvider;
 use crate::cloud_object::model::persistence::CloudModel;
@@ -102,9 +101,6 @@ pub fn initialize_app(app: &mut App) {
     app.add_singleton_model(|_| KeybindingChangedNotifier::new());
     app.add_singleton_model(TerminalKeybindings::new);
     app.add_singleton_model(|_| ActiveSession::default());
-    app.add_singleton_model(|ctx| {
-        AIRequestUsageModel::new_for_test(ServerApiProvider::as_ref(ctx).get_ai_client(), ctx)
-    });
     app.add_singleton_model(|_| CLIAgentSessionsModel::new());
     app.add_singleton_model(|_| AuthStateProvider::new_for_test());
     app.add_singleton_model(AuthManager::new_for_test);

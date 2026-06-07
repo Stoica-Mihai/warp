@@ -200,7 +200,6 @@ use crate::ai::document::ai_document_model::AIDocumentModel;
 use crate::ai::mcp::{MCPGalleryManager, TemplatableMCPServerManager};
 use crate::ai::outline::RepoOutlines;
 use crate::ai::skills::SkillManager;
-use crate::ai::AIRequestUsageModel;
 use crate::antivirus::AntivirusInfo;
 use crate::app_state::AppState;
 use crate::cloud_object::model::actions::ObjectActions;
@@ -1002,7 +1001,6 @@ pub(crate) fn initialize_app(
 
     let server_api_provider = ctx
         .add_singleton_model(|ctx| ServerApiProvider::new(auth_state.clone(), None, ctx));
-    let ai_client = server_api_provider.as_ref(ctx).get_ai_client();
 
     ctx.add_singleton_model(|_ctx| AuthStateProvider::new(auth_state.clone()));
 
@@ -1124,7 +1122,6 @@ pub(crate) fn initialize_app(
         mcp_servers_to_restore = Default::default();
     }
 
-    ctx.add_singleton_model(|ctx| AIRequestUsageModel::new(ai_client, ctx));
 
     ctx.add_singleton_model(|ctx| {
         UserWorkspaces::new(

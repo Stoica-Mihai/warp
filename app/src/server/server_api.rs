@@ -11,7 +11,6 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use ::http::header::CONTENT_LENGTH;
-use ai::AIClient;
 use anyhow::{anyhow, Context, Result};
 use auth::{AuthClient, AMBIENT_WORKLOAD_TOKEN_HEADER, CLOUD_AGENT_ID_HEADER};
 use base64::prelude::BASE64_URL_SAFE;
@@ -1169,10 +1168,6 @@ impl ServerApiProvider {
 
 
     pub fn get_team_client(&self) -> Arc<dyn TeamClient> {
-        self.server_api.clone()
-    }
-
-    pub fn get_ai_client(&self) -> Arc<dyn AIClient> {
         self.server_api.clone()
     }
 

@@ -26,7 +26,6 @@ use crate::ai::mcp::{FileBasedMCPManager, FileMCPWatcher};
 use crate::ai::outline::RepoOutlines;
 use crate::ai::persisted_workspace::PersistedWorkspace;
 use crate::ai::skills::SkillManager;
-use crate::ai::AIRequestUsageModel;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::model::view::CloudViewModel;
 use crate::context_chips::prompt::Prompt;
@@ -142,9 +141,6 @@ fn initialize_app(app: &mut App) {
 
     app.update(experiments::init);
 
-    app.add_singleton_model(|ctx| {
-        AIRequestUsageModel::new_for_test(ServerApiProvider::as_ref(ctx).get_ai_client(), ctx)
-    });
     app.add_singleton_model(|ctx| PersistedWorkspace::new(vec![], HashMap::new(), None, ctx));
     app.add_singleton_model(|_| ProjectContextModel::default());
     app.add_singleton_model(|_| PricingInfoModel::new());

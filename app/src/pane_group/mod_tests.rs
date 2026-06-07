@@ -22,7 +22,6 @@ use crate::ai::mcp::{FileBasedMCPManager, FileMCPWatcher};
 use crate::ai::outline::RepoOutlines;
 use crate::ai::persisted_workspace::PersistedWorkspace;
 use crate::ai::skills::SkillManager;
-use crate::ai::AIRequestUsageModel;
 use crate::auth::auth_manager::AuthManager;
 use crate::auth::AuthStateProvider;
 
@@ -101,9 +100,6 @@ fn initialize_app(app: &mut App) {
     app.add_singleton_model(|_| CLIAgentSessionsModel::new());
     app.add_singleton_model(|ctx| {
         AIExecutionProfilesModel::new(&crate::LaunchMode::new_for_unit_test(), ctx)
-    });
-    app.add_singleton_model(|ctx| {
-        AIRequestUsageModel::new_for_test(ServerApiProvider::as_ref(ctx).get_ai_client(), ctx)
     });
     #[cfg(feature = "local_fs")]
     app.add_singleton_model(RepoMetadataModel::new);
