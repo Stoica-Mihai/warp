@@ -1,6 +1,5 @@
 mod action;
 mod active_session;
-pub(crate) mod auto_handoff;
 #[cfg(target_os = "macos")]
 mod cli_install;
 pub(crate) mod cross_window_tab_drag;
@@ -19,8 +18,8 @@ pub mod util;
 pub mod view;
 
 pub use action::{
-    AutoCloudHandoffTrigger, CommandSearchOptions, InitContent, RestoreConversationLayout,
-    TabContextMenuAnchor, VerticalTabsPaneContextMenuTarget, WorkspaceAction,
+    CommandSearchOptions, InitContent, RestoreConversationLayout, TabContextMenuAnchor,
+    VerticalTabsPaneContextMenuTarget, WorkspaceAction,
 };
 pub use active_session::ActiveSession;
 use serde::{Deserialize, Serialize};
