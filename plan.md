@@ -966,7 +966,7 @@ Teams = cloud-backend org overlay (server-populated via authenticated `workspace
   - **`Team` struct + `Workspace.teams: Vec<Team>` + DiscoverableTeam/TeamMember/MembershipRole + team_tester.rs + joinable_teams field + FetchDiscoverableTeams event:** the keystone. **TRAP: `warp_graphql` Team types are cynic schema-bound + the `workspaces_metadata` query RESPONSE carries the teams array** → `Workspace.teams` + app `Team` are load-bearing for gql DESERIALIZATION (even when always empty). Removing them = reshaping gql_convert (workspaces/gql_convert.rs:35/42/91-112) + persistence (sqlite.rs:2937 MembershipRole) + ~50 refs. Verify graphql crate before deleting app types.
   - **KEEP (verified, misnamed):** `TeamUpdateManager` (= workspace-metadata POLLING) + `TeamClient` trait + `workspaces_metadata()` (= the core workspace fetcher) + `WorkspaceMember.role` (generic workspace membership) + `TeamsChanged` event + PrivacySettings coupling. Consider renaming TeamUpdateManager→WorkspacesMetadataPollingManager, TeamClient→WorkspacesMetadataClient for clarity (optional).
 
-## GraphQL / cloud-transport removal (session 62) — TERMINAL CUT, decided: FULLY LOCAL
+## GraphQL / cloud-transport removal (session 62) — TERMINAL CUT, decided: FULLY LOCAL — 3/4 traits done (AIClient/ManagedSecrets/TeamClient); only AuthClient + crate-deletion left
 
 **User decision (session 62):** target end-state = no cloud at all → remove `warp_graphql` + `warp_graphql_schema` + `warp_server_client` entirely. graphql is the wire protocol to Warp's hosted backend (cynic-typed client, 4368-line `api/schema.graphql`, 32 queries/64 mutations/2 subs). It's the LAST domino — every cloud feature's egress.
 
