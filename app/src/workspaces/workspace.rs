@@ -1,14 +1,8 @@
 use std::cmp::Ordering;
 use std::path::PathBuf;
 
-use chrono::Utc;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use warp_graphql::billing::{AddonCreditAutoReloadStatus, ServiceAgreement, ServiceAgreementType};
-pub use warp_graphql::billing::{
-    AiCreditsUsageAndCostSubjectType, AiCreditsUsageAndCostType, AiCreditsUsageBucket,
-    AiCreditsUsageSource,
-};
 
 use super::team::MembershipRole;
 use crate::ai::execution_profiles::{
@@ -43,7 +37,6 @@ pub struct Workspace {
     pub stripe_customer_id: Option<String>,
     pub billing_metadata: BillingMetadata,
     pub bonus_grants_purchased_this_month: BonusGrantsPurchased,
-    pub billing_cycle_usage: Option<BillingCycleUsageData>,
     pub has_billing_history: bool,
     pub settings: WorkspaceSettings,
     pub invite_code: Option<WorkspaceInviteCode>,
@@ -63,7 +56,6 @@ impl Workspace {
             stripe_customer_id: Default::default(),
             billing_metadata: Default::default(),
             bonus_grants_purchased_this_month: Default::default(),
-            billing_cycle_usage: None,
             has_billing_history: false,
             settings: Default::default(), // TODO: persistence wrapper instead of default
             invite_code: Default::default(),
@@ -165,22 +157,6 @@ impl Workspace {
         }
     }
 
-    /// Returns the price in cents for the selected auto-reload credit denomination.
-    /// Returns None if auto-reload is not configured or if the denomination can't be found in pricing options.
-    pub fn get_auto_reload_price_cents(
-        &self,
-        addon_credits_options: &[warp_graphql::billing::AddonCreditsOption],
-    ) -> Option<i32> {
-        let selected_credits = self
-            .settings
-            .addon_credits_settings
-            .selected_auto_reload_credit_denomination?;
-
-        addon_credits_options
-            .iter()
-            .find(|option| option.credits == selected_credits)
-            .map(|option| option.price_usd_cents)
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -479,8 +455,6 @@ pub struct BillingMetadata {
     pub customer_type: CustomerType,
     pub delinquency_status: DelinquencyStatus,
     #[serde(skip)]
-    pub service_agreements: Vec<ServiceAgreement>,
-    #[serde(skip)]
     pub ai_overages: Option<AiOverages>,
 }
 
@@ -497,52 +471,6 @@ pub struct AiOverages {
     pub current_period_end: chrono::DateTime<chrono::Utc>,
 }
 
-/// A single redacted usage entry from `Workspace.billingCycleUsageHistory`.
-///
-/// The shape of this entry depends on the viewer's resolved `UsageVisibility`:
-/// * `OwnOnly` viewers receive only their own entries with real `cost_type` /
-///   `usage_bucket` / `usage_source` values.
-/// * `TeamAggregate` viewers receive exactly one synthetic `TEAM` row per cycle
-///   carrying `Aggregate` sentinels for all three categorical fields.
-/// * `PerUserTotals` viewers receive one row per user / service account per
-///   cycle, also with `Aggregate` sentinels on the categorical fields.
-/// * `FullBreakdown` viewers receive every real row, one per
-///   `(subject, cost_type, bucket, source)` tuple. Categorical fields always
-///   carry real values — the server does **not** synthesize an aggregate team
-///   total at this granularity. Compute team-wide sums client-side if needed.
-#[derive(Clone, Debug)]
-pub struct BillingCycleUsageEntry {
-    pub subject_type: AiCreditsUsageAndCostSubjectType,
-    pub subject_uid: Option<String>,
-    pub subject_display_name: Option<String>,
-    pub cost_type: AiCreditsUsageAndCostType,
-    pub usage_bucket: AiCreditsUsageBucket,
-    pub usage_source: AiCreditsUsageSource,
-    pub credits_used: i32,
-    pub cost_cents: i32,
-}
-
-/// Per-cycle bucket of redacted usage entries with explicit period bounds.
-/// `period_end` is exclusive (e.g. a summary covering May 2026 has
-/// `period_end = 2026-06-01T00:00:00Z`).
-#[derive(Clone, Debug)]
-pub struct BillingCycleUsageSummary {
-    pub period_start: chrono::DateTime<chrono::Utc>,
-    pub period_end: chrono::DateTime<chrono::Utc>,
-    pub entries: Vec<BillingCycleUsageEntry>,
-}
-
-/// The full per-cycle usage history for a workspace, as redacted by the
-/// server's `USAGE_VISIBILITY` policy. `current_period_start` /
-/// `current_period_end` mark the cycle that's currently active; older
-/// summaries cover prior cycles and the number of them retained is governed
-/// by the policy's `max_prior_cycles`.
-#[derive(Clone, Debug)]
-pub struct BillingCycleUsageData {
-    pub current_period_start: chrono::DateTime<chrono::Utc>,
-    pub current_period_end: chrono::DateTime<chrono::Utc>,
-    pub summaries: Vec<BillingCycleUsageSummary>,
-}
 
 impl BillingMetadata {
     /// Returns whether the current tier has a usage-based pricing policy that can be toggled.
@@ -631,11 +559,8 @@ impl BillingMetadata {
     }
 
     pub fn is_on_build_business_plan(&self) -> bool {
-        self.customer_type == CustomerType::Business
-            && matches!(
-                self.service_agreements.first().map(|sa| &sa.type_),
-                Some(ServiceAgreementType::SelfServe)
-            )
+        // Service agreements are not available in the local-only build.
+        false
     }
 
     pub fn is_on_legacy_business_plan(&self) -> bool {
@@ -676,16 +601,6 @@ impl BillingMetadata {
         self.tier.name == "Warp Plan"
     }
 
-    pub fn has_active_subscription(&self) -> bool {
-        if let Some(newest_service_agreement) = self.service_agreements.first() {
-            let not_expired = Utc::now() < newest_service_agreement.current_period_end.utc();
-            let not_delinquent = !self.is_delinquent_due_to_payment_issue();
-            not_expired && not_delinquent
-        } else {
-            false
-        }
-    }
-
     pub fn is_byo_api_key_enabled(&self) -> bool {
         self.tier
             .byo_api_key_policy
@@ -696,13 +611,6 @@ impl BillingMetadata {
         self.ai_overages
             .as_ref()
             .is_some_and(|ai_overages| ai_overages.current_monthly_requests_used > 0)
-    }
-
-    pub fn has_failed_addon_credit_auto_reload_status(&self) -> bool {
-        self.service_agreements
-            .first()
-            .and_then(|sa| sa.addon_credit_auto_reload_status)
-            .is_some_and(|status| matches!(status, AddonCreditAutoReloadStatus::Failed))
     }
 
     pub fn is_enterprise_pay_as_you_go_enabled(&self) -> bool {

@@ -51,7 +51,6 @@ pub fn join_a_workspace() -> TestStep {
                     stripe_customer_id: None,
                     billing_metadata: Default::default(),
                     bonus_grants_purchased_this_month: Default::default(),
-                    billing_cycle_usage: None,
                     has_billing_history: false,
                     settings: Default::default(),
                     invite_code: Default::default(),
