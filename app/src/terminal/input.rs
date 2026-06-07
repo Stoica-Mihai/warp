@@ -121,7 +121,6 @@ use crate::ai::blocklist::{
 use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentVersion};
 use crate::ai::mcp::TemplatableMCPServerManager;
 use crate::ai::skills::SkillManager;
-use crate::ai::AIRequestUsageModel;
 use crate::appearance::{Appearance, AppearanceEvent};
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::{CloudObject, Space};
@@ -2228,14 +2227,6 @@ impl Input {
                     }
                 }
             }
-        });
-
-        let ai_req_usage_model = AIRequestUsageModel::handle(ctx);
-        ctx.subscribe_to_model(&ai_req_usage_model, |_, _, _, ctx| {
-            ctx.notify();
-        });
-        ctx.observe(&ai_req_usage_model, |_, _, ctx| {
-            ctx.notify();
         });
 
         let deferred_remote_operations =

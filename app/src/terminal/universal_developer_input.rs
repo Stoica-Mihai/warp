@@ -30,7 +30,6 @@ use warpui::{
 use crate::ai::blocklist::cli_controller::CLISubagentController;
 use crate::ai::blocklist::prompt::PromptIconButtonTheme;
 use crate::ai::blocklist::{BlocklistAIInputModel, InputConfig, InputType};
-use crate::ai::AIRequestUsageModel;
 use crate::network::NetworkStatus;
 #[cfg(not(target_family = "wasm"))]
 use crate::settings::InputSettings;
@@ -360,10 +359,6 @@ impl UniversalDeveloperInputButtonBar {
         ctx.subscribe_to_model(&UserWorkspaces::handle(ctx), |_, _, _, ctx| {
             ctx.notify();
         });
-        ctx.subscribe_to_model(&AIRequestUsageModel::handle(ctx), |_, _, _, ctx| {
-            ctx.notify()
-        });
-
         ctx.subscribe_to_model(&SessionSettings::handle(ctx), |_, _, event, ctx| {
             if let SessionSettingsChangedEvent::ShowModelSelectorsInPrompt { .. } = event {
                 ctx.notify();
