@@ -1,4 +1,3 @@
-use std::sync::Arc;
 
 use chrono::Utc;
 use lazy_static::lazy_static;
@@ -22,7 +21,6 @@ use crate::network::NetworkStatus;
 use crate::server::ids::ServerId;
 #[cfg(test)]
 #[cfg(test)]
-use crate::server::server_api::workspace::MockWorkspaceClient;
 use crate::server::server_api::ServerApiProvider;
 use crate::settings::init_and_register_user_preferences;
 use crate::workflows::CloudWorkflowModel;
@@ -64,7 +62,6 @@ fn initialize_app(
     app: &mut App,
     cached_objects: Vec<Box<dyn CloudObject>>,
 ) {
-    let workspace_client_mock = Arc::new(MockWorkspaceClient::new());
 
     // Add the necessary singleton models to the App
     app.add_singleton_model(|_| NetworkStatus::new());
@@ -72,9 +69,7 @@ fn initialize_app(
     app.add_singleton_model(|_| AuthStateProvider::new_for_test());
     app.add_singleton_model(AuthManager::new_for_test);
     app.add_singleton_model(|ctx| {
-        UserWorkspaces::mock(
-            workspace_client_mock.clone(),
-            vec![TEST_WORKSPACE.clone()],
+        UserWorkspaces::mock(vec![TEST_WORKSPACE.clone()],
             ctx,
         )
     });

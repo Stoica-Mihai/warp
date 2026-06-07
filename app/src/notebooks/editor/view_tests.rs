@@ -34,7 +34,6 @@ use crate::notebooks::editor::rich_text_styles;
 use crate::notebooks::file::MarkdownDisplayMode;
 use crate::notebooks::link::{LinkEvent, NotebookLinks, SessionSource};
 use crate::search::files::model::FileSearchModel;
-use crate::server::server_api::workspace::MockWorkspaceClient;
 use crate::settings::FontSettings;
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
 use crate::terminal::keys::TerminalKeybindings;
@@ -90,11 +89,8 @@ fn initialize_editor(
     app.add_singleton_model(TerminalKeybindings::new);
     app.add_singleton_model(CloudModel::mock);
     app.add_singleton_model(|_| AuthStateProvider::new_for_test());
-    let workspace_client_mock = Arc::new(MockWorkspaceClient::new());
     app.add_singleton_model(|ctx| {
-        UserWorkspaces::mock(
-            workspace_client_mock.clone(),
-            vec![],
+        UserWorkspaces::mock(vec![],
             ctx,
         )
     });

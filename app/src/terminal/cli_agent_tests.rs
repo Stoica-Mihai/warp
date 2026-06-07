@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use chrono::Local;
 use smol_str::SmolStr;
@@ -18,7 +17,6 @@ use crate::code_review::comments::{
     AttachedReviewComment, AttachedReviewCommentTarget, CommentOrigin, LineDiffContent,
 };
 use crate::server::ids::ServerId;
-use crate::server::server_api::workspace::MockWorkspaceClient;
 use crate::workspaces::team::Team;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::workspaces::workspace::Workspace;
@@ -445,9 +443,7 @@ fn test_detect_aifx_agent_run_claude_on_uber_team() {
     App::test((), |mut app| async move {
         let uber_workspace = workspace_with_team_uid(UBER_TEAM_UID);
         app.add_singleton_model(|ctx| {
-            UserWorkspaces::mock(
-                Arc::new(MockWorkspaceClient::new()),
-                vec![uber_workspace],
+            UserWorkspaces::mock(vec![uber_workspace],
                 ctx,
             )
         });
@@ -471,9 +467,7 @@ fn test_detect_aifx_agent_run_claude_via_alias_on_uber_team() {
     App::test((), |mut app| async move {
         let uber_workspace = workspace_with_team_uid(UBER_TEAM_UID);
         app.add_singleton_model(|ctx| {
-            UserWorkspaces::mock(
-                Arc::new(MockWorkspaceClient::new()),
-                vec![uber_workspace],
+            UserWorkspaces::mock(vec![uber_workspace],
                 ctx,
             )
         });
@@ -538,9 +532,7 @@ fn test_detect_aifx_agent_run_claude_wrong_team() {
     App::test((), |mut app| async move {
         let other_workspace = workspace_with_team_uid("some-other-team-uid-01");
         app.add_singleton_model(|ctx| {
-            UserWorkspaces::mock(
-                Arc::new(MockWorkspaceClient::new()),
-                vec![other_workspace],
+            UserWorkspaces::mock(vec![other_workspace],
                 ctx,
             )
         });

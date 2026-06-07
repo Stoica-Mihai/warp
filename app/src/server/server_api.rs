@@ -4,7 +4,6 @@ pub mod harness_support;
 pub mod managed_secrets;
 pub(crate) mod presigned_upload;
 pub mod team;
-pub mod workspace;
 
 use std::borrow::Cow;
 use std::fmt;
@@ -32,7 +31,6 @@ use warp_core::errors::{register_error, AnyhowErrorExt, ErrorExt};
 use warp_managed_secrets::client::ManagedSecretsClient;
 use warpui::r#async::BoxFuture;
 use warpui::{Entity, ModelContext, SingletonEntity};
-use workspace::WorkspaceClient;
 
 use super::graphql::GraphQLError;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
@@ -1169,9 +1167,6 @@ impl ServerApiProvider {
         self.server_api.clone()
     }
 
-    pub fn get_workspace_client(&self) -> Arc<dyn WorkspaceClient> {
-        self.server_api.clone()
-    }
 
     pub fn get_team_client(&self) -> Arc<dyn TeamClient> {
         self.server_api.clone()

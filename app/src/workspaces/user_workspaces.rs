@@ -1,4 +1,3 @@
-use std::sync::Arc;
 
 use anyhow::Result;
 use regex::Regex;
@@ -23,9 +22,6 @@ use crate::cloud_object::{ObjectType, Owner, Space};
 use crate::pricing::PricingInfoModel;
 use crate::report_error;
 use crate::server::ids::ServerId;
-use crate::server::server_api::workspace::WorkspaceClient;
-#[cfg(test)]
-use crate::server::server_api::workspace::MockWorkspaceClient;
 use crate::settings::{
     AISettings, AISettingsChangedEvent, CodeSettings, CodeSettingsChangedEvent, PrivacySettings,
 };
@@ -34,7 +30,7 @@ use crate::workspaces::workspace::{
     AIAutonomyPolicy, BillingMetadata, WorkspaceMember, WorkspaceSettings,
 };
 use crate::workspaces::workspace::{
-    AiAutonomySettings, AiOverages, SandboxedAgentSettings, UsageBasedPricingSettings,
+    AiAutonomySettings, SandboxedAgentSettings, UsageBasedPricingSettings,
 };
 
 const STRIPE_SUBSCRIPTION_INTERVAL_PAGE_PREFIX: &str = "/upgrade";
@@ -55,8 +51,6 @@ pub enum UserWorkspacesEvent {
     DeleteTeamInviteRejected(anyhow::Error),
     GenerateUpgradeLink(String),
     GenerateUpgradeLinkRejected(anyhow::Error),
-    GenerateStripeBillingPortalLink(String),
-    GenerateStripeBillingPortalLinkRejected(anyhow::Error),
     ToggleTeamDiscoverabilitySuccess,
     ToggleTeamDiscoverabilityRejected(anyhow::Error),
     JoinTeamWithTeamDiscoverySuccess,
@@ -67,11 +61,6 @@ pub enum UserWorkspacesEvent {
     TransferTeamOwnershipRejected(anyhow::Error),
     SetTeamMemberRoleSuccess,
     SetTeamMemberRoleRejected(anyhow::Error),
-    UpdateWorkspaceSettingsSuccess,
-    UpdateWorkspaceSettingsRejected(anyhow::Error),
-    AiOveragesUpdated,
-    PurchaseAddonCreditsSuccess,
-    PurchaseAddonCreditsRejected(anyhow::Error),
     /// Fired whenever the set of teams the user is on changes.
     TeamsChanged,
     CodebaseContextEnablementChanged,
@@ -87,7 +76,6 @@ pub struct UserWorkspaces {
     current_workspace_uid: Tracked<Option<WorkspaceUid>>,
     workspaces: Tracked<Vec<Workspace>>,
     joinable_teams: Vec<DiscoverableTeam>,
-    workspace_client: Arc<dyn WorkspaceClient>,
 }
 
 /// Represents the workspaces a user potentially has access to.
@@ -116,7 +104,6 @@ pub struct WorkspacesMetadataWithPricing {
 impl UserWorkspaces {
     #[cfg(test)]
     pub fn mock(
-        workspace_client: Arc<dyn WorkspaceClient>,
         cached_workspaces: Vec<Workspace>,
         _ctx: &mut ModelContext<Self>,
     ) -> Self {
@@ -124,21 +111,15 @@ impl UserWorkspaces {
             current_workspace_uid: cached_workspaces.first().map(|w| w.uid).into(),
             workspaces: cached_workspaces.into(),
             joinable_teams: Default::default(),
-            workspace_client,
         }
     }
 
     #[cfg(test)]
     pub fn default_mock(ctx: &mut ModelContext<Self>) -> Self {
-        Self::mock(
-            Arc::new(MockWorkspaceClient::new()),
-            vec![],
-            ctx,
-        )
+        Self::mock(vec![], ctx)
     }
 
     pub fn new(
-        workspace_client: Arc<dyn WorkspaceClient>,
         cached_workspaces: Vec<Workspace>,
         current_workspace_uid: Option<WorkspaceUid>,
         ctx: &mut ModelContext<Self>,
@@ -162,7 +143,6 @@ impl UserWorkspaces {
             current_workspace_uid: current_workspace_uid.into(),
             workspaces: cached_workspaces.into(),
             joinable_teams: Default::default(),
-            workspace_client,
         }
     }
 
@@ -757,156 +737,6 @@ impl UserWorkspaces {
         }
     }
 
-
-    pub fn on_generate_stripe_billing_portal_link(
-        &mut self,
-        result: Result<String>,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        match result {
-            Err(err) => ctx.emit(UserWorkspacesEvent::GenerateStripeBillingPortalLinkRejected(err)),
-            Ok(billing_session_link) => {
-                ctx.emit(UserWorkspacesEvent::GenerateStripeBillingPortalLink(
-                    billing_session_link,
-                ));
-            }
-        };
-        ctx.notify();
-    }
-
-    pub fn generate_stripe_billing_portal_link(
-        &mut self,
-        team_uid: ServerId,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let workspace_client = self.workspace_client.clone();
-        let _ = ctx.spawn(
-            async move {
-                workspace_client
-                    .generate_stripe_billing_portal_link(team_uid)
-                    .await
-            },
-            Self::on_generate_stripe_billing_portal_link,
-        );
-    }
-
-
-    fn on_update_workspace_metadata(
-        &mut self,
-        result: Result<WorkspacesMetadataResponse>,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        match result {
-            Ok(result) => {
-                let wrapped = WorkspacesMetadataWithPricing {
-                    metadata: result,
-                    pricing_info: None,
-                };
-                self.on_workspaces_updated(Ok(wrapped), ctx);
-                ctx.emit(UserWorkspacesEvent::UpdateWorkspaceSettingsSuccess);
-            }
-            Err(err) => {
-                let err_for_event = anyhow::anyhow!("{}", err);
-                self.on_workspaces_updated(Err(err), ctx);
-                ctx.emit(UserWorkspacesEvent::UpdateWorkspaceSettingsRejected(
-                    err_for_event,
-                ));
-            }
-        };
-        ctx.notify();
-    }
-
-    pub fn purchase_addon_credits(
-        &mut self,
-        team_uid: ServerId,
-        credits: i32,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let workspace_client = self.workspace_client.clone();
-        let _ = ctx.spawn(
-            async move {
-                workspace_client
-                    .purchase_addon_credits(team_uid, credits)
-                    .await
-            },
-            Self::on_purchase_addon_credits,
-        );
-    }
-
-    fn on_purchase_addon_credits(
-        &mut self,
-        result: Result<WorkspacesMetadataResponse>,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        match result {
-            Ok(result) => {
-                let wrapped = WorkspacesMetadataWithPricing {
-                    metadata: result,
-                    pricing_info: None,
-                };
-                self.on_workspaces_updated(Ok(wrapped), ctx);
-                ctx.emit(UserWorkspacesEvent::PurchaseAddonCreditsSuccess);
-            }
-            Err(err) => {
-                ctx.emit(UserWorkspacesEvent::PurchaseAddonCreditsRejected(
-                    anyhow::anyhow!(err),
-                ));
-            }
-        };
-        ctx.notify();
-    }
-
-    pub fn refresh_ai_overages(&mut self, ctx: &mut ModelContext<Self>) {
-        let workspace_client = self.workspace_client.clone();
-        let _ = ctx.spawn(
-            async move { workspace_client.refresh_ai_overages().await },
-            Self::on_refresh_ai_overages,
-        );
-    }
-
-    pub fn update_addon_credits_settings(
-        &mut self,
-        team_uid: ServerId,
-        auto_reload_enabled: Option<bool>,
-        max_monthly_spend_cents: Option<i32>,
-        selected_auto_reload_credit_denomination: Option<i32>,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let workspace_client = self.workspace_client.clone();
-        let _ = ctx.spawn(
-            async move {
-                workspace_client
-                    .update_addon_credits_settings(
-                        team_uid,
-                        auto_reload_enabled,
-                        max_monthly_spend_cents,
-                        selected_auto_reload_credit_denomination,
-                    )
-                    .await
-            },
-            Self::on_update_workspace_metadata,
-        );
-    }
-
-    fn on_refresh_ai_overages(&mut self, result: Result<AiOverages>, ctx: &mut ModelContext<Self>) {
-        match result {
-            Ok(fresh_ai_overages) => {
-                // TODO: We really need to stop having duplicate billing metadata...
-                if let Some(workspace) = self.current_workspace_mut() {
-                    workspace.billing_metadata.ai_overages = Some(fresh_ai_overages.clone());
-                }
-                if let Some(team) = self.current_team_mut() {
-                    team.billing_metadata.ai_overages = Some(fresh_ai_overages);
-                }
-
-                ctx.emit(UserWorkspacesEvent::AiOveragesUpdated);
-                ctx.notify();
-            }
-            Err(e) => {
-                log::warn!("Failed to refresh AI overages for workspace: {e:?}");
-            }
-        }
-    }
 
     pub fn usage_based_pricing_settings(&self) -> UsageBasedPricingSettings {
         self.current_workspace()

@@ -1,4 +1,3 @@
-use std::sync::Arc;
 
 use chrono::Utc;
 use settings::manager::SettingsManager;
@@ -21,7 +20,6 @@ use crate::server::ids::SyncId::{self};
 #[cfg(test)]
 #[cfg(test)]
 #[cfg(test)]
-use crate::server::server_api::workspace::MockWorkspaceClient;
 use crate::server::server_api::ServerApiProvider;
 use crate::settings::AISettings;
 use crate::workflows::workflow::Workflow;
@@ -79,11 +77,8 @@ fn mock_server_notebook(id: NotebookId, owner: Owner) -> ServerNotebook {
 fn initialize_app(app: &mut App) {
     // Add the necessary singleton models to the App
     app.add_singleton_model(|_| NetworkStatus::new());
-    let mock_workspace_client = Arc::new(MockWorkspaceClient::new());
     app.add_singleton_model(|ctx| {
-        UserWorkspaces::mock(
-            mock_workspace_client.clone(),
-            vec![],
+        UserWorkspaces::mock(vec![],
             ctx,
         )
     });

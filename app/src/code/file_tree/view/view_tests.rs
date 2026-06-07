@@ -1,4 +1,3 @@
-use std::sync::Arc;
 
 use repo_metadata::entry::{DirectoryEntry, Entry, FileMetadata};
 use repo_metadata::file_tree_store::FileTreeState;
@@ -13,7 +12,6 @@ use warpui::{App, ModelHandle};
 
 use super::FileTreeView;
 use crate::auth::AuthStateProvider;
-use crate::server::server_api::workspace::MockWorkspaceClient;
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
 use crate::test_util::settings::initialize_settings_for_tests;
 use crate::vim_registers::VimRegisters;
@@ -40,9 +38,8 @@ fn initialize_app(
     app.add_singleton_model(|_| KeybindingChangedNotifier::mock());
     app.add_singleton_model(|_| AuthStateProvider::new_for_test());
 
-    let workspace_client = Arc::new(MockWorkspaceClient::new());
     app.add_singleton_model(|ctx| {
-        UserWorkspaces::mock(workspace_client.clone(), vec![], ctx)
+        UserWorkspaces::mock(vec![], ctx)
     });
 
     let detected_repositories = app.add_singleton_model(|_| DetectedRepositories::default());

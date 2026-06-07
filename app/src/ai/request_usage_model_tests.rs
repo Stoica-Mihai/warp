@@ -1,4 +1,3 @@
-use std::sync::Arc;
 
 use ai::api_keys::ApiKeyManager;
 use warp_graphql::billing::{AddonCreditsOption, OveragesPricing, PricingInfo};
@@ -7,7 +6,6 @@ use warpui::{App, ModelHandle};
 use super::*;
 use crate::auth::AuthStateProvider;
 use crate::pricing::PricingInfoModel;
-use crate::server::server_api::workspace::MockWorkspaceClient;
 use crate::server::server_api::ServerApiProvider;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::workspaces::workspace::{
@@ -24,9 +22,7 @@ fn create_test_workspace() -> (WorkspaceUid, Workspace) {
 
 fn add_user_workspaces_with_workspace(app: &mut App, workspace: Workspace) {
     app.add_singleton_model(|ctx| {
-        UserWorkspaces::mock(
-            Arc::new(MockWorkspaceClient::new()),
-            vec![workspace],
+        UserWorkspaces::mock(vec![workspace],
             ctx,
         )
     });

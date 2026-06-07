@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use repo_metadata::repositories::DetectedRepositories;
 use string_offset::CharOffset;
@@ -20,7 +19,6 @@ use crate::code_review::code_review_view::CodeReviewView;
 use crate::code_review::diff_state::DiffStateModel;
 use crate::code_review::GlobalCodeReviewModel;
 use crate::pane_group::WorkingDirectoriesModel;
-use crate::server::server_api::workspace::MockWorkspaceClient;
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
 use crate::test_util::settings::initialize_settings_for_tests;
 use crate::vim_registers::VimRegisters;
@@ -155,9 +153,7 @@ fn initialize_test_app(app: &mut App) {
     app.add_singleton_model(|_| DetectedRepositories::default());
     app.add_singleton_model(|_| GlobalCodeReviewModel);
     app.add_singleton_model(|ctx| {
-        UserWorkspaces::mock(
-            Arc::new(MockWorkspaceClient::new()),
-            vec![],
+        UserWorkspaces::mock(vec![],
             ctx,
         )
     });

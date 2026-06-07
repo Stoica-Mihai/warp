@@ -1,4 +1,3 @@
-use std::sync::Arc;
 
 use warp_core::ui::appearance::Appearance;
 use warpui::elements::Empty;
@@ -13,7 +12,6 @@ use crate::pane_group::focus_state::PaneFocusHandle;
 use crate::pane_group::{BackingView, PaneConfiguration, PaneId, PaneView};
 #[cfg(test)]
 #[cfg(test)]
-use crate::server::server_api::workspace::MockWorkspaceClient;
 use crate::server::server_api::ServerApiProvider;
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
 use crate::test_util::settings::initialize_settings_for_tests;
@@ -109,11 +107,8 @@ fn initialize_app(app: &mut App) {
 
     app.add_singleton_model(|_| Appearance::mock());
     app.add_singleton_model(|_| NetworkStatus::new());
-    let mock_workspace_client = Arc::new(MockWorkspaceClient::new());
     app.add_singleton_model(|ctx| {
-        UserWorkspaces::mock(
-            mock_workspace_client.clone(),
-            vec![],
+        UserWorkspaces::mock(vec![],
             ctx,
         )
     });

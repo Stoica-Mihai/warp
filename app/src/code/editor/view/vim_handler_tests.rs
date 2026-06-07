@@ -1,4 +1,3 @@
-use std::sync::Arc;
 
 use pathfinder_geometry::vector::Vector2F;
 use unindent::Unindent;
@@ -21,7 +20,6 @@ use crate::auth::AuthStateProvider;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::code::editor::view::{CodeEditorRenderOptions, CodeEditorView, CodeEditorViewAction};
 use crate::notebooks::editor::keys::NotebookKeybindings;
-use crate::server::server_api::workspace::MockWorkspaceClient;
 use crate::settings::AppEditorSettings;
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
 use crate::test_util::settings::initialize_settings_for_tests;
@@ -56,11 +54,8 @@ fn initialize_code_editor_app(app: &mut App) {
     app.add_singleton_model(NotebookKeybindings::new);
 
     // Add UserWorkspaces mock (required by CodeEditorView)
-    let workspace_client_mock = Arc::new(MockWorkspaceClient::new());
     app.add_singleton_model(|ctx| {
-        UserWorkspaces::mock(
-            workspace_client_mock.clone(),
-            vec![],
+        UserWorkspaces::mock(vec![],
             ctx,
         )
     });

@@ -1,4 +1,3 @@
-use std::sync::Arc;
 
 use warp_core::ui::appearance::Appearance;
 use warp_editor::render::element::VerticalExpansionBehavior;
@@ -12,7 +11,6 @@ use super::{CodeEditorRenderOptions, CodeEditorView, CodeEditorViewAction};
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::editor::InteractionState;
 use crate::notebooks::editor::keys::NotebookKeybindings;
-use crate::server::server_api::workspace::MockWorkspaceClient;
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
 use crate::test_util::settings::initialize_settings_for_tests;
 use crate::vim_registers::VimRegisters;
@@ -37,11 +35,8 @@ fn initialize_editor(app: &mut App) -> (WindowId, ViewHandle<CodeEditorView>) {
     app.add_singleton_model(NotebookKeybindings::new);
 
     // Add UserWorkspaces mock (required by EditorView)
-    let workspace_client_mock = Arc::new(MockWorkspaceClient::new());
     app.add_singleton_model(|ctx| {
-        UserWorkspaces::mock(
-            workspace_client_mock.clone(),
-            vec![],
+        UserWorkspaces::mock(vec![],
             ctx,
         )
     });
