@@ -79,7 +79,6 @@ fn test_persist_skips_when_api_key_authenticated() {
                 .get()
                 .set_credentials(Some(Credentials::ApiKey {
                     key: "wk-test-key".to_owned(),
-                    owner_type: None,
                 }));
         });
 

@@ -8,8 +8,6 @@
 //!   When using Firebase, this is an OAuth2 refresh token.
 //! * [`AuthToken`], which is a short-lived token that's included in all other server requests.
 //!   When using Firebase, this is an OAuth2 access token.
-use warp_graphql::object_permissions::OwnerType;
-
 use super::user::FirebaseAuthTokens;
 
 /// Represents the different ways a user can authenticate with Warp.
@@ -18,11 +16,7 @@ pub enum Credentials {
     /// Firebase authentication with ID token and refresh token.
     Firebase(FirebaseAuthTokens),
     /// API key for direct server authentication.
-    ApiKey {
-        key: String,
-        /// The owner type for this API key. Only set after user info is fetched from the server.
-        owner_type: Option<OwnerType>,
-    },
+    ApiKey { key: String },
     /// Request-scoped or externally managed bearer token.
     Bearer(String),
     /// Authentication derived from an ambient browser session cookie.
@@ -49,18 +43,6 @@ impl Credentials {
     pub fn as_api_key(&self) -> Option<&str> {
         match self {
             Credentials::ApiKey { key, .. } => Some(key),
-            Credentials::Firebase(_) => None,
-            Credentials::Bearer(_) => None,
-            Credentials::SessionCookie => None,
-            #[cfg(any(test, feature = "integration_tests", feature = "skip_login"))]
-            Credentials::Test => None,
-        }
-    }
-
-    /// Returns the owner type if this is an API key credential.
-    pub fn api_key_owner_type(&self) -> Option<OwnerType> {
-        match self {
-            Credentials::ApiKey { owner_type, .. } => *owner_type,
             Credentials::Firebase(_) => None,
             Credentials::Bearer(_) => None,
             Credentials::SessionCookie => None,
