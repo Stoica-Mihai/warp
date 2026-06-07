@@ -286,13 +286,9 @@ impl CommentListView {
             .values()
             .filter(|state| !state.card.source().outdated)
             .count();
-        let send_button_tooltip_text = Self::send_button_tooltip_text(
-            &self.review_destination,
-            sendable_comments > 0,
-            ai_available,
-            ai_enabled,
-        )
-        .into_owned();
+        let send_button_tooltip_text =
+            Self::send_button_tooltip_text(&self.review_destination, sendable_comments > 0)
+                .into_owned();
 
         CommentListDebugState {
             review_destination: self.review_destination.clone(),
@@ -895,8 +891,6 @@ impl CommentListView {
     fn send_button_tooltip_text(
         destination: &ReviewDestination,
         has_sendable_comments: bool,
-        ai_available: bool,
-        ai_enabled: bool,
     ) -> Cow<'static, str> {
         if let ReviewDestination::Cli(agent) = destination {
             if !has_sendable_comments {
@@ -906,36 +900,22 @@ impl CommentListView {
                 let label = if cmd.is_empty() { "CLI agent" } else { cmd };
                 Cow::Owned(format!("Send diff comments to {label}"))
             }
-        } else if !ai_enabled {
-            Cow::Borrowed("AI must be enabled to send comments to Agent")
-        } else if !ai_available {
-            Cow::Borrowed("Agent code review requires AI credits")
-        } else if matches!(destination, ReviewDestination::None) {
-            Cow::Borrowed("All terminals are busy")
-        } else if !has_sendable_comments {
-            Cow::Borrowed("No non-outdated comments to send")
         } else {
-            Cow::Borrowed("Send diff comments to Agent")
+            Cow::Borrowed("No CLI agent running in a terminal for this repo")
         }
     }
 
-    fn render_send_button(&self, appearance: &Appearance, ctx: &AppContext) -> Box<dyn Element> {
-        let ai_available = AIRequestUsageModel::as_ref(ctx).has_any_ai_remaining(ctx);
-        let ai_enabled = AISettings::as_ref(ctx).is_any_ai_enabled(ctx);
+    fn render_send_button(&self, appearance: &Appearance, _ctx: &AppContext) -> Box<dyn Element> {
         let has_sendable_comments = self.has_non_outdated_comments();
 
-        // CLI agents don't consume AI credits, so bypass the ai_available check.
         let enable_send = match &self.review_destination {
             ReviewDestination::None => false,
             ReviewDestination::Cli(_) => has_sendable_comments,
-            ReviewDestination::Warp => ai_available && has_sendable_comments,
         };
 
         let tooltip_text = Self::send_button_tooltip_text(
             &self.review_destination,
             has_sendable_comments,
-            ai_available,
-            ai_enabled,
         );
 
         let tooltip = appearance

@@ -42,7 +42,6 @@ pub struct DataSourceArgs {
 struct ActiveCommandsContext {
     session_context: Availability,
     is_orchestration_enabled: bool,
-    is_feedback_skill_available: bool,
     #[cfg(not(target_family = "wasm"))]
     active_conversation_is_cloud_oz: bool,
     has_default_host: bool,
@@ -227,7 +226,6 @@ impl SlashCommandDataSource {
         ActiveCommandsContext {
             session_context,
             is_orchestration_enabled: ai_settings.is_orchestration_enabled(ctx),
-            is_feedback_skill_available: crate::workspace::is_feedback_skill_available(ctx),
             #[cfg(not(target_family = "wasm"))]
             active_conversation_is_cloud_oz: self.active_conversation_is_cloud_oz(ctx),
             has_default_host,
@@ -244,12 +242,6 @@ impl SlashCommandDataSource {
             return false;
         }
         if command.name == commands::ORCHESTRATE_NAME && !context.is_orchestration_enabled {
-            return false;
-        }
-        // The static `/feedback` command is an AI-off fallback for the richer bundled
-        // `feedback` skill. Hide it whenever the bundled skill will actually take over,
-        // matching the precedence used by `Workspace::send_feedback`.
-        if command.name == commands::FEEDBACK.name && context.is_feedback_skill_available {
             return false;
         }
         // /continue-locally only applies to cloud Oz conversations. Local conversations
