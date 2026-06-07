@@ -61,7 +61,7 @@ use warpui::clipboard::ClipboardContent;
 use warpui::elements::Percentage;
 use warpui::elements::{
     Align, Border, CacheOption, ChildAnchor, ChildView, Clipped, ConstrainedBox, Container,
-    CornerRadius, CrossAxisAlignment, Dismiss, DispatchEventResult, DraggableState, DropTarget,
+    CornerRadius, CrossAxisAlignment, DispatchEventResult, DraggableState, DropTarget,
     Element, Empty, EventHandler, Expanded, Fill as ElementFill, Flex, Highlight, Hoverable,
     Image, MainAxisAlignment, MainAxisSize, MouseInBehavior, MouseStateHandle,
     OffsetPositioning, ParentAnchor, ParentElement, ParentOffsetBounds, PositionedElementAnchor,
@@ -85,10 +85,7 @@ use warpui::{
     UpdateModel, UpdateView, View, ViewAsRef, ViewContext, ViewHandle, WeakViewHandle, WindowId,
 };
 
-use self::vertical_tabs::{
-    render_detail_sidecar, render_settings_popup, VerticalTabsPanelState,
-    VERTICAL_TABS_SETTINGS_BUTTON_POSITION_ID,
-};
+use self::vertical_tabs::{render_detail_sidecar, VerticalTabsPanelState};
 #[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
 use super::action::AutoCloudHandoffTrigger;
 use super::action::{
@@ -2291,9 +2288,6 @@ impl Workspace {
                     editor.set_font_family(font_family, ctx);
                     editor.set_font_size(font_size, ctx);
                 });
-                if !vertical_tabs_enabled {
-                    self.close_vertical_tabs_settings_popup();
-                }
                 self.sync_panel_positions_from_config(ctx);
                 self.sync_window_button_visibility(ctx);
                 ctx.notify();
@@ -5624,15 +5618,10 @@ impl Workspace {
     fn toggle_vertical_tabs_panel(&mut self, ctx: &mut ViewContext<Self>) {
         self.vertical_tabs_panel_open = !self.vertical_tabs_panel_open;
         if !self.vertical_tabs_panel_open {
-            self.close_vertical_tabs_settings_popup();
             self.vertical_tabs_panel.clear_detail_sidecar();
         }
         self.sync_window_button_visibility(ctx);
         ctx.notify();
-    }
-
-    fn close_vertical_tabs_settings_popup(&mut self) {
-        self.vertical_tabs_panel.show_settings_popup = false;
     }
 
 
@@ -15137,16 +15126,6 @@ impl TypedActionView for Workspace {
                 self.toggle_vertical_tabs_panel(ctx);
             }
             ToggleNotificationMailbox { .. } => {}
-            ToggleVerticalTabsSettingsPopup => {
-                if FeatureFlag::VerticalTabs.is_enabled()
-                    && *TabSettings::as_ref(ctx).use_vertical_tabs
-                    && self.vertical_tabs_panel_open
-                {
-                    self.vertical_tabs_panel.show_settings_popup =
-                        !self.vertical_tabs_panel.show_settings_popup;
-                    ctx.notify();
-                }
-            }
             SetVerticalTabsDisplayGranularity(granularity) => {
                 let granularity = *granularity;
                 TabSettings::handle(ctx).update(ctx, |settings, ctx| {
@@ -16115,29 +16094,6 @@ impl View for Workspace {
                 .with_uniform_padding(WORKSPACE_PADDING)
                 .finish(),
         );
-
-        if !use_simplified_wasm_tab_bar
-            && FeatureFlag::VerticalTabs.is_enabled()
-            && *TabSettings::as_ref(app).use_vertical_tabs
-            && self.vertical_tabs_panel_open
-            && self.vertical_tabs_panel.show_settings_popup
-        {
-            stack.add_positioned_overlay_child(
-                Dismiss::new(render_settings_popup(&self.vertical_tabs_panel, app))
-                    .prevent_interaction_with_other_elements()
-                    .on_dismiss(|ctx, _| {
-                        ctx.dispatch_typed_action(WorkspaceAction::ToggleVerticalTabsSettingsPopup);
-                    })
-                    .finish(),
-                OffsetPositioning::offset_from_save_position_element(
-                    VERTICAL_TABS_SETTINGS_BUTTON_POSITION_ID,
-                    vec2f(0., 4.),
-                    PositionedElementOffsetBounds::WindowByPosition,
-                    PositionedElementAnchor::BottomLeft,
-                    ChildAnchor::TopLeft,
-                ),
-            );
-        }
 
         if FeatureFlag::VerticalTabs.is_enabled()
             && *TabSettings::as_ref(app).use_vertical_tabs
