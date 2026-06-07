@@ -6,10 +6,7 @@ use memo_map::MemoMap;
 use warpui::{AppContext, AssetProvider, SingletonEntity};
 
 #[cfg(feature = "local_fs")]
-use super::{
-    model::session::{BootstrapSessionType, SessionInfo},
-    warpify::settings::{PIPENV_SUBSHELL_COMMAND_REGEX, POETRY_SUBSHELL_COMMAND_REGEX},
-};
+use super::model::session::{BootstrapSessionType, SessionInfo};
 use crate::env_vars::EnvVar;
 use crate::terminal::session_settings::SessionSettings;
 use crate::terminal::shell::ShellType;
@@ -41,7 +38,7 @@ pub fn is_container_subshell(session_info: &SessionInfo) -> bool {
 /// a temp file and `source` it) for a newly spawned session with the given `shell_type`, and
 /// associated `session_type` and `subshell_initialization_info`.
 ///
-/// This returns `true` for local Fish/Pwsh shells and local subshells spawned via `poetry shell`.
+/// This returns `true` for local Fish/Pwsh shells and MSYS2.
 ///
 /// We use RC-file based bootstrap for local Fish shells because there is a long-standing bug which
 /// causes an explosion of formatting output when a command is longer than a screen height. (See
@@ -53,11 +50,6 @@ pub fn is_container_subshell(session_info: &SessionInfo) -> bool {
 ///
 /// We use RC-file based bootstrap for PowerShell because chars written to the PTY get randomly
 /// ignored. See PLAT-757 in Linear.
-///
-/// We use RC-file based bootstrap for `poetry shell` subshells because the underlying library used
-/// to spawn a subshell by `poetry shell` uses blocking PTY reads and writes, which results in a
-/// deadlock when attempting to write the whole bootstrap script to the PTY; RC file-based
-/// bootstrap is the only known way to bootstrap such subshells successfully.
 ///
 /// We use RC-file based bootstrap for MSYS2 because it has slow PTY throughput.
 #[cfg(feature = "local_fs")]
@@ -76,26 +68,11 @@ pub fn should_use_rc_file_bootstrap_method(
     let session_type = &session_info.session_type;
     match session_type {
         BootstrapSessionType::Local => {
-            let subshell_initialization_info = session_info.subshell_info.as_ref();
-            let is_poetry_subshell = subshell_initialization_info
-                .as_ref()
-                .map(|info| POETRY_SUBSHELL_COMMAND_REGEX.is_match(info.spawning_command.as_str()))
-                .unwrap_or(false);
-            let is_pipenv_subshell = subshell_initialization_info
-                .as_ref()
-                .map(|info| PIPENV_SUBSHELL_COMMAND_REGEX.is_match(info.spawning_command.as_str()))
-                .unwrap_or(false);
             let is_msys2 = session_info
                 .launch_data
                 .as_ref()
                 .is_some_and(|data| matches!(data, ShellLaunchData::MSYS2 { .. }));
-            shell_type == ShellType::Fish
-                || shell_type == ShellType::PowerShell
-                || is_poetry_subshell
-                || ((is_pipenv_subshell
-                    || (subshell_initialization_info.is_some() && cfg!(windows)))
-                    && shell_type == ShellType::Zsh)
-                || is_msys2
+            shell_type == ShellType::Fish || shell_type == ShellType::PowerShell || is_msys2
         }
         BootstrapSessionType::WarpifiedRemote => false,
     }
