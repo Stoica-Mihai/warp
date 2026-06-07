@@ -215,7 +215,6 @@ dependencies = [
  "uuid",
  "virtual-fs",
  "warp_core",
- "warp_graphql",
  "warp_multi_agent_api",
  "warp_terminal",
  "warp_util",
