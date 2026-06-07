@@ -12,7 +12,7 @@ use warp_core::ui::Icon;
 use warp_core::ui::appearance::Appearance;
 use warp_core::ui::theme::Fill;
 use warp_graphql::object_permissions::AccessLevel;
-use warp_graphql::scalars::time::ServerTimestamp;
+use warp_util::server_timestamp::ServerTimestamp;
 use warpui_core::Element;
 use warpui_core::elements::{
     Align, ChildAnchor, ConstrainedBox, Hoverable, MouseStateHandle, OffsetPositioning,
@@ -927,9 +927,9 @@ impl TryFrom<warp_graphql::object::ObjectMetadata> for ServerMetadata {
         };
         let metadata = ServerMetadata {
             uid: ServerId::from_string_lossy(value.uid.inner()),
-            revision: value.revision_ts.into(),
-            metadata_last_updated_ts: value.metadata_last_updated_ts,
-            trashed_ts: value.trashed_ts,
+            revision: ServerTimestamp::from(value.revision_ts.utc()).into(),
+            metadata_last_updated_ts: value.metadata_last_updated_ts.utc().into(),
+            trashed_ts: value.trashed_ts.map(|t| t.utc().into()),
             folder_id,
             is_welcome_object: value.is_welcome_object,
             creator_uid: value.creator_uid.map(|uid| uid.into_inner()),
@@ -958,7 +958,7 @@ impl TryFrom<warp_graphql::object_permissions::ObjectPermissions> for ServerPerm
                 Some(sharing) => Some(sharing.try_into()?),
                 None => None,
             },
-            permissions_last_updated_ts: value.last_updated_ts,
+            permissions_last_updated_ts: value.last_updated_ts.utc().into(),
         };
         Ok(object_permissions)
     }

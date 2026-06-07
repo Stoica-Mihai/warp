@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use warp_graphql::scalars::time::ServerTimestamp;
+use warp_util::server_timestamp::ServerTimestamp;
 use warpui::AppContext;
 use warpui_extras::secure_storage::{self, AppContextExt};
 

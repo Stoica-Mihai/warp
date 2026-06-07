@@ -13557,6 +13557,7 @@ dependencies = [
  "uuid",
  "warp_core",
  "warp_graphql",
+ "warp_util",
  "warpui_core",
 ]
 
@@ -13600,6 +13601,7 @@ name = "warp_util"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "chrono",
  "command",
  "content_inspector",
  "dirs 6.0.0",

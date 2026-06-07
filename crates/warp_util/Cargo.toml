@@ -11,6 +11,7 @@ license.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+chrono.workspace = true
 command.workspace = true
 content_inspector = "0.2.4"
 pathdiff = "0.2.1"

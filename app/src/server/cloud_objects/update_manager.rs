@@ -6,7 +6,7 @@ use std::sync::Arc;
 use chrono::Utc;
 use futures::channel::oneshot::{self, Receiver};
 use regex::Regex;
-use warp_graphql::scalars::time::ServerTimestamp;
+use warp_util::server_timestamp::ServerTimestamp;
 use warp_util::sync::Condition;
 use warpui::{
     AppContext, Entity, ModelContext,

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};
-use warp_graphql::scalars::time::ServerTimestamp;
+use warp_util::server_timestamp::ServerTimestamp;
 pub use warp_server_client::auth::{TEST_USER_EMAIL, TEST_USER_UID};
 
 use super::UserUid;

@@ -10,7 +10,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use url::Url;
 use warp_core::features::FeatureFlag;
-use warp_graphql::scalars::time::ServerTimestamp;
+use warp_util::server_timestamp::ServerTimestamp;
 use warpui::{AppContext, SingletonEntity};
 
 use self::breadcrumbs::ContainingObject;
