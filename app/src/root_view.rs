@@ -1559,7 +1559,7 @@ impl RootView {
             ctx.dispatch_typed_action_for_view(
                 window_id,
                 handle.id(),
-                &WorkspaceAction::ShowSettingsPage(SettingsSection::Account),
+                &WorkspaceAction::ShowSettingsPage(SettingsSection::Appearance),
             );
             ctx.windows().show_window_and_focus_app(window_id);
         }

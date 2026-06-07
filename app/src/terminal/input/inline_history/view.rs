@@ -220,7 +220,7 @@ impl InlineHistoryMenuView {
                     .on_click(|ctx| {
                         ctx.dispatch_typed_action(WorkspaceAction::ShowSettingsPageWithSearch {
                             search_query: "commands history".into(),
-                            section: Some(SettingsSection::Account),
+                            section: Some(SettingsSection::Appearance),
                         });
                     })
             });
