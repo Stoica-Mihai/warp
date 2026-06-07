@@ -32,8 +32,6 @@ impl From<&CloudObjectTypeAndId> for TelemetryCloudObjectType {
 pub enum TelemetrySpace {
     /// The object is owned by the current user.
     Personal,
-    /// The object is owned by a team the user is on.
-    Team,
     /// The object was shared with the user.
     Shared,
 }
@@ -42,7 +40,6 @@ impl From<Space> for TelemetrySpace {
     fn from(space: Space) -> Self {
         match space {
             Space::Personal => Self::Personal,
-            Space::Team { .. } => Self::Team,
             Space::Shared => Self::Shared,
         }
     }

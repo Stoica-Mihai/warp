@@ -11626,7 +11626,6 @@ impl Workspace {
         ctx: &mut ViewContext<Self>,
     ) {
         let owner = match space {
-            Space::Team { team_uid } => Owner::Team { team_uid },
             Space::Shared => {
                 // TODO(ben): Use an owner-or-folder API, so we can check on creating an object in
                 // the folder.

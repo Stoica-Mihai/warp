@@ -102,8 +102,6 @@ impl From<NotebookId> for SyncId {
 pub enum NotebookLocation {
     /// A cloud notebook in the user's personal space.
     PersonalCloud,
-    /// A cloud notebook in a team space.
-    Team,
     /// A notebook backed by a local file.
     LocalFile,
     /// A notebook backed by a remote file.
@@ -112,10 +110,9 @@ pub enum NotebookLocation {
 
 impl From<Owner> for NotebookLocation {
     fn from(owner: Owner) -> Self {
-        // TODO(ben): Account for shared objects in notebook telemetry.
+        // Teams are not supported in Sublight; team-owned notebooks map to personal.
         match owner {
-            Owner::User { .. } => NotebookLocation::PersonalCloud,
-            Owner::Team { .. } => NotebookLocation::Team,
+            Owner::User { .. } | Owner::Team { .. } => NotebookLocation::PersonalCloud,
         }
     }
 }

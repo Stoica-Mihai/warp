@@ -40,9 +40,6 @@ pub enum WorkflowSource {
     Global,
     Local,
     Project,
-    Team {
-        team_uid: ServerId,
-    },
     PersonalCloud,
     WarpAI,
     Notebook {

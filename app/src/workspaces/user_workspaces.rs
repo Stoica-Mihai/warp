@@ -286,14 +286,13 @@ impl UserWorkspaces {
     // does not directly identify an owner (it's the space for shared objects), returns `None`.
     pub fn space_to_owner(&self, space: Space, ctx: &AppContext) -> Option<Owner> {
         match space {
-            Space::Team { team_uid } => Some(Owner::Team { team_uid }),
             Space::Personal => self.personal_drive(ctx),
             Space::Shared => None,
         }
     }
 
-    // Maps an [`Owner`] into a [`Space`], based on the user's team memberships.
-    // This is always possible, as unknown owners imply the shared space.
+    // Maps an [`Owner`] into a [`Space`]. This is always possible, as unknown owners imply the
+    // shared space. Teams are not supported in Sublight, so team-owned objects map to Shared.
     pub fn owner_to_space(&self, owner: Owner, ctx: &AppContext) -> Space {
         match owner {
             Owner::User { user_uid } => {
@@ -308,13 +307,7 @@ impl UserWorkspaces {
                     Space::Shared
                 }
             }
-            Owner::Team { team_uid } => {
-                if !FeatureFlag::SharedWithMe.is_enabled() {
-                    Space::Team { team_uid }
-                } else {
-                    Space::Shared
-                }
-            }
+            Owner::Team { .. } => Space::Shared,
         }
     }
 

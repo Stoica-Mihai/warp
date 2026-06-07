@@ -1122,8 +1122,6 @@ pub enum Space {
     /// The current user's personal drive.
     #[default]
     Personal,
-    /// A team that the current user belongs to.
-    Team { team_uid: ServerId },
     /// An object shared from a drive the user is not a member of.
     Shared,
 }
@@ -1132,8 +1130,6 @@ impl Space {
     pub fn name(&self, _app: &AppContext) -> String {
         match self {
             Space::Personal => "Personal".to_string(),
-            // Teams are not supported in Sublight; team spaces never resolve to a real name.
-            Space::Team { .. } => "Team".to_string(),
             Space::Shared => "Shared with me".to_string(),
         }
     }
@@ -1151,20 +1147,17 @@ pub enum CloudObjectLocation {
 impl From<Space> for WorkflowSource {
     fn from(space: Space) -> Self {
         match space {
-            Space::Personal => WorkflowSource::PersonalCloud,
-            Space::Team { team_uid } => WorkflowSource::Team { team_uid },
             // TODO(ben): Model sharing in workflow telemetry.
-            Space::Shared => WorkflowSource::PersonalCloud,
+            Space::Personal | Space::Shared => WorkflowSource::PersonalCloud,
         }
     }
 }
 
 impl From<Owner> for WorkflowSource {
     fn from(owner: Owner) -> WorkflowSource {
+        // Teams are not supported in Sublight; team-owned objects map to personal.
         match owner {
-            // TODO(ben): Represent shared objects in telemetry.
-            Owner::User { .. } => Self::PersonalCloud,
-            Owner::Team { team_uid } => Self::Team { team_uid },
+            Owner::User { .. } | Owner::Team { .. } => Self::PersonalCloud,
         }
     }
 }

@@ -10,8 +10,6 @@ use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 use super::model::block::{AgentInteractionMetadata, Block, SerializedAIMetadata, SerializedBlock};
 use super::shell::ShellType;
 use crate::cloud_object::model::persistence::CloudModel;
-use crate::cloud_object::model::view::CloudViewModel;
-use crate::cloud_object::Space;
 use crate::server::ids::{ClientId, HashableId as _, SyncId};
 use crate::terminal::model::session::{Session, SessionId};
 use crate::util::dedupe_from_last;
@@ -224,11 +222,8 @@ impl LinkedWorkflowData {
             LinkedWorkflowData::Id(id) => {
                 let cloud_model = CloudModel::as_ref(ctx);
                 let workflow = cloud_model.get_workflow(id);
-                let workflow_source = match CloudViewModel::as_ref(ctx).object_space(&id.uid(), ctx)
-                {
-                    Some(Space::Team { team_uid }) => WorkflowSource::Team { team_uid },
-                    _ => WorkflowSource::PersonalCloud,
-                };
+                // Teams are not supported in Sublight; cloud workflows map to personal.
+                let workflow_source = WorkflowSource::PersonalCloud;
                 workflow.map(|workflow| {
                     (
                         WorkflowType::Cloud(Box::new(workflow.clone())),

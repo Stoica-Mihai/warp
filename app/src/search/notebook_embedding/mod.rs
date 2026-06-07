@@ -14,17 +14,5 @@ fn is_embed_accessible(embedding_space: Space, object_owner: Owner) -> bool {
         (Space::Personal, _) => true,
         // TODO: Revisit the UX here, as the user doesn't know who else can see the object.
         (Space::Shared, _) => false,
-        (
-            Space::Team {
-                team_uid: notebook_team_uid,
-                ..
-            },
-            Owner::Team {
-                team_uid: workflow_team_uid,
-                ..
-            },
-        ) => notebook_team_uid == workflow_team_uid,
-        // Private objects will not be accessible to all members of a team.
-        (Space::Team { .. }, Owner::User { .. }) => false,
     }
 }
