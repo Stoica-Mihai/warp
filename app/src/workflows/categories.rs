@@ -565,23 +565,8 @@ impl CategoriesView {
                     )
                 })
                 .unwrap_or_default(),
-            WorkflowViewType::Team => {
-                // TODO: this only assumes one team
-                let team_uid = UserWorkspaces::as_ref(ctx).current_team_uid();
-                if let Some(team_uid) = team_uid {
-                    self.workflows_by_source
-                        .get(&WorkflowSource::Team { team_uid })
-                        .map(|categorized_workflows| {
-                            Self::create_workflow_source_pair(
-                                categorized_workflows.values(),
-                                WorkflowSource::Team { team_uid },
-                            )
-                        })
-                        .unwrap_or_default()
-                } else {
-                    Default::default()
-                }
-            }
+            // Teams are not supported in Sublight; the team workflow view is always empty.
+            WorkflowViewType::Team => Default::default(),
             WorkflowViewType::LocalPersonal => {
                 let local = self.workflows_by_source.get(&WorkflowSource::Local).map(
                     |categorized_workflows| {

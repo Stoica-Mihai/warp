@@ -14298,10 +14298,9 @@ impl Workspace {
         self.tab_views().map(|tab| tab.id())
     }
 
-    fn team_uid(&self, app: &AppContext) -> Option<ServerId> {
-        // TODO this is a stop gap for now - ideally a specific team uid should
-        // be passed into each event
-        UserWorkspaces::as_ref(app).current_team_uid()
+    fn team_uid(&self, _app: &AppContext) -> Option<ServerId> {
+        // Teams are not supported in Sublight.
+        None
     }
 
     fn initiate_user_signup(
@@ -14758,17 +14757,10 @@ impl TypedActionView for Workspace {
                 source,
             } => self.toggle_palette(*palette_mode, *source, ctx),
             ShowUpgrade => {
+                // Teams are not supported in Sublight; always use the personal upgrade link.
                 let auth_state = AuthStateProvider::as_ref(ctx).get();
-                let user_workspaces = UserWorkspaces::as_ref(ctx);
-
-                let upgrade_url = if let Some(team) = user_workspaces.current_team() {
-                    UserWorkspaces::upgrade_link_for_team(team.uid)
-                } else {
-                    let user_id = auth_state.user_id().unwrap_or_default();
-                    UserWorkspaces::upgrade_link(user_id)
-                };
-
-                ctx.open_url(&upgrade_url);
+                let user_id = auth_state.user_id().unwrap_or_default();
+                ctx.open_url(&UserWorkspaces::upgrade_link(user_id));
             }
             ShowReferralSettingsPage => {
                 self.show_settings_with_section(Some(SettingsSection::Appearance), ctx);

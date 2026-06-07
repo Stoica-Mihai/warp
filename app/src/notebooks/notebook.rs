@@ -80,7 +80,7 @@ use crate::settings::{
 };
 use crate::terminal::safe_mode_settings::get_secret_obfuscation_mode;
 use crate::throttle::throttle;
-use crate::ui_components::icons::{self, Icon};
+use crate::ui_components::icons::{self};
 #[cfg(target_family = "wasm")]
 use crate::uri::web_intent_parser::open_url_on_desktop;
 use crate::util::bindings::{self, CustomAction};
@@ -1310,34 +1310,7 @@ impl NotebookView {
             return menu_items;
         }
 
-        // Add "Move to <team> space" to menu
-        let team_spaces = UserWorkspaces::as_ref(ctx).team_spaces();
-
-        if let (Some(space), Some(cloud_id)) =
-            (active_notebook_data.space(ctx), active_notebook_data.id())
-        {
-            let cloud_object_type =
-                CloudObjectTypeAndId::from_id_and_type(cloud_id, ObjectType::Notebook);
-            let can_move = self.online_only_operation_allowed(cloud_object_type, ctx);
-
-            if can_move {
-                match space {
-                    Space::Personal => {
-                        menu_items.extend(team_spaces.iter().map(|space| {
-                            MenuItemFields::new(format!("Move to {}", space.name(ctx)))
-                                .with_on_select_action(NotebookAction::MoveToSpace {
-                                    cloud_object_type_and_id: cloud_object_type,
-                                    new_space: *space,
-                                })
-                                .with_icon(Icon::Move)
-                                .into_item()
-                        }));
-                    }
-                    Space::Shared => {} // TODO: Revisit these menu items with sharing in mind
-                    Space::Team { .. } => {} // TODO: When we do team -> personal sharing
-                }
-            }
-        }
+        // Teams are not supported in Sublight; no "Move to team space" menu items.
 
         if let Some(ai_document_id) = self.active_notebook_data.as_ref(ctx).ai_document_id(ctx) {
             menu_items.push(

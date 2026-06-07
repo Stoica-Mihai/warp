@@ -1289,15 +1289,9 @@ impl TemplatableMCPServerManager {
 
         if let Some(cloud_templatable_mcp_server) = cloud_templatable_mcp_server {
             let auth_state = AuthStateProvider::as_ref(ctx).get();
-            let current_team = UserWorkspaces::as_ref(ctx).current_team();
-
-            let has_admin_permissions = current_team.is_some_and(|team| {
-                team.has_admin_permissions(&auth_state.user_email().unwrap_or_default())
-            });
-            let is_author = cloud_templatable_mcp_server.metadata().creator_uid
-                == auth_state.user_id().map(|user_id| user_id.as_string());
-
-            has_admin_permissions || is_author
+            // Teams are not supported in Sublight, so authorization reduces to authorship.
+            cloud_templatable_mcp_server.metadata().creator_uid
+                == auth_state.user_id().map(|user_id| user_id.as_string())
         } else {
             false
         }

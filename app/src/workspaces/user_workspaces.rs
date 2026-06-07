@@ -154,16 +154,6 @@ impl UserWorkspaces {
         self.workspaces.iter_mut().find(|w| w.uid == workspace_uid)
     }
 
-    /// Return the uid of user's current team (if any) without refreshing.
-    pub fn current_team_uid(&self) -> Option<ServerId> {
-        self.current_team().map(|t| t.uid)
-    }
-
-    pub fn current_team_mut(&mut self) -> Option<&mut Team> {
-        self.current_workspace_mut()
-            .and_then(|w| w.teams.first_mut())
-    }
-
     /// Note that the team is populated with dummy data until
     /// the initial fetch completes (only team name and ID are cached in sqlite locally).
     /// Consider whether you need to wait for the results of the fetch before checking the

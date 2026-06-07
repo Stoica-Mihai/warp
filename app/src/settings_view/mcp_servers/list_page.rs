@@ -64,7 +64,6 @@ use crate::view_components::action_button::{ActionButton, NakedTheme};
 use crate::view_components::DismissibleToast;
 use crate::workflows::local_workflows::tail_command_for_shell;
 use crate::workspace::Workspace;
-use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::ToastStack;
 
 const DESCRIPTION_TEXT: &str = "Add MCP servers to extend the Warp Agent's capabilities. MCP servers expose data sources or tools to agents through a standardized interface, essentially acting like plugins. Add a custom server, or use the presets to get started with popular servers. You can also find team servers that have been shared with you here. ";
@@ -311,25 +310,12 @@ impl MCPServersListPageView {
     }
 
     fn is_shareable(
-        item_id: ServerCardItemId,
-        server_card_status: ServerCardStatus,
-        ctx: &mut ViewContext<Self>,
+        _item_id: ServerCardItemId,
+        _server_card_status: ServerCardStatus,
+        _ctx: &mut ViewContext<Self>,
     ) -> bool {
-        if !UserWorkspaces::as_ref(ctx).has_teams() {
-            return false;
-        }
-        if TemplatableMCPServerManager::get_first_team_space_id(ctx).is_none() {
-            return false;
-        }
-        match item_id {
-            ServerCardItemId::TemplatableMCP(_)
-            | ServerCardItemId::TemplatableMCPInstallation(_) => {
-                let is_shared = Self::is_shared(item_id, ctx);
-                let is_running = matches!(server_card_status, ServerCardStatus::Running);
-                !is_shared && is_running
-            }
-            ServerCardItemId::GalleryMCP(_) | ServerCardItemId::FileBasedMCP(_) => false,
-        }
+        // Teams are not supported in Sublight; MCP servers are never team-shareable.
+        false
     }
 
     fn register_server_card(&mut self, server_card: ServerCardView, ctx: &mut ViewContext<Self>) {
@@ -1228,13 +1214,8 @@ impl MCPServersListPageView {
                 }
                 if !shared_server_cards.is_empty() {
                     shared_server_cards.extend(filtered_gallery_cards);
-                    let team_name = UserWorkspaces::as_ref(app)
-                        .current_team()
-                        .map(|team| team.name.clone());
-                    let shared_by_text = match team_name {
-                        Some(name) => format!("Shared by Warp and {name}"),
-                        None => "Shared by Warp and from other devices".to_string(),
-                    };
+                    // Teams are not supported in Sublight.
+                    let shared_by_text = "Shared by Warp and from other devices".to_string();
 
                     page.add_child(self.render_server_cards_section(
                         &shared_by_text,
