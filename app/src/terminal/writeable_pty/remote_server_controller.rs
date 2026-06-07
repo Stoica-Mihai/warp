@@ -273,53 +273,11 @@ impl<T: EventLoopSender> RemoteServerController<T> {
                     ctx,
                 );
             }
-            Ok(false) if has_old_binary => {
-                // Auto-update: a prior install exists, so skip the modal
-                // and reinstall.
-                self.did_install = true;
-                self.state = SshInitState::AwaitingInstall {
-                    session_id,
-                    session_info,
-                    transport: transport.clone(),
-                    setup_start,
-                    for_update: true,
-                };
-                RemoteServerManager::handle(ctx).update(ctx, |mgr, ctx| {
-                    mgr.install_binary(session_id, transport, true, ctx);
-                });
-            }
             Ok(false) => {
-                let install_mode = *WarpifySettings::as_ref(ctx)
-                    .ssh_extension_install_mode
-                    .value();
-                match install_mode {
-                    SshExtensionInstallMode::AlwaysAsk => {
-                        self.state = SshInitState::AwaitingUserChoice {
-                            session_info,
-                            transport,
-                            setup_start,
-                        };
-                        self.model_event_dispatcher.update(ctx, |d, ctx| {
-                            d.request_remote_server_block(session_id, ctx);
-                        });
-                    }
-                    SshExtensionInstallMode::AlwaysInstall => {
-                        self.did_install = true;
-                        self.state = SshInitState::AwaitingInstall {
-                            session_id,
-                            session_info,
-                            transport: transport.clone(),
-                            setup_start,
-                            for_update: false,
-                        };
-                        RemoteServerManager::handle(ctx).update(ctx, |mgr, ctx| {
-                            mgr.install_binary(session_id, transport, false, ctx);
-                        });
-                    }
-                    SshExtensionInstallMode::NeverInstall => {
-                        self.flush_stashed_bootstrap(session_info, ctx);
-                    }
-                }
+                // Remote-server binary missing. Downloading it would phone home
+                // to Warp servers, so skip installation and run the SSH session
+                // over the plain bootstrap (ControlMaster/tmux warpify).
+                self.flush_stashed_bootstrap(session_info, ctx);
             }
             Err(err) => {
                 log::warn!("Remote server binary check failed: session={session_id:?} error={err}");
