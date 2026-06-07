@@ -1,15 +1,9 @@
-use std::time::Duration;
-
 use anyhow::anyhow;
 use async_trait::async_trait;
-use cynic::{MutationBuilder, QueryBuilder};
+use cynic::QueryBuilder;
 #[cfg(test)]
 use mockall::automock;
 use warp_core::channel::ChannelState;
-use warp_graphql::mutations::generate_metadata_for_command::{
-    GenerateMetadataForCommand, GenerateMetadataForCommandInput, GenerateMetadataForCommandResult,
-    GenerateMetadataForCommandStatus, GenerateMetadataForCommandVariables,
-};
 #[cfg(not(feature = "agent_mode_evals"))]
 use warp_graphql::queries::get_request_limit_info::{
     GetRequestLimitInfo, GetRequestLimitInfoVariables,
@@ -26,7 +20,6 @@ use crate::ai::request_usage_model::RequestLimitInfo;
 #[cfg(not(feature = "agent_mode_evals"))]
 use crate::ai::BonusGrant;
 use crate::ai::RequestUsageInfo;
-use crate::drive::workflows::ai_assist::{GeneratedCommandMetadata, GeneratedCommandMetadataError};
 use crate::server::graphql::{get_request_context, get_user_facing_error_message};
 #[cfg(not(feature = "agent_mode_evals"))]
 use crate::{
@@ -35,17 +28,11 @@ use crate::{
     workspaces::{gql_convert::PLACEHOLDER_WORKSPACE_UID, workspace::WorkspaceUid},
 };
 
-const AI_ASSISTANT_REQUEST_TIMEOUT_SECONDS: u64 = 30;
 
 #[cfg_attr(test, automock)]
 #[cfg_attr(not(target_family = "wasm"), async_trait)]
 #[cfg_attr(target_family = "wasm", async_trait(?Send))]
 pub trait AIClient: 'static + Send + Sync {
-    async fn generate_metadata_for_command(
-        &self,
-        command: String,
-    ) -> Result<GeneratedCommandMetadata, GeneratedCommandMetadataError>;
-
     async fn get_request_limit_info(&self) -> Result<RequestUsageInfo, anyhow::Error>;
 
     /// Generates AI copy for code-review flows: commit messages at dialog-open
@@ -60,43 +47,6 @@ pub trait AIClient: 'static + Send + Sync {
 #[cfg_attr(not(target_family = "wasm"), async_trait)]
 #[cfg_attr(target_family = "wasm", async_trait(?Send))]
 impl AIClient for ServerApi {
-    async fn generate_metadata_for_command(
-        &self,
-        command: String,
-    ) -> Result<GeneratedCommandMetadata, GeneratedCommandMetadataError> {
-        let default_err = GeneratedCommandMetadataError::Other;
-        let variables = GenerateMetadataForCommandVariables {
-            input: GenerateMetadataForCommandInput { command },
-            request_context: get_request_context(),
-        };
-
-        let operation = GenerateMetadataForCommand::build(variables);
-        let response = self
-            .send_graphql_request(
-                operation,
-                Some(Duration::from_secs(AI_ASSISTANT_REQUEST_TIMEOUT_SECONDS)),
-            )
-            .await
-            .map_err(|_| default_err)?;
-
-        match response.generate_metadata_for_command {
-            GenerateMetadataForCommandResult::GenerateMetadataForCommandOutput(output) => {
-                match output.status {
-                    GenerateMetadataForCommandStatus::GenerateMetadataForCommandSuccess(
-                        success,
-                    ) => Ok(success.into()),
-                    GenerateMetadataForCommandStatus::GenerateMetadataForCommandFailure(
-                        failure,
-                    ) => Err(failure.type_.into()),
-                    GenerateMetadataForCommandStatus::Unknown => {
-                        Err(GeneratedCommandMetadataError::Other)
-                    }
-                }
-            }
-            _ => Err(GeneratedCommandMetadataError::Other),
-        }
-    }
-
     #[cfg(feature = "agent_mode_evals")]
     async fn get_request_limit_info(&self) -> Result<RequestUsageInfo, anyhow::Error> {
         Ok(RequestUsageInfo {

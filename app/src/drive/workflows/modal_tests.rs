@@ -1,7 +1,7 @@
 
 use warp_core::ui::appearance::Appearance;
 use warpui::platform::WindowStyle;
-use warpui::{App, SingletonEntity, ViewHandle};
+use warpui::{App, ViewHandle};
 
 use super::WorkflowModal;
 use crate::auth::AuthStateProvider;
@@ -10,7 +10,6 @@ use crate::editor::PlainTextEditorViewAction as EditorAction;
 use crate::server::server_api::ServerApiProvider;
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
 use crate::test_util::settings::initialize_settings_for_tests;
-use crate::workflows::workflow::{Argument, Workflow};
 use crate::UserWorkspaces;
 
 fn initialize_app(app: &mut App) {
@@ -33,24 +32,10 @@ fn initialize_app(app: &mut App) {
 fn create_modal(app: &mut App) -> ViewHandle<WorkflowModal> {
     initialize_app(app);
     let (_, modal_view) = app.add_window(WindowStyle::NotStealFocus, |ctx| {
-        let server_api = ServerApiProvider::as_ref(ctx).get();
-        WorkflowModal::new(server_api.clone(), ctx)
+        WorkflowModal::new(ctx)
     });
 
     modal_view
-}
-
-fn build_argument(
-    name: impl Into<String>,
-    description: impl Into<Option<String>>,
-    default_value: impl Into<Option<String>>,
-) -> Argument {
-    Argument {
-        name: name.into(),
-        description: description.into(),
-        default_value: default_value.into(),
-        arg_type: Default::default(),
-    }
 }
 
 #[test]
@@ -488,111 +473,3 @@ fn test_pasting_command_same_number_of_arguments() {
     });
 }
 
-#[test]
-fn test_populating_missing_fields_with_suggestion() {
-    App::test((), |mut app| async move {
-        let modal_view = create_modal(&mut app);
-
-        modal_view.update(&mut app, |view, ctx| {
-            view.content_editor.update(ctx, |editor, ctx| {
-                editor.set_buffer_text("git {{foo_1}} {{foo_2}}", ctx);
-            });
-
-            view.title_editor.update(ctx, |editor, ctx| {
-                editor.set_buffer_text("Title foo", ctx);
-            });
-        });
-
-        modal_view.read(&app, |view, _| {
-            assert_eq!(view.arguments_rows.len(), 2);
-        });
-
-        modal_view.update(&mut app, |view, ctx| {
-            let workflow = Workflow::Command {
-                name: "New Title".to_string(),
-                description: Some("New description".to_string()),
-                command: "git foo_1 foo_2".to_string(),
-                arguments: vec![],
-                tags: vec![],
-                source_url: None,
-                author: None,
-                author_url: None,
-                shells: vec![],
-                environment_variables: None,
-            };
-            view.populate_missing_field_with_suggestion(workflow, ctx)
-        });
-
-        modal_view.read(&app, |view, app| {
-            assert_eq!(view.arguments_rows.len(), 2);
-
-            assert_eq!(
-                view.content_editor.as_ref(app).buffer_text(app).as_str(),
-                "git {{foo_1}} {{foo_2}}"
-            );
-
-            assert_eq!(
-                view.title_editor.as_ref(app).buffer_text(app).as_str(),
-                "Title foo"
-            );
-
-            assert_eq!(
-                view.description_editor
-                    .as_ref(app)
-                    .buffer_text(app)
-                    .as_str(),
-                "New description"
-            );
-        });
-    });
-}
-
-#[test]
-fn test_populating_with_sanitization() {
-    App::test((), |mut app| async move {
-        let modal_view = create_modal(&mut app);
-
-        modal_view.update(&mut app, |view, ctx| {
-            view.content_editor.update(ctx, |editor, ctx| {
-                editor.set_buffer_text(
-                    "tar -czvf {{9output_(file).tar.gz}} {{input_directory}} {{.file9!_zip}}",
-                    ctx,
-                );
-            });
-
-            view.title_editor.update(ctx, |editor, ctx| {
-                editor.set_buffer_text("Title foo", ctx);
-            });
-        });
-
-        modal_view.update(&mut app, |view, ctx| {
-            let workflow = Workflow::Command {
-                name: "New Title".to_string(),
-                description: Some("New description".to_string()),
-                command: "tar -czvf {{9output_(file).tar.gz}} {{input_directory}} {{.file9!_zip}}"
-                    .to_string(),
-                arguments: vec![
-                    build_argument("9output_(file).tar.gz", None, None),
-                    build_argument("input_directory", None, None),
-                    build_argument(".file9!_zip", None, None),
-                ],
-                tags: vec![],
-                source_url: None,
-                author: None,
-                author_url: None,
-                shells: vec![],
-                environment_variables: None,
-            };
-            view.populate(workflow, ctx)
-        });
-
-        modal_view.read(&app, |view, app| {
-            assert_eq!(view.arguments_rows.len(), 3);
-
-            assert_eq!(
-                view.content_editor.as_ref(app).buffer_text(app).as_str(),
-                "tar -czvf {{output_file_tar_gz}} {{input_directory}} {{_file9_zip}}"
-            );
-        });
-    });
-}
