@@ -5,7 +5,6 @@ use std::fmt::Display;
 use markdown_parser::{FormattedText, FormattedTextFragment, FormattedTextLine};
 use regex::Regex;
 use settings::{Setting, ToggleableSetting};
-use strum::IntoEnumIterator;
 use warp_core::features::FeatureFlag;
 use warpui::elements::{
     Container, Flex, FormattedTextElement, HighlightedHyperlink, MouseStateHandle, ParentElement,
@@ -20,20 +19,18 @@ use warpui::{
 };
 
 use super::settings_page::{
-    add_setting, render_alternating_color_list, render_body_item, render_dropdown_item,
+    add_setting, render_alternating_color_list, render_body_item,
     render_page_title, AdditionalInfo, Category, LocalOnlyIconState, MatchData, PageType,
     SettingsPageEvent, SettingsPageMeta, SettingsPageViewHandle, SettingsWidget, ToggleState,
-    HEADER_FONT_SIZE, HEADER_PADDING,
+    HEADER_FONT_SIZE,
 };
 use super::{flags, SettingsAction, SettingsSection, ToggleSettingActionPair};
 use crate::appearance::Appearance;
 use crate::report_if_error;
 use crate::terminal::warpify::settings::{
-    EnableSshWarpification, SshExtensionInstallMode, SshExtensionInstallModeSetting,
-    UseSshTmuxWrapper, WarpifySettings, WarpifySettingsChangedEvent,
+    EnableSshWarpification, UseSshTmuxWrapper, WarpifySettings,
 };
 use crate::ui_components::blended_colors;
-use crate::view_components::dropdown::{Dropdown, DropdownItem};
 use crate::view_components::{SubmittableTextInput, SubmittableTextInputEvent};
 
 pub fn init_actions_from_parent_view<T: Action + Clone>(
@@ -70,8 +67,6 @@ const SPACE_AFTER_TEXT_INPUT: f32 = ITEM_VERTICAL_SPACING - BUILT_IN_TEXT_INPUT_
 
 const SSH_TMUX_WARPIFICATION_DESCRIPTION: &str = "The tmux ssh wrapper works in many situations where the default one does not, but may require you to hit a button to warpify. Takes effect in new tabs.";
 
-const SSH_EXTENSION_INSTALL_MODE_DESCRIPTION: &str =
-    "Controls the installation behavior for Warp's SSH extension when a remote host doesn't have it installed.";
 
 /// This page lets users configure when they get asked to warpify a session. Some shell commands
 /// are recognized by default. Users can add new shell commands, or prevent the default ones from
@@ -89,8 +84,6 @@ pub struct WarpifyPageView {
 
     remove_denylisted_ssh_button_states: Vec<MouseStateHandle>,
     add_denylisted_ssh_editor: ViewHandle<SubmittableTextInput>,
-
-    ssh_extension_install_mode_dropdown: ViewHandle<Dropdown<WarpifyPageAction>>,
 }
 
 impl WarpifyPageView {
@@ -98,14 +91,8 @@ impl WarpifyPageView {
         let warpify_settings_handle = WarpifySettings::handle(ctx);
 
         ctx.observe(&warpify_settings_handle, Self::update_button_states);
-        ctx.subscribe_to_model(&warpify_settings_handle, move |me, model, event, ctx| {
+        ctx.subscribe_to_model(&warpify_settings_handle, move |me, model, _event, ctx| {
             me.update_button_states(model, ctx);
-            if matches!(
-                event,
-                WarpifySettingsChangedEvent::SshExtensionInstallModeSetting { .. }
-            ) {
-                me.update_dropdown(ctx);
-            }
             ctx.notify();
         });
 
@@ -145,9 +132,6 @@ impl WarpifyPageView {
             Self::handle_denylisted_ssh_editor_event,
         );
 
-        let ssh_extension_install_mode_dropdown =
-            Self::create_ssh_extension_install_mode_dropdown(ctx);
-
         let mut instance = Self {
             page: Self::build_page(ctx),
             remove_added_command_button_states: Default::default(),
@@ -156,7 +140,6 @@ impl WarpifyPageView {
             add_denylisted_commands_editor,
             remove_denylisted_ssh_button_states: Default::default(),
             add_denylisted_ssh_editor,
-            ssh_extension_install_mode_dropdown,
         };
 
         instance.update_button_states(warpify_settings_handle, ctx);
@@ -208,22 +191,6 @@ impl WarpifyPageView {
             .map(|_| Default::default())
             .collect();
         ctx.notify();
-    }
-
-    /// Syncs the install-mode dropdown selection with the current
-    /// `WarpifySettings::ssh_extension_install_mode` value (e.g. after it
-    /// was changed from the SSH remote server choice view).
-    fn update_dropdown(&mut self, ctx: &mut ViewContext<Self>) {
-        let current_mode = *WarpifySettings::as_ref(ctx)
-            .ssh_extension_install_mode
-            .value();
-        self.ssh_extension_install_mode_dropdown
-            .update(ctx, |dropdown, ctx| {
-                dropdown.set_selected_by_action(
-                    WarpifyPageAction::SetSshExtensionInstallMode(current_mode),
-                    ctx,
-                );
-            });
     }
 
     fn handle_added_command_editor_event(
@@ -308,44 +275,7 @@ fn build_sub_sub_title(title: &str, appearance: &Appearance) -> Container {
         .build()
 }
 
-const SSH_EXTENSION_DROPDOWN_WIDTH: f32 = 250.;
-
 impl WarpifyPageView {
-    fn create_ssh_extension_install_mode_dropdown(
-        ctx: &mut ViewContext<Self>,
-    ) -> ViewHandle<Dropdown<WarpifyPageAction>> {
-        let items: Vec<DropdownItem<WarpifyPageAction>> = SshExtensionInstallMode::iter()
-            .map(|mode| {
-                DropdownItem::new(
-                    mode.display_name(),
-                    WarpifyPageAction::SetSshExtensionInstallMode(mode),
-                )
-            })
-            .collect();
-
-        let current_mode = *WarpifySettings::as_ref(ctx)
-            .ssh_extension_install_mode
-            .value();
-        let enable_ssh_warpification = *WarpifySettings::as_ref(ctx)
-            .enable_ssh_warpification
-            .value();
-
-        ctx.add_typed_action_view(move |ctx| {
-            let mut dropdown = Dropdown::new(ctx);
-            dropdown.set_top_bar_max_width(SSH_EXTENSION_DROPDOWN_WIDTH);
-            dropdown.set_menu_width(SSH_EXTENSION_DROPDOWN_WIDTH, ctx);
-            dropdown.add_items(items, ctx);
-            dropdown.set_selected_by_action(
-                WarpifyPageAction::SetSshExtensionInstallMode(current_mode),
-                ctx,
-            );
-            if !enable_ssh_warpification {
-                dropdown.set_disabled(ctx);
-            }
-            dropdown
-        })
-    }
-
     /// Renders a title, a list of items that can be removed, and an input field to add new items.
     fn build_input_list<
         ListItem: Display,
@@ -408,8 +338,6 @@ pub enum WarpifyPageAction {
     /// If disabled, auto-Warpification and the SSH Warpification prompt will be disabled.
     ToggleTmuxWarpification,
     ToggleSshWarpification,
-    /// Set the SSH extension installation mode (always ask / always install / always skip).
-    SetSshExtensionInstallMode(SshExtensionInstallMode),
     OpenUrl(String),
 }
 
@@ -427,28 +355,10 @@ impl TypedActionView for WarpifyPageView {
                         .enable_ssh_warpification
                         .toggle_and_save_value(ctx));
                 });
-                let enabled = *WarpifySettings::as_ref(ctx)
-                    .enable_ssh_warpification
-                    .value();
-                self.ssh_extension_install_mode_dropdown
-                    .update(ctx, |dropdown, ctx| {
-                        if enabled {
-                            dropdown.set_enabled(ctx);
-                        } else {
-                            dropdown.set_disabled(ctx);
-                        }
-                    });
             }
             ToggleTmuxWarpification => {
                 WarpifySettings::handle(ctx).update(ctx, |ssh_settings, ctx| {
                     report_if_error!(ssh_settings.use_ssh_tmux_wrapper.toggle_and_save_value(ctx));
-                });
-            }
-            SetSshExtensionInstallMode(mode) => {
-                WarpifySettings::handle(ctx).update(ctx, |warpify_settings, ctx| {
-                    report_if_error!(warpify_settings
-                        .ssh_extension_install_mode
-                        .set_value(*mode, ctx));
                 });
             }
             WarpifyPageAction::RemoveDenylistedSshHost(index) => {
@@ -670,36 +580,6 @@ impl SettingsWidget for SSHWidget {
                 )
             },
         );
-
-        if FeatureFlag::SshRemoteServer.is_enabled() {
-            let label_color_override = if !enable_ssh_warpification {
-                Some(appearance.theme().disabled_ui_text_color())
-            } else {
-                None
-            };
-            add_setting(
-                &mut column,
-                &WarpifySettings::as_ref(app).ssh_extension_install_mode,
-                move || {
-                    Container::new(render_dropdown_item(
-                        appearance,
-                        "Install SSH extension",
-                        Some(SSH_EXTENSION_INSTALL_MODE_DESCRIPTION),
-                        None,
-                        LocalOnlyIconState::for_setting(
-                            SshExtensionInstallModeSetting::storage_key(),
-                            SshExtensionInstallModeSetting::sync_to_cloud(),
-                            &mut self.local_only_icon_tooltip_states.borrow_mut(),
-                            app,
-                        ),
-                        label_color_override,
-                        &view.ssh_extension_install_mode_dropdown,
-                    ))
-                    .with_padding_bottom(HEADER_PADDING)
-                    .finish()
-                },
-            );
-        }
 
         // Only show the tmux warpification toggle if the user has explicitly changed
         // the setting. We are gradually deprecating tmux warpification, so new users

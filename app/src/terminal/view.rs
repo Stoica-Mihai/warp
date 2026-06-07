@@ -31,7 +31,6 @@ pub(crate) mod plugin_instructions_block;
 pub mod rich_content;
 mod shell_terminated_banner;
 pub mod ssh_file_upload;
-pub(crate) mod ssh_remote_server_choice_view;
 pub(crate) mod ssh_remote_server_failed_banner;
 mod tab_metadata;
 #[cfg(any(test, feature = "integration_tests"))]
@@ -364,9 +363,6 @@ pub use crate::terminal::view::rich_content::{
     RichContentMetadata,
 };
 use crate::terminal::view::ssh_file_upload::FileUploadId;
-use crate::terminal::view::ssh_remote_server_choice_view::{
-    SshRemoteServerChoiceView, SshRemoteServerChoiceViewEvent,
-};
 use crate::terminal::view::ssh_remote_server_failed_banner::{
     SshRemoteServerFailedBanner, SshRemoteServerFailedBannerEvent,
 };
@@ -1481,14 +1477,6 @@ pub enum Event {
     RunNativeShellCompletions {
         buffer_text: String,
         results_tx: async_channel::Sender<Vec<ShellCompletion>>,
-    },
-    /// Emitted when the user clicks "install" in the SSH remote-server choice block.
-    RemoteServerInstallRequested {
-        session_id: SessionId,
-    },
-    /// Emitted when the user clicks "skip" in the SSH remote-server choice block.
-    RemoteServerSkipRequested {
-        session_id: SessionId,
     },
     SignupAnonymousUser {
         entrypoint: AnonymousUserSignupEntrypoint,
@@ -3009,10 +2997,8 @@ impl TerminalView {
                         }
                     }
                     RemoteServerManagerEvent::SessionDeregistered { session_id } => {
-                        // Clean up any stale SSH remote-server choice block if the
-                        // session disappears (e.g. network drop, Ctrl-C, `exit`)
-                        // before the user picks an option.
-                        me.remove_ssh_remote_server_choice_block(*session_id, ctx);
+                        // Clean up any stale failure banner if the session
+                        // disappears (e.g. network drop, Ctrl-C, `exit`).
                         me.remove_ssh_remote_server_failed_banner(*session_id, ctx);
                     }
                     RemoteServerManagerEvent::BinaryInstallComplete {
@@ -3811,12 +3797,6 @@ impl TerminalView {
         }
 
         if self.active_env_var_collection_block(app).is_some() {
-            return false;
-        }
-
-        // Hide the input box while the SSH remote-server choice block is shown.
-        // User must choose to install or skip before any shell input is possible.
-        if self.active_ssh_remote_server_choice_block().is_some() {
             return false;
         }
 
@@ -7027,85 +7007,13 @@ impl TerminalView {
             }
             // Handled by RemoteServerController via model subscription.
             ModelEvent::SshInitShell { .. } => {}
-            ModelEvent::RemoteServerBlockRequested { session_id } => {
-                self.show_ssh_remote_server_choice_block(*session_id, ctx);
-            }
         }
-    }
-
-    /// Creates the [`SshRemoteServerChoiceView`] and inserts it as a
-    /// rich content block pinned to the bottom of the block list.
-    fn show_ssh_remote_server_choice_block(
-        &mut self,
-        session_id: SessionId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let already_present = self.rich_content_views.iter().any(|view| {
-            matches!(
-                view.metadata(),
-                Some(RichContentMetadata::SshRemoteServerChoiceBlock { handle })
-                if handle.as_ref(ctx).session_id() == session_id
-            )
-        });
-        if already_present {
-            return;
-        }
-
-        let choice_view =
-            ctx.add_typed_action_view(|ctx| SshRemoteServerChoiceView::new(session_id, ctx));
-
-        ctx.subscribe_to_view(&choice_view, move |me, _, event, ctx| match event {
-            SshRemoteServerChoiceViewEvent::Install => {
-                me.remove_ssh_remote_server_choice_block(session_id, ctx);
-                ctx.emit(Event::RemoteServerInstallRequested { session_id });
-            }
-            SshRemoteServerChoiceViewEvent::Skip => {
-                me.remove_ssh_remote_server_choice_block(session_id, ctx);
-                ctx.emit(Event::RemoteServerSkipRequested { session_id });
-            }
-            SshRemoteServerChoiceViewEvent::OpenWarpifySettings => {
-                ctx.emit(Event::OpenSettings(SettingsSection::Warpify));
-            }
-        });
-
-        self.insert_rich_content(
-            None,
-            choice_view.clone(),
-            Some(RichContentMetadata::SshRemoteServerChoiceBlock {
-                handle: choice_view,
-            }),
-            RichContentInsertionPosition::PinToBottom,
-            ctx,
-        );
-
-        self.redetermine_global_focus(ctx);
-    }
-
-    /// Returns a clone of the `SshRemoteServerChoiceView` handle for the
-    /// first active SSH remote-server choice block, if any.
-    fn active_ssh_remote_server_choice_block(
-        &self,
-    ) -> Option<ViewHandle<SshRemoteServerChoiceView>> {
-        self.rich_content_views.iter().find_map(|view| {
-            if let Some(RichContentMetadata::SshRemoteServerChoiceBlock { handle }) =
-                view.metadata()
-            {
-                Some(handle.clone())
-            } else {
-                None
-            }
-        })
     }
 
     /// Returns `true` when the pending session has a connecting remote-server setup state
     /// and no failure banner is already shown for that session.
     fn show_remote_server_loading_footer(&self, model: &TerminalModel, app: &AppContext) -> bool {
         if !FeatureFlag::SshRemoteServer.is_enabled() {
-            return false;
-        }
-        // Don't show the loading footer while the choice block is visible;
-        // the choice block replaces it.
-        if self.active_ssh_remote_server_choice_block().is_some() {
             return false;
         }
         let Some(pending_sid) = model.pending_session_id() else {
@@ -7216,37 +7124,6 @@ impl TerminalView {
         let mut view_ids_to_remove = Vec::new();
         for rich_content in self.rich_content_views.iter() {
             if let Some(RichContentMetadata::SshRemoteServerFailedBanner { handle }) =
-                rich_content.metadata()
-            {
-                if handle.as_ref(ctx).session_id() == session_id {
-                    view_ids_to_remove.push(rich_content.view_id());
-                }
-            }
-        }
-
-        if view_ids_to_remove.is_empty() {
-            return;
-        }
-
-        let mut model = self.model.lock();
-        for view_id in &view_ids_to_remove {
-            model.block_list_mut().remove_rich_content(*view_id);
-        }
-        drop(model);
-        self.rich_content_views
-            .retain(|rich_content| !view_ids_to_remove.contains(&rich_content.view_id()));
-        ctx.notify();
-    }
-
-    /// Removes [`SshRemoteServerChoiceView`] with the given `session_id`, if present.
-    fn remove_ssh_remote_server_choice_block(
-        &mut self,
-        session_id: SessionId,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let mut view_ids_to_remove = Vec::new();
-        for rich_content in self.rich_content_views.iter() {
-            if let Some(RichContentMetadata::SshRemoteServerChoiceBlock { handle }) =
                 rich_content.metadata()
             {
                 if handle.as_ref(ctx).session_id() == session_id {
@@ -11575,8 +11452,6 @@ impl TerminalView {
         };
         if should_focus_terminal {
             self.focus_terminal(ctx);
-        } else if let Some(ssh_choice_view) = self.active_ssh_remote_server_choice_block() {
-            ctx.focus(&ssh_choice_view);
         } else if self.has_active_init_project(ctx) && self.is_last_block_init_step(ctx) {
             self.try_focus_active_init_step(ctx);
         } else if let Some(env_var_collection_block_handle) =
@@ -16378,12 +16253,6 @@ impl View for TerminalView {
         if focus_ctx.is_self_focused() {
             self.maybe_report_focus_in(ctx);
             ctx.dispatch_typed_action(&PaneGroupAction::HandleFocusChange);
-
-            // Forward focus to the active SSH remote-server choice block so
-            // its keyboard-navigable buttons stay interactive.
-            if let Some(ssh_choice_view) = self.active_ssh_remote_server_choice_block() {
-                ctx.focus(&ssh_choice_view);
-            }
 
             ctx.notify();
         }

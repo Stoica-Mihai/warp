@@ -114,43 +114,6 @@ pub fn wire_up_pty_controller_with_view<T: EventLoopSender>(
     });
 }
 
-/// Wires up bi-directional communication between the RemoteServerController and the TerminalView.
-/// This handles the flow to render the remote server block and forward the user's choice to the controller.
-///
-/// Note that this interaction can't live in the TerminalView because the view must be manager-agnostic.
-///
-/// NOTE: we cannot simply use the strong references (the handle arguments to this wire_up fn)
-/// in the subscription callbacks because that will create a reference cycle. Instead,
-/// we should use weak handles and upgrade them lazily.
-#[cfg(not(target_family = "wasm"))]
-pub fn wire_up_remote_server_controller_with_view<T: EventLoopSender>(
-    remote_server_controller: &ModelHandle<
-        super::remote_server_controller::RemoteServerController<T>,
-    >,
-    terminal_view: &ViewHandle<TerminalView>,
-    ctx: &mut AppContext,
-) {
-    let controller_weak = remote_server_controller.downgrade();
-    ctx.subscribe_to_view(terminal_view, move |_view, event, ctx| {
-        let Some(controller) = controller_weak.upgrade(ctx) else {
-            return;
-        };
-        match event {
-            view::Event::RemoteServerInstallRequested { session_id } => {
-                controller.update(ctx, |ctrl, ctx| {
-                    ctrl.handle_ssh_remote_server_install(*session_id, ctx);
-                });
-            }
-            view::Event::RemoteServerSkipRequested { session_id } => {
-                controller.update(ctx, |ctrl, ctx| {
-                    ctrl.handle_ssh_remote_server_skip(*session_id, ctx);
-                });
-            }
-            _ => {}
-        }
-    });
-}
-
 /// Creates a PtyController to broker writes to the PTY and registers it as a model.
 pub fn init_pty_controller_model<Sender: EventLoopSender>(
     event_loop_tx: Sender,

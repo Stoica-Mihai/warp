@@ -52,7 +52,6 @@ use crate::terminal::warpify::settings::WarpifySettings;
 use crate::terminal::writeable_pty::pty_controller::{EventLoopSendError, EventLoopSender};
 use crate::terminal::writeable_pty::terminal_manager_util::{
     init_pty_controller_model, init_remote_server_controller, wire_up_pty_controller_with_view,
-    wire_up_remote_server_controller_with_view,
 };
 use crate::terminal::writeable_pty::{self, Message};
 use crate::terminal::{
@@ -280,9 +279,6 @@ impl TerminalManager {
             model_event_sender,
             ctx,
         );
-
-        wire_up_remote_server_controller_with_view(&remote_server_controller, &view, ctx);
-
 
         #[cfg(windows)]
         let event_loop_tx_clone = event_loop_tx.clone();

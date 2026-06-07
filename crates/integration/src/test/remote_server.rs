@@ -1,7 +1,5 @@
-use std::collections::HashMap;
 use std::time::Duration;
 
-use settings::Setting as _;
 use warp::features::FeatureFlag;
 use warp::integration_testing::remote_server::{
     assert_command_executor_is_remote_server, assert_remote_server_connected,
@@ -23,30 +21,23 @@ use warp::integration_testing::terminal::{
     wait_until_bootstrapped_single_pane_for_tab,
 };
 use warp::terminal::shell::ShellType;
-use warp::terminal::warpify::settings::{SshExtensionInstallMode, SshExtensionInstallModeSetting};
 use warpui::integration::TestStep;
 
 use super::{new_builder, Builder};
 
 /// Common builder configuration for remote server tests: enables the
-/// `SshRemoteServer` feature flag for these tests and sets the install mode to
-/// `AlwaysInstall` so the binary check → connect flow runs without user
-/// interaction.
+/// `SshRemoteServer` feature flag. The binary check → connect flow runs
+/// against a remote-server binary already present on the test host (the
+/// app no longer downloads/installs it).
 fn remote_server_builder() -> Builder {
     FeatureFlag::SshRemoteServer.set_enabled(true);
-    new_builder()
-        .set_should_run_test(|| {
-            if !cfg!(target_os = "linux") {
-                return false;
-            }
-            let (starter, _) = current_shell_starter_and_version();
-            starter.shell_type() != ShellType::PowerShell
-        })
-        .with_user_defaults(HashMap::from([(
-            SshExtensionInstallModeSetting::storage_key().to_owned(),
-            serde_json::to_string(&SshExtensionInstallMode::AlwaysInstall)
-                .expect("Can serialize SshExtensionInstallMode"),
-        )]))
+    new_builder().set_should_run_test(|| {
+        if !cfg!(target_os = "linux") {
+            return false;
+        }
+        let (starter, _) = current_shell_starter_and_version();
+        starter.shell_type() != ShellType::PowerShell
+    })
 }
 
 /// Appends the common SSH → remote server connection steps to a builder.
