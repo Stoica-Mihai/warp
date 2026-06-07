@@ -35,7 +35,6 @@ use warpui::{
     ViewHandle, WeakViewHandle,
 };
 
-use crate::ai::AIRequestUsageModel;
 use crate::appearance::Appearance;
 use crate::code::buffer_location::LocalOrRemotePath;
 use crate::code::editor::comment_editor::DEFAULT_COMMENT_MAX_WIDTH;
@@ -48,7 +47,6 @@ use crate::code_review::comments::{
 };
 use crate::menu::{Event, Menu, MenuItem, MenuItemFields};
 use crate::notebooks::editor::view::{EditorViewEvent, RichTextEditorView};
-use crate::settings::AISettings;
 use crate::ui_components::icons::Icon;
 use crate::view_components::action_button::{
     ActionButton, ActionButtonTheme, ButtonSize, NakedTheme, SecondaryTheme,
@@ -119,8 +117,6 @@ pub struct CommentListDebugState {
     pub sendable_comments: usize,
     pub is_collapsed: bool,
     pub is_outdated_section_collapsed: Option<bool>,
-    pub ai_available: bool,
-    pub ai_enabled: bool,
     pub send_button_tooltip_text: String,
 }
 
@@ -278,9 +274,7 @@ impl CommentListView {
         }
     }
 
-    pub fn debug_state(&self, ctx: &AppContext) -> CommentListDebugState {
-        let ai_available = AIRequestUsageModel::as_ref(ctx).has_any_ai_remaining(ctx);
-        let ai_enabled = AISettings::as_ref(ctx).is_any_ai_enabled(ctx);
+    pub fn debug_state(&self, _ctx: &AppContext) -> CommentListDebugState {
         let sendable_comments = self
             .comments_by_id
             .values()
@@ -296,8 +290,6 @@ impl CommentListView {
             sendable_comments,
             is_collapsed: self.is_collapsed,
             is_outdated_section_collapsed: self.is_outdated_section_collapsed,
-            ai_available,
-            ai_enabled,
             send_button_tooltip_text,
         }
     }
