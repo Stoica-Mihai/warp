@@ -51,7 +51,7 @@ use super::model::terminal_model::{SelectedBlocks, WithinBlock, WithinModel};
 use super::model::SecretHandle;
 use super::view::{
     BlocklistAIRenderContext, InlineBannerId, RichContentMetadata, SeparatorId, TerminalEditor,
-    TerminalViewRenderContext, BLOCK_BANNER_HEIGHT,
+    TerminalViewRenderContext,
 };
 use super::warpify::render::{draw_flag_pole, render_subshell_flag};
 use super::{heights_approx_eq, TerminalModel, HEIGHT_FUDGE_FACTOR_LINES};
@@ -3408,14 +3408,6 @@ impl Element for BlockListElement {
 
                     let mut header_grid_origin = header_origin;
 
-                    if let (Some(_), Some(banner)) = (block.block_banner(), &mut self.block_banner)
-                    {
-                        banner.paint(header_origin, ctx, app);
-                        header_grid_origin += vec2f(
-                            0.,
-                            banner.size().map_or(BLOCK_BANNER_HEIGHT, |size| size.y()),
-                        );
-                    }
 
                     // TODO(vorporeal): should probably use `Pixels` here
                     let block_pixel_height =
@@ -3529,9 +3521,6 @@ impl Element for BlockListElement {
                         flag_element.paint(flag_origin, ctx, app)
                     }
 
-                    if let Some(banner) = block.block_banner() {
-                        grid_origin += vec2f(0., banner.banner_height());
-                    }
 
                     Self::draw_block(
                         block,

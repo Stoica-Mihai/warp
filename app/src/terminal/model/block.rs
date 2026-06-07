@@ -60,7 +60,6 @@ use crate::terminal::model::session::SessionId;
 use crate::terminal::model::terminal_model::{BlockIndex, WithinBlock};
 use crate::terminal::model::GridStorage;
 use crate::terminal::shell::ShellType;
-use crate::terminal::view::WithinBlockBanner;
 use crate::terminal::{BlockPadding, ShellHost, SizeInfo};
 
 pub const LONG_RUNNING_COMMAND_DURATION_MS: u64 = 50;
@@ -344,7 +343,6 @@ pub struct Block {
     interaction_mode: InteractionMode,
 
     /// This represents when a banner appears in this Block above the prompt.
-    pub(super) block_banner: Option<WithinBlockBanner>,
 
     /// If true, we should discard the next right prompt data we receive
     /// (whether it comes from a precmd hook or from a marked prompt
@@ -987,7 +985,6 @@ impl Block {
             is_for_in_band_command: false,
             env_var_metadata: None,
             interaction_mode: InteractionMode::default(),
-            block_banner: None,
             ignore_next_rprompt: false,
             prompt_snapshot: None,
             home_dir: None,
@@ -1147,15 +1144,6 @@ impl Block {
         self.output_grid = output_grid;
     }
 
-    #[cfg(not(feature = "integration_tests"))]
-    pub(in crate::terminal) fn block_banner(&self) -> Option<&WithinBlockBanner> {
-        self.block_banner.as_ref()
-    }
-
-    #[cfg(feature = "integration_tests")]
-    pub fn block_banner(&self) -> Option<&WithinBlockBanner> {
-        self.block_banner.as_ref()
-    }
 
     /// Prefer using the `reset_block_index` fn on the BlockList instead.
     /// Resets the index of the block to `index`. This is useful in the case where the block list
@@ -1506,8 +1494,6 @@ impl Block {
             _ => BlockState::DoneWithNoExecution,
         };
         log::info!("Block finished with new state {:?}", self.state);
-
-        self.block_banner = None;
 
         let block_type: BlockType = self.into();
         self.event_proxy
@@ -1957,28 +1943,14 @@ impl Block {
     }
 
     pub(in crate::terminal) fn block_banner_height(&self) -> Lines {
-        if !self.ready_to_render() {
-            Lines::zero()
-        } else {
-            match &self.block_banner {
-                Some(banner) => {
-                    (banner.banner_height() / self.prompt_grid_cell_height() as f32).into_lines()
-                }
-                None => Lines::zero(),
-            }
-        }
+        Lines::zero()
     }
 
     pub fn padding_top(&self) -> Lines {
         if self.missing_command() || !self.ready_to_render() {
             Lines::zero()
         } else {
-            match self.block_banner {
-                // Truncate the padding if there is a banner, so not break the visual relationship
-                // between the block and banner, but still allow it to be smaller in compact mode.
-                Some(_) => self.padding.padding_top.min(0.6).into_lines(),
-                None => self.padding.padding_top.into_lines(),
-            }
+            self.padding.padding_top.into_lines()
         }
     }
 

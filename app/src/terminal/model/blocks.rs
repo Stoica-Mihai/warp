@@ -52,7 +52,7 @@ use crate::terminal::model::index::{Point, VisibleRow};
 use crate::terminal::model::iterm_image::ITermImage;
 use crate::terminal::model::secrets::ObfuscateSecrets;
 use crate::terminal::model::terminal_model::{BlockIndex, WithinBlock};
-use crate::terminal::view::{InlineBannerId, InlineBannerItem, SeparatorId, WithinBlockBanner};
+use crate::terminal::view::{InlineBannerId, InlineBannerItem, SeparatorId};
 use crate::terminal::{BlockPadding, ShellHost, SizeInfo, SizeUpdate};
 
 #[cfg(feature = "local_fs")]
@@ -1545,15 +1545,6 @@ impl BlockList {
         }
     }
 
-    /// The setter for Block::block_banner needs to update the block_heights SumTree in order to
-    /// keep that data structure in sync.
-    pub(in crate::terminal) fn set_active_block_banner(
-        &mut self,
-        block_banner: Option<WithinBlockBanner>,
-    ) {
-        self.active_block_mut().block_banner = block_banner;
-        self.update_active_block_height();
-    }
 
     pub fn active_block_mut(&mut self) -> &mut Block {
         self.blocks

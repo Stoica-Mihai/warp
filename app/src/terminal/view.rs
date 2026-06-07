@@ -1,7 +1,6 @@
 mod action;
 pub mod agent_view_state;
 pub mod ambient_agent;
-mod block_banner;
 pub(crate) mod inline_action_icons;
 pub(crate) mod inline_action_header;
 pub(crate) mod requested_action;
@@ -56,8 +55,6 @@ use std::time::Duration;
 use action::RememberForWarpification;
 pub use action::TerminalAction;
 use async_channel::{Receiver, Sender};
-use block_banner::{render_warpification_banner, WarpificationMode, WarpifyBannerState};
-pub use block_banner::{WithinBlockBanner, BLOCK_BANNER_HEIGHT};
 use bookmarks::render_floating_block_snapshot;
 use chrono::{Local, NaiveDateTime};
 use command_corrections::rules::generic::history::History as CommandCorrectionsHistoryRule;
@@ -12763,15 +12760,7 @@ impl TerminalView {
         // Currently, it is assumed that only the active block can have a block banner, which
         // implies that there can only be one at a time. This assumption can be relaxed once we
         // have an actual use case for that.
-        let block_banner = model
-            .block_list()
-            .active_block()
-            .block_banner()
-            .map(|banner| match banner {
-                WithinBlockBanner::WarpifyBanner(state) => {
-                    render_warpification_banner(state, appearance, app)
-                }
-            });
+        let block_banner: Option<Box<dyn warpui::Element>> = None;
 
         let bookmarked_blocks: HashSet<_> = self.bookmarked_blocks.keys().copied().collect();
         let filtered_blocks: HashSet<_> = model.block_list().filtered_blocks();
@@ -15410,15 +15399,6 @@ impl View for TerminalView {
             context.set.insert(init::ROOT_CLOUD_MODE_PANE_KEY);
         }
 
-        if let Some(WithinBlockBanner::WarpifyBanner(state)) =
-            model_lock.block_list().active_block().block_banner()
-        {
-            if state.is_ssh() {
-                context.set.insert("SshWarpificationBanner");
-            } else {
-                context.set.insert("SubshellBanner");
-            }
-        }
 
         if false {
             context.set.insert(flags::HAS_PENDING_PROMPT_SUGGESTION);
