@@ -166,6 +166,8 @@ After the 3-gate matrix passes and you commit the refactor:
 
 Conventional commits (`refactor:`/`feat:`/`fix:`/`docs:`/`chore:`). No `Co-Authored-By` trailers. No `--no-verify`. Commit only at green checkpoints. Don't claim done on a stub — flag seams honestly.
 
+**No scheduling / loops without explicit user approval first.** Never call `ScheduleWakeup`, `/loop`, `/schedule`, or any cron/recurring/self-pacing mechanism unless the user has approved it in this session. Wait for background work via the harness completion-notification instead — do not schedule a self-wakeup to poll. If a recurring task seems useful, ask first.
+
 ## 6. Multi-file rewrites — use `recast` MCP tools
 
 This removal loop is one shape repeated across many sites — exactly recast's win zone. The `recast` MCP server is wired globally; prefer its tools over `Edit`/`sed` loops when the same syntactic change lands in many files.
