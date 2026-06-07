@@ -11,12 +11,6 @@ use warp_core::channel::ChannelState;
 pub enum RemoteServerSetupState {
     /// Checking if the binary exists on remote.
     Checking,
-    /// Downloading and installing the binary for the first time on this host.
-    Installing { progress_percent: Option<u8> },
-    /// Replacing an existing install with a differently-versioned binary.
-    /// Rendered as "Updating..." in the UI so the user understands this
-    /// isn't a fresh install.
-    Updating,
     /// Binary is launched, waiting for InitializeResponse.
     Initializing,
     /// Handshake complete. Ready.
@@ -48,17 +42,11 @@ impl RemoteServerSetupState {
     }
 
     pub fn is_in_progress(&self) -> bool {
-        matches!(
-            self,
-            Self::Checking | Self::Installing { .. } | Self::Updating | Self::Initializing
-        )
+        matches!(self, Self::Checking | Self::Initializing)
     }
 
     pub fn is_connecting(&self) -> bool {
-        matches!(
-            self,
-            Self::Installing { .. } | Self::Updating | Self::Initializing
-        )
+        matches!(self, Self::Initializing)
     }
 }
 

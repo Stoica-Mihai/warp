@@ -91,7 +91,7 @@ impl WarpifyPageView {
         let warpify_settings_handle = WarpifySettings::handle(ctx);
 
         ctx.observe(&warpify_settings_handle, Self::update_button_states);
-        ctx.subscribe_to_model(&warpify_settings_handle, move |me, model, _event, ctx| {
+        ctx.subscribe_to_model(&warpify_settings_handle, |me, model, _event, ctx| {
             me.update_button_states(model, ctx);
             ctx.notify();
         });

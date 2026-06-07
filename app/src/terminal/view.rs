@@ -7025,13 +7025,6 @@ impl TerminalView {
                     .remote_server_setup_state(sid)
                     .map(|state| match state {
                         RemoteServerSetupState::Checking => "Checking...".to_string(),
-                        RemoteServerSetupState::Installing {
-                            progress_percent: Some(p),
-                        } => format!("Installing... ({p}%)"),
-                        RemoteServerSetupState::Installing {
-                            progress_percent: None,
-                        } => "Installing...".to_string(),
-                        RemoteServerSetupState::Updating => "Updating...".to_string(),
                         RemoteServerSetupState::Initializing => "Initializing...".to_string(),
                         _ => "Starting shell...".to_string(),
                     })
