@@ -38,7 +38,7 @@ use super::proto::{
     ResolveConflictSuccess, ResyncCodebase, RunCommandError, RunCommandErrorCode,
     RunCommandRequest, RunCommandResponse, RunCommandSuccess, SaveBuffer, SaveBufferResponse,
     SaveBufferSuccess, ServerMessage, SessionBootstrapped, TextEdit, UploadHandoffSnapshot,
-    WriteFile, WriteFileResponse, WriteFileSuccess,
+    UploadHandoffSnapshotResponse, WriteFile, WriteFileResponse, WriteFileSuccess,
 };
 use super::server_buffer_tracker::{PendingBufferRequestKind, ServerBufferTracker};
 use crate::code::global_buffer_model::{GlobalBufferModel, GlobalBufferModelEvent};
@@ -56,9 +56,7 @@ const MAX_BRANCH_COUNT_CAP: usize = 500;
 /// Unique identifier for a connected proxy session in daemon mode.
 pub type ConnectionId = uuid::Uuid;
 use super::protocol::RequestId;
-use crate::ai::blocklist::handoff::snapshot::upload_result_to_proto;
 use crate::auth::auth_state::{AuthState, AuthStateProvider};
-use crate::server::server_api::ServerApiProvider;
 use crate::terminal::model::session::command_executor::{
     ExecuteCommandOptions, LocalCommandExecutor,
 };
@@ -713,7 +711,7 @@ impl ServerModel {
                 self.handle_get_fragment_metadata_from_hash()
             }
             Some(client_message::Message::UploadHandoffSnapshot(msg)) => {
-                self.handle_upload_handoff_snapshot(msg, &request_id, conn_id, ctx)
+                self.handle_upload_handoff_snapshot(msg)
             }
             None => {
                 log::warn!(
@@ -1861,60 +1859,17 @@ impl ServerModel {
         }
     }
 
-    /// Handles `UploadHandoffSnapshot` by gathering the workspace snapshot
-    /// from the daemon's local filesystem and uploading it to GCS.
-    ///
-    /// Extracts the `AIClient` and HTTP client from `ServerApiProvider`, then
-    /// spawns the async gather+upload pipeline. Returns an
-    /// `UploadHandoffSnapshotResponse` with the token on success.
-    fn handle_upload_handoff_snapshot(
-        &mut self,
-        msg: UploadHandoffSnapshot,
-        request_id: &RequestId,
-        conn_id: ConnectionId,
-        ctx: &mut ModelContext<Self>,
-    ) -> HandlerOutcome {
-        log::info!(
-            "Handling UploadHandoffSnapshot ({} paths, request_id={request_id})",
-            msg.paths.len(),
-        );
-
-        let server_api = ServerApiProvider::handle(ctx);
-        let ai_client = server_api.as_ref(ctx).get_ai_client();
-        let http = server_api.as_ref(ctx).get_http_client();
-
-        // Convert proto strings → StandardizedPath at the boundary; invalid
-        // entries are logged and dropped.
-        let paths: Vec<StandardizedPath> = msg
-            .paths
-            .into_iter()
-            .filter_map(|raw| match StandardizedPath::try_new(&raw) {
-                Ok(sp) => Some(sp),
-                Err(e) => {
-                    log::warn!("UploadHandoffSnapshot: skipping invalid path: {e}");
-                    None
-                }
-            })
-            .collect();
-        let request_id_for_response = request_id.clone();
-
-        let handle = self.spawn_request_handler(
-            request_id.clone(),
-            async move {
-                super::handoff_snapshot::gather_and_upload_handoff_snapshot(paths, ai_client, &http)
-                    .await
+    /// Handles `UploadHandoffSnapshot`. Local-to-cloud handoff was removed, so
+    /// the daemon stays wire-compatible by replying with an error response
+    /// instead of gathering and uploading a workspace snapshot.
+    fn handle_upload_handoff_snapshot(&self, _msg: UploadHandoffSnapshot) -> HandlerOutcome {
+        HandlerOutcome::Sync(server_message::Message::UploadHandoffSnapshotResponse(
+            UploadHandoffSnapshotResponse {
+                initial_snapshot_token: None,
+                success: false,
+                error: Some("local-to-cloud handoff is not supported".to_string()),
             },
-            move |me, result, _ctx| {
-                let response = upload_result_to_proto(result);
-                me.send_server_message(
-                    Some(conn_id),
-                    Some(&request_id_for_response),
-                    server_message::Message::UploadHandoffSnapshotResponse(response),
-                );
-            },
-            ctx,
-        );
-        HandlerOutcome::Async(Some(handle))
+        ))
     }
 
     /// Handles `GetBranches` — request/response.

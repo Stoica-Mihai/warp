@@ -38,21 +38,6 @@ use crate::{
 
 const AI_ASSISTANT_REQUEST_TIMEOUT_SECONDS: u64 = 30;
 
-/// Server-minted token returned by `POST /agent/handoff/upload-snapshot` that scopes a batch
-/// of presigned upload URLs to `handoff/{token}/`. The client passes it
-/// back via `SpawnAgentRequest.initial_snapshot_token`; the server stores it on the new run's
-/// queued execution input so rehydration discovery can read the same prefix.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct InitialSnapshotToken(String);
-
-impl InitialSnapshotToken {
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-
-
 #[derive(Clone, serde::Deserialize, Debug, PartialEq, Eq)]
 pub struct ConnectedSelfHostedWorker {
     pub worker_host: String,
