@@ -46,7 +46,6 @@ use std::hash::Hash;
 use std::ops::{Deref as _, Range};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::str::FromStr;
 use std::sync::mpsc::SyncSender;
 use std::sync::Arc;
 use std::thread::JoinHandle;
@@ -145,14 +144,11 @@ use self::link_detection::HighlightedLinkOption;
 pub use self::link_detection::{GridHighlightedLink, RichContentLink, RichContentLinkTooltipInfo};
 use super::available_shells::AvailableShell;
 use super::block_list_viewport::FindMatchScrollLocation;
-use super::event::SshLoginStatus;
 use super::find::FindOptions;
-use super::model::ansi::{SystemDetails, WarpificationUnavailableReason};
 use super::model::block::{
-    BlockSection, BlocklistEnvVarMetadata, LONG_RUNNING_COMMAND_DURATION_MS,
+    BlockSection, BlocklistEnvVarMetadata,
 };
 use super::model::completions::ShellCompletion;
-use super::model::rich_content::RichContentType;
 use super::model::secrets::RichContentSecretTooltipInfo;
 use super::model::selection::ExpandedSelectionRange;
 use super::model::session::SessionBootstrappedEvent;
@@ -315,7 +311,7 @@ use crate::terminal::model::mouse::MouseState;
 use crate::terminal::model::selection::{SelectAction, SelectionDirection};
 use crate::terminal::model::session::active_session::ActiveSession;
 use crate::terminal::model::session::{
-    BootstrapSessionType, Session, SessionId, SessionType, Sessions, SessionsEvent,
+    Session, SessionId, SessionType, Sessions, SessionsEvent,
 };
 use crate::terminal::model::terminal_model::{
     BlockIndex, BlockSelectionCardinality, SelectedBlocks, TerminalInputState, WithinModel,
@@ -343,8 +339,6 @@ use crate::terminal::view::ssh_file_upload::FileUploadId;
 use crate::terminal::view::ssh_remote_server_failed_banner::{
     SshRemoteServerFailedBanner, SshRemoteServerFailedBannerEvent,
 };
-use crate::terminal::warpify::render::render_subshell_separator;
-use crate::terminal::warpify::settings::WarpifySettings;
 use crate::terminal::warpify::SubshellSource;
 use crate::terminal::waterfall_gap_element::WaterfallGapElement;
 use crate::terminal::{
@@ -2025,9 +2019,6 @@ pub struct TerminalView {
     /// the `insert_rich_content` helper function.
     rich_content_views: Vec<RichContent>,
 
-    /// The type of the subshell that we will bootstrap/"warpify"" on the next [`AfterBlockStarted`]
-    /// terminal model event. Will only be `Some` with a [`ShellType`] we can bootstrap.
-    pending_auto_bootstrap_shell_type: Option<ShellType>,
     env_vars: Vec<EnvVar>,
 
     show_snackbar: bool,
@@ -2827,7 +2818,6 @@ impl TerminalView {
             block_filter_editor,
             active_filter_editor_block_index: None,
             rich_content_views: Vec::new(),
-            pending_auto_bootstrap_shell_type: None,
             pending_env_var_collection: None,
             env_vars: Vec::new(),
             show_snackbar: true,
@@ -13547,17 +13537,13 @@ impl TerminalView {
     }
 
     /// Replace the terminal input buffer with the given command that is meant to open a subshell.
-    /// Set a flag that we should automatically bootstrap AKA "warpify" the subshell when we
-    /// receive the [`AfterBlockStarted`] event.
+    /// Inserts and runs a command that spawns a subshell (e.g. a docker shell).
     pub fn insert_subshell_command_and_bootstrap_if_supported(
         &mut self,
         command: &str,
-        shell_type: Option<ShellType>,
+        _shell_type: Option<ShellType>,
         ctx: &mut ViewContext<Self>,
     ) {
-        // If the shell type is not supported, it will be None.
-        self.pending_auto_bootstrap_shell_type = shell_type;
-
         self.input.update(ctx, |input, ctx| {
             input.replace_buffer_content(command, ctx);
         });
@@ -13773,12 +13759,9 @@ impl TerminalView {
     fn set_and_execute_subshell_command(
         &mut self,
         shell_command: &str,
-        shell_type: ShellType,
+        _shell_type: ShellType,
         ctx: &mut ViewContext<Self>,
     ) {
-        // Attempt to auto warpify the subshell when bootstrapped
-        self.pending_auto_bootstrap_shell_type = Some(shell_type);
-
         self.input.update(ctx, |input, ctx| {
             input.set_pending_command(shell_command, ctx);
             input.execute_pending_command(ctx);
