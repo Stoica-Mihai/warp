@@ -23,7 +23,6 @@ use warp_graphql::billing::{
     UsageVisibilityPolicy as GqlUsageVisibilityPolicy, WarpAiPolicy as GqlWarpAiPolicy,
 };
 use warp_graphql::object::CloudObjectWithDescendants;
-use warp_graphql::queries::get_workspaces_metadata_for_user::User as GqlUser;
 use warp_graphql::user::PublicUserProfile;
 use warp_graphql::workspace::{
     AddonCreditsSettings as GqlAddonCreditsSettings,
@@ -41,7 +40,6 @@ use warp_graphql::workspace::{
 
 use super::team::MembershipRole;
 use super::user_profiles::UserProfileWithUID;
-use super::user_workspaces::WorkspacesMetadataResponse;
 use super::workspace::{
     AIAutonomyPolicy, AddonCreditsSettings, AdminEnablementSetting, AiAutonomySettings,
     AiPermissionsSettings, AmbientAgentsPolicy, BillingCycleUsageData, BillingCycleUsageEntry,
@@ -909,32 +907,6 @@ impl From<GqlWorkspace> for Workspace {
                 .collect(),
             total_requests_used_since_last_refresh: gql_workspace
                 .total_requests_used_since_last_refresh,
-        }
-    }
-}
-
-impl From<GqlUser> for WorkspacesMetadataResponse {
-    fn from(gql_user: GqlUser) -> WorkspacesMetadataResponse {
-        let feature_model_choices = gql_user
-            .workspaces
-            .first()
-            .map(|gql_workspace| gql_workspace.feature_model_choice.clone());
-
-        let workspaces: Vec<Workspace> = gql_user
-            .workspaces
-            .clone()
-            .into_iter()
-            .filter(|gql_workspace| {
-                // TODO(skambashi): REV-717: Clean up this code once every user always has
-                // a workspace, and the server no longer returns a placeholder workspace.
-                gql_workspace.uid != PLACEHOLDER_WORKSPACE_UID.into()
-            })
-            .map(|gql_workspace| gql_workspace.into())
-            .collect();
-
-        WorkspacesMetadataResponse {
-            workspaces,
-            feature_model_choices,
         }
     }
 }

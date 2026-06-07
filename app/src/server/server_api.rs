@@ -2,7 +2,6 @@ pub mod ai;
 pub mod auth;
 pub mod harness_support;
 pub(crate) mod presigned_upload;
-pub mod team;
 
 use std::borrow::Cow;
 use std::fmt;
@@ -22,7 +21,6 @@ use parking_lot::{Mutex, RwLock};
 use prost::Message;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
-use team::TeamClient;
 use url::Url;
 use warp_core::context_flag::ContextFlag;
 use warp_core::errors::{register_error, AnyhowErrorExt, ErrorExt};
@@ -1165,9 +1163,6 @@ impl ServerApiProvider {
     }
 
 
-    pub fn get_team_client(&self) -> Arc<dyn TeamClient> {
-        self.server_api.clone()
-    }
 
     /// Returns the shared HTTP client. This client is wired into network logging
     /// and includes standard Warp request headers.

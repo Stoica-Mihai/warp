@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use warpui::{AddSingletonModel, App};
 use settings::{PrivatePreferences, PublicPreferences};
 use warpui_extras::user_preferences;
@@ -9,11 +7,9 @@ use crate::auth::AuthManager;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::network::NetworkStatus;
 use crate::server::cloud_objects::update_manager::UpdateManager;
-use crate::server::server_api::team::{MockTeamClient, TeamClient};
 use crate::server::server_api::ServerApiProvider;
 use crate::settings::{AISettings, CodeSettings, FocusedTerminalInfo};
 use crate::workspaces::team_tester::TeamTesterStatus;
-use crate::workspaces::update_manager::TeamUpdateManager;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::workspaces::workspace::{AdminEnablementSetting, Workspace};
 
@@ -22,11 +18,7 @@ struct CachedResources {
     workspaces: Vec<Workspace>,
 }
 
-fn initialize_app(
-    app: &mut App,
-    resources: CachedResources,
-    team_client: Arc<dyn TeamClient>,
-) {
+fn initialize_app(app: &mut App, resources: CachedResources) {
     // Add the necessary singleton models to the App
     app.add_singleton_model(|_| NetworkStatus::new());
     app.add_singleton_model(TeamTesterStatus::new);
@@ -36,7 +28,6 @@ fn initialize_app(
             ctx,
         )
     });
-    app.add_singleton_model(|ctx| TeamUpdateManager::new(team_client.clone(), None, ctx));
     app.add_singleton_model(UpdateManager::mock);
     app.add_singleton_model(PrivacySettings::mock);
     app.add_singleton_model(|_| ServerApiProvider::new_for_test());
@@ -63,11 +54,7 @@ fn initialize_app(
 #[test]
 fn test_codebase_context_enabled_with_no_workspace() {
     App::test((), |mut app| async move {
-        initialize_app(
-            &mut app,
-            CachedResources { workspaces: vec![] },
-            Arc::new(MockTeamClient::new()),
-        );
+        initialize_app(&mut app, CachedResources { workspaces: vec![] });
 
         app.read(|ctx| {
             let codebase_context_enabled =
@@ -83,11 +70,7 @@ fn test_codebase_context_enabled_with_no_workspace() {
 #[test]
 fn test_agent_attribution_default_with_no_workspace() {
     App::test((), |mut app| async move {
-        initialize_app(
-            &mut app,
-            CachedResources { workspaces: vec![] },
-            Arc::new(MockTeamClient::new()),
-        );
+        initialize_app(&mut app, CachedResources { workspaces: vec![] });
 
         app.read(|ctx| {
             let setting = UserWorkspaces::as_ref(ctx).get_agent_attribution_setting();
