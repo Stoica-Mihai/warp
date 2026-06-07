@@ -5,7 +5,6 @@ use std::time::Duration;
 use anyhow::anyhow;
 pub use glibc::{GlibcVersion, RemoteLibc};
 use warp_core::channel::ChannelState;
-pub const REMOTE_SERVER_ARTIFACT_VERSION_UNPINNED: &str = "unversioned";
 
 /// State machine for the remote server install → launch → initialize flow.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -489,96 +488,6 @@ pub fn remote_server_binary() -> String {
 pub fn binary_check_command() -> String {
     format!("{} --version", remote_server_binary())
 }
-
-/// Returns the version string used to pin remote-server installs on
-/// channels that take the versioned path (i.e. everything except
-/// [`Channel::Local`] and [`Channel::Oss`]). Prefers the baked-in
-/// `GIT_RELEASE_TAG` from [`ChannelState::app_version`]; falls back to
-/// `CARGO_PKG_VERSION` so the path / install URL is deterministic even on
-/// Returns the version key used to identify remote-server download artifacts.
-///
-/// This must match the versioning used by [`download_tarball_url`] and
-/// [`install_script`], so versioned download URLs do not reuse stale tarballs
-/// from a previous client version.
-pub fn remote_server_artifact_version() -> &'static str {
-    REMOTE_SERVER_ARTIFACT_VERSION_UNPINNED
-}
-
-/// The install script template, loaded from a standalone `.sh` file for
-/// readability. Placeholders like `{download_base_url}` are substituted by
-/// [`install_script`].
-const INSTALL_SCRIPT_TEMPLATE: &str = include_str!("install_remote_server.sh");
-
-/// Returns the install script that downloads and installs the CLI binary
-/// at the current client version.
-///
-/// The script detects the remote architecture via `uname -m`, downloads
-/// the correct Oz CLI tarball from the download URL, and installs it at
-/// the path returned by [`remote_server_binary`] so repeat invocations
-/// are idempotent. The `version_query` / `version_suffix` substitutions
-/// follow the same rule as [`remote_server_binary`]: empty on
-/// [`Channel::Local`] and [`Channel::Oss`] (so the install lands at
-/// the unversioned path used by `script/deploy_remote_server`); pinned to
-/// `&version={v}` / `-{v}` on every other channel, where `v` falls back
-/// to `CARGO_PKG_VERSION` when no release tag is baked in.
-pub fn install_script(staging_tarball_path: Option<&str>) -> String {
-    let (vq, version_suffix) = (String::new(), String::new());
-    INSTALL_SCRIPT_TEMPLATE
-        .replace("{download_base_url}", &download_url())
-        .replace("{channel}", download_channel())
-        .replace("{install_dir}", &remote_server_dir())
-        .replace("{binary_name}", binary_name())
-        .replace("{version_query}", &vq)
-        .replace("{version_suffix}", &version_suffix)
-        .replace(
-            "{no_http_client_exit_code}",
-            &NO_HTTP_CLIENT_EXIT_CODE.to_string(),
-        )
-        .replace("{staging_tarball_path}", staging_tarball_path.unwrap_or(""))
-}
-
-/// Construct the download URL from the server root URL.
-///
-/// For example, given `https://app.warp.dev`, returns
-/// `https://app.warp.dev/download/cli`.
-fn download_url() -> String {
-    let base = ChannelState::server_root_url();
-    let base = base.trim_end_matches('/');
-    format!("{base}/download/cli")
-}
-
-/// Maps the client's [`Channel`] to the server's download channel parameter.
-///
-/// The server recognises `"stable"`, `"preview"`, and `"dev"`.  Local and
-/// Integration builds map to `"dev"` so they fetch dogfood artifacts.
-fn download_channel() -> &'static str {
-    "dev"
-}
-
-/// Returns the version query string for the download URL (e.g.
-/// `"&version=v0.2026.01.01"` on release channels, empty on Local/Oss).
-fn version_query() -> String {
-    String::new()
-}
-
-/// Returns the full download URL for the remote server tarball,
-/// parameterized by the remote platform. Used by the SCP upload
-/// fallback to download the same artifact the shell script would fetch.
-pub fn download_tarball_url(platform: &RemotePlatform) -> String {
-    format!(
-        "{}?package=tar&os={}&arch={}&channel={}{}",
-        download_url(),
-        platform.os.as_str(),
-        platform.arch.as_str(),
-        download_channel(),
-        version_query(),
-    )
-}
-
-/// Exit code the install script uses when neither curl nor wget is
-/// available on the remote host. The Rust side matches on this to
-/// trigger the SCP upload fallback.
-pub const NO_HTTP_CLIENT_EXIT_CODE: i32 = 3;
 
 /// Timeout for the binary existence check.
 pub const CHECK_TIMEOUT: Duration = Duration::from_secs(10);

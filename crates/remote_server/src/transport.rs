@@ -16,7 +16,6 @@ use std::path::PathBuf;
 use std::pin::Pin;
 
 use async_channel::Receiver;
-use serde::Serialize;
 use warpui::r#async::executor;
 
 #[cfg(not(target_family = "wasm"))]
@@ -27,26 +26,6 @@ use crate::setup::{PreinstallCheckResult, RemotePlatform};
 
 /// How the remote server binary was installed. Used for telemetry to
 /// distinguish direct remote downloads from client-side SCP uploads.
-#[derive(Clone, Copy, Debug, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum InstallSource {
-    /// The remote host downloaded the binary directly from the CDN.
-    Server,
-    /// The client downloaded the binary locally and uploaded it via SCP.
-    Client,
-}
-
-/// Result of [`RemoteTransport::install_binary`], bundling the install
-/// result with the source that was attempted. The source is always set
-/// once the install path is determined, regardless of whether the
-/// install succeeded or failed.
-pub struct InstallOutcome {
-    /// Which install path was attempted.
-    pub source: Option<InstallSource>,
-    /// Whether the install succeeded.
-    pub result: Result<(), Error>,
-}
-
 /// Structured error for user-facing display in the SSH remote-server
 /// failed banner. Separates the always-visible body from an optional set of
 /// details.
@@ -68,7 +47,6 @@ pub enum SetupStage {
     DetectPlatform,
     PreinstallCheck,
     CheckBinary,
-    InstallBinary,
     Launch,
 }
 
@@ -78,7 +56,6 @@ impl SetupStage {
             Self::DetectPlatform => "detect remote platform",
             Self::PreinstallCheck => "run preinstall check",
             Self::CheckBinary => "verify SSH extension",
-            Self::InstallBinary => "install SSH extension",
             Self::Launch => "start SSH extension",
         }
     }
@@ -236,16 +213,6 @@ pub trait RemoteTransport: Send + Sync + std::fmt::Debug {
     /// Returns `Ok(true)` if a prior install was detected, `Ok(false)`
     /// if not, and `Err(_)` on SSH failure.
     fn check_has_old_binary(&self) -> Pin<Box<dyn Future<Output = anyhow::Result<bool>> + Send>>;
-
-    /// Installs the remote server binary on the remote host.
-    ///
-    /// Pure I/O — does not emit any events. The caller
-    /// ([`RemoteServerManager::install_binary`]) is responsible for emitting
-    /// [`SetupStateChanged`] and [`BinaryInstallComplete`].
-    ///
-    /// Returns an [`InstallOutcome`] containing the install result and
-    /// the [`InstallSource`] that was attempted (if known).
-    fn install_binary(&self) -> Pin<Box<dyn Future<Output = InstallOutcome> + Send>>;
 
     /// Establish a new connection to the remote server.
     ///

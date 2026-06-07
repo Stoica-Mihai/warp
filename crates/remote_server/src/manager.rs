@@ -39,7 +39,7 @@ use crate::setup::UnsupportedReason;
 use crate::setup::{PreinstallCheckResult, RemotePlatform, RemoteServerSetupState};
 #[cfg(not(target_family = "wasm"))]
 use crate::transport::Connection;
-use crate::transport::{Error, InstallSource, RemoteTransport};
+use crate::transport::{Error, RemoteTransport};
 use crate::HostId;
 
 /// Maximum number of reconnection attempts after a spontaneous disconnect.
@@ -555,17 +555,6 @@ pub enum RemoteServerManagerEvent {
         /// detection itself failed.
         has_old_binary: bool,
     },
-    /// Result of [`RemoteServerManager::install_binary`].
-    BinaryInstallComplete {
-        session_id: SessionId,
-        /// Whether the install succeeded or failed.
-        result: Result<(), Arc<Error>>,
-        /// Which install path was attempted (`Server` for remote download,
-        /// `Client` for SCP upload). `None` if the path could not be
-        /// determined before the failure.
-        install_source: Option<InstallSource>,
-    },
-
     // --- Telemetry events ---
     /// A client request to the remote server failed.
     ClientRequestFailed {
@@ -597,7 +586,6 @@ impl RemoteServerManagerEvent {
             | RemoteServerManagerEvent::NavigatedToDirectory { session_id, .. }
             | RemoteServerManagerEvent::SetupStateChanged { session_id, .. }
             | RemoteServerManagerEvent::BinaryCheckComplete { session_id, .. }
-            | RemoteServerManagerEvent::BinaryInstallComplete { session_id, .. }
             | RemoteServerManagerEvent::ClientRequestFailed { session_id, .. }
             | RemoteServerManagerEvent::CodebaseIndexMutationFailed { session_id, .. }
             | RemoteServerManagerEvent::ServerMessageDecodingError { session_id }
@@ -935,62 +923,6 @@ impl RemoteServerManager {
             .await;
     }
 
-    /// Installs the remote server binary.
-    /// Emits `BinaryInstallComplete { result }`.
-    ///
-    /// Returns Ok(method) with the install method on success, and
-    /// Err(_) if the install failed (e.g. SSH timeout/unreachable).
-    #[cfg_attr(target_family = "wasm", allow(unused_variables))]
-    pub fn install_binary<T>(
-        &mut self,
-        session_id: SessionId,
-        transport: T,
-        is_update: bool,
-        ctx: &mut ModelContext<Self>,
-    ) where
-        T: RemoteTransport + 'static,
-    {
-        #[cfg(target_family = "wasm")]
-        {
-            log::warn!("Remote server install_binary is a no-op on WASM");
-        }
-
-        #[cfg(not(target_family = "wasm"))]
-        {
-            let setup_state = if is_update {
-                RemoteServerSetupState::Updating
-            } else {
-                RemoteServerSetupState::Installing {
-                    progress_percent: None,
-                }
-            };
-            ctx.emit(RemoteServerManagerEvent::SetupStateChanged {
-                session_id,
-                state: setup_state,
-            });
-            let spawner = self.spawner.clone();
-            ctx.background_executor()
-                .spawn(async move {
-                    let outcome = transport.install_binary().await;
-                    let _ = spawner
-                        .spawn(move |_me, ctx| {
-                            if let Err(error) = &outcome.result {
-                                ctx.emit(RemoteServerManagerEvent::SetupStateChanged {
-                                    session_id,
-                                    state: RemoteServerSetupState::from(error),
-                                });
-                            }
-                            ctx.emit(RemoteServerManagerEvent::BinaryInstallComplete {
-                                session_id,
-                                result: outcome.result.map_err(Arc::new),
-                                install_source: outcome.source,
-                            });
-                        })
-                        .await;
-                })
-                .detach();
-        }
-    }
 
     /// Entry point for establishing a remote server connection for a session.
     /// This assumes the binary is already installed and executable.

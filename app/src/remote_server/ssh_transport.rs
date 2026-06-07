@@ -17,11 +17,8 @@ use remote_server::setup::{
     parse_uname_output, remote_server_daemon_dir, PreinstallCheckResult, RemotePlatform,
 };
 use remote_server::ssh::ssh_args;
-use remote_server::transport::{Connection, Error, InstallOutcome, RemoteTransport};
+use remote_server::transport::{Connection, Error, RemoteTransport};
 use warpui::r#async::executor;
-
-#[path = "ssh_transport/installation.rs"]
-pub(crate) mod installation;
 
 /// SSH transport: connects via a ControlMaster socket.
 ///
@@ -200,11 +197,6 @@ impl RemoteTransport for SshTransport {
                 )),
             }
         })
-    }
-
-    fn install_binary(&self) -> Pin<Box<dyn Future<Output = InstallOutcome> + Send>> {
-        let socket_path = self.socket_path.clone();
-        Box::pin(async move { installation::install_binary(&socket_path).await })
     }
 
     fn connect(

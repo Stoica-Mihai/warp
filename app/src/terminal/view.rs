@@ -3001,32 +3001,6 @@ impl TerminalView {
                         // disappears (e.g. network drop, Ctrl-C, `exit`).
                         me.remove_ssh_remote_server_failed_banner(*session_id, ctx);
                     }
-                    RemoteServerManagerEvent::BinaryInstallComplete {
-                        session_id,
-                        result,
-                        install_source: _,
-                    } => {
-                        let (_remote_os, _remote_arch) = RemoteServerManager::handle(ctx)
-                            .as_ref(ctx)
-                            .platform_for_session(*session_id)
-                            .map(|p| {
-                                (
-                                    Some(p.os.as_str().to_owned()),
-                                    Some(p.arch.as_str().to_owned()),
-                                )
-                            })
-                            .unwrap_or((None, None));
-                        if let Err(error) = result {
-                            log::warn!("Remote server install failed: {error:#}");
-                            me.show_ssh_remote_server_failed_banner(
-                                *session_id,
-                                error.user_facing_error(
-                                    remote_server::transport::SetupStage::InstallBinary,
-                                ),
-                                ctx,
-                            );
-                        }
-                    }
                     RemoteServerManagerEvent::BinaryCheckComplete {
                         session_id,
                         result,
