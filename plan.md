@@ -266,9 +266,11 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 **Method that worked:** collapse dead `if flag.is_enabled() {…}` branches first (compiles fine with flag still defined — it's just fewer readers), bank green; remove flag def LAST once its readers hit zero. Cascades (banner module, dialog subsystem, URI route, REMOTE_CONTROL, close-session widget) surface as dead-code/unused-import warnings after the readers drop — use `cargo check --features gui` as the worklist oracle. For a subsystem that's reachable only through a now-permanently-false gate (close-confirm dialog, share banners), trace it to its event emitter — if the emitter is itself gated on `shared_session_status().is_sharer()` (always false), the whole chain is dead and removes cleanly. When a UI chip lives in kept agent code, re-gate it on the OTHER (off-by-default) flag rather than ripping the agent subsystem — defers cleanly, preserves default behavior.
 
-### AI strip — current state (2026-06-07 session 60)
+### AI strip — current state (2026-06-07 session 61)
 
-**Binary**: **659.7 MB** (`16314207`). 3-gate **0/0/0 errors** throughout. Per-session detail lives in the `ai-strip-session-*` memory files (this plan stays high-level for 57+).
+**Binary**: **659.2 MB** (`ce828549`). 3-gate **0/0/0 errors** throughout. Per-session detail lives in the `ai-strip-session-*` memory files (this plan stays high-level for 57+).
+
+**S61**: coding_entrypoints orphan confirmed already-gone (stale row fixed). **Warpify tail Cluster A done** (`ce828549`, −0.49 MB): WarpifySettings singleton deleted, SSH wrapper collapsed to the generic `enable_legacy_ssh_wrapper` path (behavior-identical on defaults), ShowWarpifySettings action + tmux context flag removed. Warpify dead-code warnings cleared (3 dead-code left in default gate, none warpify).
 
 **DONE since session 56** (each its own `ai-strip-session-*` memory file + build-size rows):
 - **S57** codebase-indexing/embeddings strip (Frontier A) — `944b0a70`+`f4082d6f`, −8.15 MB → 710.6 MB. Also: AIConversation keystone groundwork (light-type extraction + consumer neutering, see Frontier B below).
@@ -277,7 +279,7 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - **S60** top-bar/menu de-Warp + Account settings section removed; **SSH-extension phone-home** fully stripped (egress to app.warp.dev/download/cli + install machinery + RemoteTransport::install_binary); **cloud-handoff increment 1** (dead auto-cloud-handoff subsystem + orphaned SystemStats sleep/wake cascade); **WARPIFY feature fully removed** (10 commits `15a0f0ed`→`e6ef17e8`, −2.0 MB, GUI-verified blocks render).
 
 **REMAINING (mapped in memory files):**
-- **warpify tail** (~29 dead-code warnings) — `WarpifySettings`/`enable_ssh_wrapper` (SSH ControlMaster/tmux transport, entangled with generic `use_ssh_tmux_wrapper`) + the ANSI OSC/DCS warpify parser + model-events. **Needs an ssh-connection test** → `ai-strip-session-60-warpify.md`.
+- **warpify tail Cluster B** (no warnings — inert, NOT dead-code-flagged) — the ANSI OSC/DCS subshell/ssh parser (`model/ansi/dcs_hooks.rs` `DProtoHook::{InitSubshell,InitSsh,SshTmuxInstaller,TmuxInstallFailed,RemoteWarpificationIsUnavailable}`) + the model-events (`InitSubshell`/`InitSsh`/`SourcedRcFileInSubshell`/`SshTmuxInstaller`/`TmuxInstallFailed`/`RemoteWarpificationIsUnavailable`/`TmuxControlModeReady`/`DetectedEndOfSshLogin`) + `TmuxInstallationState`. These are fully plumbed (parser→event→ModelEvent→**no-op** view handler) so they produce no warnings; removing them is pure SSH-escape-sequence-parser surgery with **zero warning payoff** and **live edges** (`TmuxControlModeReady`→`pty_controller.rs:159`, `DetectedEndOfSshLogin` drives the SSH-login-detection state machine in terminal_model.rs). **KEEP `SubshellSource`** (warpify/mod.rs — drives the generic subshell FLAG, NOT dead). Defer Cluster B to an ssh-testable session, or treat as an optional generic "SSH DCS parser slim-down" rather than warpify cleanup → `ai-strip-session-60-warpify.md` + `ai-strip-session-61.md`.
 - **cloud-handoff increment 2/3** — manual handoff (`OpenLocalToCloudHandoffPane` slash cmd) + handoff-snapshot RPC → `ai-strip-session-60-cloud-handoff.md`.
 - **Frontier B — `ai/agent/` AIConversation keystone** (below; ~14–17K LoC, dedicated session).
 - De-brand rename (`warp*` → brand) LAST, after cloud surface gone. (`coding_entrypoints/` orphan — already gone at `3e87396f`; row above corrected session 61.)
