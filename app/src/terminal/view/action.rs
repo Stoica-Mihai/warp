@@ -35,37 +35,6 @@ use crate::terminal::view::passive_suggestions::PromptSuggestionResolution;
 use crate::terminal::view::RichContentSecretTooltipInfo;
 use crate::workflows::workflow::Workflow;
 
-/// This represents whether entering a subshell for a particular command should become automatic in
-/// the future, or to ask again.
-#[derive(Clone, Debug)]
-pub enum RememberForWarpification {
-    /// If yes, need to transmit the command itself so it can be persisted to user-defaults
-    RememberSubshellCommand(String),
-    RememberSSHHost(String),
-    DoNotRememberSubshellCommand,
-    DoNotRememberSSHHost,
-}
-
-impl RememberForWarpification {
-    pub fn as_bool(&self) -> bool {
-        match self {
-            RememberForWarpification::RememberSubshellCommand(_) => true,
-            RememberForWarpification::RememberSSHHost(_) => true,
-            RememberForWarpification::DoNotRememberSubshellCommand => false,
-            RememberForWarpification::DoNotRememberSSHHost => false,
-        }
-    }
-
-    pub fn is_ssh(&self) -> bool {
-        match self {
-            RememberForWarpification::RememberSSHHost(_) => true,
-            RememberForWarpification::DoNotRememberSSHHost => true,
-            RememberForWarpification::RememberSubshellCommand(_) => false,
-            RememberForWarpification::DoNotRememberSubshellCommand => false,
-        }
-    }
-}
-
 #[derive(Clone)]
 pub enum TerminalAction {
     Scroll {
@@ -210,16 +179,6 @@ pub enum TerminalAction {
     OpenWorkflowModalForAIWorkflow(Workflow),
     OpenWorkflowModalForBlock(BlockIndex),
     OpenWorkflowModalWithCloudWorkflow(SyncId),
-    /// Starts a subshell in the active session.
-    TriggerSubshellBootstrap,
-    /// If the user says "no" to Warpification, possibly requesting not to be asked again
-    DismissWarpifyBanner(RememberForWarpification),
-    /// Triggers the banner asking to turn the running block into a subshell. The String is the
-    /// command that the user entered.
-    ShowSubshellBanner(String),
-    /// Triggers the banner asking to Warpify the active ssh session. The String is the
-    /// command that the user entered.
-    ShowWarpifySshBanner(String, Option<String>),
     InsertMostRecentCommandCorrection,
     AliasExpansionBanner(AliasExpansionBannerAction),
     OpenInWarpBanner(OpenInWarpBannerAction),
@@ -232,9 +191,6 @@ pub enum TerminalAction {
     /// it if possible.
     SelectAIAttachedBlock(BlockIndex),
     DragAndDropFiles(Vec<String>),
-    /// Triggers an ssh session to warpify, even if there is no Warpify Block.
-    WarpifySSHSession,
-    NotifySshErrorBlock(SshErrorBlockAction),
     /// Sets the input mode to Agent Mode
     SetInputModeAgent,
     /// Sets the input mode to Terminal Mode
@@ -447,10 +403,6 @@ impl fmt::Debug for TerminalAction {
                 f.write_str("OpenWorkflowModalWithCloudWorkflow")
             }
             OpenBlockListContextMenu => f.write_str("OpenBlockListContextMenu"),
-            TriggerSubshellBootstrap => f.write_str("TriggerSubshellBootstrap"),
-            DismissWarpifyBanner(remember) => write!(f, "DismissWarpifyBanner({remember:?})"),
-            ShowSubshellBanner(_) => f.write_str("ShowSubshellBanner"),
-            ShowWarpifySshBanner(_, _) => f.write_str("ShowWarpifySshBanner"),
             InsertMostRecentCommandCorrection => f.write_str("InsertMostRecentCommandCorrection"),
             AliasExpansionBanner(action) => write!(f, "AliasExpansionBanner({action:?}"),
             OpenInWarpBanner(action) => write!(f, "OpenInWarpBanner({action:?})"),
@@ -469,8 +421,6 @@ impl fmt::Debug for TerminalAction {
             MiddleClickOnInput => write!(f, "MiddleClickOnInput"),
             SelectAIAttachedBlock(_) => write!(f, "SelectAIAttachedBlock"),
             DragAndDropFiles(_) => write!(f, "DragAndDropFiles"),
-            WarpifySSHSession => write!(f, "WarpifySSHSession"),
-            NotifySshErrorBlock(action) => write!(f, "NotifySshErrorBlock({action:?})"),
             SetInputModeAgent => write!(f, "SetInputModeAgent"),
             SetInputModeTerminal => write!(f, "SetInputModeTerminal"),
             HyperlinkClick(hyperlink_url) => write!(f, "HyperlinkClick({hyperlink_url:?})"),

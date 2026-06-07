@@ -52,7 +52,6 @@ use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::Duration;
 
-use action::RememberForWarpification;
 pub use action::TerminalAction;
 use async_channel::{Receiver, Sender};
 use bookmarks::render_floating_block_snapshot;
@@ -4656,16 +4655,6 @@ impl TerminalView {
             .unwrap_or_default()
     }
 
-    /// Subshell warpification removed: subshells run as plain shells (no block injection).
-    fn trigger_subshell_bootstrap(
-        &mut self,
-        shell_type: Option<ShellType>,
-        _triggered_by_rc_file_snippet: bool,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let _ = (shell_type, ctx);
-    }
-
     fn insert_most_recent_command_correction(&mut self, ctx: &mut ViewContext<Self>) {
         if let Some(most_recent_command_correction) = self.most_recent_command_correction.as_ref() {
             self.input.update(ctx, |input, ctx| {
@@ -6057,9 +6046,7 @@ impl TerminalView {
                 }
 
             }
-            ModelEvent::TmuxControlModeReady { .. } => {
-                self.trigger_subshell_bootstrap(None, false, ctx);
-            }
+            ModelEvent::TmuxControlModeReady { .. } => {}
             ModelEvent::DetectedEndOfSshLogin(_) => {}
             ModelEvent::RemoteWarpificationIsUnavailable(_) => {}
             ModelEvent::SshTmuxInstaller(_) => {}
@@ -6074,56 +6061,9 @@ impl TerminalView {
                     });
                 }
             }
-            ModelEvent::InitSubshell(event) => {
-                let shell_type = event.shell_type;
-                self.trigger_subshell_bootstrap(Some(shell_type), false, ctx);
-            }
-            ModelEvent::InitSsh(event) => {
-                let shell_type = event.shell_type;
-                let uname = event.uname.as_ref().unwrap_or(&String::default()).clone();
-                self.continue_warpify_ssh_session(&uname, shell_type, ctx);
-            }
-            ModelEvent::SourcedRcFileInSubshell(event) => {
-                let shell_type = event.shell_type;
-                let uname = event.uname.clone();
-                let disable_tmux = event.tmux == Some(false);
-
-                ctx.spawn(
-                    async {
-                        warpui::r#async::Timer::after(*TRIGGER_RC_FILE_SUBSHELL_BOOTSTRAP_DELAY)
-                            .await
-                    },
-                    move |me, _, ctx| {
-                        let uname = uname.to_owned().unwrap_or_default();
-                        let (is_ssh, is_tmux_control_mode_active, has_ai_metadata) = {
-                            let lock = me.model.lock();
-                            let has_ai_metadata = lock
-                                .block_list()
-                                .active_block()
-                                .agent_interaction_metadata()
-                                .is_some();
-                            (
-                                lock.is_ssh_block(),
-                                lock.tmux_control_mode_active(),
-                                has_ai_metadata,
-                            )
-                        };
-                        // Never warpify for agent-requested commands.
-                        if has_ai_metadata {
-                            return;
-                        }
-                        // To simplify the implementation, we do not support warpifying while SSH-warpified.
-                        if is_tmux_control_mode_active {
-                            return;
-                        }
-                        if is_ssh && !disable_tmux {
-                            me.continue_warpify_ssh_session(&uname, shell_type, ctx);
-                        } else {
-                            me.trigger_subshell_bootstrap(Some(shell_type), true, ctx);
-                        }
-                    },
-                );
-            }
+            ModelEvent::InitSubshell(_) => {}
+            ModelEvent::InitSsh(_) => {}
+            ModelEvent::SourcedRcFileInSubshell(_) => {}
             ModelEvent::PromptUpdated => {
                 self.input.update(ctx, |input, ctx| {
                     input.notify_and_notify_children(ctx);
@@ -14024,20 +13964,6 @@ impl TerminalView {
             .and_then(|info| info.ssh_connection_info.clone())
     }
 
-    /// SSH warpification removed: ssh sessions run as plain remote shells.
-    fn warpify_ssh_session(&mut self, ctx: &mut ViewContext<Self>) {
-        let _ = ctx;
-    }
-
-    fn continue_warpify_ssh_session(
-        &mut self,
-        uname: &str,
-        shell_type: ShellType,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let _ = (uname, shell_type, ctx);
-    }
-
 
     /// Parses the shell launch data and sets the necessary fields so a shell
     /// indicator is rendered in the tab bar and pane header. Does nothing on
@@ -14299,18 +14225,12 @@ impl TypedActionView for TerminalView {
             | TypedCharacters(_)
             | UserInputSequence(_)
             | ControlSequence(_)
-            | TriggerSubshellBootstrap
-            | ShowSubshellBanner(_)
-            | DismissWarpifyBanner(_)
             | OpenBlockListContextMenu
             | AliasExpansionBanner(_)
             | VimModeBanner(_)
             | InsertMostRecentCommandCorrection
             | ImportSettings
             | DragAndDropFiles(_)
-            | WarpifySSHSession
-            | ShowWarpifySshBanner(_, _)
-            | NotifySshErrorBlock(_)
             | ToggleBlockFilterOnSelectedOrLastBlock(_)
             | SetMarkedText { .. }
             | ResumeConversation
@@ -14631,10 +14551,6 @@ impl TypedActionView for TerminalView {
                 self.open_workflow_modal_with_existing(*workflow_id, ctx)
             }
             OpenBlockListContextMenu => self.open_block_list_context_menu_via_keybinding(ctx),
-            TriggerSubshellBootstrap => self.trigger_subshell_bootstrap(None, false, ctx),
-            ShowSubshellBanner(_) => {}
-            ShowWarpifySshBanner(..) => {}
-            DismissWarpifyBanner(_) => {}
             InsertMostRecentCommandCorrection => self.insert_most_recent_command_correction(ctx),
             AliasExpansionBanner(action) => self.alias_expansion_banner_action(*action, ctx),
             OpenInWarpBanner(action) => self.handle_open_in_warp_banner_action(*action, ctx),
@@ -14658,8 +14574,6 @@ impl TypedActionView for TerminalView {
             DragAndDropFiles(paths) => {
                 self.drag_and_drop_files(paths, ctx);
             }
-            WarpifySSHSession => {}
-            NotifySshErrorBlock(_) => {}
             SetInputModeAgent => {
                 // Guard: when a CLI agent session is active, block mode
                 // toggling and LRC subagent invocation. Context predicates
