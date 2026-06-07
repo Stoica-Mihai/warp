@@ -166,7 +166,7 @@ After the 3-gate matrix passes and you commit the refactor:
 
 Conventional commits (`refactor:`/`feat:`/`fix:`/`docs:`/`chore:`). No `Co-Authored-By` trailers. No `--no-verify`. Commit only at green checkpoints. Don't claim done on a stub — flag seams honestly.
 
-**No scheduling / loops without explicit user approval first.** Never call `ScheduleWakeup`, `/loop`, `/schedule`, or any cron/recurring/self-pacing mechanism unless the user has approved it in this session. Wait for background work via the harness completion-notification instead — do not schedule a self-wakeup to poll. If a recurring task seems useful, ask first.
+**No scheduling / loops / workflows without explicit user approval first.** Never call `ScheduleWakeup`, `/loop`, `/schedule`, the `Workflow` tool (multi-agent orchestration), or any cron/recurring/self-pacing mechanism unless the user has approved it in this session. Wait for background work via the harness completion-notification instead — do not schedule a self-wakeup to poll. `Workflow` can spawn dozens of agents and burn large token budgets — ask first and wait for a yes. If a recurring or multi-agent task seems useful, ask first.
 
 ## 6. Multi-file rewrites — use `recast` MCP tools
 
