@@ -13556,7 +13556,6 @@ dependencies = [
  "thiserror 2.0.17",
  "uuid",
  "warp_core",
- "warp_graphql",
  "warp_util",
  "warpui_core",
 ]

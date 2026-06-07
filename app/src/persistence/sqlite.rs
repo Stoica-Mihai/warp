@@ -75,7 +75,7 @@ use crate::cloud_object::model::generic_string_model::{CloudStringObject, Generi
 use crate::cloud_object::{
     CloudObject, CloudObjectMetadata, CloudObjectPermissions, CloudObjectStatuses,
     CloudObjectSyncStatus, JsonObjectType, NumInFlightRequests, ObjectIdType, ObjectType, Owner,
-    Revision, RevisionAndLastEditor, ServerCreationInfo, GENERIC_STRING_OBJECT_PREFIX,
+    Revision, RevisionAndLastEditor, GENERIC_STRING_OBJECT_PREFIX,
     JSON_OBJECT_PREFIX,
 };
 use crate::code::editor_management::CodeSource;
@@ -584,11 +584,6 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
         ModelEvent::DeleteObjects { ids } => {
             delete_objects(connection, ids).context("error deleting objects")
         }
-        ModelEvent::UpdateObjectAfterServerCreation {
-            client_id,
-            server_creation_info,
-        } => update_object_after_server_creation(connection, client_id, server_creation_info)
-            .context("error executing object creation succeeded callback"),
         ModelEvent::UpsertCodebaseIndexMetadata { index_metadata } => {
             save_codebase_index_metadata(connection, *index_metadata)
                 .context("error upserting codebase index metadata")
@@ -1789,40 +1784,6 @@ fn increment_retry_count(
         diesel::update(object_metadata.filter(server_id.eq(Some(server_id_string))))
             .set(retry_count.eq(retry_count + 1))
             .execute(conn)?;
-        Ok(())
-    })
-}
-
-fn update_object_after_server_creation(
-    conn: &mut SqliteConnection,
-    client_id_string: String,
-    server_creation_info: ServerCreationInfo,
-) -> Result<(), Error> {
-    use schema::commands::dsl::*;
-    use schema::object_metadata::dsl::*;
-
-    conn.transaction::<(), Error, _>(|conn| {
-        diesel::update(object_metadata.filter(client_id.eq(Some(client_id_string.clone()))))
-            .set((
-                server_id.eq(Some(
-                    server_creation_info
-                        .server_id_and_type
-                        .sqlite_type_and_uid_hash(),
-                )),
-                creator_uid.eq(server_creation_info.creator_uid),
-            ))
-            .execute(conn)?;
-
-        diesel::update(commands.filter(cloud_workflow_id.eq(Some(client_id_string))))
-            .set(
-                cloud_workflow_id.eq(Some(
-                    server_creation_info
-                        .server_id_and_type
-                        .sqlite_type_and_uid_hash(),
-                )),
-            )
-            .execute(conn)?;
-
         Ok(())
     })
 }

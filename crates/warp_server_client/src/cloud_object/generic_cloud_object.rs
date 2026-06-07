@@ -1,10 +1,11 @@
+use std::marker::PhantomData;
 use std::sync::Arc;
 
 use crate::ids::{ClientId, SyncId};
 
 use super::{
     CloudObjectMetadata, CloudObjectPermissions, CloudObjectStatuses, CloudObjectSyncStatus,
-    ConflictStatus, GenericServerObject, NumInFlightRequests, ObjectType, Owner,
+    ConflictStatus, NumInFlightRequests, ObjectType, Owner,
 };
 
 /// A portable payload for persisting or otherwise upserting a cloud object without app-local event types.
@@ -38,7 +39,9 @@ pub struct GenericCloudObject<K, M> {
     pub permissions: CloudObjectPermissions,
     /// Tracks whether this object has a conflict with the server version.
     /// This is runtime state (not persisted) - conflicts are always NoConflicts when loaded from SQLite.
-    pub conflict_status: ConflictStatus<GenericServerObject<K, M>>,
+    pub conflict_status: ConflictStatus,
+
+    _marker: PhantomData<fn() -> K>,
 
     // Intentionally not public to prevent users of this class from holding
     // onto references to the model outside of this struct.
@@ -90,6 +93,7 @@ impl<K, M> GenericCloudObject<K, M> {
             metadata,
             permissions,
             conflict_status: ConflictStatus::NoConflicts,
+            _marker: PhantomData,
         }
     }
 
@@ -130,38 +134,7 @@ impl<K, M> GenericCloudObject<K, M> {
                 permissions_last_updated_ts: None,
             },
             conflict_status: ConflictStatus::NoConflicts,
-        }
-    }
-
-    /// Creates a new [`GenericCloudObject`] from a [`GenericServerObject`].
-    pub fn new_from_server(server_object: GenericServerObject<K, M>) -> Self {
-        Self {
-            id: server_object.id,
-            model: server_object.model.into(),
-            metadata: CloudObjectMetadata::new_from_server(server_object.metadata),
-            permissions: CloudObjectPermissions::new_from_server(server_object.permissions),
-            conflict_status: ConflictStatus::NoConflicts,
-        }
-    }
-
-    /// Marks this object as being in conflict with the provided object.
-    pub fn set_conflicting_object(&mut self, object: Arc<GenericServerObject<K, M>>) {
-        self.conflict_status = ConflictStatus::ConflictingChanges { object };
-    }
-
-    pub fn update_from_server_object(&mut self, server_object: GenericServerObject<K, M>) {
-        // Check if we should create a conflict or apply the update.
-        if self.metadata.has_pending_content_changes() || self.conflict_status.has_conflicts() {
-            // There are pending changes, so this creates a conflict.
-            self.conflict_status = ConflictStatus::ConflictingChanges {
-                object: Arc::new(server_object),
-            };
-        } else {
-            // No pending changes, apply the server update.
-            self.metadata
-                .update_revision_from_server(&server_object.metadata);
-            self.model = server_object.model.into();
-            self.conflict_status = ConflictStatus::NoConflicts;
+            _marker: PhantomData,
         }
     }
 
@@ -190,6 +163,7 @@ impl<K, M> GenericCloudObject<K, M> {
             permissions,
             model,
             conflict_status: _,
+            _marker: _,
         } = self;
         let model = Arc::try_unwrap(model).unwrap_or_else(|model| (*model).clone());
         CloudObjectUpsertParams {

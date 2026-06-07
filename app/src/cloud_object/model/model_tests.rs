@@ -1,5 +1,4 @@
 
-use chrono::Utc;
 use lazy_static::lazy_static;
 
 use warpui::{App, ModelHandle};
@@ -11,8 +10,7 @@ use crate::auth::{AuthStateProvider, UserUid};
 use crate::cloud_object::model::actions::ObjectActions;
 use crate::cloud_object::model::view::CloudViewModel;
 use crate::cloud_object::{
-    CloudObjectMetadata, CloudObjectPermissions, CloudObjectStatuses, CloudObjectSyncStatus,
-    NumInFlightRequests, Owner, ServerMetadata, ServerPermissions,
+    CloudObjectMetadata, CloudObjectPermissions, CloudObjectStatuses, CloudObjectSyncStatus, Owner,
 };
 use crate::drive::folders::CloudFolderModel;
 use crate::drive::DriveIndexVariant;
@@ -23,7 +21,6 @@ use crate::server::ids::ServerId;
 #[cfg(test)]
 use crate::server::server_api::ServerApiProvider;
 use crate::settings::init_and_register_user_preferences;
-use crate::workflows::CloudWorkflowModel;
 use crate::workspaces::team_tester::TeamTesterStatus;
 use crate::workspaces::user_profiles::UserProfiles;
 use crate::workspaces::user_workspaces::UserWorkspaces;
@@ -76,28 +73,6 @@ fn initialize_app(
 }
 
 
-fn mock_server_metadata() -> ServerMetadata {
-    ServerMetadata {
-        uid: ServerId::default(),
-        revision: Revision::now(),
-        metadata_last_updated_ts: Utc::now().into(),
-        trashed_ts: None,
-        folder_id: None,
-        is_welcome_object: false,
-        creator_uid: None,
-        last_editor_uid: None,
-        current_editor_uid: None,
-    }
-}
-
-fn mock_server_permissions(owner: Owner) -> ServerPermissions {
-    ServerPermissions {
-        space: owner,
-        guests: Vec::new(),
-        permissions_last_updated_ts: Utc::now().into(),
-        anyone_link_sharing: None,
-    }
-}
 
 fn mock_permissions() -> CloudObjectPermissions {
     CloudObjectPermissions {
@@ -108,76 +83,8 @@ fn mock_permissions() -> CloudObjectPermissions {
     }
 }
 
-fn mock_server_workflows(
-    start_id: i64,
-    owner: Owner,
-    number_of_workflows: i64,
-) -> Vec<ServerWorkflow> {
-    (0..number_of_workflows)
-        .map(|idx| {
-            ServerWorkflow::new(
-                SyncId::ServerId((start_id + idx).into()),
-                CloudWorkflowModel::new(Workflow::new(
-                    format!("w{}", start_id + idx),
-                    format!("c{}", start_id + idx),
-                )),
-                mock_server_metadata(),
-                mock_server_permissions(owner),
-            )
-        })
-        .collect()
-}
 
 
-fn mock_server_notebooks() -> Vec<ServerNotebook> {
-    let owner = Owner::mock_current_user();
-    vec![
-        ServerNotebook::new(
-            SyncId::ServerId(1.into()),
-            CloudNotebookModel {
-                title: "t1".to_string(),
-                data: "d1".to_string(),
-                ai_document_id: None,
-                conversation_id: None,
-            },
-            mock_server_metadata(),
-            mock_server_permissions(owner),
-        ),
-        ServerNotebook::new(
-            SyncId::ServerId(2.into()),
-            CloudNotebookModel {
-                title: "t2".to_string(),
-                data: "d2".to_string(),
-                ai_document_id: None,
-                conversation_id: None,
-            },
-            mock_server_metadata(),
-            mock_server_permissions(owner),
-        ),
-        ServerNotebook::new(
-            SyncId::ServerId(3.into()),
-            CloudNotebookModel {
-                title: "t3".to_string(),
-                data: "d3".to_string(),
-                ai_document_id: None,
-                conversation_id: None,
-            },
-            mock_server_metadata(),
-            mock_server_permissions(owner),
-        ),
-        ServerNotebook::new(
-            SyncId::ServerId(4.into()),
-            CloudNotebookModel {
-                title: "t4".to_string(),
-                data: "d4".to_string(),
-                ai_document_id: None,
-                conversation_id: None,
-            },
-            mock_server_metadata(),
-            mock_server_permissions(owner),
-        ),
-    ]
-}
 
 fn mock_cloud_folder(id: SyncId, name: String, folder_id: Option<SyncId>) -> CloudFolder {
     CloudFolder::new(
@@ -251,76 +158,6 @@ fn folder_from_cloud_model(model: &CloudModel, id: SyncId) -> &CloudFolder {
 }
 
 
-#[test]
-fn test_update_with_deleted_objects() {
-    let workflows = mock_server_workflows(
-        5,
-        Owner::Team {
-            team_uid: ServerId::from(1),
-        },
-        3,
-    );
-    let notebooks = mock_server_notebooks();
-
-    App::test((), |mut app| async move {
-        let cloud_model = create_cloud_model(
-            &mut app,
-            workflows
-                .iter()
-                .map(|workflow| CloudWorkflow::new_from_server(workflow.clone()))
-                .map(|o| Box::new(o) as Box<dyn CloudObject>)
-                .collect(),
-        );
-        cloud_model.update(&mut app, |model, ctx| {
-            for notebook in notebooks.clone() {
-                model.upsert_from_server_notebook(notebook, ctx);
-            }
-        });
-
-        // Validate there's some notebooks and workflows in memory
-        cloud_model.read(&app, |cloud_model, _| {
-            assert_eq!(
-                3,
-                cloud_model.get_all_active_and_inactive_workflows().count()
-            );
-            assert_eq!(
-                4,
-                cloud_model.get_all_active_and_inactive_notebooks().count()
-            );
-            assert_eq!(7, cloud_model.as_cloud_objects().count());
-        });
-
-        // Apply the "update from server"
-        cloud_model.update(&mut app, |cloud_model, ctx| {
-            // Set 3rd notebook to have pending changes. This should keep it in memory,
-            // even though it's not returned from the server.
-            let notebook_id: SyncId = SyncId::ServerId(3.into());
-            if let Some(object) = cloud_model.get_notebook_mut(&notebook_id) {
-                object.set_pending_content_changes_status(CloudObjectSyncStatus::InFlight(
-                    NumInFlightRequests(1),
-                ));
-            }
-            cloud_model.update_objects(notebooks.into_iter().take(2), ctx);
-            cloud_model.update_objects(workflows.into_iter().take(2), ctx);
-        });
-
-        cloud_model.read(&app, |cloud_model, _| {
-            // expected: 3rd workflow was removed on the server, and so we don't want it in
-            // memory
-            assert_eq!(
-                2,
-                cloud_model.get_all_active_and_inactive_workflows().count()
-            );
-            // expected: 3rd notebook has local changes, so we want to keep it, but 4th
-            // doesn't and also wasn't returned from the server, so we want to remove it.
-            assert_eq!(
-                3,
-                cloud_model.get_all_active_and_inactive_notebooks().count()
-            );
-            assert_eq!(5, cloud_model.as_cloud_objects().count());
-        });
-    })
-}
 
 
 
@@ -531,7 +368,7 @@ fn test_shared_personal_object() {
                 ai_document_id: None,
                 conversation_id: None,
             },
-            CloudObjectMetadata::new_from_server(mock_server_metadata()),
+            CloudObjectMetadata::mock(),
             CloudObjectPermissions {
                 owner: Owner::User {
                     user_uid: other_user,
@@ -569,7 +406,7 @@ fn test_unshared_personal_object() {
                 ai_document_id: None,
                 conversation_id: None,
             },
-            CloudObjectMetadata::new_from_server(mock_server_metadata()),
+            CloudObjectMetadata::mock(),
             CloudObjectPermissions {
                 owner: Owner::User {
                     user_uid: UserUid::new(TEST_USER_UID),
@@ -610,7 +447,7 @@ fn test_shared_team_object() {
                 ai_document_id: None,
                 conversation_id: None,
             },
-            CloudObjectMetadata::new_from_server(mock_server_metadata()),
+            CloudObjectMetadata::mock(),
             CloudObjectPermissions {
                 owner: Owner::Team { team_uid },
                 guests: Vec::new(),
@@ -649,7 +486,7 @@ fn test_shared_object_in_unshared_folder() {
                 ai_document_id: None,
                 conversation_id: None,
             },
-            CloudObjectMetadata::new_from_server(mock_server_metadata()),
+            CloudObjectMetadata::mock(),
             CloudObjectPermissions {
                 owner: Owner::User {
                     user_uid: other_user,

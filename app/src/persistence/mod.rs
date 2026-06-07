@@ -43,7 +43,7 @@ use crate::auth::auth_manager::PersistedCurrentUserInformation;
 use crate::cloud_object::model::actions::ObjectAction;
 use crate::cloud_object::model::generic_string_model::CloudStringObject;
 use crate::cloud_object::{
-    CloudObject, CloudObjectMetadata, ObjectIdType, RevisionAndLastEditor, ServerCreationInfo,
+    CloudObject, CloudObjectMetadata, ObjectIdType, RevisionAndLastEditor,
 };
 use crate::drive::folders::CloudFolder;
 use crate::notebooks::CloudNotebook;
@@ -240,10 +240,6 @@ pub enum ModelEvent {
     },
     UpsertFolder {
         folder: CloudFolder,
-    },
-    UpdateObjectAfterServerCreation {
-        client_id: String,
-        server_creation_info: ServerCreationInfo,
     },
     DeleteObjects {
         ids: Vec<(SyncId, ObjectIdType)>,
