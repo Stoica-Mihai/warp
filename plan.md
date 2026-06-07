@@ -24,7 +24,7 @@ Legend: ✅ done · 🔄 in progress · ⏸️ back-burner · ⬜ todo · 🔍 n
 |---|---|---|---|
 | Welcome + get-started landing **panes** (`welcome_palette`, `welcome_view`, `get_started_view/pane`) | ✅ done · ✅ verified | `59562bd7` | New tab defaults to terminal; `LeafContents::{Welcome,GetStarted}` + palette removed; `welcome_panes` sqlite table dropped. |
 | Onboarding experience (app-side flow) | ✅ done · ✅ verified | `3e87396f` | App launches straight to terminal — the "Welcome to Warp/Get started/Log in" screen was the onboarding intro slide, now gone. `crates/onboarding` retained (login_slide); crate-delete = login pass. 87 warnings + 3 no-op stubs to clean. |
-| Orphaned get-started sub-views (`coding_entrypoints/`: `clone_repo_view`, `create_project_view`, `project_buttons`) | ⬜ cleanup todo | — | Dead since `get_started_view` deleted (dead_code warnings, build still green). `project_buttons::init` still called in `lib.rs:1605`. Remove module + init call in a follow-up. |
+| Orphaned get-started sub-views (`coding_entrypoints/`: `clone_repo_view`, `create_project_view`, `project_buttons`) | ✅ done | `3e87396f` | Already deleted as part of the onboarding-flow strip (pickaxe confirms `project_buttons`/`coding_entrypoints` symbols vanish at `3e87396f`/`a2264b69`). Zero tracked refs remain (session 61 verify). The "still called in lib.rs:1605" note was stale — that line is now a window-close handler. |
 | Onboarding app flow | ✅ done (`3e87396f`) | — | Login KEPT. `crates/onboarding` retained (login_slide seam) → delete in login pass. |
 | Settings-import regression (over-stubbed in onboarding pass) | ✅ done | `e9a3dc2e` | `ImportSettings` action was no-op'd; restored standalone `add_settings_import_block` (no onboarding chaining/telemetry). Triggered by `HAS_SETTINGS_TO_IMPORT_FLAG` (config detection, `local_fs`), NOT onboarding. Green default + `--features local_fs`. |
 | Onboarding dead-code cleanup (action wiring + helpers) | ✅ done | `d444c2b6` | Removed `TerminalAction::{OnboardingFlow,SelectAgenticSuggestion}` + `OnboardingVersion`/`AgentOnboardingVersion` enums, 11 onboarding keybindings, 5 dead helper methods, `onboarding_theme_picker_themes`. Warnings 86→79. `OnboardingIntention` kept (login/oz_launch/workspace still use it). |
@@ -280,7 +280,7 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 - **warpify tail** (~29 dead-code warnings) — `WarpifySettings`/`enable_ssh_wrapper` (SSH ControlMaster/tmux transport, entangled with generic `use_ssh_tmux_wrapper`) + the ANSI OSC/DCS warpify parser + model-events. **Needs an ssh-connection test** → `ai-strip-session-60-warpify.md`.
 - **cloud-handoff increment 2/3** — manual handoff (`OpenLocalToCloudHandoffPane` slash cmd) + handoff-snapshot RPC → `ai-strip-session-60-cloud-handoff.md`.
 - **Frontier B — `ai/agent/` AIConversation keystone** (below; ~14–17K LoC, dedicated session).
-- `coding_entrypoints/` orphan (quick win). De-brand rename (`warp*` → brand) LAST, after cloud surface gone.
+- De-brand rename (`warp*` → brand) LAST, after cloud surface gone. (`coding_entrypoints/` orphan — already gone at `3e87396f`; row above corrected session 61.)
 
 ---
 
