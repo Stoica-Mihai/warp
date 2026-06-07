@@ -8062,15 +8062,6 @@ impl Input {
         }
     }
 
-    /// Re-submits a queued prompt through the correct handler (slash, skill, or regular AI query),
-    /// without touching the input buffer or triggering NLD / autosuggestion side-effects.
-    ///
-    /// Cancels the in-flight stream first so slash/skill paths don't trip the in-flight assertion.
-    /// `is_for_same_conversation: true` keeps the conversation status `InProgress` so the warping
-    /// indicator stays visible.
-    pub(crate) fn submit_queued_prompt(&mut self, _prompt: String, _ctx: &mut ViewContext<Self>) {
-    }
-
     /// Checks whether the current input should be queued instead of executed.
     /// Returns true (and queues the prompt) when the queue-next-prompt toggle is
     /// on and the active conversation is still in progress.
