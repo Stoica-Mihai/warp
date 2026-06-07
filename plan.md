@@ -966,6 +966,25 @@ Teams = cloud-backend org overlay (server-populated via authenticated `workspace
   - **`Team` struct + `Workspace.teams: Vec<Team>` + DiscoverableTeam/TeamMember/MembershipRole + team_tester.rs + joinable_teams field + FetchDiscoverableTeams event:** the keystone. **TRAP: `warp_graphql` Team types are cynic schema-bound + the `workspaces_metadata` query RESPONSE carries the teams array** → `Workspace.teams` + app `Team` are load-bearing for gql DESERIALIZATION (even when always empty). Removing them = reshaping gql_convert (workspaces/gql_convert.rs:35/42/91-112) + persistence (sqlite.rs:2937 MembershipRole) + ~50 refs. Verify graphql crate before deleting app types.
   - **KEEP (verified, misnamed):** `TeamUpdateManager` (= workspace-metadata POLLING) + `TeamClient` trait + `workspaces_metadata()` (= the core workspace fetcher) + `WorkspaceMember.role` (generic workspace membership) + `TeamsChanged` event + PrivacySettings coupling. Consider renaming TeamUpdateManager→WorkspacesMetadataPollingManager, TeamClient→WorkspacesMetadataClient for clarity (optional).
 
+## GraphQL / cloud-transport removal (session 62) — TERMINAL CUT, decided: FULLY LOCAL
+
+**User decision (session 62):** target end-state = no cloud at all → remove `warp_graphql` + `warp_graphql_schema` + `warp_server_client` entirely. graphql is the wire protocol to Warp's hosted backend (cynic-typed client, 4368-line `api/schema.graphql`, 32 queries/64 mutations/2 subs). It's the LAST domino — every cloud feature's egress.
+
+**Blocker map (the live egress that must go first):** `ServerApiProvider` hands out 4 live client traits, ~16 `send_graphql_request` sites. NO free dead trait (presigned_upload = now just generic `HttpStatusError`, KEEP for retry_strategies; harness_support = empty stub). Each trait backs LIVE features:
+- **AIClient** (5 live methods) → `get_request_limit_info` (request_usage_model AI-usage UI), `generate_metadata_for_command` (drive/workflows/ai_assist + workflow_view AI workflow-gen + WorkflowModal), `generate_code_review_content` (code_review git_dialog commit.rs/pr.rs — AI commit msg/PR desc), `list_connected_self_hosted_workers` (connected_self_hosted_workers), `cancel_ambient_agent_task`. ~7 consumer sites + ~8 test inits (AIRequestUsageModel::new_for_test).
+- **ManagedSecretsClient** (8 methods) → ManagedSecretManager (lib.rs:1161) → MCP managed secrets + aws_credentials.
+- **AuthClient** (5 methods) → remote_server_controller.rs:329 + lib.rs (API-key auth = the kept login path).
+- **TeamClient** (workspaces_metadata) → TeamUpdateManager poll → UserWorkspaces (authed workspace list + experiments).
+
+**ORDERED removal program (each its own green increment; consumers before trait before graphql ops; least→most foundational):**
+1. **AIClient** (safest, AI already gutted) — remove consumers feature-by-feature then trait+impl+get_ai_client+the gql ops: (1a) AIRequestUsageModel + request-limit UI + ~8 test inits; (1b) code_review AI (generate_code_review_content) in commit.rs/pr.rs; (1c) workflow AI metadata (generate_metadata_for_command) ai_assist/workflow_view/WorkflowModal; (1d) connected_self_hosted_workers + cancel_ambient_agent_task; (1e) delete AIClient trait/impl/get_ai_client + GetRequestLimitInfo/GenerateCodeReviewContent/etc. gql ops.
+2. **ManagedSecretsClient** — removes cloud-backed MCP managed secrets (ManagedSecretManager) + aws_credentials path. Verify MCP still works with local-only secrets.
+3. **TeamClient::workspaces_metadata** + TeamUpdateManager poll — kills the authed workspace fetch (UserWorkspaces becomes purely local/empty). Core model — careful.
+4. **AuthClient** + API-key auth path (auth_state/auth_manager) + remote_server_controller auth — kills login entirely.
+5. **Delete crates** `warp_graphql` + `warp_graphql_schema` + `warp_server_client` + server_api.rs transport. The schema-bound `Owner::Team`/cynic `SpaceType`/`OwnerType`/`MembershipRole` + the warp_server_client `Owner`/`Subject`/`SecretOwner` finally fall here (no more schema to honor).
+
+**Traps:** auth + remote_server (SSH/remote sessions) coupling — removing AuthClient may break remote_server_controller (check it still functions without server auth, or remove remote sessions too). workspaces_metadata feeds experiment state + feature_model_choices — verify no live consumer hard-depends. Cross-crate gates required at each step (`-p warp_server_client`, `-p managed_secrets`, `-p warp_cli`). This is multi-session; checkpoint green each increment.
+
 ## server/ scope (session 58) — backend spine, NO clean incremental cut yet
 
 32 files / 6.6k LoC / 181 fan-in (plan's old "55/40k/454" is stale — bulk stripped). Core = `server_api.rs` (53.7K: ServerApi HTTP client + send_graphql_request transport + ServerApiProvider singleton exposing 7 client traits). **Every client trait is held by a still-live model**, so none is a clean cut:
