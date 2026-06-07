@@ -24,7 +24,6 @@ use crate::server::ids::ServerId;
 use crate::server::server_api::ServerApiProvider;
 use crate::settings::init_and_register_user_preferences;
 use crate::workflows::CloudWorkflowModel;
-use crate::workspaces::team::Team;
 use crate::workspaces::team_tester::TeamTesterStatus;
 use crate::workspaces::user_profiles::UserProfiles;
 use crate::workspaces::user_workspaces::UserWorkspaces;
@@ -41,20 +40,9 @@ fn create_cloud_model(
 }
 
 lazy_static! {
-    /// Mock the user being on _a_ team in tests, so that the team drive is available.
-    /// Otherwise, any team objects will appear shared.
-    static ref TEST_TEAM: Team = Team::from_local_cache(
-        ServerId::from(1),
-        "Test Team".to_string(),
-        None,
-        None,
-        None,
-    );
-
     static ref TEST_WORKSPACE: Workspace = Workspace::from_local_cache(
         WorkspaceUid::from(ServerId::from(1)),
         "Test Workspace".to_string(),
-        Some(vec![TEST_TEAM.clone()]),
     );
 }
 
@@ -639,45 +627,6 @@ fn test_shared_team_object() {
                 .expect("Notebook is in CloudModel")
                 .space(ctx);
             assert_eq!(space, Space::Shared);
-        });
-    });
-}
-
-#[test]
-fn test_unshared_team_object() {
-    let _guard = FeatureFlag::SharedWithMe.override_enabled(true);
-    App::test((), |mut app| async move {
-        app.update(init_and_register_user_preferences);
-        initialize_app(&mut app, Vec::new());
-
-        // Use the current user's team.
-        let team_uid = TEST_TEAM.uid;
-        let shared_notebook_id = SyncId::ServerId(123.into());
-        let shared_notebook = CloudNotebook::new(
-            shared_notebook_id,
-            CloudNotebookModel {
-                title: "Shared Notebook".to_string(),
-                data: "Hello".to_string(),
-                ai_document_id: None,
-                conversation_id: None,
-            },
-            CloudObjectMetadata::new_from_server(mock_server_metadata()),
-            CloudObjectPermissions {
-                owner: Owner::Team { team_uid },
-                guests: Vec::new(),
-                permissions_last_updated_ts: None,
-                anyone_with_link: None,
-            },
-        );
-
-        CloudModel::handle(&app).update(&mut app, |cloud_model, ctx| {
-            cloud_model.add_object(shared_notebook_id, shared_notebook);
-
-            let space = cloud_model
-                .get_notebook(&shared_notebook_id)
-                .expect("Notebook is in CloudModel")
-                .space(ctx);
-            assert_eq!(space, Space::Team { team_uid });
         });
     });
 }

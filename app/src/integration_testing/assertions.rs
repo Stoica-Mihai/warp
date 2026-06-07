@@ -8,7 +8,6 @@ use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::ids::ClientId;
 use crate::util::bindings::keybinding_name_to_display_string;
 use crate::workflows::workflow::Workflow;
-use crate::workspaces::team::Team;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::workspaces::workspace::Workspace;
 
@@ -46,24 +45,10 @@ pub fn join_a_workspace() -> TestStep {
         .with_action(move |app, _, _| {
             UserWorkspaces::handle(app).update(app, |user_workspaces, ctx| {
                 let workspace_uid = "workspace_uid123456789".to_string().into();
-                let teams: Vec<Team> = vec![Team {
-                    uid: "team_uid12345678912345".try_into().expect("ID is valid"),
-                    name: "My Team".to_string(),
-                    invite_code: Default::default(),
-                    members: Default::default(),
-                    pending_email_invites: Default::default(),
-                    invite_link_domain_restrictions: Default::default(),
-                    billing_metadata: Default::default(),
-                    stripe_customer_id: None,
-                    organization_settings: Default::default(),
-                    is_eligible_for_discovery: false,
-                    has_billing_history: false,
-                }];
                 let workspaces: Vec<Workspace> = vec![Workspace {
                     uid: workspace_uid,
                     name: "My Workspace".to_string(),
                     stripe_customer_id: None,
-                    teams: teams.clone(),
                     billing_metadata: Default::default(),
                     bonus_grants_purchased_this_month: Default::default(),
                     billing_cycle_usage: None,
@@ -80,11 +65,6 @@ pub fn join_a_workspace() -> TestStep {
                 user_workspaces.update_workspaces(workspaces, ctx);
                 user_workspaces.set_current_workspace_uid(workspace_uid, ctx)
             });
-        })
-        .add_assertion(move |app, _| {
-            UserWorkspaces::handle(app).read(app, |user_workspaces, _| {
-                async_assert!(user_workspaces.has_teams(), "user is on a team")
-            })
         })
         .add_assertion(move |app, _| {
             UserWorkspaces::handle(app).read(app, |user_workspaces, _| {

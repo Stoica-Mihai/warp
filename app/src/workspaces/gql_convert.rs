@@ -32,14 +32,14 @@ use warp_graphql::workspace::{
     ComputerUseAutonomyValue as GqlComputerUseAutonomyValue, EmailInvite as GqlEmailInvite,
     HostEnablementSetting as GqlHostEnablementSetting,
     InviteLinkDomainRestriction as GqlInviteLinkDomainRestriction,
-    MembershipRole as GqlMembershipRole, TeamMember as GqlTeamMember,
+    MembershipRole as GqlMembershipRole,
     UgcCollectionEnablementSetting as GqlUgcCollectionEnablementSetting, Workspace as GqlWorkspace,
     WorkspaceMember as GqlWorkspaceMember, WorkspaceMemberUsageInfo as GqlWorkspaceMemberUsageInfo,
     WorkspaceSettings as GqlWorkspaceSettings,
     WriteToPtyAutonomyValue as GqlWriteToPtyAutonomyValue,
 };
 
-use super::team::{MembershipRole, TeamMember};
+use super::team::MembershipRole;
 use super::user_profiles::UserProfileWithUID;
 use super::user_workspaces::WorkspacesMetadataResponse;
 use super::workspace::{
@@ -77,16 +77,6 @@ use crate::workspaces::workspace::{
 use crate::report_error;
 
 pub const PLACEHOLDER_WORKSPACE_UID: &str = "NOT_A_REAL_WORKSPACE_UID";
-
-impl From<GqlTeamMember> for TeamMember {
-    fn from(gql_team_member: GqlTeamMember) -> TeamMember {
-        Self {
-            uid: UserUid::new(&gql_team_member.uid.into_inner()),
-            email: gql_team_member.email,
-            role: gql_team_member.role.into(),
-        }
-    }
-}
 
 impl From<GqlMembershipRole> for MembershipRole {
     fn from(role: GqlMembershipRole) -> Self {
@@ -892,8 +882,6 @@ impl From<GqlWorkspace> for Workspace {
                 .stripe_customer_id
                 .as_ref()
                 .map(|id| id.clone().into_inner()),
-            // Teams are not supported in Sublight; the gql teams array is ignored.
-            teams: Vec::new(),
             billing_metadata: gql_workspace.billing_metadata.clone().into(),
             bonus_grants_purchased_this_month: gql_workspace
                 .bonus_grants_info

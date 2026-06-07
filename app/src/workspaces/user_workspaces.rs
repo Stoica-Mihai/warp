@@ -6,11 +6,6 @@ use warp_core::settings::{ChangeEventReason, Setting};
 use warp_graphql::workspace::FeatureModelChoice;
 use warpui::{AppContext, Entity, ModelContext, SingletonEntity, Tracked};
 
-use super::team::Team;
-#[cfg(test)]
-use super::team::MembershipRole;
-#[cfg(test)]
-use super::workspace::WorkspaceMemberUsageInfo;
 use super::workspace::{
     AdminEnablementSetting, CustomerType, EnterpriseSecretRegex, UgcCollectionEnablementSetting,
     Workspace, WorkspaceUid,
@@ -25,10 +20,6 @@ use crate::server::ids::ServerId;
 use crate::settings::{
     AISettings, AISettingsChangedEvent, CodeSettings, CodeSettingsChangedEvent, PrivacySettings,
 };
-#[cfg(test)]
-use crate::workspaces::workspace::{
-    AIAutonomyPolicy, BillingMetadata, WorkspaceMember, WorkspaceSettings,
-};
 use crate::workspaces::workspace::{
     AiAutonomySettings, SandboxedAgentSettings, UsageBasedPricingSettings,
 };
@@ -40,8 +31,6 @@ pub enum UserWorkspacesEvent {
     /// Fired whenever the set of teams the user is on changes.
     TeamsChanged,
     CodebaseContextEnablementChanged,
-    /// Fired when a service agreement's sunsetted_to_build_ts field is updated.
-    SunsettedToBuildDataUpdated,
 }
 
 /// UserWorkspaces is a singleton model that holds workspace metadata (name, members, etc).
@@ -136,13 +125,6 @@ impl UserWorkspaces {
         )
     }
 
-    pub fn team_from_uid_across_all_workspaces(&self, team_uid: ServerId) -> Option<&Team> {
-        self.workspaces
-            .iter()
-            .flat_map(|w| w.teams.iter())
-            .find(|t| t.uid == team_uid)
-    }
-
     pub fn workspace_from_uid(&self, workspace_uid: WorkspaceUid) -> Option<&Workspace> {
         self.workspaces.iter().find(|w| w.uid == workspace_uid)
     }
@@ -152,14 +134,6 @@ impl UserWorkspaces {
         workspace_uid: WorkspaceUid,
     ) -> Option<&mut Workspace> {
         self.workspaces.iter_mut().find(|w| w.uid == workspace_uid)
-    }
-
-    /// Note that the team is populated with dummy data until
-    /// the initial fetch completes (only team name and ID are cached in sqlite locally).
-    /// Consider whether you need to wait for the results of the fetch before checking the
-    /// values of other fields.
-    pub fn current_team(&self) -> Option<&Team> {
-        self.current_workspace().and_then(|w| w.teams.first())
     }
 
     /// Note that the workspace is populated with dummy data until the initial fetch
@@ -196,10 +170,6 @@ impl UserWorkspaces {
     /// proxy whether active AI by checking whether any active AI feature is enabled.
     // Teams are not supported in Sublight; team AI policies always fall back to unrestricted.
     pub fn is_active_ai_allowed(&self) -> bool {
-        true
-    }
-
-    pub fn ai_allowed_for_current_team(&self) -> bool {
         true
     }
 
@@ -339,9 +309,7 @@ impl UserWorkspaces {
                 }
             }
             Owner::Team { team_uid } => {
-                if !FeatureFlag::SharedWithMe.is_enabled()
-                    || self.team_from_uid_across_all_workspaces(team_uid).is_some()
-                {
+                if !FeatureFlag::SharedWithMe.is_enabled() {
                     Space::Team { team_uid }
                 } else {
                     Space::Shared
@@ -350,63 +318,13 @@ impl UserWorkspaces {
         }
     }
 
-    pub fn has_teams(&self) -> bool {
-        if let Some(workspace) = self.current_workspace() {
-            !workspace.teams.is_empty()
-        } else {
-            false
-        }
-    }
-
     pub fn has_workspaces(&self) -> bool {
         !self.workspaces.is_empty()
     }
 
     pub fn update_workspaces(&mut self, workspaces: Vec<Workspace>, ctx: &mut ModelContext<Self>) {
-        // Check if sunsetted_to_build_ts changed for any workspace
-        let sunsetted_to_build_changed = self.has_sunsetted_to_build_data_changed(&workspaces);
-
         *self.workspaces = workspaces;
         self.notify_and_emit_teams_changed(ctx);
-
-        if sunsetted_to_build_changed {
-            ctx.emit(UserWorkspacesEvent::SunsettedToBuildDataUpdated);
-        }
-    }
-
-    /// Checks if any workspace's service agreement sunsetted_to_build_ts field has changed.
-    fn has_sunsetted_to_build_data_changed(&self, new_workspaces: &[Workspace]) -> bool {
-        for new_workspace in new_workspaces {
-            // Find the corresponding old workspace
-            let old_workspace = self.workspaces.iter().find(|w| w.uid == new_workspace.uid);
-
-            if let Some(old_workspace) = old_workspace {
-                // Check if any team's service agreement sunsetted_to_build_ts changed
-                for new_team in &new_workspace.teams {
-                    let old_team = old_workspace.teams.iter().find(|t| t.uid == new_team.uid);
-
-                    if let Some(old_team) = old_team {
-                        let old_sunsetted = old_team
-                            .billing_metadata
-                            .service_agreements
-                            .first()
-                            .and_then(|sa| sa.sunsetted_to_build_ts);
-
-                        let new_sunsetted = new_team
-                            .billing_metadata
-                            .service_agreements
-                            .first()
-                            .and_then(|sa| sa.sunsetted_to_build_ts);
-
-                        // Detect if it changed from None to Some or changed value
-                        if old_sunsetted != new_sunsetted {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-        false
     }
 
     fn notify_and_emit_teams_changed(&self, ctx: &mut ModelContext<Self>) {
@@ -550,134 +468,6 @@ impl UserWorkspaces {
         AdminEnablementSetting::default()
     }
 
-}
-
-#[cfg(test)]
-impl UserWorkspaces {
-    /// Creates a test workspace with a team and sets it as the current workspace.
-    /// Returns the workspace UID and admin UID for use in tests.
-    pub fn setup_test_workspace(&mut self, ctx: &mut ModelContext<Self>) {
-        let workspace_uid = WorkspaceUid::from(ServerId::from(1));
-        let owner_uid = UserUid::new("test_owner");
-
-        let workspace_settings = WorkspaceSettings::default();
-
-        let workspace = Workspace {
-            uid: workspace_uid,
-            name: "Test Workspace".to_string(),
-            stripe_customer_id: None,
-            teams: vec![Team {
-                uid: ServerId::from(2),
-                name: "Test Team".to_string(),
-                organization_settings: workspace_settings.clone(),
-                billing_metadata: BillingMetadata::default(),
-                members: vec![],
-                invite_code: None,
-                pending_email_invites: vec![],
-                invite_link_domain_restrictions: vec![],
-                stripe_customer_id: None,
-                is_eligible_for_discovery: false,
-                has_billing_history: false,
-            }],
-            members: vec![WorkspaceMember {
-                uid: owner_uid,
-                email: "test@example.com".to_string(),
-                role: MembershipRole::Owner,
-                usage_info: WorkspaceMemberUsageInfo {
-                    requests_used_since_last_refresh: 0,
-                    request_limit: 1000,
-                    is_unlimited: false,
-                    is_request_limit_prorated: false,
-                },
-            }],
-            billing_metadata: BillingMetadata::default(),
-            bonus_grants_purchased_this_month: Default::default(),
-            billing_cycle_usage: None,
-            has_billing_history: false,
-            settings: workspace_settings,
-            invite_code: None,
-            invite_link_domain_restrictions: vec![],
-            pending_email_invites: vec![],
-            is_eligible_for_discovery: false,
-            total_requests_used_since_last_refresh: 0,
-        };
-
-        self.update_workspaces(vec![workspace], ctx);
-        self.set_current_workspace_uid(workspace_uid, ctx);
-    }
-
-    /// Updates the current workspace by applying a mutation function.
-    pub fn update_current_workspace<F>(&mut self, f: F, ctx: &mut ModelContext<Self>)
-    where
-        F: FnOnce(&mut Workspace),
-    {
-        if let Some(workspace) = self.current_workspace() {
-            if workspace.teams.is_empty() {
-                panic!("No team found in current workspace. Did you call setup_test_workspace()?");
-            }
-
-            let mut new_workspace = workspace.clone();
-            f(&mut new_workspace);
-
-            self.update_workspaces(vec![new_workspace], ctx);
-        } else {
-            panic!("No workspace found. Did you call setup_test_workspace()?");
-        }
-    }
-
-    pub fn update_sandboxed_agent_settings<F>(&mut self, f: F, ctx: &mut ModelContext<Self>)
-    where
-        F: FnOnce(&mut Option<SandboxedAgentSettings>),
-    {
-        self.update_current_workspace(
-            |workspace| {
-                if let Some(team) = workspace.teams.first_mut() {
-                    f(&mut team.organization_settings.sandboxed_agent_settings);
-                } else {
-                    panic!(
-                        "No team found in current workspace. Did you call setup_test_workspace()?"
-                    );
-                }
-            },
-            ctx,
-        );
-    }
-
-    pub fn update_ai_autonomy_settings<F>(&mut self, f: F, ctx: &mut ModelContext<Self>)
-    where
-        F: FnOnce(&mut AiAutonomySettings),
-    {
-        self.update_current_workspace(
-            |workspace| {
-                if let Some(team) = workspace.teams.first_mut() {
-                    f(&mut team.organization_settings.ai_autonomy_settings);
-                } else {
-                    panic!(
-                        "No team found in current workspace. Did you call setup_test_workspace()?"
-                    );
-                }
-            },
-            ctx,
-        );
-    }
-
-    pub fn update_ai_autonomy_policy_flag(&mut self, enabled: bool, ctx: &mut ModelContext<Self>) {
-        self.update_current_workspace(
-            |workspace| {
-                if let Some(team) = workspace.teams.first_mut() {
-                    team.billing_metadata.tier.ai_autonomy_policy = Some(AIAutonomyPolicy {
-                        is_enabled: enabled,
-                        toggleable: true,
-                    });
-                } else {
-                    panic!(
-                        "No team found in current workspace. Did you call setup_test_workspace()?"
-                    );
-                }
-            },
-            ctx,
-        );
-    }
 }
 
 impl Entity for UserWorkspaces {

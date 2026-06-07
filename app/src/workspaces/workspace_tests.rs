@@ -8,7 +8,6 @@ fn make_workspace(policy: Option<UsageVisibilityPolicy>) -> Workspace {
     let mut workspace = Workspace::from_local_cache(
         ServerId::from_string_lossy(TEST_WORKSPACE_UID).into(),
         "Test Workspace".to_string(),
-        None,
     );
     workspace.billing_metadata.tier.usage_visibility_policy = policy;
     workspace

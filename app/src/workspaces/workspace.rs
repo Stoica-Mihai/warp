@@ -10,7 +10,7 @@ pub use warp_graphql::billing::{
     AiCreditsUsageSource,
 };
 
-use super::team::{MembershipRole, Team};
+use super::team::MembershipRole;
 use crate::ai::execution_profiles::{
     ActionPermission, ComputerUsePermission, WriteToPtyPermission,
 };
@@ -41,7 +41,6 @@ pub struct Workspace {
     pub uid: WorkspaceUid,
     pub name: String,
     pub stripe_customer_id: Option<String>,
-    pub teams: Vec<Team>,
     pub billing_metadata: BillingMetadata,
     pub bonus_grants_purchased_this_month: BonusGrantsPurchased,
     pub billing_cycle_usage: Option<BillingCycleUsageData>,
@@ -57,21 +56,12 @@ pub struct Workspace {
 }
 
 impl Workspace {
-    pub fn from_local_cache(uid: WorkspaceUid, name: String, teams: Option<Vec<Team>>) -> Self {
-        // Derive the workspace billing metadata from the first team's cached billing
-        // metadata, if available. This ensures the workspace-level billing info is
-        // consistent with team-level data loaded from the cache.
-        let billing_metadata = teams
-            .as_ref()
-            .and_then(|t| t.first())
-            .map(|team| team.billing_metadata.clone())
-            .unwrap_or_default();
+    pub fn from_local_cache(uid: WorkspaceUid, name: String) -> Self {
         Self {
             uid,
             name,
             stripe_customer_id: Default::default(),
-            teams: teams.unwrap_or_default(),
-            billing_metadata,
+            billing_metadata: Default::default(),
             bonus_grants_purchased_this_month: Default::default(),
             billing_cycle_usage: None,
             has_billing_history: false,
