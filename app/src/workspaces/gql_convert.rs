@@ -24,7 +24,7 @@ use warp_graphql::billing::{
 };
 use warp_graphql::object::CloudObjectWithDescendants;
 use warp_graphql::queries::get_workspaces_metadata_for_user::User as GqlUser;
-use warp_graphql::user::{DiscoverableTeamData as GqlDiscoverableTeamData, PublicUserProfile};
+use warp_graphql::user::PublicUserProfile;
 use warp_graphql::workspace::{
     AddonCreditsSettings as GqlAddonCreditsSettings,
     AdminEnablementSetting as GqlAdminEnablementSetting, AiAutonomyValue as GqlAiAutonomyValue,
@@ -39,7 +39,7 @@ use warp_graphql::workspace::{
     WriteToPtyAutonomyValue as GqlWriteToPtyAutonomyValue,
 };
 
-use super::team::{DiscoverableTeam, MembershipRole, Team, TeamMember};
+use super::team::{MembershipRole, Team, TeamMember};
 use super::user_profiles::UserProfileWithUID;
 use super::user_workspaces::WorkspacesMetadataResponse;
 use super::workspace::{
@@ -1007,17 +1007,8 @@ impl From<GqlUser> for WorkspacesMetadataResponse {
             .map(|gql_workspace| gql_workspace.into())
             .collect();
 
-        let joinable_teams = gql_user
-            .discoverable_teams
-            .clone()
-            .into_iter()
-            .map(|gql_joinable_team| gql_joinable_team.into())
-            .collect();
-
-        // TODO(skambashi) refactor to return back workspaces, and not teams
         WorkspacesMetadataResponse {
             workspaces,
-            joinable_teams,
             feature_model_choices,
         }
     }
@@ -1137,13 +1128,3 @@ impl TryFrom<CloudObjectWithDescendants> for ServerCloudObject {
     }
 }
 
-impl From<GqlDiscoverableTeamData> for DiscoverableTeam {
-    fn from(gql_discoverable_team: GqlDiscoverableTeamData) -> DiscoverableTeam {
-        Self {
-            team_uid: gql_discoverable_team.team_uid.into_inner(),
-            num_members: i64::from(gql_discoverable_team.num_members),
-            name: gql_discoverable_team.name,
-            team_accepting_invites: gql_discoverable_team.team_accepting_invites,
-        }
-    }
-}
