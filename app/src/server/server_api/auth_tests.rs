@@ -41,9 +41,8 @@ fn test_firebase_token_urls() -> Result<()> {
 #[cfg(feature = "skip_login")]
 #[test]
 fn access_token_skip_login_rejects_bearer_token() {
-    let (event_sender, _) = async_channel::unbounded();
     let server_api =
-        ServerApi::new_for_test_with_bearer_token(Some("daemon-token".to_string()), event_sender);
+        ServerApi::new_for_test_with_bearer_token(Some("daemon-token".to_string()));
 
     let error = futures::executor::block_on(server_api.access_token()).unwrap_err();
 

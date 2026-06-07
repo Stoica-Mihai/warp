@@ -151,35 +151,3 @@ impl AgentConfigSnapshot {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum AgentSource {
-    Linear,
-    AgentWebhook,
-    Slack,
-    Cli,
-    ScheduledAgent,
-    Interactive,
-    WebApp,
-    GitHubAction,
-    CloudMode,
-}
-
-impl AgentSource {
-    pub fn as_str(&self) -> &str {
-        match self {
-            AgentSource::Linear => "LINEAR",
-            AgentSource::AgentWebhook => "API",
-            AgentSource::Slack => "SLACK",
-            AgentSource::Cli => "CLI",
-            AgentSource::ScheduledAgent => "SCHEDULED_AGENT",
-            // The public API's run source for local interactive tasks is named
-            // `LOCAL`.
-            AgentSource::Interactive => "LOCAL",
-            AgentSource::WebApp => "WEB_APP",
-            AgentSource::GitHubAction => "GITHUB_ACTION",
-            AgentSource::CloudMode => "CLOUD_MODE",
-        }
-    }
-
-}
-

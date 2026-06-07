@@ -9,7 +9,7 @@ pub mod github_auth_notifier;
 pub mod scheduled;
 pub mod task;
 
-pub use task::{AgentConfigSnapshot, AgentSource};
+pub use task::AgentConfigSnapshot;
 
 #[derive(Debug, thiserror::Error)]
 #[error("Invalid task ID: {0}")]

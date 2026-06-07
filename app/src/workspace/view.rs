@@ -195,7 +195,7 @@ use crate::server::cloud_objects::update_manager::{
 use crate::server::ids::{ObjectUid, ServerId, SyncId};
 use crate::server::network_log_pane_manager::NetworkLogPaneManager;
 use crate::server::server_api::auth::AuthClient;
-use crate::server::server_api::{ServerApi, ServerApiEvent, ServerApiProvider};
+use crate::server::server_api::{ServerApi, ServerApiProvider};
 use crate::server::telemetry::{
     AddTabWithShellSource, AnonymousUserSignupEntrypoint, LaunchConfigUiLocation, PaletteSource,
 };
@@ -710,7 +710,6 @@ pub struct Workspace {
     cached_keybindings: HashMap<String, Option<String>>,
     tab_bar_pinned_by_popup: bool,
     native_modal: ViewHandle<NativeModal>,
-    shown_staging_banner_count: u32,
 
     // When user's open WEB for the first time, we ask them to select a preference of
     // always opening in web or opening in native app.
@@ -1653,25 +1652,6 @@ impl Workspace {
             appearance,
         )
     }
-    /// Subscribe to the [`ServerApiProvider`] model to report status changes.
-    fn observe_server_api(ctx: &mut ViewContext<Self>) {
-        let server_api_events = ServerApiProvider::handle(ctx);
-        ctx.subscribe_to_model(&server_api_events, |me, _, event, ctx| {
-            if let ServerApiEvent::StagingAccessBlocked = event {
-                if ChannelState::uses_staging_server() && me.shown_staging_banner_count < 5 {
-                    me.shown_staging_banner_count += 1;
-                    me.toast_stack.update(ctx, |toast_stack, ctx| {
-                        let toast = DismissibleToast::error(
-                            "Staging API call failed. Did your IP address change?".to_string(),
-                        )
-                        .with_object_id("staging_access_blocked_toast".to_string());
-                        toast_stack.add_ephemeral_toast(toast, ctx);
-                    });
-                }
-            }
-        });
-    }
-
     fn subscribe_to_workspace_toast_stack(
         toast_stack: ViewHandle<DismissibleToastStack<WorkspaceAction>>,
         ctx: &mut ViewContext<Self>,
@@ -2013,8 +1993,6 @@ impl Workspace {
 
         let prompt_editor_modal = Self::build_prompt_editor_modal(ctx);
 
-        Self::observe_server_api(ctx);
-
         Self::subscribe_to_workspace_toast_stack(toast_stack.clone(), ctx);
         Self::subscribe_to_tab_config_errors(toast_stack.clone(), ctx);
         Self::subscribe_to_settings_errors(ctx);
@@ -2099,7 +2077,6 @@ impl Workspace {
             left_panel_views,
             right_panel_view,
             working_directories_model,
-            shown_staging_banner_count: 0,
 
             #[cfg(target_family = "wasm")]
             show_wasm_nux_dialog: WasmNUXDialog::should_display(ctx),

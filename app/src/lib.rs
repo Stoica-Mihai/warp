@@ -996,7 +996,7 @@ pub(crate) fn initialize_app(
     // captured by the HTTP client hooks.
     ctx.add_singleton_model(|_ctx| NetworkLogModel::default());
 
-    ctx.add_singleton_model(|ctx| ServerApiProvider::new(auth_state.clone(), None, ctx));
+    ctx.add_singleton_model(|ctx| ServerApiProvider::new(auth_state.clone(), ctx));
 
     ctx.add_singleton_model(|_ctx| AuthStateProvider::new(auth_state.clone()));
 

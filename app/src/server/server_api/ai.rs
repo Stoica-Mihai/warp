@@ -1,5 +1,4 @@
-// Re-export ambient agent types for backwards compatibility
-pub use crate::ai::ambient_agents::{AgentConfigSnapshot, AgentSource};
+pub use crate::ai::ambient_agents::AgentConfigSnapshot;
 
 #[cfg(test)]
 #[path = "ai_tests.rs"]
