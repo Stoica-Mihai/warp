@@ -1,7 +1,6 @@
 pub mod ai;
 pub mod auth;
 pub mod harness_support;
-pub mod managed_secrets;
 pub(crate) mod presigned_upload;
 pub mod team;
 
@@ -27,7 +26,6 @@ use team::TeamClient;
 use url::Url;
 use warp_core::context_flag::ContextFlag;
 use warp_core::errors::{register_error, AnyhowErrorExt, ErrorExt};
-use warp_managed_secrets::client::ManagedSecretsClient;
 use warpui::r#async::BoxFuture;
 use warpui::{Entity, ModelContext, SingletonEntity};
 
@@ -1168,10 +1166,6 @@ impl ServerApiProvider {
 
 
     pub fn get_team_client(&self) -> Arc<dyn TeamClient> {
-        self.server_api.clone()
-    }
-
-    pub fn get_managed_secrets_client(&self) -> Arc<dyn ManagedSecretsClient> {
         self.server_api.clone()
     }
 
