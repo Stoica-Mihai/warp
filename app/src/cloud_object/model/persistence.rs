@@ -13,7 +13,7 @@ use crate::auth::AuthStateProvider;
 use crate::cloud_object::{
     CloudModelType, CloudObject, CloudObjectLocation, CloudObjectPermissions, GenericCloudObject,
     GenericServerObject, GenericStringObjectFormat, JsonObjectType, ObjectIdType, ObjectType,
-    ObjectsToUpdate, Owner, Revision, RevisionAndLastEditor, ServerCloudObject, ServerCreationInfo,
+    Owner, Revision, RevisionAndLastEditor, ServerCloudObject, ServerCreationInfo,
     ServerFolder, ServerMetadata, ServerNotebook, ServerPermissions, ServerWorkflow, Space,
 };
 use crate::drive::folders::{CloudFolder, CloudFolderModel};
@@ -1299,27 +1299,6 @@ impl CloudModel {
         self.objects_by_id
             .values()
             .filter_map(|object| object.into())
-    }
-
-    /// Returns all objects the model knows about that should potentially be
-    /// updated by the server.
-    pub fn get_versions_for_all_objects(&self, app: &AppContext) -> ObjectsToUpdate {
-        let mut objects_to_update = ObjectsToUpdate::default();
-        for (versions, object_type) in self
-            .objects_by_id
-            .values()
-            .filter_map(|object| object.versions(app).zip(Some(object.object_type())))
-        {
-            match object_type {
-                ObjectType::Notebook => objects_to_update.notebooks.push(versions),
-                ObjectType::Workflow => objects_to_update.workflows.push(versions),
-                ObjectType::Folder => objects_to_update.folders.push(versions),
-                ObjectType::GenericStringObject(_) => {
-                    objects_to_update.generic_string_objects.push(versions)
-                }
-            }
-        }
-        objects_to_update
     }
 
     pub fn get_notebook(&self, notebook_id: &SyncId) -> Option<&CloudNotebook> {
