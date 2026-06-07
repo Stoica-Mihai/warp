@@ -32,14 +32,14 @@ use warp_graphql::workspace::{
     ComputerUseAutonomyValue as GqlComputerUseAutonomyValue, EmailInvite as GqlEmailInvite,
     HostEnablementSetting as GqlHostEnablementSetting,
     InviteLinkDomainRestriction as GqlInviteLinkDomainRestriction,
-    MembershipRole as GqlMembershipRole, Team as GqlTeam, TeamMember as GqlTeamMember,
+    MembershipRole as GqlMembershipRole, TeamMember as GqlTeamMember,
     UgcCollectionEnablementSetting as GqlUgcCollectionEnablementSetting, Workspace as GqlWorkspace,
     WorkspaceMember as GqlWorkspaceMember, WorkspaceMemberUsageInfo as GqlWorkspaceMemberUsageInfo,
     WorkspaceSettings as GqlWorkspaceSettings,
     WriteToPtyAutonomyValue as GqlWriteToPtyAutonomyValue,
 };
 
-use super::team::{MembershipRole, Team, TeamMember};
+use super::team::{MembershipRole, TeamMember};
 use super::user_profiles::UserProfileWithUID;
 use super::user_workspaces::WorkspacesMetadataResponse;
 use super::workspace::{
@@ -883,53 +883,6 @@ impl From<GqlWorkspaceSettings> for WorkspaceSettings {
     }
 }
 
-impl Team {
-    pub fn from_gql(gql_workspace: GqlWorkspace, gql_team: GqlTeam) -> Team {
-        Self {
-            // TEAM FIELDS
-            // These fields will persist in the Team rust type even after we finish
-            // rolling out workspaces.
-            uid: ServerId::from_string_lossy(gql_team.uid.inner()),
-            name: gql_team.name.clone(),
-            members: gql_team
-                .members
-                .clone()
-                .into_iter()
-                .map(|gql_member| gql_member.into())
-                .collect(),
-
-            // WORKSPACE FIELDS
-            // TODO(skambashi): The fields below are derived from the workspace. We should
-            // remove these from the Team rust type and use the values in the parent
-            // Workspace instead.
-            invite_code: gql_workspace
-                .invite_code
-                .clone()
-                .map(|code| WorkspaceInviteCode { code: code.clone() }),
-            pending_email_invites: gql_workspace
-                .pending_email_invites
-                .clone()
-                .into_iter()
-                .map(|gql_email_invite| gql_email_invite.into())
-                .collect(),
-            invite_link_domain_restrictions: gql_workspace
-                .invite_link_domain_restrictions
-                .clone()
-                .into_iter()
-                .map(|gql_domain_restriction| gql_domain_restriction.into())
-                .collect(),
-            billing_metadata: gql_workspace.billing_metadata.clone().into(),
-            stripe_customer_id: gql_workspace
-                .stripe_customer_id
-                .as_ref()
-                .map(|id| id.clone().into_inner()),
-            organization_settings: gql_workspace.settings.clone().into(),
-            is_eligible_for_discovery: gql_workspace.is_eligible_for_discovery,
-            has_billing_history: gql_workspace.has_billing_history,
-        }
-    }
-}
-
 impl From<GqlWorkspace> for Workspace {
     fn from(gql_workspace: GqlWorkspace) -> Workspace {
         Self {
@@ -939,12 +892,8 @@ impl From<GqlWorkspace> for Workspace {
                 .stripe_customer_id
                 .as_ref()
                 .map(|id| id.clone().into_inner()),
-            teams: gql_workspace
-                .teams
-                .clone()
-                .into_iter()
-                .map(|gql_team| Team::from_gql(gql_workspace.clone(), gql_team))
-                .collect(),
+            // Teams are not supported in Sublight; the gql teams array is ignored.
+            teams: Vec::new(),
             billing_metadata: gql_workspace.billing_metadata.clone().into(),
             bonus_grants_purchased_this_month: gql_workspace
                 .bonus_grants_info
