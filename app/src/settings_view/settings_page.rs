@@ -32,7 +32,6 @@ use super::features_page::FeaturesPageView;
 use super::keybindings::KeybindingsView;
 use super::mcp_servers_page::MCPServersSettingsPageView;
 use super::privacy_page::PrivacyPageView;
-use super::warpify_page::WarpifyPageView;
 use super::SettingsSection;
 use crate::appearance::Appearance;
 use crate::themes::theme::Fill;
@@ -94,7 +93,6 @@ pub enum SettingsPageViewHandle {
     About(ViewHandle<AboutPageView>),
     Code(ViewHandle<CodeSettingsPageView>),
     Privacy(ViewHandle<PrivacyPageView>),
-    Warpify(ViewHandle<WarpifyPageView>),
     MCPServers(ViewHandle<MCPServersSettingsPageView>),
 }
 
@@ -108,7 +106,6 @@ impl SettingsPageViewHandle {
             About(view_handle) => ChildView::new(view_handle).finish(),
             Code(view_handle) => ChildView::new(view_handle).finish(),
             Privacy(view_handle) => ChildView::new(view_handle).finish(),
-            Warpify(view_handle) => ChildView::new(view_handle).finish(),
             MCPServers(view_handle) => ChildView::new(view_handle).finish(),
         }
     }

@@ -5194,7 +5194,7 @@ impl TerminalView {
     ) {
         match event {
             WarpifySuccessBlockEvent::OpenWarpifySettings => {
-                ctx.emit(Event::OpenSettings(SettingsSection::Warpify));
+                ctx.emit(Event::OpenSettings(SettingsSection::Appearance));
             }
         }
     }
@@ -14309,7 +14309,7 @@ impl TerminalView {
             }
             Settings => {
                 if FeatureFlag::SSHTmuxWrapper.is_enabled() {
-                    ctx.emit(Event::OpenSettings(SettingsSection::Warpify));
+                    ctx.emit(Event::OpenSettings(SettingsSection::Appearance));
                 } else {
                     ctx.emit(Event::OpenSettings(SettingsSection::Features));
                 }
@@ -15677,7 +15677,7 @@ impl TypedActionView for TerminalView {
             ClearMarkedText => self.clear_marked_text_on_terminal(ctx),
             ShowInitializationBlock => self.show_initialization_block(),
             LoadAgentModeConversation => {}
-            ShowWarpifySettings => ctx.emit(Event::OpenSettings(SettingsSection::Warpify)),
+            ShowWarpifySettings => ctx.emit(Event::OpenSettings(SettingsSection::Appearance)),
             OpenAttachmentLightbox { .. } => {}
             ToggleAutoexecuteMode => {}
             ToggleQueueNextPrompt => {}

@@ -23,7 +23,6 @@ use warp_core::features::FeatureFlag;
 use warp_core::settings::ToggleableSetting as _;
 use warp_core::ui::theme::color::internal_colors;
 use warp_editor::editor::NavigationKey;
-use warpify_page::{WarpifyPageAction, WarpifyPageView};
 use warpui::elements::{
     Align, Border, ChildAnchor, ChildView, Clipped, ClippedScrollStateHandle, ClippedScrollable,
     ConstrainedBox, Container, CornerRadius, CrossAxisAlignment, DispatchEventResult, Empty,
@@ -73,7 +72,6 @@ mod privacy;
 mod privacy_page;
 mod settings_file_footer;
 pub(crate) mod settings_page;
-mod warpify_page;
 
 pub fn create_discount_badge(discount: u32, appearance: &Appearance) -> Box<dyn Element> {
     use warpui::elements::{CornerRadius, Radius, Text};
@@ -159,7 +157,6 @@ pub enum SettingsSection {
     Features,
     Keybindings,
     Privacy,
-    Warpify,
     /// Internal backing-page identifier for CodeSettingsPageView.
     Code,
     // ── Code umbrella subpages ──
@@ -222,7 +219,6 @@ impl FromStr for SettingsSection {
             "Features" => Ok(Self::Features),
             "Keyboard shortcuts" => Ok(Self::Keybindings),
             "Privacy" => Ok(Self::Privacy),
-            "Warpify" => Ok(Self::Warpify),
             "Indexing and projects" | "CodeIndexing" => Ok(Self::CodeIndexing),
             "Editor and Code Review" | "EditorAndCodeReview" => Ok(Self::EditorAndCodeReview),
             _ => Err(()),
@@ -377,7 +373,6 @@ pub fn init_actions_from_parent_view<T: Action + Clone>(
 ) {
     appearance_page::init_actions_from_parent_view(app, context, builder);
     features_page::init_actions_from_parent_view(app, context, builder);
-    warpify_page::init_actions_from_parent_view(app, context, builder);
     privacy_page::init_actions_from_parent_view(app, context, builder);
 
     if ChannelState::enable_debug_features() || cfg!(windows) {
@@ -687,7 +682,6 @@ pub enum SettingsAction {
     FeaturesPageToggle(FeaturesPageAction),
     PrivacyPageToggle(PrivacyPageAction),
     Code(CodeSettingsPageAction),
-    WarpifyPageToggle(WarpifyPageAction),
     Tab,
     Split(Direction),
     ToggleMaximizePane,
@@ -830,7 +824,6 @@ macro_rules! update_page {
             SettingsPageViewHandle::Appearance(handle) => $ctx.update_view(handle, $update),
             SettingsPageViewHandle::Features(handle) => $ctx.update_view(handle, $update),
             SettingsPageViewHandle::Keybindings(handle) => $ctx.update_view(handle, $update),
-            SettingsPageViewHandle::Warpify(handle) => $ctx.update_view(handle, $update),
             SettingsPageViewHandle::Privacy(handle) => $ctx.update_view(handle, $update),
             SettingsPageViewHandle::About(handle) => $ctx.update_view(handle, $update),
             SettingsPageViewHandle::Code(handle) => $ctx.update_view(handle, $update),
@@ -903,11 +896,6 @@ impl SettingsView {
             me.handle_code_page_event(event, ctx);
         });
 
-        let warpify_page_handle = ctx.add_typed_action_view(WarpifyPageView::new);
-        ctx.subscribe_to_view(&warpify_page_handle, |me, _, event, ctx| {
-            me.handle_warpify_page_event(event, ctx);
-        });
-
         // Render the privacy page only if telemetry opt-out is enabled.
         let privacy_page_handle = ctx.add_typed_action_view(PrivacyPageView::new);
         ctx.subscribe_to_view(&privacy_page_handle, |me, _, event, ctx| {
@@ -953,7 +941,6 @@ impl SettingsView {
             SettingsPage::new(appearance_page_handle),
             SettingsPage::new(features_page_handle),
             SettingsPage::new(keybindings_handle),
-            SettingsPage::new(warpify_page_handle),
         ];
 
         settings_pages.extend(vec![
@@ -973,7 +960,6 @@ impl SettingsView {
             SettingsNavItem::Page(SettingsSection::Appearance),
             SettingsNavItem::Page(SettingsSection::Features),
             SettingsNavItem::Page(SettingsSection::Keybindings),
-            SettingsNavItem::Page(SettingsSection::Warpify),
             SettingsNavItem::Page(SettingsSection::Privacy),
             SettingsNavItem::Page(SettingsSection::About),
         ];
@@ -1335,16 +1321,6 @@ impl SettingsView {
         }
     }
 
-    fn handle_warpify_page_event(
-        &mut self,
-        event: &SettingsPageEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            SettingsPageEvent::FocusModal => ctx.focus(&self.search_editor),
-        }
-    }
-
     fn handle_privacy_page_event(
         &mut self,
         event: &PrivacyPageViewEvent,
@@ -1529,7 +1505,6 @@ impl SettingsView {
             SettingsPageViewHandle::Appearance(v) => v.as_ref(app).should_render(app),
             SettingsPageViewHandle::About(v) => v.as_ref(app).should_render(app),
             SettingsPageViewHandle::Privacy(v) => v.as_ref(app).should_render(app),
-            SettingsPageViewHandle::Warpify(v) => v.as_ref(app).should_render(app),
             SettingsPageViewHandle::MCPServers(v) => v.as_ref(app).should_render(app),
             SettingsPageViewHandle::Code(v) => v.as_ref(app).should_render(app),
         }
@@ -2077,15 +2052,6 @@ impl TypedActionView for SettingsView {
                     if let SettingsPageViewHandle::Code(view) = &code_page.view_handle {
                         view.update(ctx, |view, ctx| {
                             view.handle_action(code_action, ctx);
-                        })
-                    }
-                }
-            }
-            SettingsAction::WarpifyPageToggle(warpify_action) => {
-                if let Some(warpify_page) = self.settings_page(SettingsSection::Warpify) {
-                    if let SettingsPageViewHandle::Warpify(view) = &warpify_page.view_handle {
-                        view.update(ctx, |view, ctx| {
-                            view.handle_action(warpify_action, ctx);
                         })
                     }
                 }
