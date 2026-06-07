@@ -730,9 +730,7 @@ pub struct Workspace {
     /// render method, so look them up when the view is constructed and cache them here. Note that they
     /// need to be kept in sync as the keybindings change.
     cached_keybindings: HashMap<String, Option<String>>,
-    is_user_menu_open: bool,
     tab_bar_pinned_by_popup: bool,
-    user_menu: ViewHandle<Menu<WorkspaceAction>>,
     native_modal: ViewHandle<NativeModal>,
     shown_staging_banner_count: u32,
 
@@ -2048,18 +2046,6 @@ impl Workspace {
         Self::subscribe_to_tab_config_errors(toast_stack.clone(), ctx);
         Self::subscribe_to_settings_errors(ctx);
 
-        let user_menu = ctx.add_typed_action_view(|_| {
-            Menu::new()
-                .with_drop_shadow()
-                .prevent_interaction_with_other_elements()
-        });
-        ctx.subscribe_to_view(&user_menu, |me, _, event, ctx| {
-            if let MenuEvent::Close { .. } = event {
-                me.is_user_menu_open = false;
-                ctx.notify();
-            }
-        });
-
         let native_modal = Self::build_native_modal_view(ctx);
 
         ctx.subscribe_to_model(&AISettings::handle(ctx), |me, _, event, ctx| match event {
@@ -2130,9 +2116,7 @@ impl Workspace {
             header_toolbar_editor_modal: Self::build_header_toolbar_editor_modal(ctx),
             header_toolbar_context_menu: Self::build_header_toolbar_context_menu(ctx),
             show_header_toolbar_context_menu: None,
-            is_user_menu_open: false,
             tab_bar_pinned_by_popup: false,
-            user_menu,
             native_modal,
             file_upload_sessions: Default::default(),
             left_panel_open: false,
@@ -5954,20 +5938,6 @@ impl Workspace {
         ctx.notify();
     }
 
-    fn user_menu_items(&self, _app: &AppContext) -> Vec<MenuItem<WorkspaceAction>> {
-        let mut items = vec![MenuItemFields::new("Settings")
-            .with_on_select_action(WorkspaceAction::ShowSettings)
-            .into_item()];
-
-        #[cfg(not(target_family = "wasm"))]
-        items.push(
-            MenuItemFields::new("View logs")
-                .with_on_select_action(WorkspaceAction::ViewLogs)
-                .into_item(),
-        );
-
-        items
-    }
 
     fn selected_new_session_sidecar_selection(
         &self,
@@ -5993,17 +5963,6 @@ impl Workspace {
         }
     }
 
-    fn toggle_user_menu(&mut self, ctx: &mut ViewContext<Self>) {
-        self.is_user_menu_open = !self.is_user_menu_open;
-        if self.is_user_menu_open {
-            let items = self.user_menu_items(ctx);
-            self.user_menu.update(ctx, |menu, ctx| {
-                menu.set_items(items, ctx);
-            });
-        }
-        ctx.focus(&self.user_menu);
-        ctx.notify();
-    }
 
     fn handle_tab_right_click_menu_event(
         &mut self,
@@ -8454,7 +8413,6 @@ impl Workspace {
         let is_tab_menu_open = self.show_tab_bar_overflow_menu
             || (self.show_tab_right_click_menu.is_some() && !is_vertical_tabs_active)
             || (self.show_new_session_dropdown_menu.is_some() && !is_vertical_tabs_active)
-            || self.is_user_menu_open
             || self.tab_bar_pinned_by_popup;
 
         // Check if any panes are being dragged (potentially into a new tab).
@@ -12986,7 +12944,7 @@ impl Workspace {
                     container = container.with_background(appearance.theme().surface_2());
                 }
                 // On hover, show tooltip of user's display name (if it exists)
-                if !self.is_user_menu_open && !is_anonymous {
+                if !is_anonymous {
                     stack.add_positioned_overlay_child(
                         appearance
                             .ui_builder()
@@ -13011,7 +12969,7 @@ impl Workspace {
             stack.finish()
         })
         .on_click(move |ctx, _, _| {
-            ctx.dispatch_typed_action(WorkspaceAction::ToggleUserMenu);
+            ctx.dispatch_typed_action(WorkspaceAction::ShowSettings);
         })
         .with_cursor(Cursor::PointingHand)
         .finish();
@@ -14953,7 +14911,6 @@ impl TypedActionView for Workspace {
             ToggleInBandGenerators => self.toggle_in_band_generators(ctx),
             ToggleDebugNetworkStatus => self.toggle_debug_network_status(ctx),
             ToggleShowMemoryStats => self.toggle_show_memory_stats(ctx),
-            ToggleUserMenu => self.toggle_user_menu(ctx),
             ShowCommandSearch(CommandSearchOptions {
                 filter,
                 init_content,
@@ -16565,20 +16522,6 @@ impl View for Workspace {
                 ),
             );
         }
-
-        if FeatureFlag::AvatarInTabBar.is_enabled() && self.is_user_menu_open {
-            stack.add_positioned_overlay_child(
-                ChildView::new(&self.user_menu).finish(),
-                OffsetPositioning::offset_from_save_position_element(
-                    USER_AVATAR_BUTTON_POSITION_ID,
-                    Vector2F::zero(),
-                    PositionedElementOffsetBounds::WindowByPosition,
-                    PositionedElementAnchor::BottomRight,
-                    ChildAnchor::TopRight,
-                ),
-            );
-        }
-
 
         // Cross-window ghost drag: floating chip that follows the cursor in the target window.
         // Added last so it renders on top of all other content.
