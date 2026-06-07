@@ -1129,17 +1129,11 @@ pub enum Space {
 }
 
 impl Space {
-    pub fn name(&self, app: &AppContext) -> String {
+    pub fn name(&self, _app: &AppContext) -> String {
         match self {
             Space::Personal => "Personal".to_string(),
-            Space::Team { team_uid, .. } => {
-                let user_workspaces = UserWorkspaces::as_ref(app);
-                if let Some(team) = user_workspaces.team_from_uid(*team_uid) {
-                    team.name.clone()
-                } else {
-                    "Team".to_string()
-                }
-            }
+            // Teams are not supported in Sublight; team spaces never resolve to a real name.
+            Space::Team { .. } => "Team".to_string(),
             Space::Shared => "Shared with me".to_string(),
         }
     }
