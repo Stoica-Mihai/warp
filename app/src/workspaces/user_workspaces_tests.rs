@@ -15,7 +15,6 @@ use crate::server::ids::ClientId;
 use crate::server::server_api::team::{MockTeamClient, TeamClient};
 use crate::server::server_api::ServerApiProvider;
 use crate::settings::{AISettings, CodeSettings, FocusedTerminalInfo};
-use crate::system::SystemStats;
 use crate::workflows::workflow::Workflow;
 use crate::workflows::{CloudWorkflow, CloudWorkflowModel};
 use crate::workspaces::team::Team;
@@ -37,7 +36,6 @@ fn initialize_app(
 ) {
     // Add the necessary singleton models to the App
     app.add_singleton_model(|_| NetworkStatus::new());
-    app.add_singleton_model(|_| SystemStats::new());
     app.add_singleton_model(TeamTesterStatus::new);
     app.add_singleton_model(CloudModel::mock);
     app.add_singleton_model(|ctx| {

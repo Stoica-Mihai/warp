@@ -238,7 +238,6 @@ use crate::settings::{AccessibilitySettings, ScrollSettings, SelectionSettings};
 use crate::settings_view::keybindings::KeybindingChangedNotifier;
 use crate::settings_view::DisplayCount;
 use crate::suggestions::ignored_suggestions_model::IgnoredSuggestionsModel;
-use crate::system::SystemStats;
 use crate::terminal::cli_agent_sessions::CLIAgentSessionsModel;
 use crate::terminal::keys::TerminalKeybindings;
 use crate::terminal::resizable_data::ResizableData;
@@ -1352,7 +1351,6 @@ pub(crate) fn initialize_app(
 
     ctx.add_singleton_model(|_| GitHubAuthNotifier::new());
     ctx.add_singleton_model(|_| NetworkStatus::new());
-    ctx.add_singleton_model(|_| SystemStats::new());
     ctx.add_singleton_model(|_| KeybindingChangedNotifier::new());
     ctx.add_singleton_model(|_| search::command_palette::SelectedItems::new());
     ctx.add_singleton_model(search::files::model::FileSearchModel::new);
@@ -1557,18 +1555,8 @@ pub(crate) fn app_callbacks(is_integration_test: bool) -> warpui::platform::AppC
                 ctx.notify();
             });
         })),
-        on_cpu_awakened: Some(Box::new(move |ctx| {
-            SystemStats::handle(ctx).update(ctx, move |system, ctx| {
-                log::info!("System has returned from sleep");
-                system.dispatch_cpu_was_awakened(ctx);
-            });
-        })),
-        on_cpu_will_sleep: Some(Box::new(move |ctx| {
-            SystemStats::handle(ctx).update(ctx, move |system, ctx| {
-                log::info!("System is going to sleep...");
-                system.dispatch_cpu_will_sleep(ctx);
-            });
-        })),
+        on_cpu_awakened: None,
+        on_cpu_will_sleep: None,
         on_resigned_active: Some(Box::new(move |ctx| {
             let active_window_id = ctx.windows().active_window();
             let update_quake_mode_arg = UpdateQuakeModeEventArg { active_window_id };

@@ -24,7 +24,6 @@ use crate::server::ids::SyncId::{self};
 use crate::server::server_api::workspace::MockWorkspaceClient;
 use crate::server::server_api::ServerApiProvider;
 use crate::settings::AISettings;
-use crate::system::SystemStats;
 use crate::workflows::workflow::Workflow;
 use crate::workflows::{CloudWorkflowModel, WorkflowId};
 use crate::workspaces::team_tester::TeamTesterStatus;
@@ -80,7 +79,6 @@ fn mock_server_notebook(id: NotebookId, owner: Owner) -> ServerNotebook {
 fn initialize_app(app: &mut App) {
     // Add the necessary singleton models to the App
     app.add_singleton_model(|_| NetworkStatus::new());
-    app.add_singleton_model(|_| SystemStats::new());
     let mock_workspace_client = Arc::new(MockWorkspaceClient::new());
     app.add_singleton_model(|ctx| {
         UserWorkspaces::mock(
