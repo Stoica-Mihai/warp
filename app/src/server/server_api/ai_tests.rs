@@ -2,10 +2,6 @@ use futures::executor::block_on;
 
 use super::super::auth::CLOUD_AGENT_ID_HEADER;
 use super::super::ServerApi;
-use super::{
-    ConnectedSelfHostedWorker, ListConnectedSelfHostedWorkersResponse,
-    CONNECTED_SELF_HOSTED_WORKERS_PATH,
-};
 use crate::ai::artifacts::Artifact;
 use crate::notebooks::NotebookId;
 
@@ -27,54 +23,6 @@ fn ambient_agent_headers_for_task_overrides_existing_cloud_agent_header() {
     assert_eq!(
         cloud_agent_headers,
         vec![(CLOUD_AGENT_ID_HEADER, task_scoped_id.to_string())]
-    );
-}
-
-#[test]
-fn connected_self_hosted_workers_path_uses_public_api_route() {
-    assert_eq!(
-        CONNECTED_SELF_HOSTED_WORKERS_PATH,
-        "agent/connected-self-hosted-workers"
-    );
-}
-
-#[test]
-fn deserialize_connected_self_hosted_workers_response() {
-    let json = r#"{
-        "workers": [
-            {
-                "worker_host": "worker-2",
-                "connection_count": 2,
-                "connected_at": "2026-05-18T19:00:00Z",
-                "last_seen_at": "2026-05-18T19:05:00Z"
-            },
-            {
-                "worker_host": "worker-1",
-                "connection_count": 1,
-                "connected_at": "2026-05-18T18:00:00Z",
-                "last_seen_at": "2026-05-18T18:05:00Z"
-            }
-        ]
-    }"#;
-
-    let response: ListConnectedSelfHostedWorkersResponse = serde_json::from_str(json).unwrap();
-
-    assert_eq!(
-        response.workers,
-        vec![
-            ConnectedSelfHostedWorker {
-                worker_host: "worker-2".to_string(),
-                connection_count: 2,
-                connected_at: "2026-05-18T19:00:00Z".to_string(),
-                last_seen_at: "2026-05-18T19:05:00Z".to_string(),
-            },
-            ConnectedSelfHostedWorker {
-                worker_host: "worker-1".to_string(),
-                connection_count: 1,
-                connected_at: "2026-05-18T18:00:00Z".to_string(),
-                last_seen_at: "2026-05-18T18:05:00Z".to_string(),
-            },
-        ]
     );
 }
 

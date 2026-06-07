@@ -196,7 +196,6 @@ use workflows::manager::WorkflowManager;
 use workspace::sync_inputs::SyncedInputState;
 
 use self::features::FeatureFlag;
-use crate::ai::connected_self_hosted_workers::ConnectedSelfHostedWorkersModel;
 use crate::ai::document::ai_document_model::AIDocumentModel;
 use crate::ai::mcp::{MCPGalleryManager, TemplatableMCPServerManager};
 use crate::ai::outline::RepoOutlines;
@@ -1470,7 +1469,6 @@ pub(crate) fn initialize_app(
 
     ctx.add_singleton_model(LocalWorkflows::new);
 
-    ctx.add_singleton_model(ConnectedSelfHostedWorkersModel::new);
 
     timer.mark_interval_end("SINGLETON_MODELS_REGISTERED");
 

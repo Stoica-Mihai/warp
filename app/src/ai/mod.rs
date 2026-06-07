@@ -22,7 +22,6 @@ use warpui::AppContext;
 pub mod cloud_agent_config;
 pub mod cloud_environments;
 pub mod execution_profiles;
-pub mod connected_self_hosted_workers;
 pub(crate) mod generate_code_review_content;
 pub(crate) mod loading;
 pub mod mcp;

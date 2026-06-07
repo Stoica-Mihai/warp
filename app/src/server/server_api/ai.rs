@@ -16,7 +16,6 @@ use warp_graphql::queries::get_request_limit_info::{
 };
 use super::auth::AuthClient;
 use super::ServerApi;
-use crate::ai::ambient_agents::AmbientAgentTaskId;
 // Re-export ambient agent types for backwards compatibility
 pub use crate::ai::ambient_agents::{AgentConfigSnapshot, AgentSource};
 use crate::ai::generate_code_review_content::api::{
@@ -38,21 +37,6 @@ use crate::{
 
 const AI_ASSISTANT_REQUEST_TIMEOUT_SECONDS: u64 = 30;
 
-#[derive(Clone, serde::Deserialize, Debug, PartialEq, Eq)]
-pub struct ConnectedSelfHostedWorker {
-    pub worker_host: String,
-    pub connection_count: u32,
-    pub connected_at: String,
-    pub last_seen_at: String,
-}
-
-#[derive(Clone, serde::Deserialize, Debug, PartialEq, Eq)]
-pub struct ListConnectedSelfHostedWorkersResponse {
-    pub workers: Vec<ConnectedSelfHostedWorker>,
-}
-
-pub(crate) const CONNECTED_SELF_HOSTED_WORKERS_PATH: &str = "agent/connected-self-hosted-workers";
-
 #[cfg_attr(test, automock)]
 #[cfg_attr(not(target_family = "wasm"), async_trait)]
 #[cfg_attr(target_family = "wasm", async_trait(?Send))]
@@ -63,16 +47,6 @@ pub trait AIClient: 'static + Send + Sync {
     ) -> Result<GeneratedCommandMetadata, GeneratedCommandMetadataError>;
 
     async fn get_request_limit_info(&self) -> Result<RequestUsageInfo, anyhow::Error>;
-
-
-    async fn list_connected_self_hosted_workers(
-        &self,
-    ) -> Result<ListConnectedSelfHostedWorkersResponse, anyhow::Error>;
-
-    async fn cancel_ambient_agent_task(
-        &self,
-        task_id: &AmbientAgentTaskId,
-    ) -> anyhow::Result<(), anyhow::Error>;
 
     /// Generates AI copy for code-review flows: commit messages at dialog-open
     /// time and PR titles / bodies at confirm time. `output_type` in the
@@ -183,23 +157,6 @@ impl AIClient for ServerApi {
                 Err(anyhow!("failed to get request limit info"))
             }
         }
-    }
-
-    async fn list_connected_self_hosted_workers(
-        &self,
-    ) -> anyhow::Result<ListConnectedSelfHostedWorkersResponse, anyhow::Error> {
-        self.get_public_api(CONNECTED_SELF_HOSTED_WORKERS_PATH)
-            .await
-    }
-
-    async fn cancel_ambient_agent_task(
-        &self,
-        task_id: &AmbientAgentTaskId,
-    ) -> anyhow::Result<(), anyhow::Error> {
-        let _: String = self
-            .post_public_api(&format!("agent/tasks/{task_id}/cancel"), &())
-            .await?;
-        Ok(())
     }
 
     async fn generate_code_review_content(
