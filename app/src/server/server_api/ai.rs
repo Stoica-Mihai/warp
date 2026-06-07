@@ -3,18 +3,13 @@ use async_trait::async_trait;
 use cynic::QueryBuilder;
 #[cfg(test)]
 use mockall::automock;
-use warp_core::channel::ChannelState;
 #[cfg(not(feature = "agent_mode_evals"))]
 use warp_graphql::queries::get_request_limit_info::{
     GetRequestLimitInfo, GetRequestLimitInfoVariables,
 };
-use super::auth::AuthClient;
 use super::ServerApi;
 // Re-export ambient agent types for backwards compatibility
 pub use crate::ai::ambient_agents::{AgentConfigSnapshot, AgentSource};
-use crate::ai::generate_code_review_content::api::{
-    GenerateCodeReviewContentRequest, GenerateCodeReviewContentResponse,
-};
 #[cfg(feature = "agent_mode_evals")]
 use crate::ai::request_usage_model::RequestLimitInfo;
 #[cfg(not(feature = "agent_mode_evals"))]
@@ -34,14 +29,6 @@ use crate::{
 #[cfg_attr(target_family = "wasm", async_trait(?Send))]
 pub trait AIClient: 'static + Send + Sync {
     async fn get_request_limit_info(&self) -> Result<RequestUsageInfo, anyhow::Error>;
-
-    /// Generates AI copy for code-review flows: commit messages at dialog-open
-    /// time and PR titles / bodies at confirm time. `output_type` in the
-    /// request picks which of the three the server returns.
-    async fn generate_code_review_content(
-        &self,
-        request: GenerateCodeReviewContentRequest,
-    ) -> Result<GenerateCodeReviewContentResponse, anyhow::Error>;
 }
 
 #[cfg_attr(not(target_family = "wasm"), async_trait)]
@@ -107,29 +94,6 @@ impl AIClient for ServerApi {
                 Err(anyhow!("failed to get request limit info"))
             }
         }
-    }
-
-    async fn generate_code_review_content(
-        &self,
-        request: GenerateCodeReviewContentRequest,
-    ) -> Result<GenerateCodeReviewContentResponse, anyhow::Error> {
-        let auth_token = self.get_or_refresh_access_token().await?;
-        let request_builder = self.client.post(format!(
-            "{}/ai/generate_code_review_content",
-            ChannelState::server_root_url()
-        ));
-        let response = if let Some(token) = auth_token.as_bearer_token() {
-            request_builder.bearer_auth(token)
-        } else {
-            request_builder
-        }
-        .json(&request)
-        .send()
-        .await?
-        .error_for_status()?
-        .json()
-        .await?;
-        Ok(response)
     }
 }
 
