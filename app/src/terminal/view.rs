@@ -158,25 +158,7 @@ use super::model::secrets::RichContentSecretTooltipInfo;
 use super::model::selection::ExpandedSelectionRange;
 use super::model::session::SessionBootstrappedEvent;
 use super::settings::AltScreenPaddingMode;
-use super::ssh::error::{SshErrorBlock, SshErrorBlockEvent, SSH_ERROR_BLOCK_VISIBLE_KEY};
-use super::ssh::install_tmux::{
-    install_root_tmux_script, install_tmux_script, SshInstallTmuxBlock, SshInstallTmuxBlockEvent,
-    SshKeyEvent, TmuxInstallMethod,
-};
-use super::ssh::root_access::RootAccess;
-use super::ssh::ssh_detection::evaluate_warpify_ssh_host;
-use super::ssh::util::{
-    convert_script_to_one_line, parse_interactive_ssh_command, InteractiveSshCommand,
-    SshWarpifyCommand,
-};
-use super::ssh::warpify::{
-    begin_warpify_ssh_session_command, warpify_ssh_session_command, SshWarpifyBlock,
-    SshWarpifyBlockEvent,
-};
-use super::ssh::SSH_WARPIFY_TIMEOUT_DURATION;
-use super::warpify::success_block::{WarpifySuccessBlock, WarpifySuccessBlockEvent};
-use super::warpify::trigger_state::{SshBlockState, WarpifyState};
-use super::warpify::WarpificationSource;
+use super::ssh::util::{InteractiveSshCommand, SshWarpifyCommand};
 use super::{cli_agent, CLIAgent, GridType};
 use crate::ai::conversation_types::AIConversationId;
 use crate::ai::agent_types::{AIAgentActionId, AgentReviewCommentBatch};
@@ -10505,10 +10487,6 @@ impl TerminalView {
                     env_var_collection_block_handle.update(ctx, |env_var_collection_block, ctx| {
                         env_var_collection_block.clear_selection(ctx);
                     });
-                }
-                Some(RichContentMetadata::WarpifySuccessBlock { .. }) => {
-                    // TODO(Simon): We should be checking for WarpifySuccessBlocks here as well.
-                    // The `WarpifySuccessBlock` implements a `SelectableArea`.
                 }
                 _ => {}
             }

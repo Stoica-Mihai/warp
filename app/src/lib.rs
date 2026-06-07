@@ -1336,8 +1336,6 @@ pub(crate) fn initialize_app(
     tab_configs::new_worktree_modal::init(ctx);
     tab_configs::params_modal::init(ctx);
     env_vars::env_var_collection_block::init(ctx);
-    terminal::ssh::install_tmux::init(ctx);
-    terminal::ssh::warpify::init(ctx);
     terminal::ssh::error::init(ctx);
     context_chips::display_menu::init(ctx);
     context_chips::node_version_popup::init(ctx);

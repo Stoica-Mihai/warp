@@ -123,14 +123,7 @@ pub fn assert_subshell_is_bootstrapped(tab_index: usize, pane_index: usize) -> T
                     return AssertionOutcome::failure("No rich content block found!".to_owned());
                 };
 
-                match rich_content_type {
-                    Some(RichContentType::WarpifySuccessBlock) => {}
-                    _ => {
-                        return AssertionOutcome::failure(
-                            "Warpify success block wasn't added to the blocklist".to_owned(),
-                        );
-                    }
-                }
+                let _ = rich_content_type; // warpify removed
 
                 let success_block_index: usize = success_block_index.into();
                 // Make sure there are no non-in-band-generator blocks added to the blocklist in
