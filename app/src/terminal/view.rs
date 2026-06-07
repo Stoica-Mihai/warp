@@ -4682,38 +4682,14 @@ impl TerminalView {
             .unwrap_or_default()
     }
 
-    /// Turns the active session into a bootstrapped subshell by writing the InitShell DCS hook
+    /// Subshell warpification removed: subshells run as plain shells (no block injection).
     fn trigger_subshell_bootstrap(
         &mut self,
         shell_type: Option<ShellType>,
         _triggered_by_rc_file_snippet: bool,
         ctx: &mut ViewContext<Self>,
     ) {
-        self.dismiss_warpify_banner(&RememberForWarpification::DoNotRememberSubshellCommand, ctx);
-
-        // Record the active long-running block so we can hide it later once the remote
-        // actually confirms subshell bootstrap is in progress.
-        // If the remote never emits InitShell, the block stays visible.
-        {
-            let model = self.model.lock();
-            if model
-                .block_list()
-                .active_block()
-                .is_active_and_long_running()
-            {
-                let block_id = model.block_list().active_block_id().clone();
-                self.warpify_state.set_block_id(block_id);
-            }
-        }
-
-        self.write_init_subshell_bytes_to_pty(shell_type, ctx);
-
-        if !self.env_vars.is_empty() {
-            self.start_bootstrap_timer(ENV_VAR_BOOTSTRAP_FAILED_DURATION, ctx);
-            self.env_vars = Vec::new();
-        } else {
-            self.start_bootstrap_timer(BOOTSTRAP_FAILED_DURATION, ctx);
-        }
+        let _ = (shell_type, ctx);
     }
 
     /// Util method to update the ssh block, with a lock
@@ -14810,13 +14786,9 @@ impl TerminalView {
             .and_then(|info| info.ssh_connection_info.clone())
     }
 
+    /// SSH warpification removed: ssh sessions run as plain remote shells.
     fn warpify_ssh_session(&mut self, ctx: &mut ViewContext<Self>) {
-        self.warpify_state.set_shell_detection_in_progress();
-        self.begin_ssh_warpify_timeout(SSH_WARPIFY_TIMEOUT_DURATION, ctx);
-        self.clear_line_editor_and_write_to_pty(
-            convert_script_to_one_line(&begin_warpify_ssh_session_command(ctx)).into_bytes(),
-            ctx,
-        );
+        let _ = ctx;
     }
 
     fn continue_warpify_ssh_session(
@@ -14825,21 +14797,7 @@ impl TerminalView {
         shell_type: ShellType,
         ctx: &mut ViewContext<Self>,
     ) {
-        self.warpify_state.set_shell_type(&shell_type);
-        self.model.lock().set_pending_warp_initiated_control_mode();
-        if let Some(script) = warpify_ssh_session_command(uname, shell_type, ctx) {
-            self.clear_line_editor_and_write_to_pty_with_mac_workaround_hack(
-                convert_script_to_one_line(&script).into_bytes(),
-                ctx,
-            );
-        } else {
-            self.add_ssh_error_block(
-                WarpificationUnavailableReason::UnsupportedShell {
-                    shell_name: shell_type.name().to_string(),
-                },
-                ctx,
-            );
-        }
+        let _ = (uname, shell_type, ctx);
     }
 
     fn install_tmux_and_warpify(
