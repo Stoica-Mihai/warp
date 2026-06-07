@@ -27,6 +27,7 @@ The compiler is the work-list. Don't try to find all callers by hand first — d
 Plan files / tracker docs / prior memories accumulate **stale "TODO" entries for work already done**, and **inherited claims that are wrong**. Three times in one session a "remaining target" turned out already-deleted.
 - Before working any "remaining"/"NEXT" target: `ls` the dir / pickaxe the symbol (`git log -S Symbol`) / grep for live refs. Confirm it still exists and is still live.
 - Treat every "KEEP because X" note as a hypothesis to re-verify, not fact. (One KEEP rationale this session — "TeamsChanged drives PrivacySettings" — was simply false; the real subscribers were different. The KEEP held, the reason didn't.)
+- **Grep ALL source roots, not just one.** A handoff claimed the ServerApi egress + AuthClient were "already gone" — based on grepping `crates/`. But `server_api.rs` lives in `app/src/server/`, so the symbols were all still present and the whole increment was un-started. Always `grep -rn app/src crates/ …` (both), or the conclusion is wrong. A subagent investigator that inherits your wrong premise will repeat it — give it the corrected scope.
 
 ## The classification framework (the heart of it)
 For **every** symbol the feature touches, classify it. Most mistakes are misclassification, not bad edits.
@@ -46,6 +47,7 @@ The thing is *named* for the feature but actually serves something kept. **Names
 - `TeamUpdateManager` — the *workspace-metadata polling* loop, not team management.
 - `codebase_indices` sqlite table + `Upsert/DeleteCodebaseIndexMetadata` events — persist generic *LSP WorkspaceMetadata*, not the embedding index.
 - A shared fetch payload (`WorkspacesMetadataWithPricing`) carries BOTH the kept workspace list AND the removed teams — so the transport stays even though the team data goes.
+- **A whole "cloud" framework can be a KEPT feature's local store.** `warp_server_client` + the `cloud_object` framework (`CloudModel`/`GenericCloudObject`/`GenericStringModel`) look like Warp-Drive cloud sync — but post-strip the sync is gone and they're now the **local SQLite object store that MCP-server configs persist through** (`CloudTemplatableMCPServer = GenericCloudObject<…>`). Deleting the framework to "remove Warp Drive" would have silently broken MCP. **Before deleting a framework/crate, grep ALL its consumers — a kept feature may be the one still standing on it.** Remove the dead object *types* riding the framework; keep the framework.
 **Rule:** before deleting anything named after the feature, open it and read what it *does* + who calls it. Trace the actual data, not the name.
 
 ### KEEP — schema-bound wire/DB types
@@ -53,6 +55,20 @@ cynic GraphQL enums/structs and proto messages mirror the live server schema. De
 - Keep them; map unknown→`Unknown` or deserialize-into-nothing.
 - Examples kept: `JsonObjectType::Preference`/`JsonPreference`, Bedrock `ManagedSecretValue` variants, `LLMModelHost` wire variant, proto `UploadHandoffSnapshot{,Response}`, `GqlDiscoverableTeamData`.
 - **Trap:** a response struct may need a field/type purely to *deserialize* the server payload (e.g. the workspaces_metadata response carried a `teams` array → `Workspace.teams` + app `Team` were load-bearing for deser even when always empty). Removing them = a gql_convert reshape, not a delete. Check `crates/graphql` before deleting an app type that mirrors a response.
+- **Don't delete cynic/schema-bound types one-by-one — they die WITH the crate.** Inside a gql crate, the `#[cynic::schema]` registration + every `cynic::Enum`/`QueryFragment`/op-builder is honoring the live schema; picking them off individually fights the schema match. The clean cut is: sever every *consumer* (re-home the plain types they borrow, delete the dead conversions), then delete the whole gql crate in one commit — that's where they (correctly) all vanish at once.
+
+## Is the feature even usable? (the keep-vs-remove diagnostic)
+When deciding whether a feature should be *kept* or *removed* after a backend strip, "the code compiles and the create/load functions exist" proves **nothing**. Trace the whole **create → save → reload → CONSUME** loop end-to-end, including auth/permission gates, before calling it usable:
+- A feature can have fully-intact, fully-local create/save/load machinery and still be **dead** because every create entry point is gated behind something the strip removed. (This session: Notebooks/CloudWorkflows/EnvVarCollections route every create through `personal_drive()` → `user_id()` → a logged-in `User`; login was stripped → `user = None` → every create UI command silently no-ops → nothing is ever saved → nothing loads. "Local create + local load exist" was true and irrelevant — the feature is unreachable.)
+- A feature can have **no create path at all** (Drive Folders: `create_folder` doesn't exist; UI handlers are gutted no-ops) — load-only over an empty store.
+- Contrast with genuinely-usable (LocalWorkflows): a real, ungated entry point (`ctrl-r` Command Search / `input:toggle_workflows`) → browse (built-in + on-disk YAML, no auth) → select → command inserted into the prompt. **That** is "usable."
+- So the keep-vs-remove call hinges on: **is there a reachable, ungated entry point, and does the round-trip persist + reload + get consumed?** If not, the feature is dead-as-shipped — remove it (or, if cheap and wanted, un-gate it: e.g. seed a default local user so `user_id()` returns `Some`). Either way, decide on the *traced reality*, not the presence of functions.
+- Tool: dispatch a read-only investigator to produce a per-feature **CREATE / SAVE / LOAD / CONSUME / AUTH-GATE → FUNCTIONAL / BROKEN / PARTIAL** table before deciding the scope.
+
+## Re-homing shared types before a crate dies
+To delete crate X, its consumers must stop importing X. Plain data types X owns but that kept code borrows (a `chrono` newtype, a serde enum, an id type) must be **re-homed**.
+- **Re-home to a shared LOWER crate, not into the app**, when more than one crate borrows the type. (This session: `ServerTimestamp` was used by app AND `warp_server_client`; moving it into `app` would have left `warp_server_client` broken — it went to `warp_util`, which both depend on.) Pick the home by "who all needs it," not "where it's most used."
+- A re-home is a pure relocation: ~0 binary delta, but it unblocks the crate deletion (the real win). Don't expect a size change from the re-home commit itself.
 
 ## The traps (each cost real time)
 - **"Emitted ≠ alive."** An event variant that's still `ctx.emit(...)`-ed but has **zero subscribers** is dead scaffolding, not live code. "Still emitted" is NOT a keep-rationale. Trace every kept item to a live **consumer/subscriber/reader**, not just a live emitter. (Left the joinable-teams discovery loop in once on this exact mistake — poll→store→emit-into-the-void.)
@@ -60,6 +76,7 @@ cynic GraphQL enums/structs and proto messages mirror the live server schema. De
 - **Trait impls are invisible to symbol greps.** Deleting a file with `impl From<X> for Y` / `impl Trait for Z` can orphan a sibling that needed the impl. Build after deleting any file containing trait impls (caught `From<AIAgentHarness> for Harness` via E0308).
 - **Shared callbacks / sinks.** A handler reached by both a dead path and a live path (`on_workspaces_updated`, `toggle_share_dialog`) — verify it has NO live caller before removing; otherwise collapse only the dead feeder.
 - **Linker-dead ≠ shrinks now.** Deleting a module that was already dead-stripped yields ~0 binary delta; the real shrink lands when the last LIVE-LINKED consumer (a registered singleton, a `TypedActionView`, a diesel `persist()` arm, a graphql op-builder) goes. Don't be surprised by a flat delta on a big LoC removal — and DON'T assume zero either; measure.
+- **The big payoff is at CRATE deletion, not source dead-code removal.** Stripping a gql crate's *consumers* (severing egress, deleting conversions, re-homing borrowed types) is ~flat — the cynic schema registration + every op-builder monomorphization stay live-linked until the crate itself is deleted from the workspace. The single largest delta of the whole graphql strip (−8.91 MB) landed on the one commit that `rm -rf`'d the two gql crates + dropped the deps. Expect the curve to be flat-flat-flat-CLIFF, and don't lose faith during the flat part.
 
 ## Gate matrix (run all, in parallel, each own target dir)
 ```bash
@@ -70,6 +87,8 @@ CARGO_TARGET_DIR=target/gate-feat    cargo check -p warp --features local_fs,gui
 Background each in one message; wall-clock ≈ slowest gate. **Cross-crate**: `-p warp` does NOT cover `warp_cli`, `remote_server`, `warp_server_client`, `managed_secrets`. If you touched a shared crate or swept FeatureFlag variants, also gate the affected crate (`cargo check -p remote_server --tests`, etc.). The integration crate is not in the 3-gate.
 
 Dead-code safety = the **3-gate intersection by message text**: an item dead in default+feat but referenced in `--tests` needs its test deleted too. cargo *warnings* ≠ the real removable set — verify callers, don't trust the warning list alone.
+
+**Stale-incremental-cache false-green (hit twice in one session).** After you change a *dependency crate's* source or any `Cargo.toml`, the `-p warp` gate can return **exit 0 without recompiling the changed dep** — a false green that hides real type errors. Bust it: `touch` a source file in the changed crate (or do one cold run / `cargo build --offline`) before trusting exit 0. The 3 gates passing instantly after a cross-crate edit is a red flag, not a win — re-run with cache busted.
 
 ## Increment ordering
 - **Behavioral cut before structural cut.** First make the feature *runtime-dead* in small green commits: collapse the always-false predicates, return no-team/no-X defaults, stop producing the data at its source (e.g. ignore the field at deserialization). This is incrementally separable and delivers the actual goal ("the feature no longer happens, even when authed") early. ONLY THEN delete the now-dead types/fields/variants. Don't start by ripping the struct — you'll be red for a long time with no checkpoint.
