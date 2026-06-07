@@ -2,7 +2,6 @@ use std::time::Duration;
 
 use warpui::RetryOption;
 
-use crate::server::graphql::GraphQLError;
 use crate::server::server_api::presigned_upload::HttpStatusError;
 
 /// Common duration for a periodic poll. In our app, we generally have the following to update the same data:
@@ -59,14 +58,6 @@ pub(crate) fn is_transient_http_error(e: &anyhow::Error) -> bool {
 /// operation layer and should not be retried or placed into transient cooldowns.
 pub(crate) fn is_transient_graphql_or_http_error(e: &anyhow::Error) -> bool {
     for cause in e.chain() {
-        if let Some(graphql_err) = cause.downcast_ref::<GraphQLError>() {
-            return match graphql_err {
-                GraphQLError::RequestError(_) => true,
-                GraphQLError::HttpError { status, .. } => is_transient_status(status.as_u16()),
-                GraphQLError::StagingAccessBlocked | GraphQLError::ResponseError(_) => false,
-            };
-        }
-
         if let Some(http_err) = cause.downcast_ref::<HttpStatusError>() {
             return is_transient_status(http_err.status);
         }
