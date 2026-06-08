@@ -58,10 +58,9 @@ use super::{heights_approx_eq, TerminalModel, HEIGHT_FUDGE_FACTOR_LINES};
 use crate::terminal::view::agent_view_state::{agent_view_bg_fill, AgentViewState};
 use crate::ai::blocklist::ai_brand_color;
 use crate::appearance::Appearance;
-use crate::drive::settings::WarpDriveSettings;
 use crate::features::FeatureFlag;
 use crate::pane_group::SplitPaneState;
-use crate::settings::{DebugSettings, EnforceMinimumContrast, PrivacySettings, TerminalSpacing};
+use crate::settings::{DebugSettings, EnforceMinimumContrast, TerminalSpacing};
 use crate::terminal::alt_screen::{should_intercept_mouse, should_intercept_scroll};
 use crate::terminal::block_list_viewport::AutoscrollBehavior;
 use crate::terminal::blockgrid_renderer::BlockGridParams;
@@ -81,7 +80,7 @@ use crate::terminal::view::TerminalAction;
 use crate::terminal::warpify::SubshellSource;
 use crate::terminal::{grid_renderer, SizeInfo};
 use crate::themes::theme::WarpTheme;
-use crate::ui_components::{self, icons as UIIcon};
+use crate::ui_components::icons as UIIcon;
 use crate::util::color::Opacity;
 
 /// The number of pixels at the bottom of padding where selection scrolling is performed.
@@ -139,9 +138,6 @@ const LINEAR_SCROLLING: ScrollingAcceleration = ScrollingAcceleration::Polynomia
 /// Without making the vertical size fixed, for some reason some elements (bookmark, block filter, shared session avatar)
 /// have a height that extends down to the bottom of the window when there's a horizontal scroll bar, which messes with the on-hover behavior.
 const BLOCK_HOVER_BUTTON_HEIGHT: f32 = 28.;
-
-const SAVE_AS_WORKFLOW_TEXT: &str = "Save as Workflow";
-const SAVE_AS_WORKFLOW_SECRETS_TEXT: &str = "Blocks containing secrets cannot be saved.";
 
 enum ScrollingAcceleration {
     Polynomial(f32),
@@ -619,7 +615,6 @@ pub struct BlockListElement {
     hovered_block_index: Option<BlockIndex>,
     overflow_menu_button: Option<Box<dyn Element>>,
     snackbar_toggle_button: Option<Box<dyn Element>>,
-    save_as_workflow_button: Option<Box<dyn Element>>,
     restored_session_separator: Option<Box<dyn Element>>,
     inline_banners: HashMap<InlineBannerId, Box<dyn Element>>,
     /// Subshell separators are similar to banners, except they are smaller and only meant to show
@@ -837,7 +832,6 @@ pub struct BlockListMouseStates {
     pub label_mouse_states: HashMap<BlockIndex, MouseStateHandle>,
     pub bookmark_mouse_states: HashMap<BlockIndex, MouseStateHandle>,
     pub overflow_menu_button_mouse_state: MouseStateHandle,
-    pub save_as_workflow_button_mouse_state: MouseStateHandle,
     pub filter_mouse_states: HashMap<BlockIndex, MouseStateHandle>,
     pub snackbar_toggle_button_mouse_state: MouseStateHandle,
 }
@@ -903,7 +897,6 @@ impl BlockListElement {
             subshell_separator_height: terminal_spacing.subshell_separator_height,
             hovered_block_index: None,
             overflow_menu_button: None,
-            save_as_workflow_button: None,
             snackbar_toggle_button: None,
             restored_session_separator: None,
             inline_banners,
@@ -1096,71 +1089,6 @@ impl BlockListElement {
             .finish(),
         );
 
-
-        if WarpDriveSettings::is_warp_drive_enabled(app) {
-            let icon = Container::new(
-                ConstrainedBox::new(
-                    ui_components::icons::Icon::Save
-                        .to_warpui_icon(icon_color.into())
-                        .finish(),
-                )
-                .with_height(16.)
-                .with_width(16.)
-                .finish(),
-            )
-            .with_uniform_padding(4.);
-
-            let element = if PrivacySettings::as_ref(app).is_enterprise_secret_redaction_enabled()
-                && model
-                    .block_list()
-                    .block_at(block_index)
-                    .is_some_and(|block| block.num_secrets_obfuscated() > 0)
-            {
-                // If enterprise secret redaction is enabled and the block contains secrets,
-                // disable save as workflow button + show different tooltip messaging.
-                render_hoverable_block_button(
-                    icon,
-                    Some(ToolbeltButtonTooltip {
-                        label: SAVE_AS_WORKFLOW_SECRETS_TEXT.to_owned(),
-                        tool_tip_below_button: should_render_tooltip_below_button,
-                    }),
-                    false,
-                    false,
-                    self.mouse_states
-                        .save_as_workflow_button_mouse_state
-                        .clone(),
-                    &self.warp_theme,
-                    &self.ui_builder,
-                    move |ctx: &mut EventContext, _, _| {
-                        ctx.dispatch_typed_action(TerminalAction::OpenWorkflowModalForBlock(
-                            block_index,
-                        ));
-                    },
-                )
-            } else {
-                render_hoverable_block_button(
-                    icon,
-                    Some(ToolbeltButtonTooltip {
-                        label: SAVE_AS_WORKFLOW_TEXT.to_owned(),
-                        tool_tip_below_button: should_render_tooltip_below_button,
-                    }),
-                    false,
-                    true,
-                    self.mouse_states
-                        .save_as_workflow_button_mouse_state
-                        .clone(),
-                    &self.warp_theme,
-                    &self.ui_builder,
-                    move |ctx: &mut EventContext, _, _| {
-                        ctx.dispatch_typed_action(TerminalAction::OpenWorkflowModalForBlock(
-                            block_index,
-                        ));
-                    },
-                )
-            };
-
-            self.save_as_workflow_button = Some(element);
-        }
 
         self
     }
@@ -2727,17 +2655,6 @@ impl Element for BlockListElement {
                 app,
             );
         }
-        if let Some(save_as_workflow_button) = &mut self.save_as_workflow_button {
-            save_as_workflow_button.layout(
-                // The size constraint needs to be big enough to cover the total rect when tooltip is rendered.
-                SizeConstraint::new(
-                    vec2f(BLOCK_HOVER_BUTTON_HEIGHT, BLOCK_HOVER_BUTTON_HEIGHT),
-                    vec2f(240., 64.),
-                ),
-                ctx,
-                app,
-            );
-        }
         if let Some(cursor_hint_text) = &mut self.cursor_hint_text_element {
             cursor_hint_text.layout(constraint, ctx, app);
         }
@@ -3674,10 +3591,6 @@ impl Element for BlockListElement {
                             overflow_icon.paint(overflow_menu_button_origin, ctx, app);
                         }
 
-                        if let Some(save_as_workflow_button) = self.save_as_workflow_button.as_mut()
-                        {
-                            save_as_workflow_button.paint(bookmark_button_origin, ctx, app);
-                        }
                     }
 
                     // When a block has an active filter on it, we want the filter icon to show even when the block is not hovered over.
@@ -3951,11 +3864,6 @@ impl Element for BlockListElement {
 
             if let Some(overflow_menu_button) = &mut self.overflow_menu_button {
                 handled_by_floating_button |= overflow_menu_button.dispatch_event(event, ctx, app);
-            }
-
-            if let Some(save_as_workflow_button) = &mut self.save_as_workflow_button {
-                handled_by_floating_button |=
-                    save_as_workflow_button.dispatch_event(event, ctx, app);
             }
 
             for bookmark_element in self.bookmark_elements.values_mut() {
