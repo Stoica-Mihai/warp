@@ -8,7 +8,6 @@ use warp_core::settings::{RespectUserSyncSetting, Setting, SupportedPlatforms, S
 use warpui::{AppContext, ModelContext, SingletonEntity};
 
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
-use crate::cloud_object::CloudObject as _;
 use crate::drive::CloudObjectTypeAndId;
 use crate::server::ids::SyncId;
 
@@ -59,15 +58,8 @@ impl WorkflowAliases {
     }
 
     /// A mapping of all aliases, for autocomplete.
-    pub fn autocomplete_data(&self, ctx: &AppContext) -> HashMap<String, String> {
-        let cloud_model = CloudModel::as_ref(ctx);
-        let mut alias_data = HashMap::with_capacity(self.aliases.len());
-        for alias in self.aliases.iter() {
-            if let Some(backing_workflow) = cloud_model.get_workflow(&alias.workflow_id) {
-                alias_data.insert(alias.alias.clone(), backing_workflow.display_name());
-            }
-        }
-        alias_data
+    pub fn autocomplete_data(&self, _ctx: &AppContext) -> HashMap<String, String> {
+        HashMap::new()
     }
 
     // potentially support autocomplete

@@ -31,9 +31,7 @@ use crate::server::ids::{
     ClientId, HashableId, ObjectUid, ServerId, SyncId,
     ToServerId,
 };
-use crate::workflows::workflow::Workflow;
-use crate::workflows::workflow_enum::{CloudWorkflowEnum, CloudWorkflowEnumModel, WorkflowEnum};
-use crate::workflows::{CloudWorkflowModel, WorkflowId};
+use crate::workflows::workflow_enum::{CloudWorkflowEnumModel, WorkflowEnum};
 use crate::workspaces::team_tester::{TeamTesterStatus, TeamTesterStatusEvent};
 use crate::workspaces::user_workspaces::UserWorkspaces;
 
@@ -276,21 +274,6 @@ impl UpdateManager {
         );
     }
 
-    pub fn update_workflow(
-        &mut self,
-        workflow: Workflow,
-        workflow_id: SyncId,
-        revision_ts: Option<Revision>,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        self.update_object(
-            CloudWorkflowModel::new(workflow),
-            workflow_id,
-            revision_ts,
-            ctx,
-        );
-    }
-
     pub fn update_workflow_enum(
         &mut self,
         workflow_enum: WorkflowEnum,
@@ -341,17 +324,13 @@ impl UpdateManager {
     fn move_object_to_drive(
         &mut self,
         server_id: ServerId,
-        object_type: ObjectType,
-        destination_owner: Owner,
+        _object_type: ObjectType,
+        _destination_owner: Owner,
         _current_folder: Option<SyncId>,
         _current_owner: Owner,
         _current_permissions_last_updated_ts: Option<ServerTimestamp>,
         ctx: &mut ModelContext<Self>,
     ) {
-        if object_type == ObjectType::Workflow {
-            self.copy_workflow_enums_to_drive(server_id, destination_owner, ctx);
-        }
-
         CloudModel::handle(ctx).update(ctx, |cloud_model, ctx| {
             if let Some(obj) = cloud_model.get_mut_by_uid(&server_id.uid()) {
                 obj.metadata_mut()
@@ -370,66 +349,6 @@ impl UpdateManager {
                 num_objects: None,
             },
         });
-    }
-
-    /// Leaves a shared object. Local-only: no server; emit Success immediately.
-    /// Given a workflow_id and a destination drive, make a copy of all referenced workflow enums in the destination drive.
-    /// Returns the original workflow object if it was modified (in case a future revert is needed), otherwise returns None.
-    fn copy_workflow_enums_to_drive(
-        &mut self,
-        server_id: ServerId,
-        owner: Owner,
-        ctx: &mut ModelContext<Self>,
-    ) -> Option<Workflow> {
-        let workflow_id = SyncId::ServerId(server_id);
-        let workflow = CloudModel::as_ref(ctx).get_workflow(&workflow_id);
-
-        if let Some(workflow) = workflow {
-            let original_workflow = workflow.model().data.clone();
-            let mut workflow_model = original_workflow.clone();
-
-            // Duplicate all enums associated with the workflow
-            let enums = workflow_model.get_enum_ids();
-            for enum_id in enums.iter() {
-                let cloud_model = CloudModel::as_ref(ctx);
-                let object: Option<&CloudWorkflowEnum> = cloud_model.get_object_of_type(enum_id);
-                let Some(object) = object else {
-                    log::error!("Could not find referenced workflow enum to copy over to the new space, skipping");
-                    continue;
-                };
-
-                let client_id = ClientId::new();
-
-                // Create a duplicate enum in the new space with a new client ID
-                self.create_object(
-                    object.model().clone(),
-                    owner,
-                    client_id,
-                    CloudObjectEventEntrypoint::Unknown,
-                    true,
-                    None,
-                    // When adding the initiated_by parameter to this function call, InitiatedBy::User was set as a default value.
-                    // This can be changed to InitiatedBy::System if this action was automatically kicked off by the system and we do not want a user facing toast.
-                    InitiatedBy::User,
-                    ctx,
-                );
-
-                workflow_model.replace_object_id(*enum_id, SyncId::ClientId(client_id));
-            }
-
-            // Update the workflow with the new enum IDs, if there are any
-            if !enums.is_empty() {
-                self.update_workflow(workflow_model, workflow_id, None, ctx);
-                Some(original_workflow)
-            } else {
-                None
-            }
-        } else {
-            log::error!(
-                "Tried to move workflow enums to new space but could not find associated workflow",
-            );
-            None
-        }
     }
 
     // This method moves an object from its current location to a new location.
@@ -575,15 +494,16 @@ impl UpdateManager {
     pub fn duplicate_object(
         &mut self,
         cloud_object_type_and_id: &CloudObjectTypeAndId,
-        ctx: &mut ModelContext<Self>,
+        _ctx: &mut ModelContext<Self>,
     ) {
         match cloud_object_type_and_id {
             CloudObjectTypeAndId::Notebook(_) => {
                 log::error!("Tried to duplicate an unsupported type: notebook");
                 debug_assert!(false, "Tried to duplicate an unsupported type: notebook");
             }
-            CloudObjectTypeAndId::Workflow(workflow_id) => {
-                self.duplicate_object_internal::<WorkflowId, CloudWorkflowModel>(workflow_id, ctx);
+            CloudObjectTypeAndId::Workflow(_) => {
+                log::error!("Tried to duplicate an unsupported type: workflow");
+                debug_assert!(false, "Tried to duplicate an unsupported type: workflow");
             }
             CloudObjectTypeAndId::GenericStringObject { .. } => {
                 log::error!("Tried to duplicate an unsupported type: json object");
@@ -695,31 +615,6 @@ impl UpdateManager {
             duplicate_name = get_duplicate_object_name(&duplicate_name);
         }
         duplicate_name
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn create_workflow(
-        &mut self,
-        workflow: Workflow,
-        owner: Owner,
-        initial_folder_id: Option<SyncId>,
-        client_id: ClientId,
-        entrypoint: CloudObjectEventEntrypoint,
-        force_expand: bool,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        self.create_object(
-            CloudWorkflowModel::new(workflow),
-            owner,
-            client_id,
-            entrypoint,
-            force_expand,
-            initial_folder_id,
-            // When adding the initiated_by parameter to this function call, InitiatedBy::User was set as a default value.
-            // This can be changed to InitiatedBy::System if this action was automatically kicked off by the system and we do not want a user facing toast.
-            InitiatedBy::User,
-            ctx,
-        );
     }
 
     #[allow(clippy::too_many_arguments)]

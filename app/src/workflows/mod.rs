@@ -14,15 +14,10 @@ pub mod info_box;
 pub mod local_workflows;
 pub mod workflow;
 pub mod workflow_enum;
-use async_trait::async_trait;
 pub use categories::{CategoriesView, CategoriesViewEvent, WorkflowsViewAction};
 
 use crate::cloud_object::model::view::CloudViewModel;
-use crate::cloud_object::{
-    CloudModelType, CloudObjectUpsertParams, GenericCloudObject, ObjectType,
-};
 use crate::drive::CloudObjectTypeAndId;
-use crate::persistence::ModelEvent;
 use crate::server::ids::{ServerId, SyncId};
 
 pub fn init(app: &mut AppContext) {
@@ -67,8 +62,6 @@ pub enum WorkflowViewMode {
 
 impl WorkflowViewMode {
     /// The editing mode supported for a workflow.
-    ///
-    /// Editing is disabled if the user does not have edit permissions.
     pub fn supported_edit_mode(workflow_id: Option<SyncId>, app: &AppContext) -> Self {
         let can_edit = workflow_id
             .map(|id| {
@@ -86,9 +79,6 @@ impl WorkflowViewMode {
     }
 
     /// The viewing mode supported for this workflow.
-    ///
-    /// Viewing is disabled if the user is allowed to edit the workflow and in a context where
-    /// running workflows is supported.
     pub fn supported_view_mode(workflow_id: Option<SyncId>, app: &AppContext) -> Self {
         let can_edit = workflow_id
             .map(|id| {
@@ -131,8 +121,6 @@ pub enum AIWorkflowOrigin {
 pub enum WorkflowType {
     /// Saved workflows sourced from local, global, project, app collections, saved locally.
     Local(Workflow),
-    /// Saved workflows from personal or team collections, saved using cloud-sync.
-    Cloud(Box<CloudWorkflow>),
     /// Ephemeral/transient workflows created from Warp AI output
     AIGenerated {
         workflow: Workflow,
@@ -147,7 +135,6 @@ impl WorkflowType {
         match self {
             WorkflowType::Local(workflow) => workflow,
             WorkflowType::AIGenerated { workflow, .. } => workflow,
-            WorkflowType::Cloud(workflow) => &workflow.model().data,
             WorkflowType::Notebook(workflow) => workflow,
         }
     }
@@ -157,113 +144,25 @@ impl WorkflowType {
         match self {
             WorkflowType::Local(workflow) => workflow,
             WorkflowType::AIGenerated { workflow, .. } => workflow,
-            WorkflowType::Cloud(workflow) => workflow.model().data.clone(),
             WorkflowType::Notebook(workflow) => workflow,
         }
     }
 
-    /// The object type and ID for the cloud object containing this workflow, if there is
-    /// one. This is currently only supported for cloud workflows, not workflows within notebooks.
     pub fn object_id(&self) -> Option<CloudObjectTypeAndId> {
-        match self {
-            WorkflowType::Cloud(workflow) => Some(CloudObjectTypeAndId::Workflow(workflow.id)),
-            _ => None,
-        }
+        None
     }
 
     pub fn sync_id(&self) -> Option<SyncId> {
-        match self {
-            WorkflowType::Cloud(workflow) => Some(workflow.id),
-            _ => None,
-        }
+        None
     }
 
     pub fn server_id(&self) -> Option<WorkflowId> {
-        match self.object_id() {
-            Some(CloudObjectTypeAndId::Workflow(id)) => id.into_server().map(Into::into),
-            _ => None,
-        }
+        None
     }
 
     /// We don't show env var selection for Agent Mode suggested commands.
     pub(super) fn should_show_env_var_selection(&self) -> bool {
         !matches!(self, WorkflowType::AIGenerated { .. },)
-    }
-}
-
-/// The model for a `CloudWorkflow`.
-#[derive(Clone, Debug, PartialEq)]
-pub struct CloudWorkflowModel {
-    pub data: Workflow,
-}
-
-impl CloudWorkflowModel {
-    pub fn new(workflow: Workflow) -> Self {
-        Self { data: workflow }
-    }
-}
-
-/// `CloudWorkflow` is a workflow retrieved from the server.
-pub type CloudWorkflow = GenericCloudObject<WorkflowId, CloudWorkflowModel>;
-
-#[cfg_attr(not(target_family = "wasm"), async_trait)]
-#[cfg_attr(target_family = "wasm", async_trait(?Send))]
-impl CloudModelType for CloudWorkflowModel {
-    type CloudObjectType = CloudWorkflow;
-    type IdType = WorkflowId;
-
-    fn model_type_name(&self) -> &'static str {
-        if self.data.is_agent_mode_workflow() {
-            "Prompt"
-        } else {
-            "Workflow"
-        }
-    }
-
-    fn object_type(&self) -> ObjectType {
-        ObjectType::Workflow
-    }
-
-    fn cloud_object_type_and_id(&self, id: SyncId) -> CloudObjectTypeAndId {
-        CloudObjectTypeAndId::Workflow(id)
-    }
-
-    fn display_name(&self) -> String {
-        self.data.name().to_string()
-    }
-
-    fn set_display_name(&mut self, name: &str) {
-        self.data.set_name(name);
-    }
-
-    fn upsert_event(params: CloudObjectUpsertParams<Self>) -> ModelEvent {
-        ModelEvent::UpsertWorkflow {
-            workflow: CloudWorkflow::from(params),
-        }
-    }
-
-    fn bulk_upsert_event(objects: Vec<CloudObjectUpsertParams<Self>>) -> ModelEvent {
-        ModelEvent::UpsertWorkflows(objects.into_iter().map(CloudWorkflow::from).collect())
-    }
-
-    fn renders_in_warp_drive(&self) -> bool {
-        true
-    }
-
-    fn can_export(&self) -> bool {
-        true
-    }
-}
-
-impl From<CloudWorkflow> for Workflow {
-    fn from(cloud_workflow: CloudWorkflow) -> Self {
-        cloud_workflow.model().data.clone()
-    }
-}
-
-impl From<&CloudWorkflow> for Workflow {
-    fn from(cloud_workflow: &CloudWorkflow) -> Self {
-        cloud_workflow.model().data.to_owned()
     }
 }
 

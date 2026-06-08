@@ -27,14 +27,9 @@ use warpui::text_layout::TextFrame;
 use warpui::units::{IntoPixels, Pixels};
 use warpui::{AppContext, Element, LayoutContext, SingletonEntity, SizeConstraint};
 
-use crate::cloud_object::model::persistence::CloudModel;
-use crate::cloud_object::CloudObject;
 use crate::drive::cloud_object_styling::warp_drive_icon_color;
 use crate::drive::DriveObjectType;
-use crate::server::ids::{HashableId, ToServerId};
 use crate::ui_components::icons::Icon;
-use crate::workflows::workflow::Workflow;
-use crate::workflows::{CloudWorkflow, WorkflowId};
 
 // Spacing for the embedded workflow card.
 const EMBED_WORKFLOW_SPACING: BlockSpacing = BlockSpacing {
@@ -205,122 +200,31 @@ impl EmbeddedWorkflow {
         text_frames
     }
 
-    /// Get the backing [`CloudWorkflow`] for this embed.
-    fn get_workflow<'a>(&self, app: &'a AppContext) -> Option<&'a CloudWorkflow> {
-        // TODO: @ianhodge - replace the `from_hash` when we create a new API for going from
-        // sqlite hash id -> uid
-        let uid = WorkflowId::from_hash(&self.hashed_id).map(|id| id.to_server_id().uid())?;
-        CloudModel::as_ref(app)
-            .get_by_uid(&uid)
-            .and_then(|object| object.as_any().downcast_ref())
-    }
 }
 
 impl EmbeddedItem for EmbeddedWorkflow {
-    fn layout(&self, text_layout: &TextLayout, app: &AppContext) -> Box<dyn LaidOutEmbeddedItem> {
-        let cloud_model = CloudModel::as_ref(app);
-        let cloud_workflow = self.get_workflow(app);
-
+    fn layout(&self, text_layout: &TextLayout, _app: &AppContext) -> Box<dyn LaidOutEmbeddedItem> {
         let base_text_style = &text_layout.rich_text_styles().base_text;
         let width = text_layout.max_width() - EMBED_WORKFLOW_TEXT_SPACING.x_axis_offset();
-
-        let Some(workflow) = cloud_workflow.and_then(|workflow| {
-            if !workflow.is_trashed(cloud_model) {
-                Some(Into::<Workflow>::into(workflow))
-            } else {
-                None
-            }
-        }) else {
-            return Box::new(BrokenBlockEmbedding::new(width, base_text_style.font_size));
-        };
-
-        let command_text_style = &text_layout.rich_text_styles().embedding_text;
-
-        let title_style =
-            text_layout.style_and_font(base_text_style, &TextStylesWithMetadata::default());
-
-        let title_frame = text_layout.layout_text(
-            workflow.name(),
-            base_text_style,
-            &EMBED_WORKFLOW_TEXT_SPACING,
-            &[(0..workflow.name().chars().count(), title_style)],
-        );
-
-        // Use placeholder style for description text.
-        let description_style = text_layout.style_and_font(
-            base_text_style,
-            &TextStylesWithMetadata::default().for_placeholder(),
-        );
-        let description_frame = workflow.description().map(|description| {
-            text_layout.layout_text(
-                description,
-                base_text_style,
-                &EMBED_WORKFLOW_TEXT_SPACING,
-                &[(0..description.chars().count(), description_style)],
-            )
-        });
-
-        let content_frames = self.command_text_frames(
-            workflow.content().to_owned(),
-            command_text_style,
-            text_layout,
-        );
-
-        let is_agent_mode_prompt =
-            cloud_workflow.is_some_and(|w| w.model().data.is_agent_mode_workflow());
-
-        Box::new(LaidOutEmbeddedWorkflow::new(
-            title_frame,
-            description_frame,
-            content_frames,
-            width,
-            is_agent_mode_prompt,
-        ))
+        Box::new(BrokenBlockEmbedding::new(width, base_text_style.font_size))
     }
 
     fn hashed_id(&self) -> &str {
         self.hashed_id.as_str()
     }
 
-    fn to_mapping(&self, style: MarkdownStyle) -> Mapping {
-        let mut base = match style {
-            MarkdownStyle::Internal => Default::default(),
-            MarkdownStyle::Export { app_context, .. } => app_context
-                .and_then(|ctx| self.get_workflow(ctx))
-                .and_then(|workflow| serde_yaml::to_value(&workflow.model().data).ok())
-                .and_then(|value| match value {
-                    serde_yaml::Value::Mapping(mapping) => Some(mapping),
-                    _ => None,
-                })
-                .unwrap_or_default(),
-        };
-
+    fn to_mapping(&self, _style: MarkdownStyle) -> Mapping {
+        let mut base: Mapping = Default::default();
         base.insert("id".into(), self.hashed_id().into());
         base
     }
 
-    fn to_rich_format(&self, app: &AppContext) -> EmbeddedItemRichFormat<'_> {
-        let cloud_model = CloudModel::as_ref(app);
-        let workflow = self.get_workflow(app);
-
-        // If the workflow is no longer accessible or is trashed, set the content to
-        // an empty string. But we should still keep the HTML element formatting and
-        // attributes so we could re-parse the ID and metadata when pasted into Warp.
-        let workflow_content = workflow
-            .and_then(|workflow| {
-                if !workflow.is_trashed(cloud_model) {
-                    Some(workflow.model().data.content().to_owned())
-                } else {
-                    None
-                }
-            })
-            .unwrap_or("".to_owned());
-
+    fn to_rich_format(&self, _app: &AppContext) -> EmbeddedItemRichFormat<'_> {
         EmbeddedItemRichFormat {
-            plain_text: workflow_content.clone(),
+            plain_text: "".to_owned(),
             html: EmbeddedItemHTMLRepresentation {
                 element_name: "pre",
-                content: workflow_content,
+                content: "".to_owned(),
                 attributes: HashMap::from([(WARP_EMBED_ATTRIBUTE_NAME, self.hashed_id())]),
             },
         }

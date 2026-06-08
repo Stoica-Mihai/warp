@@ -51,7 +51,6 @@ use crate::suggestions::ignored_suggestions_model::SuggestionType;
 use crate::terminal::history::PersistedCommand;
 use crate::terminal::model::block::{SerializedAgentViewVisibility, SerializedBlock};
 use crate::terminal::model::session::SessionId;
-use crate::workflows::CloudWorkflow;
 use crate::workspaces::user_profiles::UserProfileWithUID;
 use crate::workspaces::workspace::{Workspace as WorkspaceMetadata, WorkspaceUid};
 
@@ -218,7 +217,6 @@ pub enum ModelEvent {
     SaveBlock(BlockCompleted),
     DeleteBlocks(Vec<u8>),
     Snapshot(AppState),
-    UpsertWorkflows(Vec<CloudWorkflow>),
     UpsertFolders(Vec<CloudFolder>),
     MarkObjectAsSynced {
         hashed_sqlite_id: String,
@@ -230,9 +228,6 @@ pub enum ModelEvent {
         object: Box<dyn CloudStringObject>,
     },
     UpsertGenericStringObjects(Vec<Box<dyn CloudStringObject>>),
-    UpsertWorkflow {
-        workflow: CloudWorkflow,
-    },
     UpsertFolder {
         folder: CloudFolder,
     },

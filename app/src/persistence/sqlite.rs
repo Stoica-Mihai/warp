@@ -94,7 +94,7 @@ use crate::terminal::history::PersistedCommand;
 use crate::terminal::ShellLaunchData;
 use crate::themes::theme::AnsiColorIdentifier;
 use crate::workflows::workflow_enum::{CloudWorkflowEnum, CloudWorkflowEnumModel};
-use crate::workflows::{CloudWorkflow, CloudWorkflowModel, WorkflowId};
+use crate::workflows::WorkflowId;
 use crate::workspaces::user_profiles::UserProfileWithUID;
 use crate::workspaces::workspace::{Workspace as WorkspaceMetadata, WorkspaceUid};
 use crate::{report_error, report_if_error, safe_info};
@@ -538,9 +538,6 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
         ModelEvent::Snapshot(app_state) => {
             save_app_state(connection, &app_state).context("error saving app state")
         }
-        ModelEvent::UpsertWorkflows(workflows) => {
-            upsert_workflows(connection, workflows).context("error saving workflows")
-        }
         ModelEvent::UpsertFolders(folders) => {
             upsert_folders(connection, folders).context("error saving folders")
         }
@@ -551,9 +548,6 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
         ModelEvent::UpsertGenericStringObjects(objects) => {
             upsert_generic_string_objects(connection, objects)
                 .context("error upserting generic objects")
-        }
-        ModelEvent::UpsertWorkflow { workflow } => {
-            upsert_workflows(connection, vec![workflow]).context("error upserting workflow")
         }
         ModelEvent::UpsertFolder { folder } => {
             upsert_folders(connection, vec![folder]).context("error upserting folder")
@@ -1867,51 +1861,6 @@ fn upsert_generic_string_objects(
     })
 }
 
-fn upsert_workflows(
-    conn: &mut SqliteConnection,
-    cloud_workflows: Vec<CloudWorkflow>,
-) -> Result<(), Error> {
-    use schema::workflows::dsl::*;
-    conn.transaction::<(), Error, _>(|conn| {
-        // todo: wrap in an arc to avoid unnecessary cloning.
-        for cloud_workflow in cloud_workflows {
-            let workflow_id = cloud_workflow.id;
-            if let Ok(serialized_workflow) = serde_json::to_string(&cloud_workflow.model().data) {
-                let serialized_workflow_clone = serialized_workflow.clone();
-                upsert_cloud_object(
-                    conn,
-                    ObjectType::Workflow,
-                    workflow_id,
-                    cloud_workflow.metadata,
-                    cloud_workflow.permissions,
-                    Box::new(move |conn| {
-                        let workflow = model::NewWorkflow {
-                            data: serialized_workflow.clone(),
-                        };
-                        diesel::insert_into(schema::workflows::dsl::workflows)
-                            .values(workflow)
-                            .execute(conn)?;
-                        let workflow_id: i32 = schema::workflows::dsl::workflows
-                            .select(schema::workflows::columns::id)
-                            .order(schema::workflows::columns::id.desc())
-                            .first(conn)?;
-                        Ok(workflow_id)
-                    }),
-                    Box::new(move |conn, workflow_id| {
-                        diesel::update(
-                            workflows.filter(schema::workflows::dsl::id.eq(workflow_id)),
-                        )
-                        .set((data.eq(serialized_workflow_clone),))
-                        .execute(conn)?;
-                        Ok(())
-                    }),
-                )?
-            }
-        }
-        Ok(())
-    })
-}
-
 fn upsert_folders(
     conn: &mut SqliteConnection,
     cloud_folders: Vec<CloudFolder>,
@@ -2389,38 +2338,6 @@ fn read_sqlite_data(
         .collect::<HashMap<_, _>>();
 
     let mut cloud_objects: Vec<Box<dyn CloudObject>> = Vec::new();
-    cloud_objects.extend(
-        schema::workflows::dsl::workflows
-            .load::<model::Workflow>(conn)?
-            .iter()
-            .filter_map(|workflow| {
-                metadata_by_id
-                    .get(&(
-                        workflow.id,
-                        ObjectType::Workflow.sqlite_object_type_as_str().to_string(),
-                    ))
-                    .and_then(|metadata| {
-                        let workflow_content = serde_json::from_str(workflow.data.as_str()).ok();
-                        let workflow_id = id_from_metadata::<WorkflowId>(metadata);
-                        let permissions = permissions_by_id.get(&metadata.id)?;
-                        let cloud_object_permissions =
-                            to_cloud_object_permissions(permissions, current_user_id)?;
-                        workflow_content
-                            .zip(workflow_id)
-                            .map(|(content, workflow_id)| {
-                                let boxed: Box<dyn CloudObject> = Box::new(CloudWorkflow::new(
-                                    workflow_id,
-                                    CloudWorkflowModel::new(content),
-                                    to_cloud_object_metadata(metadata),
-                                    cloud_object_permissions,
-                                ));
-                                boxed
-                            })
-                    })
-            })
-            .collect::<Vec<_>>(),
-    );
-
     cloud_objects.extend(
         schema::folders::dsl::folders
             .load::<model::Folder>(conn)?

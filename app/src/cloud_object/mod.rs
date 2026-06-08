@@ -23,7 +23,7 @@ use crate::drive::{CloudObjectTypeAndId, OpenWarpDriveObjectArgs, OpenWarpDriveO
 use crate::persistence::ModelEvent;
 use crate::server::ids::{HashableId, HashedSqliteId, ObjectUid, ServerId, SyncId, ToServerId};
 use crate::util::time_format::format_approx_duration_from_now_utc;
-use crate::workflows::{CloudWorkflow, WorkflowSource};
+use crate::workflows::WorkflowSource;
 use crate::workspaces::user_profiles::UserProfiles;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 
@@ -609,15 +609,7 @@ where
             SyncId::ClientId(_) => None,
             SyncId::ServerId(id) => {
                 let object_type = self.object_type();
-                let object_type_for_link = if self
-                    .as_any()
-                    .downcast_ref::<CloudWorkflow>()
-                    .is_some_and(|w| w.model().data.is_agent_mode_workflow())
-                {
-                    "prompt".to_string()
-                } else {
-                    object_type.to_string()
-                };
+                let object_type_for_link = object_type.to_string();
 
                 let link = format!(
                     "{}/drive/{}/{}-{}",

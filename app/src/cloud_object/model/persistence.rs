@@ -19,9 +19,7 @@ use crate::drive::folders::{CloudFolder, CloudFolderModel};
 use crate::drive::{CloudObjectTypeAndId, DriveIndexVariant};
 use crate::persistence::ModelEvent;
 use crate::server::ids::{ClientId, HashableId, ObjectUid, ServerId, SyncId, ToServerId};
-use crate::workflows::workflow::Workflow;
 use crate::workflows::workflow_enum::{CloudWorkflowEnum, CloudWorkflowEnumModel, WorkflowEnum};
-use crate::workflows::{CloudWorkflow, CloudWorkflowModel};
 use crate::workspaces::user_workspaces::UserWorkspaces;
 
 // Equivalent to 24 hours
@@ -456,24 +454,6 @@ impl CloudModel {
         }
     }
 
-    /// Overwrite a workflow's definition. For example, if a workflow is in conflict with the
-    /// server, we'll replace the local state with the server's version.
-    pub fn overwrite_workflow(
-        &mut self,
-        workflow: Workflow,
-        workflow_id: SyncId,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        if let Some(cloud_workflow) = self.get_workflow_mut(&workflow_id) {
-            cloud_workflow.set_model(CloudWorkflowModel::new(workflow));
-            ctx.emit(CloudModelEvent::ObjectUpdated {
-                type_and_id: cloud_workflow.cloud_object_type_and_id(),
-                source: UpdateSource::Server,
-            });
-            ctx.notify();
-        }
-    }
-
     pub fn overwrite_workflow_enum(
         &mut self,
         workflow_enum: WorkflowEnum,
@@ -777,16 +757,6 @@ impl CloudModel {
             .filter_map(|object| object.into())
     }
 
-    pub fn get_workflow(&self, workflow_id: &SyncId) -> Option<&CloudWorkflow> {
-        self.objects_by_id
-            .get(&workflow_id.uid())
-            .and_then(|object| object.into())
-    }
-
-    pub fn get_workflow_by_uid(&self, uid: &str) -> Option<&CloudWorkflow> {
-        self.objects_by_id.get(uid).and_then(|object| object.into())
-    }
-
     pub fn get_workflow_enum(&self, enum_id: &SyncId) -> Option<&CloudWorkflowEnum> {
         self.objects_by_id
             .get(&enum_id.uid())
@@ -798,56 +768,6 @@ impl CloudModel {
         self.objects_by_id
             .get_mut(&enum_id.uid())
             .and_then(|object| object.into())
-    }
-
-    pub fn get_workflow_mut(&mut self, workflow_id: &SyncId) -> Option<&mut CloudWorkflow> {
-        self.objects_by_id
-            .get_mut(&workflow_id.uid())
-            .and_then(|object| object.into())
-    }
-
-    /// Returns only active (not trashed) workflows in cloud model.
-    pub fn get_all_active_workflows(&self) -> impl Iterator<Item = &CloudWorkflow> {
-        self.objects_by_id
-            .values()
-            .filter(|object| !object.is_trashed(self))
-            .filter_map(|object| object.into())
-    }
-
-    /// Returns all workflows (trashed or not) in cloud model.
-    pub fn get_all_active_and_inactive_workflows(&self) -> impl Iterator<Item = &CloudWorkflow> {
-        self.objects_by_id
-            .values()
-            .filter_map(|object| object.into())
-    }
-
-    /// Returns all workflows (trashed or not) in cloud model.
-    pub fn get_all_active_and_inactive_workflows_mut(
-        &mut self,
-    ) -> impl Iterator<Item = &mut CloudWorkflow> {
-        self.objects_by_id
-            .values_mut()
-            .filter_map(|object| object.into())
-    }
-
-    /// Returns all active (not trashed) workflows in the space.
-    pub fn active_workflows_in_space<'a>(
-        &'a self,
-        space: Space,
-        app: &'a AppContext,
-    ) -> impl Iterator<Item = &'a CloudWorkflow> + 'a {
-        self.active_cloud_objects_in_space(space, app)
-            .filter_map(|object| object.into())
-    }
-
-    /// Returns all active (not trashed) and non-welcome workflows (ie. non starter workflows) in the space.
-    pub fn active_non_welcome_workflows_in_space<'a>(
-        &'a self,
-        space: Space,
-        app: &'a AppContext,
-    ) -> impl Iterator<Item = &'a CloudWorkflow> + 'a {
-        self.active_non_welcome_cloud_objects_in_space(space, app)
-            .filter_map(|object| object.into())
     }
 
     /// Returns all workflow enums with a given owner.
