@@ -14,8 +14,6 @@ pub mod info_box;
 pub mod local_workflows;
 pub mod workflow;
 pub mod workflow_enum;
-pub mod workflow_view;
-
 use async_trait::async_trait;
 pub use categories::{CategoriesView, CategoriesViewEvent, WorkflowsViewAction};
 
@@ -29,7 +27,6 @@ use crate::server::ids::{ServerId, SyncId};
 
 pub fn init(app: &mut AppContext) {
     categories::init(app);
-    self::workflow_view::init(app);
 }
 
 #[derive(Copy, Clone, Debug, Deserialize, Serialize, Eq, PartialEq, Hash)]
