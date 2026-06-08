@@ -157,10 +157,7 @@ pub fn workflow_view(
 ) -> ViewHandle<WorkflowView> {
     pane_group_view(app, window_id, tab_index).read(
         app,
-        |pane_group, ctx| match pane_group.workflow_view_at_pane_index(pane_index, ctx) {
-            Some(pane) => pane.clone(),
-            None => panic!("workflow view should exist for window_id={window_id}, tab_index={tab_index}, pane_index={pane_index}")
-        },
+        |_pane_group, _ctx| panic!("workflow view should exist for window_id={window_id}, tab_index={tab_index}, pane_index={pane_index}"),
     )
 }
 

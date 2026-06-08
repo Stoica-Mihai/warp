@@ -44,7 +44,7 @@ use crate::app_state::CodePaneSnapShot;
 use crate::app_state::{
     self, BranchSnapshot, LeafContents,
     LeafSnapshot, NotebookPaneSnapshot, PaneNodeSnapshot, PaneUuid, SettingsPaneSnapshot,
-    TerminalPaneSnapshot, WorkflowPaneSnapshot,
+    TerminalPaneSnapshot,
 };
 use crate::appearance::Appearance;
 use crate::banner::{Banner, BannerEvent, BannerState, BannerTextContent, DismissalType};
@@ -125,7 +125,6 @@ pub use pane::file_pane::FilePane;
 pub use pane::network_log_pane::NetworkLogPane;
 pub use pane::settings_pane::SettingsPane;
 pub use pane::terminal_pane::TerminalPane;
-pub use pane::workflow_pane::WorkflowPane;
 pub use pane::{
     AnyPaneContent, BackingView, PaneConfiguration, PaneConfigurationEvent, PaneContent, PaneEvent,
     PaneHeaderAction, PaneHeaderCustomAction, PaneId, PaneView, TerminalPaneId,
@@ -1404,23 +1403,7 @@ impl PaneGroup {
             LeafContents::Code(_) => Err(anyhow::anyhow!(
                 "Code pane restoration not supported on this platform"
             )),
-            LeafContents::Workflow(snapshot) => {
-                let pane: Box<dyn AnyPaneContent + 'static> = match snapshot {
-                    WorkflowPaneSnapshot::CloudWorkflow {
-                        workflow_id,
-                        settings,
-                    } => Box::new(WorkflowPane::restore(workflow_id, settings, ctx)?),
-                };
-
-                let pane_id = pane.as_pane().id();
-                pane_contents.insert(pane_id, pane);
-                let focus = InitialFocus {
-                    focused_pane: leaf.is_focused.then_some(pane_id),
-                    active_session: None,
-                };
-
-                Ok((PaneData::new(pane_id), focus))
-            }
+            LeafContents::Workflow(_) => anyhow::bail!("workflow panes no longer supported"),
             LeafContents::Settings(snapshot) => {
                 let pane: Box<dyn AnyPaneContent + 'static> = match snapshot {
                     SettingsPaneSnapshot::Local {
@@ -2390,19 +2373,7 @@ impl PaneGroup {
         self.pane_contents.contains_key(&pane_id)
     }
 
-    /// Get the notebook view within the pane at `pane_index`.
-    #[cfg(any(test, feature = "integration_tests"))]
-    pub fn workflow_view_at_pane_index(
-        &self,
-        pane_index: usize,
-        ctx: &AppContext,
-    ) -> Option<ViewHandle<crate::workflows::workflow_view::WorkflowView>> {
-        self.content_by_pane_index(pane_index)
-            .and_then(|pane| pane.as_any().downcast_ref::<WorkflowPane>())
-            .map(|pane| pane.get_view(ctx))
-    }
-
-    /// Find the ID of the pane at an index (going left to right, top to bottom).
+/// Find the ID of the pane at an index (going left to right, top to bottom).
     /// Only considers visible panes (excludes panes hidden for close, move, job, etc.).
     pub fn pane_id_by_index(&self, pane_index: usize) -> Option<PaneId> {
         self.panes.visible_pane_ids().get(pane_index).copied()
@@ -2522,10 +2493,6 @@ impl PaneGroup {
         ctx.emit(Event::TerminalViewStateChanged);
         ctx.emit(Event::AppStateChanged);
         pane_content
-    }
-
-    pub fn workflow_pane_by_pane_id(&self, pane_id: Option<PaneId>) -> Option<&WorkflowPane> {
-        self.downcast_pane_by_id(pane_id?)
     }
 
     pub fn code_pane_by_id(&self, pane_id: PaneId) -> Option<&CodePane> {

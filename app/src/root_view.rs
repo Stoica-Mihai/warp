@@ -1369,17 +1369,7 @@ impl RootView {
             let cloud_model = CloudModel::as_ref(ctx);
 
             match arg.object_type {
-                ObjectType::Workflow => {
-                    handle.update(ctx, |workspace, ctx| {
-                        let initialized_section_states =
-                            workspace.has_warp_drive_initialized_sections(ctx);
-                        let workflow_id = SyncId::ServerId(arg.server_id);
-                        let settings = arg.settings.clone();
-                        let _ = ctx.spawn(initialized_section_states, move |workspace, _, ctx| {
-                            workspace.open_workflow_from_intent(workflow_id, &settings, ctx);
-                        });
-                    });
-                }
+                ObjectType::Workflow => {}
                 ObjectType::Folder => {
                     if cloud_model.get_by_uid(&arg.server_id.uid()).is_none() {
                         display_object_missing_error_in_window(ctx.window_id(), ctx);

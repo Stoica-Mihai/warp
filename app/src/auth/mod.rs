@@ -24,7 +24,6 @@ use crate::settings::{
     PrivacySettings, CRASH_REPORTING_ENABLED_DEFAULTS_KEY, TELEMETRY_ENABLED_DEFAULTS_KEY,
 };
 use crate::terminal::general_settings::GeneralSettings;
-use crate::workflows::manager::WorkflowManager;
 use crate::workspace::{Workspace, WorkspaceAction};
 use crate::{
     focus_running_window_and_show_native_modal, persistence, report_if_error,
@@ -175,7 +174,6 @@ pub fn log_out(app: &mut AppContext) {
         manager.stop_polling_for_updated_objects();
     });
     remove_cloud_persisted_settings(app);
-    WorkflowManager::handle(app).update(app, |manager, _| manager.reset());
 
     // Dispatch action on root view of every open window so the state can be updated
     // correctly.

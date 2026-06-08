@@ -5,13 +5,10 @@ use warpui::{async_assert, SingletonEntity, WindowId};
 use super::open_workflow_count;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::{CloudObjectEventEntrypoint, Space};
-use crate::drive::OpenWarpDriveObjectSettings;
 use crate::integration_testing::view_getters::workspace_view;
 use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::ids::{ClientId, SyncId};
-use crate::workflows::manager::WorkflowOpenSource;
 use crate::workflows::workflow::Workflow;
-use crate::workflows::WorkflowViewMode;
 use crate::workspaces::user_workspaces::UserWorkspaces;
 
 /// Create a personal workflow and save its sync ID into the step data.
@@ -59,19 +56,14 @@ pub fn open_workflow(window_key: impl Into<String>, workflow_key: impl Into<Stri
     let workflow_other_key = workflow_key.clone();
     TestStep::new("Open workflow")
         .with_action(move |app, _, data| {
-            let workflow_id: &SyncId = data.get(&workflow_key).expect("No saved workflow ID");
+            let _workflow_id: &SyncId = data.get(&workflow_key).expect("No saved workflow ID");
             let window_id: &WindowId = data.get(&window_key).expect("No saved window ID");
-            workspace_view(app, *window_id).update(app, |workspace, ctx| {
+            workspace_view(app, *window_id).update(app, |_workspace, ctx| {
                 // If the workflow isn't open yet, opening it won't focus the window (we only change
                 // focus if switching to an already-open window). Since the user wouldn't be able to
                 // open a workflow in an unfocused window, switch focus explicitly here.
                 WindowManager::as_ref(ctx).show_window_and_focus_app(*window_id);
-                workspace.open_workflow_in_pane(
-                    &WorkflowOpenSource::Existing(*workflow_id),
-                    &OpenWarpDriveObjectSettings::default(),
-                    WorkflowViewMode::View,
-                    ctx,
-                );
+                // workflow pane opening removed
             })
         })
         .add_named_assertion_with_data_from_prior_step(

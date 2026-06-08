@@ -14,7 +14,6 @@ pub(super) mod network_log_pane;
 pub(super) mod settings_pane;
 pub(super) mod terminal_pane;
 pub mod view;
-pub mod workflow_pane;
 
 use std::any::Any;
 use std::fmt::Display;

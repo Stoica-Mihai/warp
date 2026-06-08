@@ -46,7 +46,7 @@ use crate::drive::DriveObjectType;
 use crate::editor::EditorView;
 use crate::pane_group::pane::IPaneType;
 use crate::pane_group::{
-    CodePane, PaneGroup, PaneId, TabBarHoverIndex, TerminalPane, WorkflowPane,
+    CodePane, PaneGroup, PaneId, TabBarHoverIndex, TerminalPane,
 };
 use crate::safe_triangle::SafeTriangle;
 use crate::tab::{tab_position_id, SelectedTabColor, TabData};
@@ -3155,7 +3155,7 @@ fn vtab_diff_stats_text(line_changes: &GitLineChanges) -> String {
 }
 
 impl PaneGroup {
-    fn resolve_pane_type(&self, pane_id: PaneId, app: &AppContext) -> TypedPane<'_> {
+    fn resolve_pane_type(&self, pane_id: PaneId, _app: &AppContext) -> TypedPane<'_> {
         match pane_id.pane_type() {
             IPaneType::Terminal => TypedPane::Terminal(
                 self.downcast_pane_by_id::<TerminalPane>(pane_id)
@@ -3166,16 +3166,7 @@ impl PaneGroup {
                     .expect("IPaneType::Code must correspond to a CodePane"),
             ),
             IPaneType::File => TypedPane::File,
-            IPaneType::Workflow => {
-                let is_ai_prompt = self
-                    .downcast_pane_by_id::<WorkflowPane>(pane_id)
-                    .map(|wp| {
-                        let wv = wp.get_view(app);
-                        wv.as_ref(app).is_agent_mode_workflow()
-                    })
-                    .unwrap_or(false);
-                TypedPane::Workflow { is_ai_prompt }
-            }
+            IPaneType::Workflow => TypedPane::Workflow { is_ai_prompt: false },
             IPaneType::Settings => TypedPane::Settings,
             IPaneType::NetworkLog | IPaneType::DeferredPlaceholder => TypedPane::Other,
             #[cfg(test)]

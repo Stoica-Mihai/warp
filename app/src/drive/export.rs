@@ -7,8 +7,6 @@ use std::path::{Path, PathBuf};
 #[cfg(feature = "local_fs")]
 use aho_corasick::{AhoCorasick, MatchKind};
 #[cfg(feature = "local_fs")]
-use anyhow::{anyhow, Context};
-#[cfg(feature = "local_fs")]
 use futures::AsyncWriteExt;
 use warp_util::path::ShellFamily;
 use warpui::platform::file_picker::FilePickerError;
@@ -23,9 +21,11 @@ use crate::safe_warn;
 use crate::view_components::DismissibleToast;
 use crate::workspace::{active_terminal_in_window, ToastStack};
 #[cfg(feature = "local_fs")]
+use anyhow::Context;
+#[cfg(feature = "local_fs")]
 use crate::{
     server::cloud_objects::update_manager::get_duplicate_object_name,
-    view_components::ToastLink, workflows::export_workflow::export_serialize,
+    view_components::ToastLink,
     workspace::WorkspaceAction,
 };
 
@@ -255,52 +255,16 @@ impl ExportManager {
     /// Drive export of a single object.
     #[cfg(feature = "local_fs")]
     fn export_one(
-        id: ExportId,
-        is_bulk: bool,
-        parent_path: &Path,
+        _id: ExportId,
+        _is_bulk: bool,
+        _parent_path: &Path,
         object: CloudObjectTypeAndId,
         _shell_family: ShellFamily,
         ctx: &mut ModelContext<Self>,
     ) -> anyhow::Result<SpawnedFutureHandle> {
-        let cloud_model = CloudModel::as_ref(ctx);
-        let (name, extension, data) = match object {
-            CloudObjectTypeAndId::Workflow(workflow_id) => {
-                let workflow = cloud_model
-                    .get_workflow(&workflow_id)
-                    .ok_or_else(|| anyhow!("no workflow for {workflow_id}"))?;
-
-                let mut serializer = serde_yaml::Serializer::new(Vec::new());
-                export_serialize(&workflow.model().data, &mut serializer, ctx)?;
-                let data = serializer.into_inner();
-
-                (workflow.model().data.name().to_owned(), "yaml", data)
-            }
-            CloudObjectTypeAndId::GenericStringObject { object_type, .. } => {
-                anyhow::bail!("exporting {object_type:?} not yet supported")
-            }
-            other => {
-                anyhow::bail!("exporting {other:?} not yet supported")
-            }
-        };
-
-        let name = if name.is_empty() {
-            "Untitled".to_string()
-        } else {
-            safe_filename(&name)
-        };
-
-        let path = if is_bulk {
-            parent_path.join(safe_filename(&id.1.name(ctx)))
-        } else {
-            parent_path.to_path_buf()
-        };
-
-        Ok(ctx.spawn(
-            async move { write_object(path, is_bulk, name, extension, data).await },
-            move |me, result, ctx| {
-                me.handle_object_export(id, object, result, ctx);
-            },
-        ))
+        let _ = object;
+        let _ = ctx;
+        anyhow::bail!("cloud object export not supported")
     }
 
     #[cfg(not(feature = "local_fs"))]

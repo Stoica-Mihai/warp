@@ -190,7 +190,6 @@ use warpui::platform::TerminationMode;
 use warpui::windowing::state::ApplicationStage;
 use warpui::{App, AppContext, Event, SingletonEntity, WindowId};
 use window_settings::WindowSettings;
-use workflows::manager::WorkflowManager;
 use workspace::sync_inputs::SyncedInputState;
 
 use self::features::FeatureFlag;
@@ -1423,8 +1422,6 @@ pub(crate) fn initialize_app(
 
     // Add a singleton model for resizable modals whose size should be persisted through restarts.
     ctx.add_singleton_model(|_| ResizableData::default());
-
-    ctx.add_singleton_model(WorkflowManager::new);
 
     ctx.add_singleton_model(LocalWorkflows::new);
 
