@@ -1,4 +1,3 @@
-use pathfinder_color::ColorU;
 use pathfinder_geometry::rect::RectF;
 use pathfinder_geometry::vector::Vector2F;
 use warp_core::ui::theme::{Fill, WarpTheme};
@@ -16,8 +15,6 @@ pub const MAXIMUM_FLAG_FONT_SIZE: f32 = 13.;
 const SUBSHELL_FLAG_HORIZONTAL_PADDING: f32 = 8.;
 const SUBSHELL_FLAG_VERTICAL_PADDING: f32 = 1.;
 
-// TODO(liam): remove this once figuring out how to get theme color in layout()
-const WARP_DRIVE_ENV_VAR_COLLECTION_ICON_COLOR: u32 = 0xC464FFFF;
 const ICON_MARGIN: f32 = 4.;
 const TERMINAL_ICON: &str = "bundled/svg/terminal.svg";
 
@@ -26,13 +23,8 @@ pub const LEFT_STRIPE_WIDTH: f32 = 5.;
 
 
 fn get_subshell_flag_info(subshell_source: &SubshellSource, theme: &WarpTheme) -> (String, Fill) {
-    match subshell_source {
-        SubshellSource::EnvVarCollection(environment_name) => (
-            environment_name.to_string(),
-            Fill::Solid(ColorU::from_u32(WARP_DRIVE_ENV_VAR_COLLECTION_ICON_COLOR)),
-        ),
-        SubshellSource::Command(command) => (command.to_string(), theme.subshell_background()),
-    }
+    let SubshellSource::Command(command) = subshell_source;
+    (command.to_string(), theme.subshell_background())
 }
 
 /// A single solid color vertical bar positioned on the left-hand side of a blocklist element

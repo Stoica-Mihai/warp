@@ -215,8 +215,6 @@ pub enum WorkspaceAction {
     CreateTeamWorkflow,
     CreatePersonalFolder,
     CreateTeamFolder,
-    CreateTeamEnvVarCollection,
-    CreatePersonalEnvVarCollection,
     CreatePersonalAIPrompt,
     CreateTeamAIPrompt,
     ToggleMouseReporting,
@@ -281,7 +279,6 @@ pub enum WorkspaceAction {
     /// An action to force terminal input syncing off
     DisableTerminalInputSync,
     HandleConflictingWorkflow(SyncId),
-    HandleConflictingEnvVarCollection(SyncId),
     OpenPromptEditor {
         open_source: PromptEditorOpenSource,
     },
@@ -646,8 +643,6 @@ impl WorkspaceAction {
             | CreateTeamWorkflow
             | CreatePersonalFolder
             | CreateTeamFolder
-            | CreateTeamEnvVarCollection
-            | CreatePersonalEnvVarCollection
             | CreatePersonalAIPrompt
             | CreateTeamAIPrompt
             | OpenInExplorer { .. }
@@ -686,7 +681,6 @@ impl WorkspaceAction {
             | ToggleSyncTerminalInputsInTab
             | DisableTerminalInputSync
             | HandleConflictingWorkflow(_)
-            | HandleConflictingEnvVarCollection(_)
             | OpenPromptEditor { .. }
             | OpenAgentToolbarEditor
             | OpenCLIAgentToolbarEditor

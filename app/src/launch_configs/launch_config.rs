@@ -147,7 +147,6 @@ impl TryFrom<PaneNodeSnapshot> for PaneTemplateType {
                 }),
                 // Currently, notebook panes cannot be saved in launch configurations.
                 LeafContents::Notebook(_)
-                | LeafContents::EnvVarCollection(_)
                 | LeafContents::Code(_)
                 | LeafContents::Workflow(_)
                 | LeafContents::Settings(_)

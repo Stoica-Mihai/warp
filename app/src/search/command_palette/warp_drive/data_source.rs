@@ -2,19 +2,16 @@ use std::collections::HashMap;
 
 use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 
-use super::env_var_collection_search_item::EnvVarCollectionSearchItem;
 use super::notebook_search_item::NotebookSearchItem;
 use super::workflow_search_item::WorkflowSearchItem;
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
 use crate::cloud_object::{
-    CloudObject, CloudObjectLocation, GenericStringObjectFormat, JsonObjectType, ObjectType,
+    CloudObject, CloudObjectLocation, ObjectType,
 };
 use crate::drive::folders::CloudFolder;
-use crate::env_vars::CloudEnvVarCollection;
 use crate::notebooks::CloudNotebook;
 use crate::search::command_palette::mixer::CommandPaletteItemAction;
 use crate::search::data_source::{DataSourceSearchError, Query, QueryResult};
-use crate::search::env_var_collections::fuzzy_match::FuzzyMatchEnvVarCollectionResult;
 use crate::search::mixer::DataSourceRunErrorWrapper;
 use crate::search::notebooks::fuzzy_match::FuzzyMatchNotebookResult;
 use crate::search::workflows::fuzzy_match::FuzzyMatchWorkflowResult;
@@ -69,9 +66,6 @@ impl DataSource {
         event: &CloudModelEvent,
         ctx: &mut ModelContext<Self>,
     ) {
-        // When the initial bulk load completes, rebuild the entire search index once.
-        // Per-object events are suppressed at the source during initial load, so this
-        // is the only event we receive from that batch.
         if let CloudModelEvent::InitialLoadCompleted = event {
             self.searcher
                 .refresh_search_index(ctx)
@@ -87,7 +81,6 @@ impl DataSource {
             | CloudModelEvent::ObjectMoved { type_and_id, .. }
             | CloudModelEvent::ObjectUpdated { type_and_id, .. } => {
                 if let Some(obj) = CloudModel::as_ref(ctx).get_by_uid(&type_and_id.uid()) {
-                    // Insertion will overwrite the object if it already exists.
                     self.searcher
                         .insert_searchable_object(obj, type_and_id.object_type(), ctx)
                         .unwrap_or_else(|err| {
@@ -113,8 +106,6 @@ impl DataSource {
                     return;
                 };
 
-                // Ensure the index is updated with the new server ID (any operations using old client ID will fail
-                // when reading from the CloudModel once the object is synced).
                 self.searcher
                     .delete_searchable_object(client_id.to_string(), type_and_id.object_type(), ctx)
                     .unwrap_or_else(|err| {
@@ -212,34 +203,15 @@ impl crate::search::mixer::SyncDataSource for DataSource {
             );
         }
 
-        if query.filters.contains(&QueryFilter::EnvironmentVariables)
-            || should_include_all_drive_objects
-        {
-            filtered_cloud_objects.extend(
-                self.searcher
-                    .search_env_var(&query.text.to_lowercase(), app)
-                    .map_err(|err| {
-                        Box::new(DataSourceSearchError {
-                            message: err.to_string(),
-                        }) as DataSourceRunErrorWrapper
-                    })?
-                    .into_iter()
-                    .map(QueryResult::from),
-            );
-        }
-
         Ok(filtered_cloud_objects)
     }
 }
 
 impl DataSource {
-    /// If we are using the drive filter, or there are no filters,
-    /// then we want to include all searchable drive objects
     fn include_all_drive_objects_in_result(query: &Query) -> bool {
         query.filters.contains(&QueryFilter::Drive) || query.filters.is_empty()
     }
-    /// Returns a [`QueryResult`] for a notebook identified by `sync_id`. `None` if no result was
-    /// found with the given ID.
+
     pub fn query_result(
         &self,
         sync_id: &SyncId,
@@ -259,14 +231,6 @@ impl DataSource {
             return Some(QueryResult::from(NotebookSearchItem {
                 match_result: FuzzyMatchNotebookResult::no_match(),
                 cloud_notebook: notebook.clone(),
-            }));
-        }
-
-        let env_var_collection: Option<&CloudEnvVarCollection> = object.into();
-        if let Some(env_var_collection) = env_var_collection {
-            return Some(QueryResult::from(EnvVarCollectionSearchItem {
-                match_result: FuzzyMatchEnvVarCollectionResult::no_match(),
-                cloud_env_var_collection: env_var_collection.clone(),
             }));
         }
 
@@ -293,7 +257,6 @@ trait WarpDriveSearcher {
         app: &AppContext,
     ) -> anyhow::Result<()>;
 
-    /// Clear and rebuild the search index.
     fn refresh_search_index(&mut self, app: &AppContext) -> anyhow::Result<()>;
 
     fn search_notebook(
@@ -310,12 +273,6 @@ trait WarpDriveSearcher {
         should_include_command_workflow: bool,
     ) -> anyhow::Result<Vec<WorkflowSearchItem>>;
 
-    fn search_env_var(
-        &self,
-        query: &str,
-        app: &AppContext,
-    ) -> anyhow::Result<Vec<EnvVarCollectionSearchItem>>;
-
     fn search_plans(
         &self,
         query: &str,
@@ -327,7 +284,6 @@ trait WarpDriveSearcher {
 struct FuzzyWarpDriveSearcher {
     notebooks: HashMap<ObjectUid, CloudNotebook>,
     workflows: HashMap<ObjectUid, CloudWorkflow>,
-    env_vars: HashMap<ObjectUid, CloudEnvVarCollection>,
 }
 
 impl WarpDriveSearcher for FuzzyWarpDriveSearcher {
@@ -354,16 +310,6 @@ impl WarpDriveSearcher for FuzzyWarpDriveSearcher {
                     anyhow::bail!("Expected CloudWorkflow, got {:?}", object);
                 }
             }
-            ObjectType::GenericStringObject(GenericStringObjectFormat::Json(
-                JsonObjectType::EnvVarCollection,
-            )) => {
-                let env_var: Option<&CloudEnvVarCollection> = object.into();
-                if let Some(env_var) = env_var {
-                    self.env_vars.insert(env_var.uid(), env_var.clone());
-                } else {
-                    anyhow::bail!("Expected CloudEnvVarCollection, got {:?}", object);
-                }
-            }
             ObjectType::Folder => {
                 let folder: Option<&CloudFolder> = object.into();
                 if let Some(folder) = folder {
@@ -377,7 +323,6 @@ impl WarpDriveSearcher for FuzzyWarpDriveSearcher {
                     anyhow::bail!("Expected CloudFolder, got {:?}", object);
                 }
             }
-            // We don't care about other object types for now.
             _ => {}
         }
         Ok(())
@@ -396,11 +341,6 @@ impl WarpDriveSearcher for FuzzyWarpDriveSearcher {
             ObjectType::Workflow => {
                 self.workflows.remove(&uid);
             }
-            ObjectType::GenericStringObject(GenericStringObjectFormat::Json(
-                JsonObjectType::EnvVarCollection,
-            )) => {
-                self.env_vars.remove(&uid);
-            }
             ObjectType::Folder => {
                 let model = CloudModel::as_ref(app);
                 let Some(obj) = model.get_by_uid(&uid) else {
@@ -418,7 +358,6 @@ impl WarpDriveSearcher for FuzzyWarpDriveSearcher {
                     anyhow::bail!("Expected CloudFolder, got {:?}", obj);
                 }
             }
-            // We don't care about other object types for now.
             _ => {}
         }
         Ok(())
@@ -427,9 +366,7 @@ impl WarpDriveSearcher for FuzzyWarpDriveSearcher {
     fn refresh_search_index(&mut self, app: &AppContext) -> anyhow::Result<()> {
         self.workflows.clear();
         self.notebooks.clear();
-        self.env_vars.clear();
         let model = CloudModel::as_ref(app);
-        // Single pass with memoized is_trashed: O(N) instead of O(3×N×D).
         let active_uids = model.active_object_uids();
         for object in model.cloud_objects() {
             if !active_uids.contains(&object.uid()) {
@@ -439,8 +376,6 @@ impl WarpDriveSearcher for FuzzyWarpDriveSearcher {
                 self.workflows.insert(workflow.uid(), workflow.clone());
             } else if let Some(notebook) = <Option<&CloudNotebook>>::from(object.as_ref()) {
                 self.notebooks.insert(notebook.uid(), notebook.clone());
-            } else if let Some(env_var) = <Option<&CloudEnvVarCollection>>::from(object.as_ref()) {
-                self.env_vars.insert(env_var.uid(), env_var.clone());
             }
         }
         Ok(())
@@ -514,29 +449,6 @@ impl WarpDriveSearcher for FuzzyWarpDriveSearcher {
             })
             .collect())
     }
-
-    fn search_env_var(
-        &self,
-        query: &str,
-        app: &AppContext,
-    ) -> anyhow::Result<Vec<EnvVarCollectionSearchItem>> {
-        let cloud_env_var_collections =
-            CloudModel::as_ref(app).get_all_active_env_var_collections();
-
-        Ok(cloud_env_var_collections
-            .filter_map(|cloud_env_var_collection| {
-                FuzzyMatchEnvVarCollectionResult::try_match(
-                    query,
-                    &cloud_env_var_collection.model().string_model,
-                    cloud_env_var_collection.breadcrumbs(app).as_str(),
-                )
-                .map(|match_result| EnvVarCollectionSearchItem {
-                    match_result,
-                    cloud_env_var_collection: cloud_env_var_collection.clone(),
-                })
-            })
-            .collect())
-    }
 }
 
 #[cfg(not(target_family = "wasm"))]
@@ -544,38 +456,28 @@ mod full_text_searcher {
     use std::sync::Arc;
 
     use fuzzy_match::FuzzyMatchResult;
-    use itertools::Itertools;
     use warpui::r#async::executor::Background;
     use warpui::{AppContext, SingletonEntity};
 
     use crate::cloud_object::model::persistence::CloudModel;
     use crate::cloud_object::{
-        CloudObject, CloudObjectLocation, GenericStringObjectFormat, JsonObjectType, ObjectType,
+        CloudObject, CloudObjectLocation, ObjectType,
     };
     use crate::define_search_schema;
     use crate::drive::folders::CloudFolder;
-    use crate::env_vars::CloudEnvVarCollection;
     use crate::notebooks::manager::NotebookManager;
     use crate::notebooks::CloudNotebook;
     use crate::search::command_palette::warp_drive::data_source::WarpDriveSearcher;
-    use crate::search::command_palette::warp_drive::env_var_collection_search_item::{
-        EnvVarCollectionSearchItem, ENV_VAR_NAME_SEPARATOR,
-    };
     use crate::search::command_palette::warp_drive::notebook_search_item::NotebookSearchItem;
     use crate::search::command_palette::warp_drive::workflow_search_item::WorkflowSearchItem;
-    use crate::search::env_var_collections::fuzzy_match::FuzzyMatchEnvVarCollectionResult;
     use crate::search::notebooks::fuzzy_match::FuzzyMatchNotebookResult;
     use crate::search::searcher::{AsyncSearcher, DEFAULT_MEMORY_BUDGET, SCORE_CONVERSION_FACTOR};
     use crate::search::workflows::fuzzy_match::FuzzyMatchWorkflowResult;
     use crate::server::ids::ObjectUid;
     use crate::workflows::CloudWorkflow;
 
-    /// Memory budget for the search index of warp drive.
-    /// Warp could potentially have a lot of objects, so we increase it from the default of 50MB to 100MB
-    const MEMORY_BUDGET: usize = 100_000_000; // TODO: is 100MB really necessary?
+    const MEMORY_BUDGET: usize = 100_000_000;
 
-    // All Warp Drive objects are boosted due to multiple fields being a part of the same total score,
-    // putting them at an inherent disadvantage, as each field would only have a fractional weight.
     define_search_schema!(
         schema_name: NOTEBOOK_SEARCH_SCHEMA,
         config_name: NotebookConfig,
@@ -589,7 +491,7 @@ mod full_text_searcher {
         id_fields: [
             uid: String
         ],
-        boost_factor: 1.15 // Boosted by only 1.15 as the name field has a weighting of 0.6 instead of 0.5 like others.
+        boost_factor: 1.15
     );
     define_search_schema!(
         schema_name: WORKFLOW_SEARCH_SCHEMA,
@@ -607,27 +509,10 @@ mod full_text_searcher {
         ],
         boost_factor: 1.3
     );
-    define_search_schema!(
-        schema_name: ENVVAR_SEARCH_SCHEMA,
-        config_name: EnvVarConfig,
-        search_doc: EnvVarSearchDocument,
-        identifying_doc: EnvVarIdDocument,
-        search_fields: [
-            title: 0.5,
-            var_name: 0.3,
-            description: 0.1,
-            folder: 0.1
-        ],
-        id_fields: [
-            uid: String
-        ],
-        boost_factor: 1.3
-    );
 
     pub(crate) struct FullTextWarpDriveSearcher {
         notebook_searcher: AsyncSearcher<NotebookConfig>,
         workflow_searcher: AsyncSearcher<WorkflowConfig>,
-        env_var_searcher: AsyncSearcher<EnvVarConfig>,
     }
 
     impl FullTextWarpDriveSearcher {
@@ -673,7 +558,6 @@ mod full_text_searcher {
                         return None;
                     }
 
-                    // Since Tantivy only produces a single score for the entire document, we put it as the score of all 3.
                     let name_match_result = Some(FuzzyMatchResult {
                         score: (search_match.score * SCORE_CONVERSION_FACTOR) as i64,
                         matched_indices: search_match.highlights.name,
@@ -755,43 +639,6 @@ mod full_text_searcher {
                         anyhow::bail!("Expected CloudWorkflow, got {:?}", object);
                     }
                 }
-                ObjectType::GenericStringObject(GenericStringObjectFormat::Json(
-                    JsonObjectType::EnvVarCollection,
-                )) => {
-                    let env_var: Option<&CloudEnvVarCollection> = object.into();
-                    if let Some(cloud_env_var) = env_var {
-                        let env_var_collection = &cloud_env_var.model().string_model;
-
-                        let title = env_var_collection
-                            .title
-                            .as_ref()
-                            .unwrap_or(&"".to_owned())
-                            .to_lowercase();
-                        let var_name = env_var_collection
-                            .vars
-                            .iter()
-                            .map(|var| &var.name)
-                            .join(ENV_VAR_NAME_SEPARATOR)
-                            .to_lowercase();
-                        let description = env_var_collection
-                            .description
-                            .as_ref()
-                            .unwrap_or(&"".to_owned())
-                            .to_lowercase();
-                        let folder = cloud_env_var.breadcrumbs(app).to_lowercase();
-
-                        let document = EnvVarSearchDocument {
-                            title,
-                            var_name,
-                            description,
-                            folder,
-                            uid: cloud_env_var.uid(),
-                        };
-                        self.env_var_searcher.insert_document_async(document)
-                    } else {
-                        anyhow::bail!("Expected CloudEnvVarCollection, got {:?}", object);
-                    }
-                }
                 ObjectType::Folder => {
                     let folder: Option<&CloudFolder> = object.into();
                     if let Some(folder) = folder {
@@ -806,7 +653,6 @@ mod full_text_searcher {
                         anyhow::bail!("Expected CloudFolder, got {:?}", object);
                     }
                 }
-                // We don't care about other object types for now.
                 _ => Ok(()),
             }
         }
@@ -828,13 +674,6 @@ mod full_text_searcher {
                     self.workflow_searcher
                         .delete_document_async(identifying_entry)
                 }
-                ObjectType::GenericStringObject(GenericStringObjectFormat::Json(
-                    JsonObjectType::EnvVarCollection,
-                )) => {
-                    let identifying_entry = EnvVarIdDocument { uid };
-                    self.env_var_searcher
-                        .delete_document_async(identifying_entry)
-                }
                 ObjectType::Folder => {
                     let Some(obj) = CloudModel::as_ref(app).get_by_uid(&uid) else {
                         anyhow::bail!("Object with ID {:?} not found in CloudModel", uid);
@@ -852,15 +691,12 @@ mod full_text_searcher {
                         anyhow::bail!("Expected CloudFolder, got {:?}", folder);
                     }
                 }
-                // We don't care about other object types for now.
                 _ => Ok(()),
             }
         }
 
         fn refresh_search_index(&mut self, app: &AppContext) -> anyhow::Result<()> {
             let model = CloudModel::as_ref(app);
-            // Pre-compute active UIDs in a single O(N) pass with memoized is_trashed,
-            // instead of 3 separate O(N×D) passes.
             let active_uids = model.active_object_uids();
 
             self.notebook_searcher.clear_search_index_async()?;
@@ -912,42 +748,6 @@ mod full_text_searcher {
                     })
                 });
             self.workflow_searcher.build_index_async(workflow_docs)?;
-
-            self.env_var_searcher.clear_search_index_async()?;
-            let env_var_docs = model
-                .cloud_objects()
-                .filter(|obj| active_uids.contains(&obj.uid()))
-                .filter_map(|obj| {
-                    let cloud_env_var: Option<&CloudEnvVarCollection> = obj.as_ref().into();
-                    cloud_env_var.map(|cloud_env_var| {
-                        let env_var_collection = &cloud_env_var.model().string_model;
-                        let title = env_var_collection
-                            .title
-                            .as_ref()
-                            .unwrap_or(&"".to_owned())
-                            .to_lowercase();
-                        let var_name = env_var_collection
-                            .vars
-                            .iter()
-                            .map(|var| &var.name)
-                            .join(ENV_VAR_NAME_SEPARATOR)
-                            .to_lowercase();
-                        let description = env_var_collection
-                            .description
-                            .as_ref()
-                            .unwrap_or(&"".to_owned())
-                            .to_lowercase();
-                        let folder = cloud_env_var.breadcrumbs(app).to_lowercase();
-                        EnvVarSearchDocument {
-                            title,
-                            var_name,
-                            description,
-                            folder,
-                            uid: cloud_env_var.uid(),
-                        }
-                    })
-                });
-            self.env_var_searcher.build_index_async(env_var_docs)?;
 
             Ok(())
         }
@@ -1018,7 +818,6 @@ mod full_text_searcher {
                         return None;
                     }
 
-                    // Since Tantivy only produces a single score for the entire document, we put it as the score of all 3.
                     let name_match_result = Some(FuzzyMatchResult {
                         score: (search_match.score * SCORE_CONVERSION_FACTOR) as i64,
                         matched_indices: search_match.highlights.name,
@@ -1048,73 +847,6 @@ mod full_text_searcher {
                 })
                 .collect())
         }
-
-        fn search_env_var(
-            &self,
-            query: &str,
-            app: &AppContext,
-        ) -> anyhow::Result<Vec<EnvVarCollectionSearchItem>> {
-            if query.is_empty() {
-                return Ok(self
-                    .env_var_searcher
-                    .get_all_doc_ids()?
-                    .into_iter()
-                    .filter_map(|search_match| {
-                        let env_var_collection: Option<&CloudEnvVarCollection> =
-                            CloudModel::as_ref(app)
-                                .get_by_uid(&search_match.uid)?
-                                .into();
-                        let env_var_collection = env_var_collection?;
-
-                        Some(EnvVarCollectionSearchItem {
-                            match_result: FuzzyMatchEnvVarCollectionResult::no_match(),
-                            cloud_env_var_collection: env_var_collection.clone(),
-                        })
-                    })
-                    .collect());
-            }
-
-            Ok(self
-                .env_var_searcher
-                .search_id(query)?
-                .into_iter()
-                .filter_map(|search_match| {
-                    let env_var_collection: Option<&CloudEnvVarCollection> =
-                        CloudModel::as_ref(app)
-                            .get_by_uid(&search_match.values.uid)?
-                            .into();
-                    let env_var_collection = env_var_collection?;
-
-                    // Since Tantivy only produces a single score for the entire document, we put it as the score of all 3.
-                    let title_match_result = Some(FuzzyMatchResult {
-                        score: (search_match.score * SCORE_CONVERSION_FACTOR) as i64,
-                        matched_indices: search_match.highlights.title,
-                    });
-                    let var_name_match_result = Some(FuzzyMatchResult {
-                        score: (search_match.score * SCORE_CONVERSION_FACTOR) as i64,
-                        matched_indices: search_match.highlights.var_name,
-                    });
-                    let description_match_result = Some(FuzzyMatchResult {
-                        score: (search_match.score * SCORE_CONVERSION_FACTOR) as i64,
-                        matched_indices: search_match.highlights.description,
-                    });
-                    let breadcrumbs_match_result = Some(FuzzyMatchResult {
-                        score: (search_match.score * SCORE_CONVERSION_FACTOR) as i64,
-                        matched_indices: search_match.highlights.folder,
-                    });
-
-                    Some(EnvVarCollectionSearchItem {
-                        match_result: FuzzyMatchEnvVarCollectionResult {
-                            title_match_result,
-                            var_name_match_result,
-                            description_match_result,
-                            breadcrumbs_match_result,
-                        },
-                        cloud_env_var_collection: env_var_collection.clone(),
-                    })
-                })
-                .collect())
-        }
     }
 
     impl FullTextWarpDriveSearcher {
@@ -1123,8 +855,6 @@ mod full_text_searcher {
                 notebook_searcher: NOTEBOOK_SEARCH_SCHEMA
                     .create_async_searcher(MEMORY_BUDGET, background.clone()),
                 workflow_searcher: WORKFLOW_SEARCH_SCHEMA
-                    .create_async_searcher(DEFAULT_MEMORY_BUDGET, background.clone()),
-                env_var_searcher: ENVVAR_SEARCH_SCHEMA
                     .create_async_searcher(DEFAULT_MEMORY_BUDGET, background),
             }
         }

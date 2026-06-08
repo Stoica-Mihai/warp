@@ -399,9 +399,6 @@ impl AuthState {
                 match object_type {
                     ObjectType::Notebook => num_objects > limits.notebook_limit,
                     ObjectType::Workflow => num_objects > limits.workflow_limit,
-                    ObjectType::GenericStringObject(GenericStringObjectFormat::Json(
-                        JsonObjectType::EnvVarCollection,
-                    )) => num_objects > limits.env_var_limit,
                     _ => false,
                 }
             } else {

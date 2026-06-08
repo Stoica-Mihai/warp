@@ -23,7 +23,6 @@ use warpui::{
     ViewContext, ViewHandle, WeakViewHandle,
 };
 
-use super::env_var_collections::EnvVarCollectionDataSource;
 use super::history::history_data_source_for_session;
 use super::notebooks::notebooks_data_source;
 use super::workflows::WorkflowsDataSource;
@@ -232,14 +231,6 @@ impl CommandSearchView {
                     ctx,
                 );
 
-                // EnvVarCollectionDataSource stays synchronous because each match target is
-                // structurally short (title, variable name, description). The per-item fuzzy
-                // match cost is negligible, so offloading to an async task would add complexity
-                // without meaningful performance benefit.
-                mixer.add_sync_source(
-                    EnvVarCollectionDataSource::new(),
-                    HashSet::from([QueryFilter::EnvironmentVariables]),
-                );
             }
 
 
@@ -415,7 +406,6 @@ impl CommandSearchView {
                 | AcceptWorkflow(_)
                 | AcceptNotebook(_)
                 | OpenWarpAI
-                | AcceptEnvVarCollection(_)
                 | TranslateUsingWarpAI => false,
             };
 

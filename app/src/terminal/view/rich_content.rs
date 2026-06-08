@@ -4,7 +4,6 @@ use warpui::{Element, EntityId, View, ViewContext, ViewHandle};
 use super::{InitStepBlock, InitStepKind};
 use crate::ai::conversation_types::AIConversationId;
 use crate::terminal::view::agent_view_state::AgentViewEntryOrigin;
-use crate::env_vars::env_var_collection_block::EnvVarCollectionBlock;
 use crate::terminal::block_list_viewport::ScrollPositionUpdate;
 use crate::terminal::model::blocks::RichContentItem;
 use crate::terminal::model::rich_content::RichContentType;
@@ -184,9 +183,6 @@ pub enum RichContentMetadata {
     InitStep {
         step_kind: InitStepKind,
         block_handle: ViewHandle<InitStepBlock>,
-    },
-    EnvVarCollectionBlock {
-        env_var_collection_block_handle: ViewHandle<EnvVarCollectionBlock>,
     },
     SshRemoteServerFailedBanner {
         handle: ViewHandle<SshRemoteServerFailedBanner>,

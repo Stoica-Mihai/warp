@@ -784,7 +784,6 @@ pub enum BindingGroup {
     Folders,
     KeyboardShortcuts,
     Notifications,
-    EnvVarCollection,
     Terminal,
 }
 
@@ -801,7 +800,6 @@ impl BindingGroup {
             Self::KeyboardShortcuts => "keyboard_shortcuts",
             Self::Close => "close",
             Self::Notifications => "notifications",
-            Self::EnvVarCollection => "env_var_collections",
             Self::Terminal => "terminal",
         }
     }

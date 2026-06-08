@@ -1,4 +1,3 @@
-use crate::env_vars::CloudEnvVarCollection;
 use crate::search::mixer::SearchMixer;
 use crate::server::ids::SyncId;
 use crate::terminal::history::LinkedWorkflowData;
@@ -42,9 +41,6 @@ pub enum CommandSearchItemAction {
 
     /// The user accepted the notebook search item.
     AcceptNotebook(SyncId),
-
-    /// The user accepted an EVC search item.
-    AcceptEnvVarCollection(Box<CloudEnvVarCollection>),
 
     /// The user accepted the search item to open Warp AI.
     OpenWarpAI,

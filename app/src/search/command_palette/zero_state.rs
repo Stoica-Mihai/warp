@@ -87,7 +87,6 @@ impl ZeroState {
             }
             valid_filters.push(QueryFilter::Notebooks);
 
-            valid_filters.push(QueryFilter::EnvironmentVariables);
         }
 
         if FeatureFlag::CommandPaletteFileSearch.is_enabled() {

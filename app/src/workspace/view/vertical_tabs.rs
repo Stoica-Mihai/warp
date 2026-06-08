@@ -736,7 +736,6 @@ enum SummaryPaneKind {
     Notebook { is_plan: bool },
     Workflow { is_ai_prompt: bool },
     Settings,
-    EnvVarCollection,
     Other,
 }
 
@@ -2395,10 +2394,6 @@ fn resolve_icon_with_status_variant(
             icon: typed.icon(),
             icon_color: drive_color(DriveObjectType::Workflow),
         },
-        TypedPane::EnvVarCollection => IconWithStatusVariant::Neutral {
-            icon: typed.icon(),
-            icon_color: drive_color(DriveObjectType::EnvVarCollection),
-        },
         // Other pane types use sub-text color
         other => IconWithStatusVariant::Neutral {
             icon: other.icon(),
@@ -2536,7 +2531,6 @@ enum TypedPane<'a> {
     Notebook { is_plan: bool },
     Workflow { is_ai_prompt: bool },
     Settings,
-    EnvVarCollection,
     Other,
 }
 
@@ -2568,7 +2562,6 @@ impl TypedPane<'_> {
                 is_ai_prompt: *is_ai_prompt,
             },
             TypedPane::Settings => SummaryPaneKind::Settings,
-            TypedPane::EnvVarCollection => SummaryPaneKind::EnvVarCollection,
             TypedPane::Other => SummaryPaneKind::Other,
         }
     }
@@ -2590,7 +2583,6 @@ impl TypedPane<'_> {
             TypedPane::Notebook { .. } => "Notebook",
             TypedPane::Workflow { .. } => "Workflow",
             TypedPane::Settings => "Settings",
-            TypedPane::EnvVarCollection => "Environment Variables",
             TypedPane::Other => "Other",
         }
     }
@@ -2608,7 +2600,6 @@ impl TypedPane<'_> {
             | TypedPane::Notebook { .. }
             | TypedPane::Workflow { .. }
             | TypedPane::Settings
-            | TypedPane::EnvVarCollection
             | TypedPane::Other => None,
         }
     }
@@ -2626,7 +2617,6 @@ impl TypedPane<'_> {
                 is_ai_prompt: false,
             } => WarpIcon::Workflow,
             TypedPane::Settings => WarpIcon::Gear,
-            TypedPane::EnvVarCollection => WarpIcon::EnvVarCollection,
             TypedPane::Other => WarpIcon::File,
         }
     }
@@ -2767,7 +2757,6 @@ fn build_vertical_tabs_summary_data(
             | TypedPane::Notebook { .. }
             | TypedPane::Workflow { .. }
             | TypedPane::Settings
-            | TypedPane::EnvVarCollection
             | TypedPane::Other => {
                 push_normalized_unique_summary_label(
                     &mut primary_labels,
@@ -2890,7 +2879,6 @@ impl<'a> PaneProps<'a> {
             | TypedPane::Notebook { .. }
             | TypedPane::Workflow { .. }
             | TypedPane::Settings
-            | TypedPane::EnvVarCollection
             | TypedPane::Other => {
                 non_terminal_search_text_fragments(self.generated_or_tab_title(), &self.subtitle)
             }
@@ -3196,7 +3184,6 @@ impl PaneGroup {
                 TypedPane::Workflow { is_ai_prompt }
             }
             IPaneType::Settings => TypedPane::Settings,
-            IPaneType::EnvVarCollection => TypedPane::EnvVarCollection,
             IPaneType::NetworkLog | IPaneType::DeferredPlaceholder => TypedPane::Other,
             #[cfg(test)]
             IPaneType::Dummy => TypedPane::Other,
@@ -3899,7 +3886,6 @@ fn render_summary_pane_kind_icon_circle(
         | SummaryPaneKind::Notebook { .. }
         | SummaryPaneKind::Workflow { .. }
         | SummaryPaneKind::Settings
-        | SummaryPaneKind::EnvVarCollection
         | SummaryPaneKind::Other => {
             let (icon, icon_color) = summary_pane_kind_icon(kind, appearance);
             (
@@ -3989,10 +3975,6 @@ fn summary_pane_kind_icon(
         SummaryPaneKind::Settings => {
             (WarpIcon::Gear, main_text)
         }
-        SummaryPaneKind::EnvVarCollection => (
-            WarpIcon::EnvVarCollection,
-            drive_color(DriveObjectType::EnvVarCollection),
-        ),
         SummaryPaneKind::Other => (WarpIcon::File, sub_text),
     }
 }
@@ -5791,7 +5773,6 @@ fn typed_pane_warp_drive_object_type(typed: &TypedPane<'_>) -> Option<DriveObjec
         TypedPane::Workflow {
             is_ai_prompt: false,
         } => Some(DriveObjectType::Workflow),
-        TypedPane::EnvVarCollection => Some(DriveObjectType::EnvVarCollection),
         TypedPane::Terminal(_)
         | TypedPane::Code(_)
         | TypedPane::CodeDiff
@@ -5815,8 +5796,7 @@ fn render_detail_section(
         ),
         TypedPane::Code(_) => render_code_detail_section(props, appearance, app),
         TypedPane::Notebook { .. }
-        | TypedPane::Workflow { .. }
-        | TypedPane::EnvVarCollection => render_warp_drive_object_detail_section(props, appearance, app),
+        | TypedPane::Workflow { .. } => render_warp_drive_object_detail_section(props, appearance, app),
         TypedPane::CodeDiff
         | TypedPane::File
         | TypedPane::Settings

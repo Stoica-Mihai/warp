@@ -16,7 +16,6 @@ pub enum WarpificationSource {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum SubshellSource {
     Command(String),
-    EnvVarCollection(String),
 }
 
 /// This template is for the snippet that appears in the output grid for the success block if the
@@ -42,14 +41,6 @@ pub fn subshell_bootstrap_success_block_bytes(
     os: TargetOS,
     disable_tmux: bool,
 ) -> (Vec<u8>, bool) {
-    let from_env_var_collection = subshell_initialization_info
-        .env_var_collection_name
-        .is_some();
-
-    if from_env_var_collection {
-        return (vec![], false);
-    }
-
     let Some(subshell_bootstrap_success_block_path) =
         get_subshell_bootstrap_success_block_path(shell_type)
     else {

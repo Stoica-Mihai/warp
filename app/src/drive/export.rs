@@ -259,7 +259,7 @@ impl ExportManager {
         is_bulk: bool,
         parent_path: &Path,
         object: CloudObjectTypeAndId,
-        shell_family: ShellFamily,
+        _shell_family: ShellFamily,
         ctx: &mut ModelContext<Self>,
     ) -> anyhow::Result<SpawnedFutureHandle> {
         let cloud_model = CloudModel::as_ref(ctx);
@@ -287,27 +287,8 @@ impl ExportManager {
                     .into_bytes();
                 (notebook.model().title.clone(), "md", data)
             }
-            CloudObjectTypeAndId::GenericStringObject { object_type, id } => {
-                if let Some(env_var_collection) = cloud_model.get_env_var_collection(&id) {
-                    let env_var_collection_model = env_var_collection.model();
-
-                    let exported_variables = env_var_collection_model
-                        .string_model
-                        .export_variables("\n", shell_family)
-                        .into_bytes();
-
-                    (
-                        env_var_collection_model
-                            .string_model
-                            .title
-                            .clone()
-                            .unwrap_or_default(),
-                        "env",
-                        exported_variables,
-                    )
-                } else {
-                    anyhow::bail!("exporting {object_type:?} not yet supported")
-                }
+            CloudObjectTypeAndId::GenericStringObject { object_type, .. } => {
+                anyhow::bail!("exporting {object_type:?} not yet supported")
             }
             other => {
                 anyhow::bail!("exporting {other:?} not yet supported")

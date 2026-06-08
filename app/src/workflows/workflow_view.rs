@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use alias_bar::{AliasBar, AliasBarEvent};
 use argument_editor::{ArgumentEditorRow, DEFAULT_ARGUMENT_PREFIX};
-use env_var_selector::{EnvVarSelector, EnvVarSelectorEvent};
 use itertools::Itertools;
 use pathfinder_color::ColorU;
 use pathfinder_geometry::vector::vec2f;
@@ -94,7 +93,6 @@ use crate::FeatureFlag;
 mod alias_argument_selector;
 mod alias_bar;
 mod argument_editor;
-pub mod env_var_selector;
 mod syntax_highlightable;
 
 pub fn init(app: &mut AppContext) {
@@ -235,12 +233,6 @@ enum ContainerConfiguration {
     SuggestionDialog,
 }
 
-#[derive(Default, Debug)]
-struct EnvironmentVariablesState {
-    default_env_vars: Option<SyncId>,
-    is_dirty: bool,
-}
-
 #[derive(Default)]
 struct UiStateHandles {
     add_variable_state: MouseStateHandle,
@@ -254,7 +246,6 @@ struct UiStateHandles {
     copy_content_button_mouse_state: MouseStateHandle,
     execute_command_mouse_state: MouseStateHandle,
     alias_header_tool_tip: MouseStateHandle,
-    add_environment_variables_mouse_state: MouseStateHandle,
     clipped_scroll_state: ClippedScrollStateHandle,
 }
 
@@ -272,8 +263,6 @@ pub struct WorkflowView {
     arguments_state: ArgumentsState,
     arguments_rows: Vec<ArgumentEditorRow>,
     alias_bar: ViewHandle<AliasBar>,
-    env_vars_selector: ViewHandle<EnvVarSelector>,
-    env_vars_state: EnvironmentVariablesState,
     breadcrumbs: Vec<BreadcrumbState<ContainingObject>>,
     errors: WorkflowEditorErrorState,
     ui_state_handles: UiStateHandles,
@@ -395,11 +384,6 @@ impl WorkflowView {
             me.handle_alias_bar_event(event, ctx);
         });
 
-        let env_vars_selector = ctx.add_typed_action_view(EnvVarSelector::new);
-        ctx.subscribe_to_view(&env_vars_selector, |me, _, event, ctx| {
-            me.handle_env_vars_selector_event(event, ctx);
-        });
-
         let me = Self {
             workflow_view_mode: WorkflowViewMode::Edit, // defaults to view
             // setting workflow_id here so there's no chance we don't have one
@@ -415,8 +399,6 @@ impl WorkflowView {
             arguments_state: Default::default(),
             arguments_rows: Vec::new(),
             alias_bar,
-            env_vars_selector,
-            env_vars_state: Default::default(),
             breadcrumbs: Vec::new(),
             errors: WorkflowEditorErrorState::new(),
             ui_state_handles: Default::default(),
@@ -749,13 +731,7 @@ impl WorkflowView {
                 ..
             } = workflow_data
             {
-                self.env_vars_state = EnvironmentVariablesState {
-                    default_env_vars: *environment_variables,
-                    is_dirty: false,
-                };
-                self.env_vars_selector.update(ctx, |selector, ctx| {
-                    selector.set_selected_env_vars(*environment_variables, ctx)
-                });
+                let _ = environment_variables;
             }
         }
         self.update_breadcrumb(ctx);
@@ -869,7 +845,6 @@ impl WorkflowView {
             || description_is_dirty
             || content_is_dirty
             || any_argument_editor_is_dirty
-            || self.env_vars_state.is_dirty
     }
 
     fn are_aliases_dirty(&self, app: &AppContext) -> bool {
@@ -1111,42 +1086,10 @@ impl WorkflowView {
                     });
                 }
 
-                self.env_vars_selector.update(ctx, |selector, ctx| {
-                    let selected_env_vars = if self.alias_bar.as_ref(ctx).has_selected_alias() {
-                        self.alias_bar.as_ref(ctx).current_env_vars()
-                    } else {
-                        self.env_vars_state.default_env_vars
-                    };
-                    selector.set_selected_env_vars(selected_env_vars, ctx);
-                });
-
                 ctx.notify();
             }
             AliasBarEvent::AliasesUpdated => {
                 // Recompute dirty state.
-                ctx.notify();
-            }
-        }
-    }
-
-    fn handle_env_vars_selector_event(
-        &mut self,
-        event: &EnvVarSelectorEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            EnvVarSelectorEvent::SelectionChanged(id) => {
-                if self.alias_bar.as_ref(ctx).has_selected_alias() {
-                    self.alias_bar
-                        .update(ctx, |bar, ctx| bar.set_current_env_vars(*id, ctx));
-                } else {
-                    self.env_vars_state.default_env_vars = *id;
-                    self.env_vars_state.is_dirty = true;
-                    ctx.notify();
-                }
-            }
-            EnvVarSelectorEvent::Refreshed => {
-                // Re-render in case the selector visibility changed.
                 ctx.notify();
             }
         }
@@ -1469,7 +1412,7 @@ impl WorkflowView {
                 author: None,
                 author_url: None,
                 shells: vec![],
-                environment_variables: self.env_vars_state.default_env_vars,
+                environment_variables: None,
             }
         };
 

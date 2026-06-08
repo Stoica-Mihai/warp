@@ -16,7 +16,6 @@ use warpui::{AppContext, SingletonEntity};
 
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::code::editor_management::{CodeEditorStatus, CodeEditorSummary};
-use crate::env_vars::manager::EnvVarCollectionManager;
 use crate::notebooks::manager::NotebookManager;
 use crate::palette::PaletteMode;
 use crate::server::cloud_objects::update_manager::UpdateManager;
@@ -178,7 +177,6 @@ pub fn log_out(app: &mut AppContext) {
     });
     remove_cloud_persisted_settings(app);
     NotebookManager::handle(app).update(app, |manager, _| manager.reset());
-    EnvVarCollectionManager::handle(app).update(app, |manager, _| manager.reset());
     WorkflowManager::handle(app).update(app, |manager, _| manager.reset());
 
     // Dispatch action on root view of every open window so the state can be updated

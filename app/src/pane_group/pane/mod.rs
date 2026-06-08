@@ -9,7 +9,6 @@
 //! The [`PaneId`] must be created via a [`PaneView<BackingView>`]. The [`PaneId`] is consequently
 //! used to render a [`PaneView`] which internally renders the pane, including the [`BackingView`].
 pub(super) mod code_pane;
-pub(super) mod env_var_collection_pane;
 pub(super) mod file_pane;
 pub(super) mod network_log_pane;
 pub(super) mod notebook_pane;
@@ -36,7 +35,6 @@ use super::{ActivationReason, LeafContents, PaneGroup, PaneGroupAction};
 #[cfg(feature = "local_fs")]
 use crate::code::buffer_location::LocalOrRemotePath;
 use crate::code::view::CodeView;
-use crate::env_vars::view::env_var_collection::EnvVarCollectionView;
 use crate::menu::MenuItem;
 use crate::notebooks::file::FileNotebookView;
 use crate::notebooks::notebook::NotebookView;
@@ -115,7 +113,6 @@ pub(crate) enum IPaneType {
     Notebook,
     File,
     Code,
-    EnvVarCollection,
     Workflow,
     Settings,
     NetworkLog,
@@ -132,7 +129,6 @@ impl Display for IPaneType {
             IPaneType::Notebook => write!(f, "Notebook"),
             IPaneType::File => write!(f, "File"),
             IPaneType::Code => write!(f, "Code"),
-            IPaneType::EnvVarCollection => write!(f, "Environment Variable Collection"),
             IPaneType::Workflow => write!(f, "Workflow"),
             IPaneType::Settings => write!(f, "Settings"),
             IPaneType::NetworkLog => write!(f, "Network Log"),
@@ -171,13 +167,6 @@ impl PaneId {
     /// Creates a [`PaneId`] from a [`ViewContext<PaneView<NotebookView>>`]
     pub fn from_notebook_pane_ctx(ctx: &ViewContext<PaneView<NotebookView>>) -> Self {
         Self::new_from_ctx(IPaneType::Notebook, ctx)
-    }
-
-    /// Creates a [`PaneId`] from a [`ViewContext<PaneView<EnvVarCollectionView>>`]
-    pub fn from_env_var_collection_pane_ctx(
-        ctx: &ViewContext<PaneView<EnvVarCollectionView>>,
-    ) -> Self {
-        Self::new_from_ctx(IPaneType::EnvVarCollection, ctx)
     }
 
     /// Creates a [`PaneId`] from a [`ViewContext<PaneView<WorkflowView>>`]
@@ -222,13 +211,6 @@ impl PaneId {
     /// Creates a [`PaneId`] from a [`PaneView<TextView>`] entity ID.
     pub fn from_code_pane_view(code_pane_view: &ViewHandle<PaneView<CodeView>>) -> Self {
         Self::new(IPaneType::Code, code_pane_view)
-    }
-
-    /// Creates a [`PaneId`] from a [`PaneView<EnvVarCollection>`] entity ID.
-    pub fn from_env_var_collection_view(
-        env_var_collection_view: &ViewHandle<PaneView<EnvVarCollectionView>>,
-    ) -> Self {
-        Self::new(IPaneType::EnvVarCollection, env_var_collection_view)
     }
 
     /// Creates a [`PaneId`] from a [`PaneView<WorkflowView>`] entity ID.
@@ -300,7 +282,6 @@ impl PaneId {
             self.0.pane_type,
             IPaneType::Notebook
                 | IPaneType::Workflow
-                | IPaneType::EnvVarCollection
         )
     }
 
@@ -318,9 +299,6 @@ impl PaneId {
             }
             IPaneType::Code => {
                 ChildView::<PaneView<CodeView>>::with_id(self.0.pane_view_id).finish()
-            }
-            IPaneType::EnvVarCollection => {
-                ChildView::<PaneView<EnvVarCollectionView>>::with_id(self.0.pane_view_id).finish()
             }
             IPaneType::Workflow => {
                 ChildView::<PaneView<WorkflowView>>::with_id(self.0.pane_view_id).finish()

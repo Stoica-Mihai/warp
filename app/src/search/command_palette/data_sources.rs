@@ -99,8 +99,6 @@ impl DataSourceStore {
                     QueryFilter::Workflows,
                 ]);
 
-                warp_drive_filters.insert(QueryFilter::EnvironmentVariables);
-
                 if AISettings::as_ref(ctx).is_any_ai_enabled(ctx) {
                     warp_drive_filters.insert(QueryFilter::AgentModeWorkflows);
                 }
@@ -209,10 +207,6 @@ impl DataSourceStore {
                 .as_ref(app)
                 .query_result(*binding_id),
             ItemSummary::Workflow { id } => self
-                .warp_drive_data_source
-                .as_ref(app)
-                .query_result(id, app),
-            ItemSummary::EnvVarCollection { id } => self
                 .warp_drive_data_source
                 .as_ref(app)
                 .query_result(id, app),

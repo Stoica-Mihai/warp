@@ -298,7 +298,6 @@ fn valid_query_filters(app: &AppContext) -> Vec<QueryFilter> {
     if WarpDriveSettings::is_warp_drive_enabled(app) {
         filters.extend([QueryFilter::Workflows, QueryFilter::Notebooks]);
 
-        filters.push(QueryFilter::EnvironmentVariables);
     }
 
     filters

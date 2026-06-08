@@ -12,12 +12,11 @@ use super::generic_string_model::GenericStringObjectId;
 use crate::auth::AuthStateProvider;
 use crate::cloud_object::{
     CloudModelType, CloudObject, CloudObjectLocation, GenericCloudObject,
-    GenericStringObjectFormat, JsonObjectType, ObjectIdType, ObjectType, Owner, Revision,
+    ObjectIdType, ObjectType, Owner, Revision,
     RevisionAndLastEditor, Space,
 };
 use crate::drive::folders::{CloudFolder, CloudFolderModel};
 use crate::drive::{CloudObjectTypeAndId, DriveIndexVariant};
-use crate::env_vars::{CloudEnvVarCollection, CloudEnvVarCollectionModel, EnvVarCollection};
 use crate::notebooks::CloudNotebook;
 use crate::persistence::ModelEvent;
 use crate::server::ids::{ClientId, HashableId, ObjectUid, ServerId, SyncId, ToServerId};
@@ -492,26 +491,6 @@ impl CloudModel {
         }
     }
 
-    pub fn overwrite_env_var_collection(
-        &mut self,
-        env_var_collection: EnvVarCollection,
-        env_var_collection_id: SyncId,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        if let Some(cloud_env_var_collection) = self
-            .get_object_of_type_mut::<GenericStringObjectId, CloudEnvVarCollectionModel>(
-                &env_var_collection_id,
-            )
-        {
-            cloud_env_var_collection.set_model(CloudEnvVarCollectionModel::new(env_var_collection));
-            ctx.emit(CloudModelEvent::ObjectUpdated {
-                type_and_id: cloud_env_var_collection.cloud_object_type_and_id(),
-                source: UpdateSource::Server,
-            });
-            ctx.notify();
-        }
-    }
-
     pub fn overwrite_workflow_enum(
         &mut self,
         workflow_enum: WorkflowEnum,
@@ -704,14 +683,8 @@ impl CloudModel {
             CloudObjectTypeAndId::Folder(sync_id) => {
                 self.force_expand_object_and_ancestors(sync_id, ctx)
             }
-            CloudObjectTypeAndId::GenericStringObject { object_type, id } => {
-                if let GenericStringObjectFormat::Json(JsonObjectType::EnvVarCollection) =
-                    object_type
-                {
-                    self.force_expand_object_and_ancestors(id, ctx)
-                } else {
-                    log::error!("Attempted to force expand an unsupported GenericStringObject type")
-                }
+            CloudObjectTypeAndId::GenericStringObject { .. } => {
+                log::error!("Attempted to force expand an unsupported GenericStringObject type")
             }
         }
     }
@@ -914,16 +887,6 @@ impl CloudModel {
             .filter_map(|object| object.into())
     }
 
-    /// Returns all active (not trashed) and non-welcome env var collections in the space.
-    pub fn active_non_welcome_env_var_collections_in_space<'a>(
-        &'a self,
-        space: Space,
-        app: &'a AppContext,
-    ) -> impl Iterator<Item = &'a CloudEnvVarCollection> + 'a {
-        self.active_non_welcome_cloud_objects_in_space(space, app)
-            .filter_map(|object| object.into())
-    }
-
     /// Returns all workflow enums with a given owner.
     pub fn workflow_enums_with_owner<'a>(
         &'a self,
@@ -983,29 +946,6 @@ impl CloudModel {
         self.objects_by_id
             .get_mut(&notebook_id.uid())
             .and_then(|notebook| notebook.into())
-    }
-
-    pub fn get_env_var_collection(
-        &self,
-        env_var_collection_id: &SyncId,
-    ) -> Option<&CloudEnvVarCollection> {
-        self.objects_by_id
-            .get(&env_var_collection_id.uid())
-            .and_then(|object| object.into())
-    }
-
-    pub fn get_env_var_collection_by_uid(&self, uid: &str) -> Option<&CloudEnvVarCollection> {
-        self.objects_by_id.get(uid).and_then(|object| object.into())
-    }
-
-    /// Returns only active (not trashed) EVCs in cloud model.
-    pub fn get_all_active_env_var_collections(
-        &self,
-    ) -> impl Iterator<Item = &CloudEnvVarCollection> {
-        self.objects_by_id
-            .values()
-            .filter(|object| !object.is_trashed(self))
-            .filter_map(|object| object.into())
     }
 
     pub fn current_revision(&self, id: &SyncId) -> Option<&Revision> {

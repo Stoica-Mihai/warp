@@ -548,7 +548,6 @@ impl WorkflowView {
             )
             && !self.is_for_agent_mode
         {
-            arguments_section.add_child(self.render_env_vars_selector(appearance, app));
         }
 
         Some(arguments_section.finish())
@@ -804,47 +803,4 @@ impl WorkflowView {
         arguments.finish()
     }
 
-    fn render_env_vars_selector(
-        &self,
-        appearance: &Appearance,
-        app: &AppContext,
-    ) -> Box<dyn Element> {
-        let action_element = if self.env_vars_selector.as_ref(app).has_env_vars(app) {
-            Shrinkable::new(1., ChildView::new(&self.env_vars_selector).finish()).finish()
-        } else {
-            appearance
-                .ui_builder()
-                .button(
-                    ButtonVariant::Secondary,
-                    self.ui_state_handles
-                        .add_environment_variables_mouse_state
-                        .clone(),
-                )
-                .with_centered_text_label("Add environment variables".to_string())
-                .build()
-                .on_click(|ctx, _, _| {
-                    ctx.dispatch_typed_action(WorkspaceAction::CreatePersonalEnvVarCollection);
-                })
-                .finish()
-        };
-
-        Flex::row()
-            .with_children([
-                appearance
-                    .ui_builder()
-                    .span("Environment variables")
-                    .with_style(UiComponentStyles {
-                        font_size: Some(13.),
-                        ..Default::default()
-                    })
-                    .build()
-                    .with_margin_right(8.)
-                    .finish(),
-                action_element,
-            ])
-            .with_main_axis_alignment(MainAxisAlignment::SpaceBetween)
-            .with_main_axis_size(MainAxisSize::Max)
-            .with_cross_axis_alignment(CrossAxisAlignment::Center)
-            .finish()
-    }
 }
