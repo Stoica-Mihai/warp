@@ -8,8 +8,6 @@ use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::model::view::CloudViewModel;
 use crate::cloud_object::{CloudObject, CloudObjectMetadata, CloudObjectPermissions};
 use crate::network::NetworkStatus;
-use crate::notebooks::manager::NotebookManager;
-use crate::notebooks::{CloudNotebook, CloudNotebookModel, NotebookId};
 use crate::search::data_source::Query;
 use crate::server::cloud_objects::update_manager::UpdateManager;
 use crate::server::ids::SyncId::{self};
@@ -33,20 +31,6 @@ fn mock_workflow(id: WorkflowId) -> CloudWorkflow {
     )
 }
 
-fn mock_notebook(id: NotebookId) -> CloudNotebook {
-    CloudNotebook::new(
-        SyncId::ServerId(id.into()),
-        CloudNotebookModel {
-            title: format!("foo{id}"),
-            data: format!("bar{id}"),
-            ai_document_id: None,
-            conversation_id: None,
-        },
-        CloudObjectMetadata::mock(),
-        CloudObjectPermissions::mock_personal(),
-    )
-}
-
 fn initialize_app(app: &mut App) {
     // Add the necessary singleton models to the App
     app.add_singleton_model(|_| NetworkStatus::new());
@@ -60,7 +44,6 @@ fn initialize_app(app: &mut App) {
     app.add_singleton_model(UpdateManager::mock);
     app.add_singleton_model(|_| UserProfiles::new(Vec::new()));
     app.add_singleton_model(CloudViewModel::new);
-    app.add_singleton_model(NotebookManager::mock);
     app.add_singleton_model(|_| ServerApiProvider::new_for_test());
     app.add_singleton_model(|_| SettingsManager::default());
     app.add_singleton_model(|_| AuthStateProvider::new_for_test());
@@ -74,8 +57,6 @@ fn test_drive_data_source_correctly_filters_drive_filter() {
         initialize_app(&mut app);
         // Initialize CloudModel
         CloudModel::handle(&app).update(&mut app, |model, ctx| {
-            let nb = mock_notebook(1.into());
-            model.create_object(nb.sync_id(), nb, ctx);
             let wf = mock_workflow(2.into());
             model.create_object(wf.sync_id(), wf, ctx)
         });
@@ -107,7 +88,7 @@ fn test_drive_data_source_correctly_filters_drive_filter() {
             let results = mixer.as_ref(app).results();
 
             // Expect both of the results to be included
-            assert_eq!(results.len(), 2);
+            assert_eq!(results.len(), 1);
         });
     })
 }
@@ -118,8 +99,6 @@ fn test_drive_data_source_correctly_filters_no_filter() {
         initialize_app(&mut app);
         // Initialize CloudModel
         CloudModel::handle(&app).update(&mut app, |model, ctx| {
-            let nb = mock_notebook(1.into());
-            model.create_object(nb.sync_id(), nb, ctx);
             let wf = mock_workflow(2.into());
             model.create_object(wf.sync_id(), wf, ctx)
         });
@@ -150,7 +129,7 @@ fn test_drive_data_source_correctly_filters_no_filter() {
             let results = mixer.as_ref(app).results();
 
             // Expect both of the results to be included
-            assert_eq!(results.len(), 2);
+            assert_eq!(results.len(), 1);
         });
     })
 }
@@ -161,8 +140,6 @@ fn test_drive_data_source_correctly_filters_workflow_filter() {
         initialize_app(&mut app);
         // Initialize CloudModel
         CloudModel::handle(&app).update(&mut app, |model, ctx| {
-            let nb = mock_notebook(1.into());
-            model.create_object(nb.sync_id(), nb, ctx);
             let wf = mock_workflow(2.into());
             model.create_object(wf.sync_id(), wf, ctx)
         });
@@ -196,51 +173,6 @@ fn test_drive_data_source_correctly_filters_workflow_filter() {
             assert_eq!(results.len(), 1);
 
             assert!(results[0].accessibility_label().starts_with("Workflow:"));
-        });
-    })
-}
-
-#[test]
-fn test_drive_data_source_correctly_filters_notebook_filter() {
-    App::test((), |mut app| async move {
-        initialize_app(&mut app);
-        // Initialize CloudModel
-        CloudModel::handle(&app).update(&mut app, |model, ctx| {
-            let nb = mock_notebook(1.into());
-            model.create_object(nb.sync_id(), nb, ctx);
-            let wf = mock_workflow(2.into());
-            model.create_object(wf.sync_id(), wf, ctx)
-        });
-        let mixer = app.add_model(|_| CommandPaletteMixer::new());
-        let data_source_handle = app.add_model(warp_drive::DataSource::new);
-        mixer.update(&mut app, |mixer, ctx| {
-            // Add the drive data source with the relevant filters
-            mixer.add_sync_source(
-                data_source_handle,
-                [
-                    QueryFilter::Drive,
-                    QueryFilter::Notebooks,
-                    QueryFilter::Workflows,
-                ],
-            );
-
-            // Run the query with no filter
-            mixer.run_query(
-                Query {
-                    filters: HashSet::from([QueryFilter::Notebooks]),
-                    text: "foo".into(),
-                },
-                ctx,
-            );
-        });
-
-        app.read(|app| {
-            let results = mixer.as_ref(app).results();
-
-            // Expect only the workflow result to be included
-            assert_eq!(results.len(), 1);
-
-            assert!(results[0].accessibility_label().starts_with("Notebook:"));
         });
     })
 }

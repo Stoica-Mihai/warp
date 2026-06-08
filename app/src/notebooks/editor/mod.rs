@@ -26,7 +26,6 @@ use crate::ui_components::icons::Icon;
 use crate::util::color::{ContrastingColor, MinimumAllowedContrast};
 use crate::workflows::{CloudWorkflow, WorkflowSource, WorkflowType};
 
-mod block_insertion_menu;
 mod embedded_item;
 mod embedding_model;
 mod find_bar;
@@ -38,7 +37,6 @@ pub mod notebook_command;
 mod omnibar;
 pub mod view;
 
-pub use block_insertion_menu::BlockInsertionSource;
 const NOTEBOOK_LINE_HEIGHT_RATIO: f32 = 1.5;
 const NOTEBOOK_BASELINE_RATIO: f32 = 0.7;
 

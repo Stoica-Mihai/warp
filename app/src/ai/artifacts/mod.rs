@@ -2,8 +2,6 @@ use std::path::Path;
 
 use warp_multi_agent_api as api;
 
-use crate::notebooks::NotebookId;
-
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
 #[serde(tag = "artifact_type", content = "data")]
@@ -12,7 +10,7 @@ pub enum Artifact {
     Plan {
         document_uid: String,
         /// None until the plan is synced to Warp Drive.
-        notebook_uid: Option<NotebookId>,
+        notebook_uid: Option<String>,
         title: Option<String>,
     },
     #[serde(rename = "PULL_REQUEST")]
@@ -47,7 +45,7 @@ enum ArtifactHelper {
     #[serde(rename = "PLAN")]
     Plan {
         document_uid: String,
-        notebook_uid: Option<NotebookId>,
+        notebook_uid: Option<String>,
         title: Option<String>,
     },
     #[serde(rename = "PULL_REQUEST")]
@@ -177,7 +175,7 @@ impl From<api::message::artifact_event::PlanArtifact> for Artifact {
             notebook_uid: if plan.notebook_uid.is_empty() {
                 None
             } else {
-                Some(NotebookId::from(plan.notebook_uid))
+                Some(plan.notebook_uid)
             },
             title: if plan.title.is_empty() {
                 None

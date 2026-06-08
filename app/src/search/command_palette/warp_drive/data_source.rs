@@ -2,18 +2,15 @@ use std::collections::HashMap;
 
 use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 
-use super::notebook_search_item::NotebookSearchItem;
 use super::workflow_search_item::WorkflowSearchItem;
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
 use crate::cloud_object::{
     CloudObject, CloudObjectLocation, ObjectType,
 };
 use crate::drive::folders::CloudFolder;
-use crate::notebooks::CloudNotebook;
 use crate::search::command_palette::mixer::CommandPaletteItemAction;
 use crate::search::data_source::{DataSourceSearchError, Query, QueryResult};
 use crate::search::mixer::DataSourceRunErrorWrapper;
-use crate::search::notebooks::fuzzy_match::FuzzyMatchNotebookResult;
 use crate::search::workflows::fuzzy_match::FuzzyMatchWorkflowResult;
 use crate::search::QueryFilter;
 use crate::server::ids::{ObjectUid, SyncId};
@@ -150,34 +147,6 @@ impl crate::search::mixer::SyncDataSource for DataSource {
 
         let should_include_all_drive_objects = Self::include_all_drive_objects_in_result(query);
 
-        if query.filters.contains(&QueryFilter::Notebooks) || should_include_all_drive_objects {
-            filtered_cloud_objects.extend(
-                self.searcher
-                    .search_notebook(&query.text.to_lowercase(), app)
-                    .map_err(|err| {
-                        Box::new(DataSourceSearchError {
-                            message: err.to_string(),
-                        }) as DataSourceRunErrorWrapper
-                    })?
-                    .into_iter()
-                    .map(QueryResult::from),
-            );
-        }
-
-        if query.filters.contains(&QueryFilter::Plans) || should_include_all_drive_objects {
-            filtered_cloud_objects.extend(
-                self.searcher
-                    .search_plans(&query.text.to_lowercase(), app)
-                    .map_err(|err| {
-                        Box::new(DataSourceSearchError {
-                            message: err.to_string(),
-                        }) as DataSourceRunErrorWrapper
-                    })?
-                    .into_iter()
-                    .map(QueryResult::from),
-            );
-        }
-
         let should_include_agent_mode_prompts =
             (query.filters.contains(&QueryFilter::AgentModeWorkflows)
                 || should_include_all_drive_objects)
@@ -226,14 +195,6 @@ impl DataSource {
             }));
         }
 
-        let notebook: Option<&CloudNotebook> = object.into();
-        if let Some(notebook) = notebook {
-            return Some(QueryResult::from(NotebookSearchItem {
-                match_result: FuzzyMatchNotebookResult::no_match(),
-                cloud_notebook: notebook.clone(),
-            }));
-        }
-
         None
     }
 }
@@ -259,12 +220,6 @@ trait WarpDriveSearcher {
 
     fn refresh_search_index(&mut self, app: &AppContext) -> anyhow::Result<()>;
 
-    fn search_notebook(
-        &self,
-        query: &str,
-        app: &AppContext,
-    ) -> anyhow::Result<Vec<NotebookSearchItem>>;
-
     fn search_workflow(
         &self,
         query: &str,
@@ -273,16 +228,10 @@ trait WarpDriveSearcher {
         should_include_command_workflow: bool,
     ) -> anyhow::Result<Vec<WorkflowSearchItem>>;
 
-    fn search_plans(
-        &self,
-        query: &str,
-        app: &AppContext,
-    ) -> anyhow::Result<Vec<NotebookSearchItem>>;
 }
 
 #[derive(Default)]
 struct FuzzyWarpDriveSearcher {
-    notebooks: HashMap<ObjectUid, CloudNotebook>,
     workflows: HashMap<ObjectUid, CloudWorkflow>,
 }
 
@@ -294,14 +243,6 @@ impl WarpDriveSearcher for FuzzyWarpDriveSearcher {
         app: &AppContext,
     ) -> anyhow::Result<()> {
         match object_type {
-            ObjectType::Notebook => {
-                let notebook: Option<&CloudNotebook> = object.into();
-                if let Some(notebook) = notebook {
-                    self.notebooks.insert(notebook.uid(), notebook.clone());
-                } else {
-                    anyhow::bail!("Expected CloudNotebook, got {:?}", object);
-                }
-            }
             ObjectType::Workflow => {
                 let workflow: Option<&CloudWorkflow> = object.into();
                 if let Some(workflow) = workflow {
@@ -335,9 +276,6 @@ impl WarpDriveSearcher for FuzzyWarpDriveSearcher {
         app: &AppContext,
     ) -> anyhow::Result<()> {
         match object_type {
-            ObjectType::Notebook => {
-                self.notebooks.remove(&uid);
-            }
             ObjectType::Workflow => {
                 self.workflows.remove(&uid);
             }
@@ -365,7 +303,6 @@ impl WarpDriveSearcher for FuzzyWarpDriveSearcher {
 
     fn refresh_search_index(&mut self, app: &AppContext) -> anyhow::Result<()> {
         self.workflows.clear();
-        self.notebooks.clear();
         let model = CloudModel::as_ref(app);
         let active_uids = model.active_object_uids();
         for object in model.cloud_objects() {
@@ -374,49 +311,9 @@ impl WarpDriveSearcher for FuzzyWarpDriveSearcher {
             }
             if let Some(workflow) = <Option<&CloudWorkflow>>::from(object.as_ref()) {
                 self.workflows.insert(workflow.uid(), workflow.clone());
-            } else if let Some(notebook) = <Option<&CloudNotebook>>::from(object.as_ref()) {
-                self.notebooks.insert(notebook.uid(), notebook.clone());
             }
         }
         Ok(())
-    }
-
-    fn search_notebook(
-        &self,
-        query: &str,
-        app: &AppContext,
-    ) -> anyhow::Result<Vec<NotebookSearchItem>> {
-        let cloud_notebooks = CloudModel::as_ref(app).get_all_active_notebooks();
-        Ok(cloud_notebooks
-            .filter_map(|cloud_notebook| {
-                FuzzyMatchNotebookResult::try_match(query, cloud_notebook, app).map(
-                    |match_result| NotebookSearchItem {
-                        match_result,
-                        cloud_notebook: cloud_notebook.clone(),
-                    },
-                )
-            })
-            .collect())
-    }
-
-    fn search_plans(
-        &self,
-        query: &str,
-        app: &AppContext,
-    ) -> anyhow::Result<Vec<NotebookSearchItem>> {
-        let cloud_notebooks = CloudModel::as_ref(app)
-            .get_all_active_notebooks()
-            .filter(|notebook| notebook.model().ai_document_id.is_some());
-        Ok(cloud_notebooks
-            .filter_map(|cloud_notebook| {
-                FuzzyMatchNotebookResult::try_match(query, cloud_notebook, app).map(
-                    |match_result| NotebookSearchItem {
-                        match_result,
-                        cloud_notebook: cloud_notebook.clone(),
-                    },
-                )
-            })
-            .collect())
     }
 
     fn search_workflow(
@@ -465,34 +362,13 @@ mod full_text_searcher {
     };
     use crate::define_search_schema;
     use crate::drive::folders::CloudFolder;
-    use crate::notebooks::manager::NotebookManager;
-    use crate::notebooks::CloudNotebook;
     use crate::search::command_palette::warp_drive::data_source::WarpDriveSearcher;
-    use crate::search::command_palette::warp_drive::notebook_search_item::NotebookSearchItem;
     use crate::search::command_palette::warp_drive::workflow_search_item::WorkflowSearchItem;
-    use crate::search::notebooks::fuzzy_match::FuzzyMatchNotebookResult;
     use crate::search::searcher::{AsyncSearcher, DEFAULT_MEMORY_BUDGET, SCORE_CONVERSION_FACTOR};
     use crate::search::workflows::fuzzy_match::FuzzyMatchWorkflowResult;
     use crate::server::ids::ObjectUid;
     use crate::workflows::CloudWorkflow;
 
-    const MEMORY_BUDGET: usize = 100_000_000;
-
-    define_search_schema!(
-        schema_name: NOTEBOOK_SEARCH_SCHEMA,
-        config_name: NotebookConfig,
-        search_doc: NotebookSearchDocument,
-        identifying_doc: NotebookIdDocument,
-        search_fields: [
-            name: 0.6,
-            content: 0.2,
-            folder: 0.2
-        ],
-        id_fields: [
-            uid: String
-        ],
-        boost_factor: 1.15
-    );
     define_search_schema!(
         schema_name: WORKFLOW_SEARCH_SCHEMA,
         config_name: WorkflowConfig,
@@ -511,77 +387,7 @@ mod full_text_searcher {
     );
 
     pub(crate) struct FullTextWarpDriveSearcher {
-        notebook_searcher: AsyncSearcher<NotebookConfig>,
         workflow_searcher: AsyncSearcher<WorkflowConfig>,
-    }
-
-    impl FullTextWarpDriveSearcher {
-        fn search_notebooks_with_filter(
-            &self,
-            query: &str,
-            filter_by_plan: bool,
-            app: &AppContext,
-        ) -> anyhow::Result<Vec<NotebookSearchItem>> {
-            if query.is_empty() {
-                return Ok(self
-                    .notebook_searcher
-                    .get_all_doc_ids()?
-                    .into_iter()
-                    .filter_map(|search_match| {
-                        let notebook: Option<&CloudNotebook> = CloudModel::as_ref(app)
-                            .get_by_uid(&search_match.uid)?
-                            .into();
-                        let cloud_notebook = notebook?;
-                        if filter_by_plan && cloud_notebook.model().ai_document_id.is_none() {
-                            return None;
-                        }
-
-                        Some(NotebookSearchItem {
-                            match_result: FuzzyMatchNotebookResult::no_match(),
-                            cloud_notebook: cloud_notebook.clone(),
-                        })
-                    })
-                    .collect());
-            }
-
-            Ok(self
-                .notebook_searcher
-                .search_id(query)?
-                .into_iter()
-                .filter_map(|search_match| {
-                    let notebook: Option<&CloudNotebook> = CloudModel::as_ref(app)
-                        .get_by_uid(&search_match.values.uid)?
-                        .into();
-                    let notebook = notebook?;
-
-                    if filter_by_plan && notebook.model().ai_document_id.is_none() {
-                        return None;
-                    }
-
-                    let name_match_result = Some(FuzzyMatchResult {
-                        score: (search_match.score * SCORE_CONVERSION_FACTOR) as i64,
-                        matched_indices: search_match.highlights.name,
-                    });
-                    let content_match_result = Some(FuzzyMatchResult {
-                        score: (search_match.score * SCORE_CONVERSION_FACTOR) as i64,
-                        matched_indices: search_match.highlights.content,
-                    });
-                    let folder_match_result = Some(FuzzyMatchResult {
-                        score: (search_match.score * SCORE_CONVERSION_FACTOR) as i64,
-                        matched_indices: search_match.highlights.folder,
-                    });
-
-                    Some(NotebookSearchItem {
-                        match_result: FuzzyMatchNotebookResult {
-                            name_match_result,
-                            content_match_result,
-                            folder_match_result,
-                        },
-                        cloud_notebook: notebook.clone(),
-                    })
-                })
-                .collect())
-        }
     }
 
     impl WarpDriveSearcher for FullTextWarpDriveSearcher {
@@ -592,28 +398,6 @@ mod full_text_searcher {
             app: &AppContext,
         ) -> anyhow::Result<()> {
             match object_type {
-                ObjectType::Notebook => {
-                    let notebook: Option<&CloudNotebook> = object.into();
-                    if let Some(notebook) = notebook {
-                        let name = notebook.model().title.to_lowercase();
-                        let content = NotebookManager::as_ref(app)
-                            .notebook_raw_text(notebook.id)
-                            .unwrap_or(&notebook.model().data)
-                            .to_lowercase();
-                        let folder = notebook.breadcrumbs(app).to_lowercase();
-                        let uid = notebook.uid();
-
-                        let document = NotebookSearchDocument {
-                            name,
-                            content,
-                            folder,
-                            uid,
-                        };
-                        self.notebook_searcher.insert_document_async(document)
-                    } else {
-                        anyhow::bail!("Expected CloudNotebook, got {:?}", object);
-                    }
-                }
                 ObjectType::Workflow => {
                     let workflow: Option<&CloudWorkflow> = object.into();
                     if let Some(cloud_workflow) = workflow {
@@ -664,11 +448,6 @@ mod full_text_searcher {
             app: &AppContext,
         ) -> anyhow::Result<()> {
             match object_type {
-                ObjectType::Notebook => {
-                    let identifying_entry = NotebookIdDocument { uid };
-                    self.notebook_searcher
-                        .delete_document_async(identifying_entry)
-                }
                 ObjectType::Workflow => {
                     let identifying_entry = WorkflowIdDocument { uid };
                     self.workflow_searcher
@@ -699,30 +478,6 @@ mod full_text_searcher {
             let model = CloudModel::as_ref(app);
             let active_uids = model.active_object_uids();
 
-            self.notebook_searcher.clear_search_index_async()?;
-            let notebook_docs = model
-                .cloud_objects()
-                .filter(|obj| active_uids.contains(&obj.uid()))
-                .filter_map(|obj| {
-                    let notebook: Option<&CloudNotebook> = obj.as_ref().into();
-                    notebook.map(|notebook| {
-                        let name = notebook.model().title.to_lowercase();
-                        let content = NotebookManager::as_ref(app)
-                            .notebook_raw_text(notebook.id)
-                            .unwrap_or(&notebook.model().data)
-                            .to_lowercase();
-                        let folder = notebook.breadcrumbs(app).to_lowercase();
-                        let uid = notebook.uid();
-                        NotebookSearchDocument {
-                            name,
-                            content,
-                            folder,
-                            uid,
-                        }
-                    })
-                });
-            self.notebook_searcher.build_index_async(notebook_docs)?;
-
             self.workflow_searcher.clear_search_index_async()?;
             let workflow_docs = model
                 .cloud_objects()
@@ -750,22 +505,6 @@ mod full_text_searcher {
             self.workflow_searcher.build_index_async(workflow_docs)?;
 
             Ok(())
-        }
-
-        fn search_notebook(
-            &self,
-            query: &str,
-            app: &AppContext,
-        ) -> anyhow::Result<Vec<NotebookSearchItem>> {
-            self.search_notebooks_with_filter(query, false, app)
-        }
-
-        fn search_plans(
-            &self,
-            query: &str,
-            app: &AppContext,
-        ) -> anyhow::Result<Vec<NotebookSearchItem>> {
-            self.search_notebooks_with_filter(query, true, app)
         }
 
         fn search_workflow(
@@ -852,8 +591,6 @@ mod full_text_searcher {
     impl FullTextWarpDriveSearcher {
         pub(crate) fn new(background: Arc<Background>) -> Self {
             FullTextWarpDriveSearcher {
-                notebook_searcher: NOTEBOOK_SEARCH_SCHEMA
-                    .create_async_searcher(MEMORY_BUDGET, background.clone()),
                 workflow_searcher: WORKFLOW_SEARCH_SCHEMA
                     .create_async_searcher(DEFAULT_MEMORY_BUDGET, background),
             }

@@ -46,7 +46,6 @@ use crate::cloud_object::{
     CloudObject, CloudObjectMetadata, ObjectIdType, RevisionAndLastEditor,
 };
 use crate::drive::folders::CloudFolder;
-use crate::notebooks::CloudNotebook;
 use crate::server::ids::SyncId;
 use crate::suggestions::ignored_suggestions_model::SuggestionType;
 use crate::terminal::history::PersistedCommand;
@@ -220,7 +219,6 @@ pub enum ModelEvent {
     DeleteBlocks(Vec<u8>),
     Snapshot(AppState),
     UpsertWorkflows(Vec<CloudWorkflow>),
-    UpsertNotebooks(Vec<CloudNotebook>),
     UpsertFolders(Vec<CloudFolder>),
     MarkObjectAsSynced {
         hashed_sqlite_id: String,
@@ -232,9 +230,6 @@ pub enum ModelEvent {
         object: Box<dyn CloudStringObject>,
     },
     UpsertGenericStringObjects(Vec<Box<dyn CloudStringObject>>),
-    UpsertNotebook {
-        notebook: CloudNotebook,
-    },
     UpsertWorkflow {
         workflow: CloudWorkflow,
     },

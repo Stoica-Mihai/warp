@@ -34,7 +34,7 @@ use warpui::{AppContext, SingletonEntity};
 use super::block_list::{delete_blocks, save_block, update_block_agent_view_visibility};
 use super::model::{
     self, ActiveMCPServer, CurrentUserInformation, MCPEnvironmentVariables, NewActiveMCPServer,
-    NewApp, NewCommand, NewFolder, NewNotebook, NewTab, NewWindow,
+    NewApp, NewCommand, NewFolder, NewTab, NewWindow,
     NewWorkspace, NewWorkspaceMetadata, ObjectMetadata, ObjectPermissions,
     Project, Tab, Window, WorkspaceMetadata as WorkspaceMetadataModel,
     AI_FACT_PANE_KIND, CODE_PANE_KIND,
@@ -53,7 +53,6 @@ use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::cloud_environments::{
     CloudAmbientAgentEnvironment, CloudAmbientAgentEnvironmentModel,
 };
-use crate::ai::document::ai_document_model::AIDocumentId;
 use crate::ai::mcp::templatable::{CloudTemplatableMCPServer, CloudTemplatableMCPServerModel};
 use crate::ai::mcp::templatable_installation::VariableValue;
 use crate::ai::mcp::{
@@ -82,7 +81,6 @@ use crate::code::editor_management::CodeSource;
 use crate::drive::folders::{CloudFolder, CloudFolderModel, FolderId};
 use crate::drive::OpenWarpDriveObjectSettings;
 use crate::features::FeatureFlag;
-use crate::notebooks::{CloudNotebook, CloudNotebookModel, NotebookId};
 use crate::persistence::block_list::get_all_restored_blocks;
 use crate::persistence::model::{
     NewCloudObjectsRefresh, NewGenericStringObject, NewPersistedObjectAction,
@@ -543,9 +541,6 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
         ModelEvent::UpsertWorkflows(workflows) => {
             upsert_workflows(connection, workflows).context("error saving workflows")
         }
-        ModelEvent::UpsertNotebooks(notebooks) => {
-            upsert_notebooks(connection, notebooks).context("error saving notebooks")
-        }
         ModelEvent::UpsertFolders(folders) => {
             upsert_folders(connection, folders).context("error saving folders")
         }
@@ -556,9 +551,6 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
         ModelEvent::UpsertGenericStringObjects(objects) => {
             upsert_generic_string_objects(connection, objects)
                 .context("error upserting generic objects")
-        }
-        ModelEvent::UpsertNotebook { notebook } => {
-            upsert_notebooks(connection, vec![notebook]).context("error upserting notebook")
         }
         ModelEvent::UpsertWorkflow { workflow } => {
             upsert_workflows(connection, vec![workflow]).context("error upserting workflow")
@@ -1072,15 +1064,8 @@ fn save_pane_state(
         }
         LeafContents::Notebook(notebook_snapshot) => {
             let (notebook_id, local_path) = match notebook_snapshot {
-                NotebookPaneSnapshot::CloudNotebook {
-                    notebook_id,
-                    settings: _,
-                } => (
-                    notebook_id.map(|id| id.sqlite_uid_hash(ObjectIdType::Notebook)),
-                    None,
-                ),
                 NotebookPaneSnapshot::LocalFileNotebook { path } => {
-                    (None, path.clone().map(encode_path))
+                    (None::<String>, path.clone().map(encode_path))
                 }
             };
 
@@ -1927,63 +1912,6 @@ fn upsert_workflows(
     })
 }
 
-fn upsert_notebooks(
-    conn: &mut SqliteConnection,
-    cloud_notebooks: Vec<CloudNotebook>,
-) -> Result<(), Error> {
-    use schema::notebooks::dsl::*;
-    conn.transaction::<(), Error, _>(|conn| {
-        for cloud_notebook in cloud_notebooks {
-            // todo: wrap in an arc to avoid unnecessary cloning.
-            let notebook_clone = cloud_notebook.clone();
-            let title_clone = cloud_notebook.model().title.clone();
-            let data_clone = cloud_notebook.model().data.clone();
-            let ai_document_id_clone = cloud_notebook
-                .model()
-                .ai_document_id
-                .as_ref()
-                .map(|doc_id| doc_id.to_string());
-            upsert_cloud_object(
-                conn,
-                ObjectType::Notebook,
-                cloud_notebook.id,
-                cloud_notebook.metadata,
-                cloud_notebook.permissions,
-                Box::new(move |conn| {
-                    let new_notebook = NewNotebook {
-                        title: Some(title_clone),
-                        data: Some(data_clone),
-                        ai_document_id: ai_document_id_clone,
-                    };
-                    diesel::insert_into(schema::notebooks::dsl::notebooks)
-                        .values(new_notebook)
-                        .execute(conn)?;
-                    let notebook_id: i32 = schema::notebooks::dsl::notebooks
-                        .select(schema::notebooks::columns::id)
-                        .order(schema::notebooks::columns::id.desc())
-                        .first(conn)?;
-                    Ok(notebook_id)
-                }),
-                Box::new(move |conn, notebook_id| {
-                    diesel::update(notebooks.filter(schema::notebooks::dsl::id.eq(notebook_id)))
-                        .set((
-                            title.eq(notebook_clone.model().title.clone()),
-                            data.eq(notebook_clone.model().data.clone()),
-                            ai_document_id.eq(notebook_clone
-                                .model()
-                                .ai_document_id
-                                .as_ref()
-                                .map(|doc_id| doc_id.to_string())),
-                        ))
-                        .execute(conn)?;
-                    Ok(())
-                }),
-            )?
-        }
-        Ok(())
-    })
-}
-
 fn upsert_folders(
     conn: &mut SqliteConnection,
     cloud_folders: Vec<CloudFolder>,
@@ -2115,25 +2043,10 @@ fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<PaneN
                         .select(model::NotebookPane::as_select())
                         .first(conn)?;
 
-                    let notebook_id = notebook_pane.notebook_id.and_then(|id| {
-                        ClientId::from_hash(&id).map(SyncId::ClientId).or_else(|| {
-                            NotebookId::from_hash(&id).map(|id| SyncId::ServerId(id.into()))
-                        })
-                    });
-
                     let local_path = notebook_pane.local_path.map(decode_path);
 
-                    // In the database schema, both the `notebook_id` and `local_path` are
-                    // nullable. It's possible for either a file pane or a notebook pane to be open
-                    // to an uneditable notebook. In that case, bias towards cloud notebooks. If
-                    // both are null, it's more likely that the pane was a new, empty cloud
-                    // notebook than an unreadable local file.
-                    LeafContents::Notebook(match local_path {
-                        Some(path) => NotebookPaneSnapshot::LocalFileNotebook { path: Some(path) },
-                        None => NotebookPaneSnapshot::CloudNotebook {
-                            notebook_id,
-                            settings: OpenWarpDriveObjectSettings::default(),
-                        },
+                    LeafContents::Notebook(NotebookPaneSnapshot::LocalFileNotebook {
+                        path: local_path,
                     })
                 }
                 WORKFLOW_PANE_KIND => {
@@ -2503,44 +2416,6 @@ fn read_sqlite_data(
                                 ));
                                 boxed
                             })
-                    })
-            })
-            .collect::<Vec<_>>(),
-    );
-
-    cloud_objects.extend(
-        schema::notebooks::dsl::notebooks
-            .load::<model::Notebook>(conn)?
-            .iter()
-            .filter_map(|notebook| {
-                metadata_by_id
-                    .get(&(
-                        notebook.id,
-                        ObjectType::Notebook.sqlite_object_type_as_str().to_string(),
-                    ))
-                    .and_then(|metadata| {
-                        let notebook_id = id_from_metadata::<NotebookId>(metadata);
-                        let permissions = permissions_by_id.get(&metadata.id)?;
-                        let cloud_object_permissions =
-                            to_cloud_object_permissions(permissions, current_user_id)?;
-                        notebook_id.map(|server_id| {
-                            let ai_document_id =
-                                notebook.ai_document_id.as_ref().and_then(|doc_id_str| {
-                                    AIDocumentId::try_from(doc_id_str.as_str()).ok()
-                                });
-                            let boxed: Box<dyn CloudObject> = Box::new(CloudNotebook::new(
-                                server_id,
-                                CloudNotebookModel {
-                                    title: notebook.title.clone().unwrap_or_default(),
-                                    data: notebook.data.clone().unwrap_or_default(),
-                                    ai_document_id,
-                                    conversation_id: None,
-                                },
-                                to_cloud_object_metadata(metadata),
-                                cloud_object_permissions,
-                            ));
-                            boxed
-                        })
                     })
             })
             .collect::<Vec<_>>(),

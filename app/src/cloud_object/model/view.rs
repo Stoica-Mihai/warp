@@ -372,8 +372,7 @@ impl CloudViewModel {
                     }
                 }
             }
-            CloudModelEvent::NotebookEditorChangedFromServer { .. }
-            | CloudModelEvent::ObjectForceExpanded { .. }
+            CloudModelEvent::ObjectForceExpanded { .. }
             | CloudModelEvent::ObjectSynced { .. }
             | CloudModelEvent::InitialLoadCompleted => (),
         }

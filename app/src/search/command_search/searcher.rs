@@ -1,5 +1,4 @@
 use crate::search::mixer::SearchMixer;
-use crate::server::ids::SyncId;
 use crate::terminal::history::LinkedWorkflowData;
 use crate::workflows::{WorkflowSource, WorkflowType};
 
@@ -15,7 +14,6 @@ pub struct AcceptedHistoryItem {
 
 /// Payload for `AcceptWorkflow`: identifies which workflow was selected.
 ///
-/// Cloud workflows carry only a `SyncId` so the handler can resolve the full
 #[derive(Clone, Debug)]
 pub enum AcceptedWorkflow {
     Local {
@@ -38,9 +36,6 @@ pub enum CommandSearchItemAction {
 
     /// The user accepted a workflow search item.
     AcceptWorkflow(AcceptedWorkflow),
-
-    /// The user accepted the notebook search item.
-    AcceptNotebook(SyncId),
 
     /// The user accepted the search item to open Warp AI.
     OpenWarpAI,

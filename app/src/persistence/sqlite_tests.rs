@@ -20,7 +20,6 @@ use crate::app_state::{
 };
 use crate::cloud_object::{CloudObjectPermissions, Owner};
 use crate::code::editor_management::CodeSource;
-use crate::notebooks::{CloudNotebook, CloudNotebookModel};
 use crate::persistence::model::ObjectPermissions;
 use crate::persistence::{BlockCompleted, ModelEvent, PersistenceScope};
 use crate::server::ids::ClientId;
@@ -161,83 +160,6 @@ fn sqlite_writer_reuses_codebase_index_metadata_events() {
     let mut conn = setup_database(&database_path).expect("database should reopen");
     let restored = get_all_codebase_index_metadata(&mut conn).expect("metadata should load");
     assert!(restored.is_empty());
-}
-#[test]
-fn test_deduplicate_snapshots() {
-    let local_notebook = CloudNotebook::new_local(
-        CloudNotebookModel {
-            title: "Hello".to_string(),
-            data: "World".to_string(),
-            ai_document_id: None,
-            conversation_id: None,
-        },
-        Owner::mock_current_user(),
-        None,
-        ClientId::new(),
-    );
-    let completed_block_1 = BlockCompleted {
-        pane_id: vec![1, 2, 3],
-        block: Arc::new(SerializedBlock::default()),
-        is_local: true,
-    };
-    let completed_block_2 = BlockCompleted {
-        pane_id: vec![4, 5, 6],
-        block: Arc::new(SerializedBlock::default()),
-        is_local: true,
-    };
-    let snapshot_1 = AppState {
-        active_window_index: Some(1),
-        block_lists: Default::default(),
-        windows: Default::default(),
-        running_mcp_servers: Default::default(),
-    };
-    let snapshot_2 = AppState {
-        active_window_index: Some(2),
-        block_lists: Default::default(),
-        windows: Default::default(),
-        running_mcp_servers: Default::default(),
-    };
-    let snapshot_3 = AppState {
-        active_window_index: Some(3),
-        block_lists: Default::default(),
-        windows: Default::default(),
-        running_mcp_servers: Default::default(),
-    };
-
-    let original_events = vec![
-        ModelEvent::UpsertNotebook {
-            notebook: local_notebook.clone(),
-        },
-        ModelEvent::Snapshot(snapshot_1.clone()),
-        ModelEvent::SaveBlock(completed_block_1.clone()),
-        ModelEvent::Snapshot(snapshot_2.clone()),
-        ModelEvent::SaveBlock(completed_block_2.clone()),
-        ModelEvent::Snapshot(snapshot_3.clone()),
-        ModelEvent::UpsertNotebook {
-            notebook: local_notebook.clone(),
-        },
-    ];
-
-    let filtered_events = deduplicate_events(original_events);
-    assert_eq!(filtered_events.len(), 5);
-
-    assert!(matches!(
-        &filtered_events[0],
-        &ModelEvent::UpsertNotebook { .. }
-    ));
-    // The first snapshot should have been filtered out.
-    assert!(matches!(&filtered_events[1], &ModelEvent::SaveBlock(_)));
-    // The second snapshot should have been filtered out.
-    assert!(matches!(&filtered_events[2], &ModelEvent::SaveBlock(_)));
-    // The third snapshot should be preserved.
-    match &filtered_events[3] {
-        ModelEvent::Snapshot(snapshot) => assert_eq!(snapshot, &snapshot_3),
-        other => panic!("Expected ModelEvent::Snapshot, got {other:?}"),
-    }
-    assert!(matches!(
-        &filtered_events[4],
-        &ModelEvent::UpsertNotebook { .. }
-    ));
 }
 
 #[test]

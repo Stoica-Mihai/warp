@@ -47,7 +47,6 @@ use warpui::{
     SingletonEntity, TypedActionView, View, ViewContext, ViewHandle, WeakViewHandle,
 };
 
-use super::block_insertion_menu::{BlockInsertionMenuState, BlockInsertionSource};
 use super::find_bar::{FindBar, FindBarEvent, FindBarState};
 use super::keys::NotebookKeybindings;
 use super::link_editor::{LinkEditor, LinkEditorEvent};
@@ -105,19 +104,17 @@ pub fn init(app: &mut AppContext) {
         FixedBinding::new(
             "enter",
             EditorViewAction::Enter,
-            // The BlockInsertionMenu guard is needed because menus don't handle Enter via keybindings.
-            // Without this, Enter is processed by both the menu and the editor view.
-            id!("RichTextEditorView") & !id!("IMEOpen") & !id!("BlockInsertionMenu"),
+            id!("RichTextEditorView") & !id!("IMEOpen"),
         ),
         FixedBinding::new(
             "numpadenter",
             EditorViewAction::Enter,
-            id!("RichTextEditorView") & !id!("IMEOpen") & !id!("BlockInsertionMenu"),
+            id!("RichTextEditorView") & !id!("IMEOpen"),
         ),
         FixedBinding::new(
             "shift-enter",
             EditorViewAction::ShiftEnter,
-            id!("RichTextEditorView") & !id!("IMEOpen") & !id!("BlockInsertionMenu"),
+            id!("RichTextEditorView") & !id!("IMEOpen"),
         ),
         FixedBinding::new(
             "backspace",
@@ -163,12 +160,12 @@ pub fn init(app: &mut AppContext) {
         FixedBinding::new(
             "left",
             EditorViewAction::MoveLeft,
-            text_entry.clone() & !id!("BlockInsertionMenu"),
+            text_entry.clone(),
         ),
         FixedBinding::new(
             "right",
             EditorViewAction::MoveRight,
-            text_entry.clone() & !id!("BlockInsertionMenu"),
+            text_entry.clone(),
         ),
         FixedBinding::new(
             "home",
@@ -830,7 +827,6 @@ pub enum EditorViewAction {
     Copy,
     Undo,
     Redo,
-    OpenBlockInsertionMenu,
     /// Insert a block of the given type after the hovered location.
     InsertBlock(warp_editor::content::text::BlockType),
     Indent,
@@ -860,7 +856,6 @@ pub enum EditorViewAction {
         block: BlockInfo,
         entrypoint: ActionEntrypoint,
     },
-    OpenEmbeddedObjectSearch,
     RemoveEmbeddingAt(CharOffset),
     MiddleClickPaste,
     /// Open a file. If open_in_warp is true, open in Warp's code editor; otherwise use external editor.
@@ -948,10 +943,6 @@ pub enum EditorViewEvent {
     /// for sending it to the active terminal.
     RunWorkflow(NotebookWorkflow),
     EditWorkflow(SyncId),
-    /// The block insertion menu was opened.
-    OpenedBlockInsertionMenu(BlockInsertionSource),
-    /// The embedded object search menu was opened.
-    OpenedEmbeddedObjectSearch,
     /// The find bar was opened.
     OpenedFindBar,
     /// An embedded object was inserted (via the menu - this doesn't account for copy/pasting
@@ -1042,9 +1033,7 @@ pub struct RichTextEditorView {
     omnibar: ViewHandle<Omnibar>,
     link_editor: ViewHandle<LinkEditor>,
     requested_link_editor_open: AtomicBool,
-    requested_block_insertion_menu_open: bool,
     link_editor_open: bool,
-    pub(super) insertion_menu_state: BlockInsertionMenuState,
     pending_layout_affecting_asset_loads: HashSet<AssetHandle>,
 
     pub(super) find_bar: FindBarState,
@@ -1067,8 +1056,6 @@ pub struct RichTextEditorView {
     /// to propagate to the parent. Used for embedded editors like comment chips.
     disable_scrolling: bool,
 
-    /// When true, the block insertion menu (slash menu) is disabled.
-    disable_block_insertion_menu: bool,
 }
 
 #[derive(Default)]
@@ -1076,9 +1063,6 @@ pub struct RichTextEditorConfig {
     pub max_width: Option<Pixels>,
     pub gutter_width: Option<f32>,
     pub vertical_expansion_behavior: Option<VerticalExpansionBehavior>,
-
-    /// Enable or disable embedded objects (notebooks, workflows) in the block insertion menu.
-    pub embedded_objects_enabled: Option<bool>,
 
     /// Configure whether this editor can execute shell commands via Cmd/Ctrl+Enter.
     /// When disabled, Cmd/Ctrl+Enter emits a CmdEnter event instead, allowing parent views
@@ -1088,10 +1072,6 @@ pub struct RichTextEditorConfig {
     /// When true, the editor content is not wrapped in a Scrollable, allowing scroll events
     /// to propagate to the parent. Used for embedded editors like comment chips.
     pub disable_scrolling: bool,
-
-    /// Enable or disable the block insertion menu (slash menu).
-    /// When disabled, typing "/" will not open the menu.
-    pub disable_block_insertion_menu: bool,
 }
 
 impl RichTextEditorView {
@@ -1144,9 +1124,6 @@ impl RichTextEditorView {
         let find_bar = FindBarState::new(parent_position_id, model.clone(), ctx);
         ctx.subscribe_to_view(find_bar.view(), Self::handle_find_bar_event);
 
-        let insertion_menu_state =
-            BlockInsertionMenuState::new(ctx, config.embedded_objects_enabled.unwrap_or(true));
-
         Self {
             omnibar,
             link_editor,
@@ -1162,8 +1139,6 @@ impl RichTextEditorView {
             links,
             link_editor_open: false,
             requested_link_editor_open: Default::default(),
-            requested_block_insertion_menu_open: Default::default(),
-            insertion_menu_state,
             pending_layout_affecting_asset_loads: Default::default(),
             hovered_file_path: None,
             open_file_path: None,
@@ -1175,12 +1150,7 @@ impl RichTextEditorView {
             vertical_expansion_behavior: config.vertical_expansion_behavior.unwrap_or_default(),
             can_execute_shell_commands: config.can_execute_shell_commands.unwrap_or(true),
             disable_scrolling: config.disable_scrolling,
-            disable_block_insertion_menu: config.disable_block_insertion_menu,
         }
-    }
-
-    pub(super) fn disable_block_insertion_menu(&self) -> bool {
-        self.disable_block_insertion_menu
     }
 
     fn handle_omnibar_event(
@@ -1235,14 +1205,6 @@ impl RichTextEditorView {
                 // - Transient state that should not be persisted (autosuggestions, syntax highlighting, etc.)
                 // - Cloud updates, which must not be echoed back
                 if origin.from_user() {
-                    // Similar to link editor, if the edit just triggered the slash menu
-                    // to open, don't close the block insertion menu.
-                    if self.requested_block_insertion_menu_open {
-                        self.requested_block_insertion_menu_open = false;
-                    } else {
-                        self.close_block_insertion_menu(ctx);
-                    }
-
                     if self.hovered_file_path.is_some() {
                         self.hovered_file_path = None;
                         ctx.notify();
@@ -1501,8 +1463,7 @@ impl RichTextEditorView {
     fn should_handle_user_input(&self, app: &AppContext) -> bool {
         !(self.link_editor.as_ref(app).editors_focused(app)
             || self.find_bar.is_focused(app)
-            || self.model.as_ref(app).has_command_selection(app)
-            || self.insertion_menu_state.embedded_object_search_open)
+            || self.model.as_ref(app).has_command_selection(app))
     }
 
     /// Whether or not the view is currently editable.
@@ -1513,20 +1474,6 @@ impl RichTextEditorView {
     /// Update the editor model with user typed content.
     pub fn user_typed(&mut self, content: &str, ctx: &mut ViewContext<Self>) {
         if self.is_editable(ctx) && self.should_handle_user_input(ctx) {
-            if !self.disable_block_insertion_menu
-                && content == "/"
-                && self.selection_is_single_cursor(ctx)
-            {
-                // Check if previous character is not a digit (i.e. writing dates)
-                let prev_char = self
-                    .model
-                    .read(ctx, |model, ctx| model.prev_char_in_non_code_block(ctx));
-                if prev_char.is_some_and(|c| !c.is_ascii_digit()) {
-                    self.requested_block_insertion_menu_open = true;
-                    self.open_block_insertion_menu(BlockInsertionSource::AtCursor, ctx);
-                }
-            }
-
             self.model.update(ctx, |model, ctx| {
                 model.user_insert(content, ctx);
             });
@@ -1682,7 +1629,6 @@ impl RichTextEditorView {
         }
 
         self.close_link_editor(ctx);
-        self.close_block_insertion_menu(ctx);
         ctx.focus_self();
     }
 
@@ -2075,73 +2021,12 @@ impl RichTextEditorView {
         block_type: warp_editor::content::text::BlockType,
         ctx: &mut ViewContext<Self>,
     ) {
-        enum InsertionMode {
-            DeleteSlashAndRestyleLine(CharOffset),
-            InsertAfter(CharOffset),
-            DeleteSlashAndInsertAfter(CharOffset),
-        }
         if self.can_edit(ctx) {
-            let insertion_mode = match self.insertion_menu_state.open_at_source {
-                Some(BlockInsertionSource::AtCursor) if self.selection_is_single_cursor(ctx) => {
-                    let cursor_position = self.model.as_ref(ctx).selection_head(ctx);
-                    let logical_line_start = self
-                        .model
-                        .as_ref(ctx)
-                        .logical_line_start(cursor_position, ctx);
-                    let logical_line_end = self
-                        .model
-                        .as_ref(ctx)
-                        .logical_line_end(cursor_position, ctx);
-
-                    // Check if "/" is the only character in the line.
-                    if logical_line_start == cursor_position - 1
-                        && logical_line_end == cursor_position + 1
-                    {
-                        InsertionMode::DeleteSlashAndRestyleLine(cursor_position)
-                    } else {
-                        // Note that we need to minus one here as the "/" is going to be deleted if user
-                        // is inserting a block from the slash menu.
-                        InsertionMode::DeleteSlashAndInsertAfter(cursor_position - 1)
-                    }
-                }
-                Some(BlockInsertionSource::BlockInsertionButton)
-                    if self.hovered_block.is_some() =>
-                {
-                    InsertionMode::InsertAfter(self.hovered_block.expect("Just checked above"))
-                }
-                _ => return,
-            };
-
-            self.close_block_insertion_menu(ctx);
+            let Some(hovered) = self.hovered_block else { return };
+            let insertion_mode = hovered;
             self.model.update(ctx, |model, ctx| {
-                match insertion_mode {
-                    InsertionMode::InsertAfter(insertion_offset) => {
-                        // TODO(CLD-557)
-                        model.insert_block_after(insertion_offset + 1, block_type, ctx);
-                    }
-                    InsertionMode::DeleteSlashAndInsertAfter(insertion_offset) => {
-                        model.backspace(ctx);
-                        // TODO(CLD-557)
-                        model.insert_block_after(insertion_offset + 1, block_type, ctx);
-                    }
-                    InsertionMode::DeleteSlashAndRestyleLine(cursor_position) => match block_type {
-                        warp_editor::content::text::BlockType::Item(item) => {
-                            // Set one more offset position to the left to avoid additional linebreaks.
-                            // Note: We can use `set_last_selection_head` because the menu cannot
-                            // be opened when there are multiple selections.
-                            model.set_last_selection_head(cursor_position - 1, ctx);
-                            model.insert_block_item(item, ctx);
-                            model.cursor_at(cursor_position + 1, ctx);
-                        }
-                        warp_editor::content::text::BlockType::Text(style) => {
-                            // Note: We can use `set_last_selection_head` because the menu cannot
-                            // be opened when there are multiple selections.
-                            model.set_last_selection_head(cursor_position, ctx);
-                            model.set_block_style(style, ctx);
-                            model.backspace(ctx);
-                        }
-                    },
-                }
+                // TODO(CLD-557)
+                model.insert_block_after(insertion_mode + 1, block_type, ctx);
             });
         }
     }
@@ -2152,16 +2037,6 @@ impl RichTextEditorView {
         char_offset: Option<CharOffset>,
         ctx: &mut ViewContext<Self>,
     ) {
-        if matches!(
-            self.insertion_menu_state.open_at_source,
-            Some(BlockInsertionSource::BlockInsertionButton)
-        ) {
-            // While the block insertion menu is open, we keep the hovered block fixed to its last
-            // location. This ensures that moving the mouse to use the menu won't affect where
-            // content is added.
-            return;
-        }
-
         if block_start != self.hovered_block {
             self.hovered_block = block_start;
             ctx.notify();
@@ -2601,36 +2476,8 @@ impl RichTextEditorView {
                 .as_ref(ctx)
                 .has_single_exact_rendered_mermaid_selection(ctx)
             && !matches!(self.ongoing_mouse_state, OngoingMouseEvent::Selecting)
-            && !self.is_block_insertion_menu_open()
     }
 
-    /// Insert an embedded notebook inline link at the current insertion menu source.
-    /// For now, this looks like a regular hyperlink that opens the notebook in a new tab.
-    pub(super) fn insert_embedded_notebook_view(
-        &mut self,
-        title: String,
-        link: String,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match self.insertion_menu_state.open_at_source {
-            Some(BlockInsertionSource::AtCursor) if self.selection_is_single_cursor(ctx) => {
-                self.model.update(ctx, |model, ctx| {
-                    // Remove slash
-                    model.backspace(ctx);
-                });
-            }
-            Some(BlockInsertionSource::BlockInsertionButton) if self.hovered_block.is_some() => {
-                self.model.update(ctx, |model, ctx| {
-                    model.newline(ctx);
-                });
-            }
-            _ => return,
-        };
-
-        self.model.update(ctx, |model, ctx| {
-            model.set_link(title, link, ctx);
-        });
-    }
 }
 
 impl Entity for RichTextEditorView {
@@ -2696,8 +2543,6 @@ impl View for RichTextEditorView {
         let mut main_stack = Stack::new();
         main_stack.add_child(main_content);
 
-        self.render_block_insertion_menu(&mut main_stack, app);
-
         // Clip main editor view within bounds, and add find bar later
         let main_stack_clipped = Clipped::new(main_stack.finish()).finish();
 
@@ -2756,10 +2601,6 @@ impl View for RichTextEditorView {
 
         if self.is_editable(ctx) {
             context.set.insert("EditorIsEditable");
-        }
-
-        if self.insertion_menu_state.open_at_source.is_some() {
-            context.set.insert("BlockInsertionMenu");
         }
 
         if self.model.as_ref(ctx).has_command_selection(ctx) {
@@ -3023,9 +2864,6 @@ impl TypedActionView for RichTextEditorView {
             Cut => self.cut(ActionEntrypoint::Keyboard, ctx),
             Undo => self.undo(ctx),
             Redo => self.redo(ctx),
-            OpenBlockInsertionMenu => {
-                self.open_block_insertion_menu(BlockInsertionSource::BlockInsertionButton, ctx)
-            }
             InsertBlock(block_type) => self.insert_block(block_type.clone(), ctx),
             CommandUp => self.command_up(ctx),
             CommandDown => self.command_down(ctx),
@@ -3078,10 +2916,6 @@ impl TypedActionView for RichTextEditorView {
                     block: *block,
                     entrypoint: *entrypoint,
                 });
-            }
-            OpenEmbeddedObjectSearch => {
-                self.open_embedded_object_search(ctx);
-                ctx.notify();
             }
             RemoveEmbeddingAt(offset) => self
                 .model
@@ -3218,18 +3052,6 @@ impl TypedActionView for RichTextEditorView {
             EditorViewAction::ShowFindBar => ActionAccessibilityContent::Custom(
                 AccessibilityContent::new_without_help("Show find bar", WarpA11yRole::UserAction),
             ),
-            EditorViewAction::OpenBlockInsertionMenu => {
-                ActionAccessibilityContent::Custom(AccessibilityContent::new_without_help(
-                    "Open block-insertion menu",
-                    WarpA11yRole::UserAction,
-                ))
-            }
-            EditorViewAction::OpenEmbeddedObjectSearch => {
-                ActionAccessibilityContent::Custom(AccessibilityContent::new_without_help(
-                    "Open embedded object search menu",
-                    WarpA11yRole::UserAction,
-                ))
-            }
             EditorViewAction::InsertBlock(block_type) => {
                 ActionAccessibilityContent::Custom(AccessibilityContent::new_without_help(
                     format!("Insert {} block", BlockType::from(block_type).label()),

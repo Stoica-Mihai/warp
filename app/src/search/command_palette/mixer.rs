@@ -25,9 +25,6 @@ pub enum CommandPaletteItemAction {
     ExecuteWorkflow {
         id: SyncId,
     },
-    OpenNotebook {
-        id: SyncId,
-    },
     ViewInWarpDrive {
         id: CloudObjectTypeAndId,
     },
@@ -85,7 +82,6 @@ impl CommandPaletteItemAction {
             CommandPaletteItemAction::AcceptBinding { binding } => ItemSummary::Action {
                 binding_id: binding.id,
             },
-            CommandPaletteItemAction::OpenNotebook { id } => ItemSummary::Notebook { id: *id },
             CommandPaletteItemAction::ExecuteWorkflow { id } => ItemSummary::Workflow { id: *id },
             CommandPaletteItemAction::NavigateToSession {
                 pane_view_locator, ..

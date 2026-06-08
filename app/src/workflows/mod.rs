@@ -26,7 +26,6 @@ use crate::cloud_object::{
     CloudModelType, CloudObjectUpsertParams, GenericCloudObject, ObjectType,
 };
 use crate::drive::CloudObjectTypeAndId;
-use crate::notebooks::{NotebookId, NotebookLocation};
 use crate::persistence::ModelEvent;
 use crate::server::ids::{ServerId, SyncId};
 
@@ -42,11 +41,6 @@ pub enum WorkflowSource {
     Project,
     PersonalCloud,
     WarpAI,
-    Notebook {
-        notebook_id: Option<NotebookId>,
-        team_uid: Option<ServerId>,
-        location: NotebookLocation,
-    },
 
     /// A hardcoded workflow type that allows Warp to surface features as Workflows (e.g.
     /// a command to see our network log)

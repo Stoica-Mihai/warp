@@ -3,7 +3,6 @@ use std::sync::Arc;
 use warp_util::local_or_remote_path::LocalOrRemotePath;
 use warpui::{AppContext, ModelHandle, View, ViewContext, ViewHandle};
 
-use super::notebook_pane::subscribe_to_link_model;
 use super::view::PaneView;
 use super::{
     DetachType, PaneConfiguration, PaneContent, PaneGroup, PaneId, ShareableLink,
@@ -115,7 +114,41 @@ impl PaneContent for FilePane {
                 }
             },
         );
-        subscribe_to_link_model(pane_id, &file_view.as_ref(ctx).links(), ctx);
+        {
+            use crate::notebooks::link::LinkEvent;
+            let links = file_view.as_ref(ctx).links();
+            ctx.subscribe_to_model(&links, move |pane_group, _, event, ctx| match event {
+                LinkEvent::OpenFileNotebook { path, session } => {
+                    ctx.emit(crate::pane_group::Event::OpenFileInWarp {
+                        path: LocalOrRemotePath::Local(path.clone()),
+                        session: session.clone(),
+                    })
+                }
+                LinkEvent::OpenWarpDriveLink { open_warp_drive_args } => {
+                    ctx.emit(crate::pane_group::Event::OpenWarpDriveLink {
+                        open_warp_drive_args: open_warp_drive_args.clone(),
+                    })
+                }
+                LinkEvent::StartLocalSession { path } => {
+                    pane_group.add_session_in_directory(
+                        crate::pane_group::Direction::Right,
+                        Some(pane_id),
+                        None,
+                        Some(path.clone()),
+                        ctx,
+                    );
+                }
+                #[cfg(feature = "local_fs")]
+                LinkEvent::OpenFileWithTarget { path, target, line_col } => {
+                    ctx.emit(crate::pane_group::Event::OpenFileWithTarget {
+                        path: path.clone(),
+                        target: target.clone(),
+                        line_col: *line_col,
+                    });
+                }
+                LinkEvent::RefreshLinks => (),
+            });
+        }
 
         ctx.subscribe_to_view(&self.view, move |group, _, event, ctx| {
             group.handle_pane_view_event(pane_id, event, ctx);

@@ -317,7 +317,6 @@ fn pane_type_supports_vertical_tabs_detail_sidecar(pane_type: IPaneType) -> bool
         pane_type,
         IPaneType::Terminal
             | IPaneType::Code
-            | IPaneType::Notebook
             | IPaneType::Workflow
     )
 }
@@ -350,9 +349,6 @@ fn detail_sidecar_supports_terminal_code_and_warp_drive_object_panes() {
     ));
     assert!(pane_type_supports_vertical_tabs_detail_sidecar(
         IPaneType::Code
-    ));
-    assert!(pane_type_supports_vertical_tabs_detail_sidecar(
-        IPaneType::Notebook
     ));
     assert!(pane_type_supports_vertical_tabs_detail_sidecar(
         IPaneType::Workflow

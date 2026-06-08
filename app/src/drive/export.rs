@@ -24,7 +24,7 @@ use crate::view_components::DismissibleToast;
 use crate::workspace::{active_terminal_in_window, ToastStack};
 #[cfg(feature = "local_fs")]
 use crate::{
-    notebooks::export_notebook, server::cloud_objects::update_manager::get_duplicate_object_name,
+    server::cloud_objects::update_manager::get_duplicate_object_name,
     view_components::ToastLink, workflows::export_workflow::export_serialize,
     workspace::WorkspaceAction,
 };
@@ -274,18 +274,6 @@ impl ExportManager {
                 let data = serializer.into_inner();
 
                 (workflow.model().data.name().to_owned(), "yaml", data)
-            }
-            CloudObjectTypeAndId::Notebook(notebook_id) => {
-                let notebook = cloud_model
-                    .get_notebook(&notebook_id)
-                    .ok_or_else(|| anyhow!("no notebook for {notebook_id}"))?;
-                let internal_data = &notebook.model().data;
-                // If we're unable to translate the Markdown for export, fall back to the original
-                // text.
-                let data = export_notebook(internal_data, ctx)
-                    .unwrap_or_else(|_| internal_data.clone())
-                    .into_bytes();
-                (notebook.model().title.clone(), "md", data)
             }
             CloudObjectTypeAndId::GenericStringObject { object_type, .. } => {
                 anyhow::bail!("exporting {object_type:?} not yet supported")

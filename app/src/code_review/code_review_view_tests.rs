@@ -39,7 +39,7 @@ use crate::vim_registers::VimRegisters;
 use crate::workspace::sync_inputs::SyncedInputState;
 use crate::workspace::ActiveSession;
 use crate::workspaces::user_workspaces::UserWorkspaces;
-use crate::NotebookKeybindings;
+use crate::notebooks::editor::keys::NotebookKeybindings;
 
 #[derive(Default)]
 struct TestView;

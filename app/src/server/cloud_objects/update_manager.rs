@@ -1,8 +1,6 @@
 use std::collections::HashSet;
 use std::future::Future;
 use std::sync::mpsc::SyncSender;
-use std::sync::Arc;
-
 use chrono::Utc;
 use futures::channel::oneshot::{self, Receiver};
 use regex::Regex;
@@ -20,7 +18,6 @@ use crate::cloud_object::model::actions::{
     ObjectActionType, ObjectActions,
 };
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent, UpdateSource};
-use crate::cloud_object::model::view::{CloudViewModel, Editor, EditorState};
 use crate::cloud_object::{
     CloudModelType, CloudObject, CloudObjectEventEntrypoint, CloudObjectLocation,
     GenericCloudObject, ObjectIdType, ObjectType, Owner,
@@ -29,7 +26,6 @@ use crate::cloud_object::{
 use crate::drive::folders::FolderId;
 use crate::drive::CloudObjectTypeAndId;
 use crate::network::{NetworkStatus, NetworkStatusEvent, NetworkStatusKind};
-use crate::notebooks::{CloudNotebookModel, NotebookId};
 use crate::persistence::ModelEvent;
 use crate::server::ids::{
     ClientId, HashableId, ObjectUid, ServerId, SyncId,
@@ -310,48 +306,6 @@ impl UpdateManager {
         );
     }
 
-    pub fn update_notebook_data(
-        &mut self,
-        data: Arc<String>,
-        notebook_id: SyncId,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let cloud_model = CloudModel::as_ref(ctx);
-        let revision = cloud_model.current_revision(&notebook_id).cloned();
-        if let Some(notebook) = cloud_model.get_notebook(&notebook_id) {
-            let new_notebook = CloudNotebookModel {
-                title: notebook.model().title.to_owned(),
-                data: data.to_string(),
-                ai_document_id: notebook.model().ai_document_id,
-                conversation_id: notebook.model().conversation_id.clone(),
-            };
-            self.update_object(new_notebook, notebook_id, revision, ctx);
-        } else {
-            log::warn!("Expected notebook to be in model with id {notebook_id:?}");
-        }
-    }
-
-    pub fn update_notebook_title(
-        &mut self,
-        title: Arc<String>,
-        notebook_id: SyncId,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let cloud_model = CloudModel::as_ref(ctx);
-        let revision = cloud_model.current_revision(&notebook_id).cloned();
-        if let Some(notebook) = cloud_model.get_notebook(&notebook_id) {
-            let new_notebook = CloudNotebookModel {
-                title: title.to_string(),
-                data: notebook.model().data.to_owned(),
-                ai_document_id: notebook.model().ai_document_id,
-                conversation_id: notebook.model().conversation_id.clone(),
-            };
-            self.update_object(new_notebook, notebook_id, revision, ctx);
-        } else {
-            log::warn!("Expected notebook to be in model with id {notebook_id:?}");
-        }
-    }
-
     #[allow(clippy::too_many_arguments)]
     fn move_object_to_folder(
         &mut self,
@@ -624,8 +578,9 @@ impl UpdateManager {
         ctx: &mut ModelContext<Self>,
     ) {
         match cloud_object_type_and_id {
-            CloudObjectTypeAndId::Notebook(notebook_id) => {
-                self.duplicate_object_internal::<NotebookId, CloudNotebookModel>(notebook_id, ctx);
+            CloudObjectTypeAndId::Notebook(_) => {
+                log::error!("Tried to duplicate an unsupported type: notebook");
+                debug_assert!(false, "Tried to duplicate an unsupported type: notebook");
             }
             CloudObjectTypeAndId::Workflow(workflow_id) => {
                 self.duplicate_object_internal::<WorkflowId, CloudWorkflowModel>(workflow_id, ctx);
@@ -712,31 +667,6 @@ impl UpdateManager {
         );
     }
 
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn create_notebook(
-        &mut self,
-        client_id: ClientId,
-        owner: Owner,
-        initial_folder_id: Option<SyncId>,
-        model: CloudNotebookModel,
-        entrypoint: CloudObjectEventEntrypoint,
-        force_expand: bool,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        self.create_object(
-            model,
-            owner,
-            client_id,
-            entrypoint,
-            force_expand,
-            initial_folder_id,
-            // When adding the initiated_by parameter to this function call, InitiatedBy::User was set as a default value.
-            // This can be changed to InitiatedBy::System if this action was automatically kicked off by the system and we do not want a user facing toast.
-            InitiatedBy::User,
-            ctx,
-        );
-    }
 
     fn get_next_duplicate_object_name(
         &self,
@@ -937,66 +867,6 @@ impl UpdateManager {
         // Update sqlite.
         self.save_to_db([ModelEvent::InsertObjectAction { object_action }]);
 
-    }
-
-    /// Sets the notebooks current editor in memory. SQLite is not updated until we receive
-    /// server confirmation.
-    fn set_notebook_current_editor(
-        &self,
-        notebook_id: &SyncId,
-        editor_uid: Option<String>,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        CloudModel::handle(ctx).update(ctx, |cloud_model, ctx| {
-            if let Some(notebook) = cloud_model.get_notebook_mut(notebook_id) {
-                notebook.metadata.set_current_editor(editor_uid);
-                ctx.notify();
-            }
-        });
-    }
-
-    pub fn grab_notebook_edit_access(
-        &mut self,
-        notebook_id: SyncId,
-        optimistically_grant_access: bool,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let SyncId::ServerId(server_id) = notebook_id else {
-            return;
-        };
-
-        let auth_state = AuthStateProvider::as_ref(ctx).get();
-        let user_uid = auth_state.user_id().unwrap_or_default();
-        self.set_notebook_current_editor(&notebook_id, Some(user_uid.as_string()), ctx);
-        if !optimistically_grant_access {
-            ctx.emit(UpdateManagerEvent::ObjectOperationComplete {
-                result: ObjectOperationResult {
-                    success_type: OperationSuccessType::Success,
-                    operation: ObjectOperation::TakeEditAccess,
-                    client_id: None,
-                    server_id: Some(server_id),
-                    num_objects: None,
-                },
-            });
-        }
-    }
-
-    pub fn give_up_notebook_edit_access(
-        &mut self,
-        notebook_id: SyncId,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let SyncId::ServerId(_server_id) = notebook_id else {
-            return;
-        };
-
-        let current_editor = CloudViewModel::as_ref(ctx)
-            .object_current_editor(&notebook_id.uid(), ctx)
-            .unwrap_or(Editor::no_editor());
-
-        if matches!(current_editor.state, EditorState::CurrentUser) {
-            self.set_notebook_current_editor(&notebook_id, None, ctx);
-        }
     }
 
     /// Optimistically marks the object as trashed, updates the metadata sync status to pending, and returns both
