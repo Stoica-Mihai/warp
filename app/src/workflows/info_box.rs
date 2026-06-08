@@ -14,7 +14,7 @@ use warpui::elements::{
 use warpui::fonts::{Properties, Weight};
 use warpui::geometry::vector::Vector2F;
 use warpui::keymap::Keystroke;
-use warpui::text_layout::{ClipConfig, TextStyle};
+use warpui::text_layout::TextStyle;
 use warpui::ui_components::button::ButtonVariant;
 use warpui::ui_components::components::{UiComponent, UiComponentStyles};
 use warpui::{
@@ -28,8 +28,6 @@ use super::workflow::Argument;
 use super::AIWorkflowOrigin;
 use crate::ai::blocklist::ai_brand_color;
 use crate::appearance::Appearance;
-use crate::cloud_object::model::actions::{ObjectActionType, ObjectActions};
-use crate::cloud_object::CloudObjectMetadataExt;
 use crate::settings::InputModeSettings;
 use crate::terminal::block_list_viewport::InputMode;
 use crate::terminal::input::InputAction;
@@ -123,7 +121,7 @@ impl WorkflowsMoreInfoView {
         info_box_expanded: bool,
         workflow: WorkflowType,
         show_shift_tab_treatment: bool,
-        ctx: &mut ViewContext<Self>,
+        _ctx: &mut ViewContext<Self>,
     ) -> Self {
         let num_arguments = workflow.as_workflow().arguments().len();
 
@@ -459,7 +457,7 @@ impl WorkflowsMoreInfoView {
         &self,
         appearance: &Appearance,
         input_mode: &InputMode,
-        app: &AppContext,
+        _app: &AppContext,
     ) -> Box<dyn Element> {
         let content_and_args = self.render_content_and_arguments(appearance);
 
@@ -486,46 +484,7 @@ impl WorkflowsMoreInfoView {
 
         let mut row_content = Flex::row();
 
-        match &self.workflow {
-            WorkflowType::Cloud(cloud_workflow) => {
-                let editing_history = cloud_workflow.metadata.semantic_editing_history(app);
-
-                let action_history = ObjectActions::as_ref(app)
-                    .get_action_history_summary_for_action_type(
-                        &cloud_workflow.id.uid(),
-                        ObjectActionType::Execute,
-                    );
-
-                let full_object_history_text = match (editing_history, action_history) {
-                    (Some(edits), Some(actions)) => Some(format!("{edits}  |  {actions}")),
-                    (Some(edits), None) => Some(edits),
-                    _ => None,
-                };
-
-                let metadata_history = full_object_history_text.map(|str| {
-                    Container::new(
-                        Text::new_inline(str, appearance.ui_font_family(), 12.)
-                            .with_color(
-                                appearance
-                                    .theme()
-                                    .sub_text_color(appearance.theme().surface_2())
-                                    .into(),
-                            )
-                            .with_clip(ClipConfig::end())
-                            .finish(),
-                    )
-                    .with_uniform_padding(5.)
-                    .finish()
-                });
-
-                if let Some(metadata_history_element) = metadata_history {
-                    row_content.add_child(Shrinkable::new(1., metadata_history_element).finish());
-                }
-
-                row_content.add_children([collapse_button, close_button]);
-            }
-            _ => row_content.add_children([collapse_button, close_button]),
-        };
+        row_content.add_children([collapse_button, close_button]);
 
         let workflow_info = Flex::column()
             .with_children([
@@ -871,7 +830,7 @@ impl Entity for WorkflowsMoreInfoView {
 impl TypedActionView for WorkflowsMoreInfoView {
     type Action = WorkflowsInfoBoxViewAction;
 
-    fn handle_action(&mut self, action: &WorkflowsInfoBoxViewAction, ctx: &mut ViewContext<Self>) {
+    fn handle_action(&mut self, action: &WorkflowsInfoBoxViewAction, _ctx: &mut ViewContext<Self>) {
         match action {
             WorkflowsInfoBoxViewAction::CollapseOrExpand => {
                 self.info_box_expanded = !self.info_box_expanded

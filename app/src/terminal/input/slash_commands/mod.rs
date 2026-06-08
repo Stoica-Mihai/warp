@@ -19,7 +19,6 @@ use warpui::{AppContext, SingletonEntity, ViewContext};
 use crate::terminal::view::agent_view_state::AgentViewEntryOrigin;
 
 use crate::ai::blocklist::InputTypeAutoDetectionSource;
-use crate::cloud_object::model::persistence::CloudModel;
 use crate::code_review::telemetry_event::CodeReviewPaneEntrypoint;
 use crate::search::slash_command_menu::static_commands::commands::{self, COMMAND_REGISTRY};
 use crate::search::slash_command_menu::static_commands::Availability;
@@ -38,7 +37,6 @@ use crate::terminal::model::session::Session;
 use crate::terminal::view::TerminalAction;
 use crate::ui_components::color_dot;
 use crate::view_components::DismissibleToast;
-use crate::workflows::{WorkflowSelectionSource, WorkflowSource, WorkflowType};
 use crate::workspace::{ToastStack, WorkspaceAction};
 
 #[derive(Debug, Clone)]
@@ -265,19 +263,7 @@ impl Input {
                 });
                 ctx.notify();
             }
-            SlashCommandsEvent::SelectedSavedPrompt { id } => {
-                let Some(workflow) = CloudModel::as_ref(ctx).get_workflow(id).cloned() else {
-                    log::warn!("Tried to execute workflow for id {id:?} but it does not exist");
-                    return;
-                };
-                self.show_workflows_info_box_on_workflow_selection(
-                    WorkflowType::Cloud(Box::new(workflow)),
-                    WorkflowSource::WarpAI,
-                    WorkflowSelectionSource::SlashMenu,
-                    None,
-                    ctx,
-                );
-            }
+            SlashCommandsEvent::SelectedSavedPrompt { .. } => {}
             SlashCommandsEvent::SelectedStaticCommand {
                 id,
                 cmd_or_ctrl_enter,
