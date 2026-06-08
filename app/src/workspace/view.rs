@@ -298,9 +298,7 @@ use crate::wasm_nux_dialog::WasmNUXDialog;
 use crate::window_settings::{WindowSettings, WindowSettingsChangedEvent, ZoomLevel};
 
 use crate::workflows::workflow::Workflow;
-use crate::workflows::{
-    AIWorkflowOrigin, CloudWorkflow, WorkflowSelectionSource, WorkflowSource, WorkflowType,
-};
+use crate::workflows::{AIWorkflowOrigin, WorkflowSelectionSource, WorkflowSource, WorkflowType};
 use crate::workspace::action::CommandSearchOptions;
 #[cfg(target_os = "macos")]
 use crate::workspace::cli_install;
@@ -10178,27 +10176,11 @@ impl Workspace {
                     &result.success_type,
                     ctx,
                 ) {
-                    let workflow: Option<&CloudWorkflow> = object.into();
-                    let cloned_workflow = workflow.cloned();
-
                     self.toast_stack
                         .update(ctx, |view, ctx| match result.success_type {
                             OperationSuccessType::Success => {
                                 let mut new_toast =
                                     DismissibleToast::success(message).with_object_id(object_id);
-                                if let Some(workflow) = cloned_workflow {
-                                    if result.operation == ObjectOperation::Update {
-                                        new_toast = new_toast.with_link(
-                                            ToastLink::new("View".to_string()).with_onclick_action(
-                                                WorkspaceAction::ViewObjectInWarpDrive(
-                                                    WarpDriveItemId::Object(
-                                                        CloudObjectTypeAndId::Workflow(workflow.id),
-                                                    ),
-                                                ),
-                                            ),
-                                        )
-                                    }
-                                }
 
                                 if result.operation == ObjectOperation::Trash {
                                     new_toast = new_toast.with_link(

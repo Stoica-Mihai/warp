@@ -441,26 +441,6 @@ impl InlineItem {
         }
     }
 
-    pub(crate) fn from_saved_prompt(
-        saved_prompt: &crate::workflows::CloudWorkflow,
-        app: &AppContext,
-    ) -> Self {
-        let appearance = Appearance::as_ref(app);
-        Self {
-            action: AcceptSlashCommandOrSavedPrompt::SavedPrompt {
-                id: saved_prompt.id,
-            },
-            icon_path: "bundled/svg/prompt.svg",
-            name: saved_prompt.model().data.name().to_owned(),
-            description: None,
-            font_family: appearance.ui_font_family(),
-            name_match_result: None,
-            description_match_result: None,
-            score: OrderedFloat(f64::MIN),
-            compact_layout: false,
-        }
-    }
-
     fn with_name_match_result(mut self, result: Option<FuzzyMatchResult>) -> Self {
         self.name_match_result = result;
         self
