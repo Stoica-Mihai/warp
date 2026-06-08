@@ -23,7 +23,6 @@ use crate::cloud_object::{
     GenericCloudObject, ObjectIdType, ObjectType, Owner,
     Revision,
 };
-use crate::drive::folders::FolderId;
 use crate::drive::CloudObjectTypeAndId;
 use crate::network::{NetworkStatus, NetworkStatusEvent, NetworkStatusKind};
 use crate::persistence::ModelEvent;
@@ -295,7 +294,7 @@ impl UpdateManager {
         server_id: ServerId,
         _object_type: ObjectType,
         _owner: Owner,
-        _destination_folder: Option<FolderId>,
+        _destination_folder: Option<SyncId>,
         _current_folder: Option<SyncId>,
         _current_metadata_last_updated_ts: Option<ServerTimestamp>,
         ctx: &mut ModelContext<Self>,

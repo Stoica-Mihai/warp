@@ -45,7 +45,6 @@ use crate::cloud_object::model::generic_string_model::CloudStringObject;
 use crate::cloud_object::{
     CloudObject, CloudObjectMetadata, ObjectIdType, RevisionAndLastEditor,
 };
-use crate::drive::folders::CloudFolder;
 use crate::server::ids::SyncId;
 use crate::suggestions::ignored_suggestions_model::SuggestionType;
 use crate::terminal::history::PersistedCommand;
@@ -217,7 +216,6 @@ pub enum ModelEvent {
     SaveBlock(BlockCompleted),
     DeleteBlocks(Vec<u8>),
     Snapshot(AppState),
-    UpsertFolders(Vec<CloudFolder>),
     MarkObjectAsSynced {
         hashed_sqlite_id: String,
         revision_and_editor: RevisionAndLastEditor,
@@ -228,9 +226,6 @@ pub enum ModelEvent {
         object: Box<dyn CloudStringObject>,
     },
     UpsertGenericStringObjects(Vec<Box<dyn CloudStringObject>>),
-    UpsertFolder {
-        folder: CloudFolder,
-    },
     DeleteObjects {
         ids: Vec<(SyncId, ObjectIdType)>,
     },

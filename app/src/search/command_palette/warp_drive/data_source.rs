@@ -2,7 +2,6 @@ use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
 use crate::cloud_object::{CloudObject, CloudObjectLocation, ObjectType};
-use crate::drive::folders::CloudFolder;
 use crate::search::command_palette::mixer::CommandPaletteItemAction;
 use crate::search::data_source::{Query, QueryResult};
 use crate::search::mixer::DataSourceRunErrorWrapper;
@@ -93,17 +92,7 @@ impl FuzzyWarpDriveSearcher {
         object_type: ObjectType,
         app: &AppContext,
     ) {
-        if let ObjectType::Folder = object_type {
-            let folder: Option<&CloudFolder> = object.into();
-            if let Some(folder) = folder {
-                let location = CloudObjectLocation::Folder(folder.id);
-                for obj in CloudModel::as_ref(app)
-                    .active_cloud_objects_in_location_without_descendents(location, app)
-                {
-                    self.insert_searchable_object(obj, obj.object_type(), app);
-                }
-            }
-        }
+        let _ = (object, object_type, app);
     }
 
     fn delete_searchable_object(
@@ -112,20 +101,7 @@ impl FuzzyWarpDriveSearcher {
         object_type: ObjectType,
         app: &AppContext,
     ) {
-        if let ObjectType::Folder = object_type {
-            let model = CloudModel::as_ref(app);
-            if let Some(obj) = model.get_by_uid(&uid) {
-                let folder: Option<&CloudFolder> = obj.into();
-                if let Some(folder) = folder {
-                    let location = CloudObjectLocation::Folder(folder.id);
-                    for obj in
-                        model.trashed_cloud_objects_in_location_without_descendents(location, app)
-                    {
-                        self.delete_searchable_object(obj.uid(), obj.object_type(), app);
-                    }
-                }
-            }
-        }
+        let _ = (uid, object_type, app);
     }
 
     fn refresh_search_index(&mut self, _app: &AppContext) {}

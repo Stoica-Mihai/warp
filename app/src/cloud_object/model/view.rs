@@ -7,8 +7,7 @@ use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 
 use super::persistence::{CloudModel, CloudModelEvent};
 use crate::auth::{AuthStateProvider, UserUid};
-use crate::cloud_object::{CloudObject, CloudObjectLocation, Space};
-use crate::drive::folders::CloudFolder;
+use crate::cloud_object::{CloudObject, Space};
 use crate::safe_info;
 use crate::server::cloud_objects::update_manager::{
     OperationSuccessType, UpdateManager, UpdateManagerEvent,
@@ -283,41 +282,7 @@ impl CloudViewModel {
         cloud_model: &CloudModel,
         app: &AppContext,
     ) -> Option<ServerTimestamp> {
-        let folder: Option<&CloudFolder> = object.into();
-        match folder {
-            // For non-folder objects, always use the object's own timestamp.
-            None => object.metadata().revision.clone().map(Into::into),
-            Some(folder) => self
-                .folder_timestamp_cache
-                // Skip the cache if it's already mutably borrowed. This should not happen in practice,
-                // because the UI framework is single-threaded.
-                .try_borrow()
-                .ok()
-                .and_then(|cache| cache.get(&folder.id).cloned())
-                .or_else(|| {
-                    let max_child_timestamp = cloud_model
-                        .active_cloud_objects_in_location_without_descendents(
-                            CloudObjectLocation::Folder(folder.id),
-                            app,
-                        )
-                        // TODO(ben): This check won't be needed soon.
-                        .filter(|child| child.permissions().owner == folder.permissions().owner)
-                        .filter_map(|child| self.sorting_timestamp_rec(child, cloud_model, app))
-                        .max();
-                    // The `Ord` implementation of `Option` always considers `None` less than
-                    // `Some`.
-                    let folder_timestamp = folder.metadata().revision.clone().map(Into::into);
-                    let timestamp = max_child_timestamp.max(folder_timestamp);
-
-                    if let Some(timestamp) = timestamp {
-                        if let Ok(mut cache) = self.folder_timestamp_cache.try_borrow_mut() {
-                            cache.insert(folder.id, timestamp);
-                        }
-                    }
-
-                    timestamp
-                }),
-        }
+        object.metadata().revision.clone().map(Into::into)
     }
 
     fn handle_cloud_model_event(&mut self, event: &CloudModelEvent, ctx: &mut ModelContext<Self>) {
@@ -396,16 +361,10 @@ impl CloudViewModel {
         let Some(object) = cloud_model.get_by_uid(uid) else {
             return false;
         };
-        let folder: Option<&CloudFolder> = object.into();
-        match folder {
-            Some(folder) => self.invalidate_folder_timestamps(&folder.id, cloud_model),
-            None => {
-                if let Some(parent_id) = object.metadata().folder_id {
-                    self.invalidate_folder_timestamps(&parent_id, cloud_model)
-                } else {
-                    false
-                }
-            }
+        if let Some(parent_id) = object.metadata().folder_id {
+            self.invalidate_folder_timestamps(&parent_id, cloud_model)
+        } else {
+            false
         }
     }
 
@@ -413,19 +372,9 @@ impl CloudViewModel {
     fn invalidate_folder_timestamps(
         &mut self,
         folder_id: &SyncId,
-        cloud_model: &CloudModel,
+        _cloud_model: &CloudModel,
     ) -> bool {
-        let had_revision_ts = self
-            .folder_timestamp_cache
-            .borrow_mut()
-            .remove(folder_id)
-            .is_some();
-
-        let had_parent_ts = cloud_model
-            .get_folder(folder_id)
-            .and_then(|folder| folder.metadata().folder_id.as_ref())
-            .is_some_and(|parent| self.invalidate_folder_timestamps(parent, cloud_model));
-        had_revision_ts || had_parent_ts
+        self.folder_timestamp_cache.borrow_mut().remove(folder_id).is_some()
     }
 }
 

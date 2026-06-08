@@ -136,9 +136,7 @@ use crate::code_review::GlobalCodeReviewModel;
 use crate::coding_panel_enablement_state::CodingPanelEnablementState;
 use crate::context_chips::ChipRuntimeCapabilities;
 use crate::default_terminal::DefaultTerminal;
-use crate::drive::export::ExportManager;
 use crate::drive::WarpDriveItemId;
-use crate::drive::settings::{WarpDriveSettings, WarpDriveSettingsChangedEvent};
 use crate::drive::CloudObjectTypeAndId;
 use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
@@ -1925,13 +1923,6 @@ impl Workspace {
                 CodeSettingsChangedEvent::ShowProjectExplorer { .. }
                     | CodeSettingsChangedEvent::ShowGlobalSearch { .. }
             ) {
-                me.update_left_panel_available_views(ctx);
-                ctx.notify();
-            }
-        });
-
-        ctx.subscribe_to_model(&WarpDriveSettings::handle(ctx), |me, _, event, ctx| {
-            if let WarpDriveSettingsChangedEvent::EnableWarpDrive { .. } = event {
                 me.update_left_panel_available_views(ctx);
                 ctx.notify();
             }
@@ -4120,14 +4111,7 @@ impl Workspace {
             .write(ClipboardContent::plain_text(version.to_string()));
     }
 
-    fn export_all_warp_drive_objects(&mut self, ctx: &mut ViewContext<Self>) {
-        let window_id = ctx.window_id();
-        let cloud_model = CloudModel::as_ref(ctx);
-        let exportable_objects = cloud_model.get_all_exportable_object_ids();
-        ExportManager::handle(ctx).update(ctx, move |export_manager, ctx| {
-            export_manager.export(window_id, &exportable_objects, ctx);
-        });
-    }
+    fn export_all_warp_drive_objects(&mut self, _ctx: &mut ViewContext<Self>) {}
 
     /// Builds the unified new-session menu items
     /// tab bar chevron and the vertical tab bar `+` button.

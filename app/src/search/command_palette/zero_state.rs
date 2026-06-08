@@ -10,7 +10,6 @@ use warpui::{
 };
 
 use crate::appearance::Appearance;
-use crate::drive::settings::WarpDriveSettings;
 use crate::search::command_palette::FilterChipRenderer;
 use crate::search::QueryFilter;
 use crate::settings::AISettings;
@@ -75,10 +74,8 @@ impl ZeroState {
     fn valid_query_filters(
         app: &AppContext,
     ) -> impl Iterator<Item = QueryFilter> {
-        let show_warp_drive = WarpDriveSettings::is_warp_drive_enabled(app);
-
         let mut valid_filters = vec![];
-        if show_warp_drive {
+        {
             valid_filters.push(QueryFilter::Workflows);
             if FeatureFlag::AgentModeWorkflows.is_enabled()
                 && AISettings::as_ref(app).is_any_ai_enabled(app)
@@ -93,9 +90,7 @@ impl ZeroState {
             valid_filters.push(QueryFilter::Files);
         }
 
-        if show_warp_drive {
-            valid_filters.push(QueryFilter::Drive);
-        }
+        valid_filters.push(QueryFilter::Drive);
         valid_filters.extend([QueryFilter::Actions, QueryFilter::Sessions]);
 
         if ContextFlag::LaunchConfigurations.is_enabled() {

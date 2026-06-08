@@ -15,8 +15,7 @@ use crate::cloud_object::{
     ObjectIdType, ObjectType, Owner, Revision,
     RevisionAndLastEditor, Space,
 };
-use crate::drive::folders::{CloudFolder, CloudFolderModel};
-use crate::drive::{CloudObjectTypeAndId, DriveIndexVariant};
+use crate::drive::CloudObjectTypeAndId;
 use crate::persistence::ModelEvent;
 use crate::server::ids::{ClientId, HashableId, ObjectUid, ServerId, SyncId, ToServerId};
 use crate::workflows::workflow_enum::{CloudWorkflowEnum, CloudWorkflowEnumModel, WorkflowEnum};
@@ -84,11 +83,6 @@ pub enum CloudModelEvent {
     InitialLoadCompleted,
 }
 
-enum FolderOpenState {
-    Open,
-    Closed,
-    Reversed,
-}
 
 /// Persistence model for [CloudObject] information. In an ideal world, this singleton model
 /// is a 1:1 mapping for what we persisting in sqlite, and on the server. Any logic beyond a basic update
@@ -139,36 +133,6 @@ impl CloudModel {
             if let CloudObjectLocation::Space(space) = new_location {
                 if !object.can_move_to_space(space, app) {
                     return false;
-                }
-            }
-
-            if let CloudObjectLocation::Folder(target_folder_id) = new_location {
-                let folder_to_move: Option<&CloudFolder> = object.into();
-                if let Some(folder_to_move) = folder_to_move {
-                    // We do not want to move a folder into itself.
-                    if folder_to_move.id == target_folder_id {
-                        return false;
-                    }
-
-                    // Since we are trying to move a folder into a folder, we want to ensure that the
-                    // target folder is not a child of the folder we are trying to move.
-                    let mut target_folder_parent_folder_id = self
-                        .get_folder(&target_folder_id)
-                        .and_then(|folder| folder.metadata().folder_id);
-                    while let Some(parent_id) = target_folder_parent_folder_id {
-                        if parent_id == folder_to_move.id {
-                            return false;
-                        }
-                        target_folder_parent_folder_id = self
-                            .get_folder(&parent_id)
-                            .and_then(|folder| folder.metadata().folder_id);
-                    }
-                }
-                if let Some(target_folder) = self.get_folder(&target_folder_id) {
-                    // TODO: @ianhodge We do not yet support moving directly into a folder from another space
-                    if target_folder.permissions.owner != object.permissions().owner {
-                        return false;
-                    }
                 }
             }
 
@@ -474,126 +438,6 @@ impl CloudModel {
         }
     }
 
-    fn set_folder_open_state(
-        &mut self,
-        folder_id: SyncId,
-        open_state: FolderOpenState,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        if let Some(folder) = self.get_folder_mut(&folder_id) {
-            let is_open = match open_state {
-                FolderOpenState::Open => true,
-                FolderOpenState::Closed => false,
-                FolderOpenState::Reversed => !folder.model().is_open,
-            };
-
-            folder.set_model(CloudFolderModel {
-                is_open,
-                is_warp_pack: folder.model().is_warp_pack,
-                name: folder.model().name.clone(),
-            });
-
-            let folder_clone = folder.clone();
-            if let Some(model_event_sender) = &self.model_event_sender {
-                if let Err(e) = model_event_sender.send(folder_clone.upsert_event()) {
-                    log::error!("Error persisting folder: {e:?}");
-                }
-            }
-
-            ctx.notify();
-        }
-    }
-
-    pub fn open_folder(&mut self, folder_id: SyncId, ctx: &mut ModelContext<Self>) {
-        self.set_folder_open_state(folder_id, FolderOpenState::Open, ctx)
-    }
-
-    pub fn close_folder(&mut self, folder_id: SyncId, ctx: &mut ModelContext<Self>) {
-        self.set_folder_open_state(folder_id, FolderOpenState::Closed, ctx)
-    }
-
-    pub fn toggle_folder_open(&mut self, folder_id: SyncId, ctx: &mut ModelContext<Self>) {
-        self.set_folder_open_state(folder_id, FolderOpenState::Reversed, ctx)
-    }
-
-    /// Collapses all folders for a given location, including the folder provided
-    /// (if location is a CloudObjectLocation::Folder).
-    pub fn collapse_all_in_location(
-        &mut self,
-        location: CloudObjectLocation,
-        index_variant: DriveIndexVariant,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let mut folder_ids: Vec<SyncId> = Vec::new();
-        self.collapse_all_in_location_helper(location, index_variant, &mut folder_ids, ctx);
-
-        folder_ids.iter().for_each(|folder_id| {
-            self.set_folder_open_state(*folder_id, FolderOpenState::Closed, ctx)
-        });
-
-        ctx.notify();
-    }
-
-    /// Helper function for collapse_all_in_location. Recursively traverses through descendents,
-    /// adding IDs of any folders found to the folder_ids mutable vector reference.
-    fn collapse_all_in_location_helper(
-        &self,
-        location: CloudObjectLocation,
-        index_variant: DriveIndexVariant,
-        folder_ids: &mut Vec<SyncId>,
-        app: &AppContext,
-    ) {
-        if let CloudObjectLocation::Folder(folder_id) = location {
-            folder_ids.push(folder_id);
-        }
-
-        match index_variant {
-            DriveIndexVariant::MainIndex => self
-                .active_cloud_objects_in_location_without_descendents(location, app)
-                .for_each(|object| {
-                    let folder: Option<&CloudFolder> = object.into();
-                    if let Some(folder) = folder {
-                        self.collapse_all_in_location_helper(
-                            CloudObjectLocation::Folder(folder.id),
-                            index_variant,
-                            folder_ids,
-                            app,
-                        );
-                    }
-                }),
-            DriveIndexVariant::Trash => {
-                if let CloudObjectLocation::Space(space) = location {
-                    self.directly_trashed_cloud_objects_in_space(space, app)
-                        .for_each(|object| {
-                            let folder: Option<&CloudFolder> = object.into();
-                            if let Some(folder) = folder {
-                                self.collapse_all_in_location_helper(
-                                    CloudObjectLocation::Folder(folder.id),
-                                    index_variant,
-                                    folder_ids,
-                                    app,
-                                );
-                            }
-                        })
-                } else {
-                    self.indirectly_trashed_cloud_objects_in_location_without_descendents(
-                        location, app,
-                    )
-                    .for_each(|object| {
-                        let folder: Option<&CloudFolder> = object.into();
-                        if let Some(folder) = folder {
-                            self.collapse_all_in_location_helper(
-                                CloudObjectLocation::Folder(folder.id),
-                                index_variant,
-                                folder_ids,
-                                app,
-                            );
-                        }
-                    })
-                }
-            }
-        }
-    }
 
     /// Force expands the object identified by `hash_id` and any of its ancestors. If an object is
     /// identified by `id`, [`CloudModelEvent::ObjectForceExpanded`] is emitted.
@@ -619,11 +463,6 @@ impl CloudModel {
         };
 
         let parent_folder_id = object.metadata().folder_id;
-        let folder: Option<&CloudFolder> = object.into();
-
-        if let Some(folder) = folder {
-            self.set_folder_open_state(folder.id, FolderOpenState::Open, ctx);
-        }
 
         if let Some(parent_folder_id) = parent_folder_id {
             self.force_expand_object_and_ancestors_internal(parent_folder_id, ctx);
@@ -643,9 +482,7 @@ impl CloudModel {
             CloudObjectTypeAndId::Workflow(sync_id) => {
                 self.force_expand_object_and_ancestors(sync_id, ctx)
             }
-            CloudObjectTypeAndId::Folder(sync_id) => {
-                self.force_expand_object_and_ancestors(sync_id, ctx)
-            }
+            CloudObjectTypeAndId::Folder(_) => {}
             CloudObjectTypeAndId::GenericStringObject { .. } => {
                 log::error!("Attempted to force expand an unsupported GenericStringObject type")
             }
@@ -717,44 +554,12 @@ impl CloudModel {
         })
     }
 
-    pub fn get_folder_by_uid(&self, uid: &str) -> Option<&CloudFolder> {
-        self.objects_by_id.get(uid).and_then(|object| object.into())
-    }
-
-    pub fn get_folder(&self, folder_id: &SyncId) -> Option<&CloudFolder> {
-        self.objects_by_id
-            .get(&folder_id.uid())
-            .and_then(|object| object.into())
-    }
-
-    pub fn get_folder_mut(&mut self, folder_id: &SyncId) -> Option<&mut CloudFolder> {
-        self.objects_by_id
-            .get_mut(&folder_id.uid())
-            .and_then(|object| object.into())
-    }
-
     pub fn get_all_exportable_object_ids(&self) -> Vec<CloudObjectTypeAndId> {
         self.objects_by_id
             .values()
             .filter(|object| object.can_export())
             .map(|object| object.cloud_object_type_and_id())
             .collect()
-    }
-
-    #[allow(unused)]
-    /// Returns only active (not trashed) folders in cloud model.
-    pub fn get_all_active_folders(&self) -> impl Iterator<Item = &CloudFolder> {
-        self.objects_by_id
-            .values()
-            .filter(|object| !object.is_trashed(self))
-            .filter_map(|object| object.into())
-    }
-
-    /// Returns all folders (trashed or not) in cloud model.
-    pub fn get_all_active_and_inactive_folders(&self) -> impl Iterator<Item = &CloudFolder> {
-        self.objects_by_id
-            .values()
-            .filter_map(|object| object.into())
     }
 
     pub fn get_workflow_enum(&self, enum_id: &SyncId) -> Option<&CloudWorkflowEnum> {
@@ -938,19 +743,9 @@ impl CloudModel {
         trashed_objects: &mut Vec<ObjectType>,
         app: &AppContext,
     ) {
-        // Fetch direct descendants of the location
         self.trashed_cloud_objects_in_location_without_descendents(location, app)
             .for_each(|object| {
                 trashed_objects.push(object.object_type());
-                let folder: Option<&CloudFolder> = object.into();
-                // If any of the direct descendants are folders, recursively traverse through them
-                if let Some(folder) = folder {
-                    self.trashed_cloud_object_types_in_location_with_descendants_helper(
-                        CloudObjectLocation::Folder(folder.id),
-                        trashed_objects,
-                        app,
-                    );
-                }
             });
     }
 

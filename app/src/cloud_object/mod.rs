@@ -152,13 +152,7 @@ pub trait CloudObject: Debug {
     /// Whether or not this object can be "left". For shared objects, this removes all ACLs for the
     /// current user. Only top-level items in the shared space can be left.
     fn can_leave(&self, app: &AppContext) -> bool {
-        if self.space(app) == Space::Shared {
-            self.metadata()
-                .folder_id
-                .is_none_or(|parent| CloudModel::as_ref(app).get_folder(&parent).is_none())
-        } else {
-            false
-        }
+        self.space(app) == Space::Shared
     }
 
     /// Returns the name of the containing "object" for this object.
@@ -173,27 +167,8 @@ pub trait CloudObject: Debug {
     }
 
     // Returns the path of all the containing "objects" for this object.
-    // This could include folders or spaces.
     fn containing_objects_path(&self, app: &AppContext) -> Vec<ContainingObject> {
-        let space = self.space(app);
-
-        match self.metadata().folder_id {
-            Some(folder_id) => {
-                let cloud_model = CloudModel::as_ref(app);
-                if let Some(folder) = cloud_model.get_folder_by_uid(&folder_id.uid()) {
-                    let mut path = vec![];
-                    let ancestors = folder.containing_objects_path(app);
-                    path.extend(ancestors);
-                    path.push(folder.into());
-                    path
-                } else {
-                    // if for whatever reason the folder id is messed up,
-                    // just default to showing the top-level space it wound up in
-                    vec![space.into_containing_object(app)]
-                }
-            }
-            None => vec![space.into_containing_object(app)],
-        }
+        vec![self.space(app).into_containing_object(app)]
     }
 
     fn breadcrumbs(&self, app: &AppContext) -> String {
@@ -216,13 +191,7 @@ pub trait CloudObject: Debug {
     /// Returns the direct location of the object. If the object
     /// is not in a folder, this will be the object's space. Otherwise, it will
     /// be the folder the object is placed in directly, even if that folder is nested.
-    fn location(&self, cloud_model: &CloudModel, app: &AppContext) -> CloudObjectLocation {
-        if let Some(folder_id) = self.metadata().folder_id {
-            if cloud_model.get_folder(&folder_id).is_some() {
-                return CloudObjectLocation::Folder(folder_id);
-            }
-        }
-
+    fn location(&self, _cloud_model: &CloudModel, app: &AppContext) -> CloudObjectLocation {
         CloudObjectLocation::Space(self.space(app))
     }
 
@@ -813,23 +782,10 @@ impl CloudObjectMetadataExt for CloudObjectMetadata {
     }
 }
 
-/// Helper function to retrieve trashed_ts of top level folder given a folder_id of an object.
 fn get_top_folder_trashed_ts(
-    folder_id: Option<SyncId>,
-    app: &AppContext,
+    _folder_id: Option<SyncId>,
+    _app: &AppContext,
 ) -> Option<ServerTimestamp> {
-    let mut folder_id = folder_id;
-    let cloud_model = CloudModel::as_ref(app);
-    while let Some(current_folder_id) = folder_id {
-        // If the parent folder isn't in CloudModel, short-circuit so we don't loop forever.
-        let folder = cloud_model.get_folder_by_uid(&current_folder_id.uid())?;
-
-        if let Some(_parent_folder_id) = folder.metadata.folder_id {
-            folder_id = folder.metadata.folder_id
-        } else {
-            return folder.metadata.trashed_ts;
-        }
-    }
     None
 }
 

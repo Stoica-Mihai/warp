@@ -31,7 +31,6 @@ use crate::appearance::Appearance;
 use crate::auth::auth_state::AuthState;
 use crate::auth::{AuthStateProvider, UserUid};
 use crate::completer::SessionContext;
-use crate::drive::settings::WarpDriveSettings;
 use crate::search::command_search::searcher::{CommandSearchItemAction, CommandSearchMixer};
 use crate::search::mixer::AddAsyncSourceOptions;
 use crate::search::result_renderer::{QueryResultRenderer, QueryResultRendererStyles};
@@ -213,14 +212,10 @@ impl CommandSearchView {
             // Add data sources in lowest->highest priority order.  If results from two
             // data sources produce the same ranking score, the data source added first
             // will show up higher in the list (i.e.: further away from the input).
-            if WarpDriveSettings::is_warp_drive_enabled(ctx) {
-                mixer.add_sync_source(
-                    WorkflowsDataSource::new(session_context.as_ref(), ctx),
-                    HashSet::from([QueryFilter::Workflows]),
-                );
-
-            }
-
+            mixer.add_sync_source(
+                WorkflowsDataSource::new(session_context.as_ref(), ctx),
+                HashSet::from([QueryFilter::Workflows]),
+            );
 
             if History::as_ref(ctx).is_queryable(&session_id) {
                 let source = History::handle(ctx).read(ctx, |history_model, app| {

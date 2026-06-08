@@ -34,7 +34,7 @@ use warpui::{AppContext, SingletonEntity};
 use super::block_list::{delete_blocks, save_block, update_block_agent_view_visibility};
 use super::model::{
     self, ActiveMCPServer, CurrentUserInformation, MCPEnvironmentVariables, NewActiveMCPServer,
-    NewApp, NewCommand, NewFolder, NewTab, NewWindow,
+    NewApp, NewCommand, NewTab, NewWindow,
     NewWorkspace, NewWorkspaceMetadata, ObjectMetadata, ObjectPermissions,
     Project, Tab, Window, WorkspaceMetadata as WorkspaceMetadataModel,
     AI_FACT_PANE_KIND, CODE_PANE_KIND,
@@ -78,7 +78,6 @@ use crate::cloud_object::{
     JSON_OBJECT_PREFIX,
 };
 use crate::code::editor_management::CodeSource;
-use crate::drive::folders::{CloudFolder, CloudFolderModel, FolderId};
 use crate::drive::OpenWarpDriveObjectSettings;
 use crate::features::FeatureFlag;
 use crate::persistence::block_list::get_all_restored_blocks;
@@ -538,9 +537,6 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
         ModelEvent::Snapshot(app_state) => {
             save_app_state(connection, &app_state).context("error saving app state")
         }
-        ModelEvent::UpsertFolders(folders) => {
-            upsert_folders(connection, folders).context("error saving folders")
-        }
         ModelEvent::UpsertGenericStringObject { object } => {
             upsert_generic_string_objects(connection, vec![object])
                 .context("error upserting generic object")
@@ -548,9 +544,6 @@ fn handle_model_event(event: ModelEvent, connection: &mut SqliteConnection) -> a
         ModelEvent::UpsertGenericStringObjects(objects) => {
             upsert_generic_string_objects(connection, objects)
                 .context("error upserting generic objects")
-        }
-        ModelEvent::UpsertFolder { folder } => {
-            upsert_folders(connection, vec![folder]).context("error upserting folder")
         }
         ModelEvent::MarkObjectAsSynced {
             revision_and_editor,
@@ -1861,54 +1854,6 @@ fn upsert_generic_string_objects(
     })
 }
 
-fn upsert_folders(
-    conn: &mut SqliteConnection,
-    cloud_folders: Vec<CloudFolder>,
-) -> Result<(), Error> {
-    use schema::folders::dsl::*;
-    conn.transaction::<(), Error, _>(|conn| {
-        for cloud_folder in cloud_folders {
-            let folder_clone = cloud_folder.clone();
-            let folder_name = cloud_folder.model().name.clone();
-            let folder_is_open = cloud_folder.model().is_open;
-            let folder_is_warp_pack = cloud_folder.model().is_warp_pack;
-            upsert_cloud_object(
-                conn,
-                ObjectType::Folder,
-                cloud_folder.id,
-                cloud_folder.metadata,
-                cloud_folder.permissions,
-                Box::new(move |conn| {
-                    let new_folder = NewFolder {
-                        name: folder_name,
-                        is_open: folder_is_open,
-                        is_warp_pack: folder_is_warp_pack,
-                    };
-                    diesel::insert_into(schema::folders::dsl::folders)
-                        .values(new_folder)
-                        .execute(conn)?;
-                    let folder_id: i32 = schema::folders::dsl::folders
-                        .select(schema::folders::columns::id)
-                        .order(schema::folders::columns::id.desc())
-                        .first(conn)?;
-                    Ok(folder_id)
-                }),
-                Box::new(move |conn, folder_id| {
-                    diesel::update(folders.filter(schema::folders::dsl::id.eq(folder_id)))
-                        .set((
-                            name.eq(folder_clone.model().name.clone()),
-                            is_open.eq(folder_clone.model().is_open),
-                            is_warp_pack.eq(folder_clone.model().is_warp_pack),
-                        ))
-                        .execute(conn)?;
-                    Ok(())
-                }),
-            )?
-        }
-        Ok(())
-    })
-}
-
 /// Parse conversation IDs from JSON string.
 fn parse_conversation_ids(ids_json: &Option<String>) -> Vec<AIConversationId> {
     let Some(ids_str) = ids_json.as_ref() else {
@@ -2338,38 +2283,6 @@ fn read_sqlite_data(
         .collect::<HashMap<_, _>>();
 
     let mut cloud_objects: Vec<Box<dyn CloudObject>> = Vec::new();
-    cloud_objects.extend(
-        schema::folders::dsl::folders
-            .load::<model::Folder>(conn)?
-            .iter()
-            .filter_map(|folder| {
-                metadata_by_id
-                    .get(&(
-                        folder.id,
-                        ObjectType::Folder.sqlite_object_type_as_str().to_string(),
-                    ))
-                    .and_then(|metadata| {
-                        let folder_id = id_from_metadata::<FolderId>(metadata);
-                        let permissions = permissions_by_id.get(&metadata.id)?;
-                        let cloud_object_permissions =
-                            to_cloud_object_permissions(permissions, current_user_id)?;
-                        folder_id.map(|server_id| {
-                            let boxed: Box<dyn CloudObject> = Box::new(CloudFolder::new(
-                                server_id,
-                                CloudFolderModel {
-                                    name: folder.name.clone(),
-                                    is_open: folder.is_open,
-                                    is_warp_pack: folder.is_warp_pack,
-                                },
-                                to_cloud_object_metadata(metadata),
-                                cloud_object_permissions,
-                            ));
-                            boxed
-                        })
-                    })
-            })
-            .collect::<Vec<_>>(),
-    );
 
     cloud_objects.extend(
         schema::generic_string_objects::dsl::generic_string_objects
@@ -2596,7 +2509,7 @@ fn to_cloud_object_metadata(metadata: &ObjectMetadata) -> CloudObjectMetadata {
         folder_id: metadata.folder_id.as_ref().and_then(|folder_id_str| {
             // First, attempt to convert the string into a server id.
             let as_server_id =
-                FolderId::from_hash(folder_id_str).map(|id| SyncId::ServerId(id.into()));
+                WorkflowId::from_hash(folder_id_str).map(|id| SyncId::ServerId(id.into()));
 
             // If the string cannot be converted to server id, it may be a client id.
             if as_server_id.is_none() {

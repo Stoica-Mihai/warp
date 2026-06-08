@@ -1,10 +1,8 @@
 use warpui::AppContext;
 
-use super::{CloudObject, Space};
-use crate::drive::folders::CloudFolder;
+use super::Space;
 use crate::drive::WarpDriveItemId;
 use crate::drive::CloudObjectTypeAndId;
-use crate::ui_components::breadcrumb::Breadcrumb;
 
 // Encapsulates an object that can contain other objects, and keeps
 // information necessary to show breadcrumbs.
@@ -12,25 +10,6 @@ use crate::ui_components::breadcrumb::Breadcrumb;
 pub struct ContainingObject {
     pub name: String,
     pub kind: ContainingObjectKind,
-}
-
-impl Breadcrumb for ContainingObject {
-    fn label(&self) -> String {
-        self.name.clone()
-    }
-
-    fn enabled(&self) -> bool {
-        true
-    }
-}
-
-impl From<&CloudFolder> for ContainingObject {
-    fn from(folder: &CloudFolder) -> Self {
-        Self {
-            name: folder.display_name().clone(),
-            kind: ContainingObjectKind::Object(CloudObjectTypeAndId::Folder(folder.id)),
-        }
-    }
 }
 
 impl Space {

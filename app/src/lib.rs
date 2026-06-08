@@ -207,7 +207,6 @@ use crate::code::global_buffer_model::GlobalBufferModel;
 use crate::code::language_server_shutdown_manager::LanguageServerShutdownManager;
 use crate::context_chips::prompt::Prompt;
 use crate::default_terminal::DefaultTerminal;
-use crate::drive::export::ExportManager;
 use crate::experiments::ImprovedPaletteSearch;
 pub use crate::global_resource_handles::{GlobalResourceHandles, GlobalResourceHandlesProvider};
 use crate::gpu_state::GPUState;
@@ -1405,7 +1404,6 @@ pub(crate) fn initialize_app(
     // AIDocumentModel subscribes to UpdateManager so that it can be notified when notebooks are created on the server.
     ctx.add_singleton_model(AIDocumentModel::new);
 
-    ctx.add_singleton_model(ExportManager::new);
     ctx.add_singleton_model(|_| CodeManager::default());
     ctx.add_singleton_model(|_| OpenedFilesModel::new());
     ctx.add_singleton_model(TerminalKeybindings::new);
