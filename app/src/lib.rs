@@ -1324,6 +1324,7 @@ pub(crate) fn initialize_app(
     ctx.add_singleton_model(|_| GitHubAuthNotifier::new());
     ctx.add_singleton_model(|_| NetworkStatus::new());
     ctx.add_singleton_model(|_| KeybindingChangedNotifier::new());
+    ctx.add_singleton_model(notebooks::editor::keys::NotebookKeybindings::new);
     ctx.add_singleton_model(|_| search::command_palette::SelectedItems::new());
     ctx.add_singleton_model(search::files::model::FileSearchModel::new);
     ctx.add_singleton_model(|_| VimRegisters::new());
