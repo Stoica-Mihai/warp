@@ -1558,18 +1558,6 @@ impl CodeEditorView {
         self.model.as_ref(app).interaction_state() == InteractionState::Editable
     }
 
-    pub fn navigate_next_diff_hunk(&self, ctx: &mut ViewContext<Self>) {
-        self.nav_bar.update(ctx, |nav_bar, ctx| {
-            nav_bar.navigate_down(ctx);
-        });
-    }
-
-    pub fn navigate_previous_diff_hunk(&self, ctx: &mut ViewContext<Self>) {
-        self.nav_bar.update(ctx, |nav_bar, ctx| {
-            nav_bar.navigate_up(ctx);
-        });
-    }
-
     fn navigate_current_diff_hunk(&self, ctx: &mut ViewContext<Self>) {
         self.nav_bar.update(ctx, |nav_bar, ctx| {
             nav_bar.autoscroll(ctx);
@@ -1879,12 +1867,6 @@ impl CodeEditorView {
             .map(|d| d.to_string())
             .unwrap_or_default();
         result_parts.join(&delimiter)
-    }
-
-    pub fn diff_hunks_changed_lines(&self, app: &AppContext) -> (usize, usize) {
-        let model = self.model.as_ref(app);
-        let diff = model.diff().as_ref(app);
-        diff.diff_status().get_diff_lines()
     }
 
     /// If there's a single selection, returns its starting and ending line numbers.

@@ -1,10 +1,8 @@
-use std::ops::Range;
-
 use ai::diff_validation::DiffType;
 use warp_editor::render::element::VerticalExpansionBehavior;
 use warpui::elements::new_scrollable::ScrollableAppearance;
 use warpui::elements::ScrollbarWidth;
-use warpui::{AppContext, View, ViewContext, ViewHandle};
+use warpui::{View, ViewContext, ViewHandle};
 
 use super::editor::scroll::ScrollWheelBehavior;
 use super::editor::view::CodeEditorView;
@@ -119,16 +117,6 @@ where
     fn editor(&self) -> &ViewHandle<CodeEditorView>;
     fn diff(&self) -> Option<&DiffType>;
 
-    #[cfg_attr(target_family = "wasm", allow(dead_code))]
-    fn was_edited(&self) -> bool {
-        false
-    }
-
-    #[cfg_attr(target_family = "wasm", allow(dead_code))]
-    fn changed_lines(&self, ctx: &AppContext) -> Vec<Range<usize>> {
-        self.editor().as_ref(ctx).changed_lines(ctx)
-    }
-
     fn set_display_mode(&self, mode: DisplayMode, ctx: &mut ViewContext<Self>) {
         let is_delete = matches!(self.diff(), Some(DiffType::Delete { .. }));
         self.editor().update(ctx, |editor, ctx| {
@@ -142,21 +130,5 @@ where
         });
     }
 
-    fn navigate_next_diff_hunk(&self, ctx: &mut ViewContext<Self>) {
-        self.editor()
-            .update(ctx, |editor, ctx| editor.navigate_next_diff_hunk(ctx));
-    }
-
-    fn navigate_previous_diff_hunk(&self, ctx: &mut ViewContext<Self>) {
-        self.editor()
-            .update(ctx, |editor, ctx| editor.navigate_previous_diff_hunk(ctx));
-    }
-
-    fn accept_and_save_diff(&self, _ctx: &mut ViewContext<Self>) {}
-
     fn reject_diff(&mut self, _ctx: &mut ViewContext<Self>) {}
-
-    fn restore_diff_base(&mut self, _ctx: &mut ViewContext<Self>) -> Result<(), String> {
-        Ok(())
-    }
 }
