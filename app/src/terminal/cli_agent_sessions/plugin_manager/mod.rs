@@ -3,8 +3,6 @@ pub(crate) mod codex;
 pub(crate) mod gemini;
 pub(crate) mod opencode;
 
-use std::cmp::Ordering;
-
 use claude::ClaudeCodePluginManager;
 use codex::CodexPluginManager;
 use gemini::GeminiPluginManager;
@@ -42,38 +40,13 @@ pub(crate) struct PluginInstructions {
     pub post_install_notes: &'static [&'static str],
 }
 
-/// Compares two `X.Y.Z` version strings.
-/// Returns `Ordering::Less` if `a < b`, etc.
-/// Unparseable components are treated as 0.
-pub(crate) fn compare_versions(a: &str, b: &str) -> Ordering {
-    let parse = |s: &str| -> [u64; 3] {
-        let mut parts = s.splitn(3, '.');
-        let major = parts.next().and_then(|p| p.parse().ok()).unwrap_or(0);
-        let minor = parts.next().and_then(|p| p.parse().ok()).unwrap_or(0);
-        let patch = parts.next().and_then(|p| p.parse().ok()).unwrap_or(0);
-        [major, minor, patch]
-    };
-    parse(a).cmp(&parse(b))
-}
-
 /// Manages the Warp notification plugin for a specific CLI agent.
 ///
 /// Each supported CLI agent has its own implementation that knows how to
 /// check installation state and perform install/update operations.
 pub(crate) trait CliAgentPluginManager: Send + Sync {
     fn minimum_plugin_version(&self) -> &'static str;
-    fn can_auto_install(&self) -> bool;
-
-    fn is_installed(&self) -> bool {
-        false
-    }
-
     fn install_instructions(&self) -> &'static PluginInstructions;
-
-    fn supports_update(&self) -> bool {
-        true
-    }
-
     fn update_instructions(&self) -> &'static PluginInstructions;
 }
 

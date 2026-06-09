@@ -15,10 +15,6 @@ impl CliAgentPluginManager for OpenCodePluginManager {
         MINIMUM_PLUGIN_VERSION
     }
 
-    fn can_auto_install(&self) -> bool {
-        false
-    }
-
     fn install_instructions(&self) -> &'static PluginInstructions {
         &INSTALL_INSTRUCTIONS
     }

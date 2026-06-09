@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 
-use ai::skills::{provider_rank, ParsedSkill, SkillProvider};
+use ai::skills::{provider_rank, ParsedSkill};
 use lazy_static::lazy_static;
 use siphasher::sip::SipHasher;
 use warp_core::ui::Icon;

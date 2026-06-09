@@ -3,7 +3,7 @@ pub mod listener;
 #[cfg(not(target_family = "wasm"))]
 pub(crate) mod plugin_manager;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use event::{CLIAgentEvent, CLIAgentEventType};
 use warpui::{Entity, EntityId, ModelContext, ModelHandle, SingletonEntity};
@@ -119,10 +119,6 @@ pub struct CLIAgentSession {
 }
 
 impl CLIAgentSession {
-    pub fn is_remote(&self) -> bool {
-        self.remote_host.is_some()
-    }
-
     /// Clears state populated by `PermissionRequest`. Called whenever the
     /// session leaves the permission flow (the user replied, a new prompt
     /// is submitted, or the session ends successfully) so the permission
@@ -263,9 +259,6 @@ impl CLIAgentSessionsModelEvent {
 /// Singleton model that tracks pane-scoped CLI agent state and plugin-enriched session context.
 pub struct CLIAgentSessionsModel {
     sessions: HashMap<EntityId, CLIAgentSession>,
-    /// Tracks (agent, remote_host) pairs where an auto plugin operation (install or update) has failed.
-    /// Shared across all views so failure in one tab is reflected everywhere.
-    plugin_auto_failures: HashSet<(CLIAgent, Option<String>)>,
 }
 
 impl Entity for CLIAgentSessionsModel {
@@ -278,7 +271,6 @@ impl CLIAgentSessionsModel {
     pub fn new() -> Self {
         Self {
             sessions: HashMap::new(),
-            plugin_auto_failures: HashSet::new(),
         }
     }
 
@@ -449,13 +441,6 @@ impl CLIAgentSessionsModel {
         });
     }
 
-    /// Records that an auto plugin operation (install or update) failed for the given agent/host.
-    /// `remote_host` is `None` for local sessions, `Some("user@hostname")` for remote.
-    #[cfg(not(target_family = "wasm"))]
-    pub fn record_plugin_auto_failure(&mut self, agent: CLIAgent, remote_host: Option<String>) {
-        self.plugin_auto_failures.insert((agent, remote_host));
-    }
-
     /// Returns and clears the draft text for the given terminal, if any.
     pub fn take_draft(&mut self, terminal_view_id: EntityId) -> Option<String> {
         self.sessions
@@ -463,11 +448,6 @@ impl CLIAgentSessionsModel {
             .and_then(|s| s.draft_text.take())
     }
 
-    /// Whether an auto plugin operation has previously failed for this agent on this host.
-    pub fn has_plugin_auto_failed(&self, agent: CLIAgent, remote_host: &Option<String>) -> bool {
-        self.plugin_auto_failures
-            .contains(&(agent, remote_host.clone()))
-    }
 }
 
 #[cfg(test)]

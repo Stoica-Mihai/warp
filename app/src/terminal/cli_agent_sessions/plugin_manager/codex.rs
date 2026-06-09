@@ -9,14 +9,6 @@ impl CliAgentPluginManager for CodexPluginManager {
         "0.0.0"
     }
 
-    fn can_auto_install(&self) -> bool {
-        false
-    }
-
-    fn supports_update(&self) -> bool {
-        false
-    }
-
     fn install_instructions(&self) -> &'static PluginInstructions {
         &INSTALL_INSTRUCTIONS
     }
