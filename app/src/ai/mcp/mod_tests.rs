@@ -7,22 +7,11 @@ use warp_managed_secrets::ManagedSecretValue;
 use crate::ai::mcp::parsing::normalize_codex_toml_to_json;
 use crate::ai::mcp::parsing::resolve_json;
 use crate::ai::mcp::{
-    mcp_provider_from_file_path, CLIServer, JsonTemplate, MCPProvider, MCPServer,
+    CLIServer, JsonTemplate, MCPServer,
     ParsedTemplatableMCPServerResult, ServerSentEvents, StaticEnvVar, StaticHeader,
     TemplatableMCPServer, TemplatableMCPServerInstallation, TemplateVariable, TransportType,
     VariableType, VariableValue,
 };
-
-#[test]
-fn mcp_provider_from_file_path_recognizes_warp_home_path() {
-    if let Some(warp_home_mcp_config_file_path) = warp_core::paths::warp_home_mcp_config_file_path()
-    {
-        assert_eq!(
-            mcp_provider_from_file_path(&warp_home_mcp_config_file_path),
-            Some(MCPProvider::Warp)
-        );
-    }
-}
 
 #[test]
 fn test_mcp_server_config_serialization_excludes_secret_env_values() {

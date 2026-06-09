@@ -12,7 +12,7 @@ mod wasm;
 #[cfg(all(test, not(target_family = "wasm")))]
 mod utils_tests;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 #[cfg(not(target_family = "wasm"))]
 use std::sync::Arc;
 
@@ -22,18 +22,12 @@ use futures_util::stream::AbortHandle;
 #[cfg(not(target_family = "wasm"))]
 use parking_lot::Mutex;
 use uuid::Uuid;
-#[cfg(not(target_family = "wasm"))]
-use warpui::ModelSpawner;
 use warpui::{Entity, SingletonEntity};
 
 #[cfg(not(target_family = "wasm"))]
 use crate::ai::mcp::templatable::CloudTemplatableMCPServer;
 use crate::ai::mcp::templatable_installation::TemplatableMCPServerInstallation;
-use crate::ai::mcp::{FileBasedMCPManager, MCPServerState};
-
-#[cfg(not(target_family = "wasm"))]
-type ReconnectResultSender =
-    tokio::sync::oneshot::Sender<Result<rmcp::Peer<rmcp::RoleClient>, String>>;
+use crate::ai::mcp::MCPServerState;
 
 /// Singleton model to manage state of MCP server lifecycles and panes across multiple windows
 /// (where only one MCP server pane can exist per window).
@@ -66,18 +60,6 @@ pub struct TemplatableMCPServerManager {
     database_connection: Option<Arc<Mutex<SqliteConnection>>>,
     /// Error messages for failed servers, keyed by installation UUID.
     server_error_messages: HashMap<Uuid, String>,
-    /// Spawner for running tasks in the context of this manager.
-    ///
-    /// Used by `ReconnectingPeer` to trigger reconnection from async contexts.
-    #[cfg(not(target_family = "wasm"))]
-    spawner: Option<ModelSpawner<Self>>,
-    /// Pending reconnection waiters, keyed by installation UUID.
-    ///
-    /// When a reconnection is in progress, subsequent reconnect requests for the same server
-    /// will add their result channels here instead of starting a new reconnection. When the
-    /// reconnection completes, all waiters are notified with the result.
-    #[cfg(not(target_family = "wasm"))]
-    pending_reconnections: HashMap<Uuid, Vec<ReconnectResultSender>>,
     /// Maps the OAuth CSRF `state` token to the installation UUID of the server whose
     /// authorization flow is in progress.
     ///
@@ -85,9 +67,6 @@ pub struct TemplatableMCPServerManager {
     /// is received or the spawn task terminates.
     #[cfg(not(target_family = "wasm"))]
     pending_oauth_csrf: HashMap<String, Uuid>,
-    /// UUIDs of MCP servers started via the Oz CLI. We track these so they can be distinguished from
-    /// file-based ephemeral MCP servers, which are directory-scoped.
-    cli_spawned_server_uuids: HashSet<Uuid>,
 }
 
 /// Information about a spawned server task.
@@ -231,28 +210,6 @@ impl TemplatableMCPServerManager {
             .flat_map(|server| server.tools.iter())
     }
 
-    /// Returns a reconnecting peer for a server that has the given resource.
-    ///
-    /// The returned peer will automatically reconnect if the underlying transport is closed.
-    #[cfg(not(target_family = "wasm"))]
-    pub fn server_with_resource(
-        &self,
-        resource: &rmcp::model::Resource,
-    ) -> Option<super::reconnecting_peer::ReconnectingPeer> {
-        let spawner = self.spawner.as_ref()?;
-        self.active_servers
-            .iter()
-            .find(|(_, server)| {
-                server
-                    .resources
-                    .iter()
-                    .any(|other_resource| resource.uri == other_resource.uri)
-            })
-            .map(|(installation_uuid, _)| {
-                super::reconnecting_peer::ReconnectingPeer::new(*installation_uuid, spawner.clone())
-            })
-    }
-
     pub fn tools_for_server(&self, uuid: Uuid) -> Vec<rmcp::model::Tool> {
         self.active_servers
             .get(&uuid)
@@ -321,29 +278,6 @@ impl TemplatableMCPServerManager {
             .collect()
     }
 
-    /// Returns file-based MCP servers that are currently active and in scope for the given working directory.
-    pub fn get_active_file_based_servers(
-        &self,
-        cwd: &std::path::Path,
-        app: &warpui::AppContext,
-    ) -> HashMap<Uuid, &TemplatableMCPServerInfo> {
-        FileBasedMCPManager::as_ref(app)
-            .get_servers_for_working_directory(cwd, app)
-            .iter()
-            .filter_map(|installation| {
-                let uuid = installation.uuid();
-                self.active_servers.get(&uuid).map(|info| (uuid, info))
-            })
-            .collect()
-    }
-
-    /// Returns CLI-spawned ephemeral servers (started via `oz agent run --mcp`) that are currently active.
-    pub fn get_active_cli_spawned_servers(&self) -> HashMap<Uuid, &TemplatableMCPServerInfo> {
-        self.cli_spawned_server_uuids
-            .iter()
-            .filter_map(|uuid| self.active_servers.get(uuid).map(|info| (*uuid, info)))
-            .collect()
-    }
 }
 
 #[derive(Debug)]

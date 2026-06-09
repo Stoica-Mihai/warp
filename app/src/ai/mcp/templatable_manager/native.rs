@@ -66,10 +66,6 @@ enum SpawnMode {
         /// Whether to persist running state to SQLite.
         persist_running_state_to_sqlite: bool,
     },
-    /// Reconnection after transport closed - preserves logs, no telemetry.
-    ///
-    /// Waiters are notified via `pending_reconnections` when the connection completes.
-    Reconnect,
 }
 
 impl SpawnMode {
@@ -84,10 +80,6 @@ impl SpawnMode {
                 persist_running_state_to_sqlite: true
             }
         )
-    }
-
-    fn is_reconnect(&self) -> bool {
-        matches!(self, SpawnMode::Reconnect)
     }
 }
 
@@ -299,10 +291,7 @@ impl TemplatableMCPServerManager {
             locally_installed_servers,
             database_connection,
             server_error_messages: Default::default(),
-            spawner: Some(ctx.spawner()),
-            pending_reconnections: Default::default(),
             pending_oauth_csrf: Default::default(),
-            cli_spawned_server_uuids: Default::default(),
         };
 
         me.fetch_cloud_servers(ctx);
@@ -645,7 +634,6 @@ impl TemplatableMCPServerManager {
         installation: TemplatableMCPServerInstallation,
         ctx: &mut ModelContext<Self>,
     ) {
-        self.cli_spawned_server_uuids.insert(installation.uuid());
         self.spawn_ephemeral_server(installation, ctx);
     }
 
@@ -710,12 +698,6 @@ impl TemplatableMCPServerManager {
                         "Templatable MCP server template contains no servers: {template_uuid}",
                     );
                     self.change_server_state(installation_uuid, MCPServerState::FailedToStart, ctx);
-                    if mode.is_reconnect() {
-                        self.notify_reconnect_waiters(
-                            installation_uuid,
-                            Err("Template contains no servers".to_string()),
-                        );
-                    }
                     return;
                 }
             },
@@ -724,12 +706,6 @@ impl TemplatableMCPServerManager {
                     "Failed to parse resolved MCP server JSON for '{template_uuid}': {err:#}",
                 );
                 self.change_server_state(installation_uuid, MCPServerState::FailedToStart, ctx);
-                if mode.is_reconnect() {
-                    self.notify_reconnect_waiters(
-                        installation_uuid,
-                        Err(format!("Failed to parse MCP server: {err:#}")),
-                    );
-                }
                 return;
             }
         };
@@ -759,12 +735,6 @@ impl TemplatableMCPServerManager {
                     });
                 }
 
-                if mode.is_reconnect() {
-                    self.notify_reconnect_waiters(
-                        installation_uuid,
-                        Err("PATH not available".to_string()),
-                    );
-                }
                 return;
             };
 
@@ -846,7 +816,6 @@ impl TemplatableMCPServerManager {
         // Extract values from mode before moving it into the closure.
         let should_persist = mode.should_persist_running_state_to_sqlite();
         let should_send_telemetry = mode.should_send_telemetry();
-        let is_reconnect = mode.is_reconnect();
 
         self.change_server_state(installation_uuid, MCPServerState::Starting, ctx);
         let task = ctx.spawn(
@@ -865,7 +834,6 @@ impl TemplatableMCPServerManager {
 
                 match server_info {
                     Ok(info) => {
-                        let peer = info.service.clone();
                         me.active_servers.insert(installation_uuid, info);
 
                         // Clear any previous error message on successful connection.
@@ -876,10 +844,6 @@ impl TemplatableMCPServerManager {
                             Self::persist_is_mcp_running(installation_uuid, true, ctx);
                         }
                         me.change_server_state(installation_uuid, MCPServerState::Running, ctx);
-
-                        if is_reconnect {
-                            me.notify_reconnect_waiters(installation_uuid, Ok(peer));
-                        }
                     }
                     Err(e) => {
                         logger_clone
@@ -900,10 +864,6 @@ impl TemplatableMCPServerManager {
                         );
 
                         me.delete_credentials_from_secure_storage(installation_uuid, ctx);
-
-                        if is_reconnect {
-                            me.notify_reconnect_waiters(installation_uuid, Err(error_message));
-                        }
                     }
                 };
 
@@ -1486,116 +1446,6 @@ impl TemplatableMCPServerManager {
                     Some(server.service.clone())
                 }
             })
-    }
-
-    /// Triggers reconnection of a server by its installation UUID.
-    ///
-    /// If a reconnection is already in progress for this server, the caller is added to the
-    /// waiting list and will be notified when the existing reconnection completes.
-    /// Otherwise, a new reconnection is started.
-    ///
-    /// The result is sent via the provided oneshot channel when the connection completes (or fails).
-    pub fn reconnect_server(
-        &mut self,
-        installation_uuid: Uuid,
-        result_tx: tokio::sync::oneshot::Sender<Result<rmcp::Peer<rmcp::RoleClient>, String>>,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        log::debug!("Reconnecting MCP server with installation uuid {installation_uuid}");
-
-        // If a reconnection is already in progress, add this caller to the waiting list.
-        if let Some(waiters) = self.pending_reconnections.get_mut(&installation_uuid) {
-            log::debug!(
-                "Reconnection already in progress for {installation_uuid}, adding to waiters"
-            );
-            waiters.push(result_tx);
-            return;
-        }
-
-        // Start tracking this reconnection with this caller as the first waiter.
-        self.pending_reconnections
-            .insert(installation_uuid, vec![result_tx]);
-
-        // Remove the old server from active_servers if it exists.
-        self.active_servers.remove(&installation_uuid);
-
-        // Cancel any in-flight spawn.
-        if let Some(spawned_info) = self.spawned_servers.remove(&installation_uuid) {
-            spawned_info.abort_handle.abort();
-        }
-        self.pending_oauth_csrf
-            .retain(|_, v| *v != installation_uuid);
-
-        // Look up the installation to get server details.
-        let Some(installation) = self
-            .locally_installed_servers
-            .get(&installation_uuid)
-            .cloned()
-        else {
-            self.notify_reconnect_waiters(
-                installation_uuid,
-                Err("Installation not found".to_string()),
-            );
-            return;
-        };
-
-        self.spawn_server_impl(installation, SpawnMode::Reconnect, ctx);
-    }
-
-    /// Notifies all pending reconnection waiters for the given installation UUID.
-    ///
-    /// This removes the waiters from `pending_reconnections` and sends the result to each.
-    fn notify_reconnect_waiters(
-        &mut self,
-        installation_uuid: Uuid,
-        result: Result<rmcp::Peer<rmcp::RoleClient>, String>,
-    ) {
-        if let Some(waiters) = self.pending_reconnections.remove(&installation_uuid) {
-            for tx in waiters {
-                // Clone the result for each waiter. For Ok, we clone the peer.
-                // For Err, we clone the error message.
-                let _ = tx.send(result.clone());
-            }
-        }
-    }
-
-    /// Returns a reconnecting peer for a server that has the given tool.
-    ///
-    /// The returned peer will automatically reconnect if the underlying transport is closed.
-    pub fn server_with_tool_name(
-        &self,
-        tool_name: String,
-    ) -> Option<crate::ai::mcp::reconnecting_peer::ReconnectingPeer> {
-        let spawner = self.spawner.as_ref()?;
-        self.active_servers
-            .iter()
-            .find(|(_, server)| server.tools.iter().any(|t| t.name == tool_name))
-            .map(|(installation_uuid, _)| {
-                crate::ai::mcp::reconnecting_peer::ReconnectingPeer::new(
-                    *installation_uuid,
-                    spawner.clone(),
-                )
-            })
-    }
-
-    /// Returns a reconnecting peer for a server with the given installation ID and tool.
-    ///
-    /// The returned peer will automatically reconnect if the underlying transport is closed.
-    pub fn server_with_installation_id_and_tool_name(
-        &self,
-        installation_id: Uuid,
-        tool_name: String,
-    ) -> Option<crate::ai::mcp::reconnecting_peer::ReconnectingPeer> {
-        let spawner = self.spawner.as_ref()?;
-        let server = self.active_servers.get(&installation_id)?;
-        if server.tools.iter().any(|t| t.name == tool_name) {
-            Some(crate::ai::mcp::reconnecting_peer::ReconnectingPeer::new(
-                installation_id,
-                spawner.clone(),
-            ))
-        } else {
-            None
-        }
     }
 
     fn spawn_file_based_servers(

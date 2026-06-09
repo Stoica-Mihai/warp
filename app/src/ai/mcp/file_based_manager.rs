@@ -3,11 +3,9 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use itertools::Itertools as _;
-use repo_metadata::repositories::DetectedRepositories;
 use uuid::Uuid;
 use warp_core::features::FeatureFlag;
-use warp_util::local_or_remote_path::LocalOrRemotePath;
-use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
+use warpui::{Entity, ModelContext, SingletonEntity};
 
 use super::{FileMCPWatcher, FileMCPWatcherEvent, MCPProvider};
 use crate::ai::mcp::templatable_installation::TemplatableMCPServerInstallation;
@@ -71,33 +69,6 @@ impl FileBasedMCPManager {
                 self.handle_cloud_environment_scan_complete(repo_path, ctx);
             }
         }
-    }
-
-    /// Get file-based MCP servers in scope for the given current working directory.
-    pub fn get_servers_for_working_directory(
-        &self,
-        cwd: &Path,
-        app: &AppContext,
-    ) -> Vec<&TemplatableMCPServerInstallation> {
-        let repo_root = DetectedRepositories::as_ref(app)
-            .get_root_for_path(&LocalOrRemotePath::Local(cwd.to_path_buf()))
-            .and_then(|r| PathBuf::try_from(r).ok());
-        let candidate_roots = [dirs::home_dir(), repo_root];
-
-        let mut servers = Vec::new();
-        for root in candidate_roots.into_iter().flatten() {
-            // Get user and project-scoped MCP servers from all providers for the given cwd.
-            if let Some(provider_map) = self.file_based_servers_by_root.get(&root) {
-                for hash_set in provider_map.values() {
-                    servers.extend(
-                        hash_set
-                            .iter()
-                            .filter_map(|h| self.file_based_servers.get(h)),
-                    );
-                }
-            }
-        }
-        servers
     }
 
     /// Removes all tracked servers for the given `(root_path, provider)` pair,

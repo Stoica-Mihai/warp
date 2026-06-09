@@ -60,8 +60,6 @@ pub mod parsing;
 pub use parsing::ParsedTemplatableMCPServerResult;
 #[cfg(not(target_family = "wasm"))]
 pub mod http_client;
-#[cfg(not(target_family = "wasm"))]
-pub mod reconnecting_peer;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_family = "wasm", expect(dead_code))]
@@ -603,35 +601,6 @@ impl MCPProvider {
     }
 }
 
-/// Returns the [`MCPProvider`] that owns `file_path` as a config file, if any.
-///
-/// Matches against both home-level configs (e.g. `~/.claude.json`) and
-/// project-level configs (e.g. `.mcp.json` anywhere in the path).
-pub fn mcp_provider_from_file_path(file_path: &Path) -> Option<MCPProvider> {
-    // Try exact home-config match first (unambiguous).
-    for provider in MCPProvider::iter() {
-        if home_config_file_path(provider)
-            .as_ref()
-            .is_some_and(|home_config_path| file_path == home_config_path)
-        {
-            return Some(provider);
-        }
-    }
-    // Fall back to project-config suffix match, preferring the longest
-    // (most-specific) suffix.
-    // This avoids `.mcp.json` shadowing `.warp/.mcp.json`, for example.
-    let mut best: Option<(MCPProvider, usize)> = None;
-    for provider in MCPProvider::iter() {
-        let cfg = provider.project_config_path();
-        if file_path.ends_with(cfg) {
-            let len = cfg.as_os_str().len();
-            if best.is_none_or(|(_, best_len)| len > best_len) {
-                best = Some((provider, len));
-            }
-        }
-    }
-    best.map(|(p, _)| p)
-}
 
 #[cfg(test)]
 #[path = "mod_tests.rs"]
