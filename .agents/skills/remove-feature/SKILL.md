@@ -107,7 +107,7 @@ Dead-code safety = the **3-gate intersection by message text**: an item dead in 
 - **Build fresh before claiming it compiles/runs.** `cargo run` reuses a stale binary; only trust output showing "Compiling warp". For UI/render-path or SSH/PTY changes, cargo-green ≠ works — build the GUI and eyeball it.
 
 ## After each strip commit
-1. `cargo build --bin <binary> --features gui` (background) → `stat -c%s` the binary.
+1. `cargo run --bin <binary> --features gui` (background) → `stat -c%s` the binary.
 2. Add a row to the build-size log: bytes, MiB, MB, delta vs last row, and **whether the delta is real or linker-invisible and why**.
 3. Update the tracker/plan + a per-session memory: what landed, what's KEEP-and-why, the next target, and any trap hit. Correct stale entries you found.
 

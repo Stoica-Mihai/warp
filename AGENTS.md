@@ -137,8 +137,8 @@ Deleted `ai/blocklist/block.rs` (6481 LoC) + `block/` dir (32 files, ~16k LoC). 
 
 ## 4. Build / verify
 
-- Build + launch GUI: `cargo build --bin sublight --features gui` (builds fresh, no launch). Launch separately: `./target/debug/sublight`. Do **not** run `./script/bootstrap` (Debian/apt-only; on this CachyOS box the deps are already present). First `--features gui` build is long. Binary lands at `target/debug/sublight`.
-- **IMPORTANT: always do a fresh `cargo build` before claiming the app compiles or runs.** `cargo run` with a pre-existing binary reuses the cached binary even when the source has errors — it will appear to succeed but is running stale code. Only trust a build that actually recompiles (`cargo build` output shows "Compiling warp" lines, not just "Finished"). If the binary is already up-to-date, touch a source file first or use `cargo build --offline` to force re-evaluation.
+- Build + launch GUI: `cargo run --bin sublight --features gui` (compiles and launches). Do **not** run `./script/bootstrap` (Debian/apt-only; on this CachyOS box the deps are already present). First `--features gui` build is long. Binary lands at `target/debug/sublight`.
+- **IMPORTANT: always do a fresh `cargo run` before claiming the app compiles or runs.** Only trust a build that actually recompiles (output shows "Compiling warp" lines, not just "Finished"). If the binary is already up-to-date, touch a source file first to force recompilation.
 - Verify green: 3-gate matrix — `cargo check -p warp` + `--tests` + `--features local_fs,gui`. **Run all 3 in parallel, each in its OWN target dir** — they share the same `target/` otherwise and cargo's build lock serializes them (one waits for the others, defeating the point). Give each its own `CARGO_TARGET_DIR` and launch them as background tasks in a single message:
   ```bash
   CARGO_TARGET_DIR=target/gate-default cargo check -p warp
@@ -154,7 +154,7 @@ Deleted `ai/blocklist/block.rs` (6481 LoC) + `block/` dir (32 files, ~16k LoC). 
 
 After the 3-gate matrix passes and you commit the refactor:
 
-1. Run `cargo build --bin sublight --features gui` (background, `run_in_background: true`). Note: if the binary is already up-to-date cargo exits in <2s; if not, it takes ~2m. Either way, wait for the notification.
+1. Run `cargo run --bin sublight --features gui` (background, `run_in_background: true`). Note: if the binary is already up-to-date cargo exits in <2s; if not, it takes ~2m. Either way, wait for the notification.
 2. Read the binary size: `stat -c%s target/debug/sublight`
 3. Compute delta vs the last row in `build-size-log.md` (bytes, MB SI, MiB).
 4. Add a row to `build-size-log.md`. Include: date, commit hash, profile=debug, step description, bytes, MiB, MB, build time (from `time` output or "cached"), and a notes field explaining whether the delta is real or linker-invisible and why.
