@@ -17,7 +17,6 @@ use super::{
     SSHBannerAction, TerminalEditor,
 };
 use crate::code_review::telemetry_event::CodeReviewPaneEntrypoint;
-use crate::server::ids::SyncId;
 use crate::server::telemetry::{PaletteSource, ToggleBlockFilterSource};
 use crate::terminal::available_shells::AvailableShell;
 use crate::terminal::block_list_element::{
@@ -32,7 +31,6 @@ use crate::terminal::model::terminal_model::{BlockIndex, WithinModel};
 use crate::terminal::model::SecretHandle;
 use crate::terminal::view::passive_suggestions::PromptSuggestionResolution;
 use crate::terminal::view::RichContentSecretTooltipInfo;
-use crate::workflows::workflow::Workflow;
 
 #[derive(Clone)]
 pub enum TerminalAction {

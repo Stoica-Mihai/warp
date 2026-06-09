@@ -1,7 +1,7 @@
 use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent};
-use crate::cloud_object::{CloudObject, CloudObjectLocation, ObjectType};
+use crate::cloud_object::{CloudObject, ObjectType};
 use crate::search::command_palette::mixer::CommandPaletteItemAction;
 use crate::search::data_source::{Query, QueryResult};
 use crate::search::mixer::DataSourceRunErrorWrapper;

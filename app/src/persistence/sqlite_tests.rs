@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use ai::workspace::WorkspaceMetadata;
 use chrono::Utc;

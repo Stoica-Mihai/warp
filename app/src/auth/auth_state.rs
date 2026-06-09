@@ -15,7 +15,7 @@ use super::user::{
     AnonymousUserType, PersonalObjectLimits, PrincipalType, User,
 };
 use super::{UserUid, API_KEY_PREFIX};
-use crate::cloud_object::{GenericStringObjectFormat, JsonObjectType, ObjectType};
+use crate::cloud_object::ObjectType;
 
 const ANONYMOUS_USER_NOTIFICATION_BLOCK_TIMER: Duration = Duration::days(7);
 

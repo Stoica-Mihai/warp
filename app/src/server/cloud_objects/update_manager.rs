@@ -15,7 +15,7 @@ use crate::auth::AuthStateProvider;
 use crate::cloud_object::model::actions::{
     ObjectActionType, ObjectActions,
 };
-use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent, UpdateSource};
+use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::{
     CloudModelType, CloudObject, CloudObjectEventEntrypoint, CloudObjectLocation,
     GenericCloudObject, ObjectIdType, ObjectType, Owner,

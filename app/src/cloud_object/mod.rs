@@ -14,7 +14,6 @@ use self::model::generic_string_model::{
 };
 use self::model::persistence::CloudModel;
 use crate::auth::UserUid;
-use crate::channel::ChannelState;
 use crate::drive::{CloudObjectTypeAndId, OpenWarpDriveObjectArgs, OpenWarpDriveObjectSettings};
 use crate::persistence::ModelEvent;
 use crate::server::ids::{HashableId, HashedSqliteId, ObjectUid, ServerId, SyncId, ToServerId};
