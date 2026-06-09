@@ -5523,7 +5523,7 @@ impl TerminalView {
                 self.focus_terminal(ctx);
             }
             ModelEvent::AfterBlockStarted {
-                command,
+                command: _,
                 is_for_in_band_command,
                 block_id,
                 ..
@@ -9396,7 +9396,7 @@ impl TerminalView {
 
         // If we're currently in a subshell, add another flag to indicate that because we just
         // cleared the existing one.
-        if let Some(session) = self
+        if let Some(_session) = self
             .active_block_session_id()
             .and_then(|id| self.sessions.as_ref(ctx).get(id))
         {
@@ -12430,7 +12430,7 @@ impl TerminalView {
 
         let inline_banners = self.render_inline_banners(appearance, app, model);
 
-        let mut subshell_separators = HashMap::new();
+        let subshell_separators = HashMap::new();
 
 
         // Currently, it is assumed that only the active block can have a block banner, which

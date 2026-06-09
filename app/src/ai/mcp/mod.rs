@@ -6,7 +6,6 @@ use chrono::DateTime;
 #[cfg(not(target_family = "wasm"))]
 use diesel::{QueryDsl, RunQueryDsl, SqliteConnection};
 use serde::{Deserialize, Serialize};
-use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use warp_core::ui::Icon;
 

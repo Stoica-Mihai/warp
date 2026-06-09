@@ -3,13 +3,9 @@ use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 
 use async_trait::async_trait;
-use chrono::{Duration, Utc};
 use derivative::Derivative;
-use lazy_static::lazy_static;
-use regex::Regex;
 use url::Url;
 use warp_core::features::FeatureFlag;
-use warp_util::server_timestamp::ServerTimestamp;
 use warpui::{AppContext, SingletonEntity};
 
 use self::breadcrumbs::ContainingObject;
@@ -130,16 +126,6 @@ pub trait CloudObject: Debug {
         true
     }
 
-    /// Returns the web link of this object. Will return none if we do not support web links
-    /// for this particular object (i.e. if it's not yet sync'd to the server, or if we don't
-    /// yet support linking to that object type).
-    ///
-    /// The format of an objects link follows the pattern:
-    /// {channel}/drive/{object-type}/{object-name}-{uid}. For more information on this,
-    /// see the linkable objects PRD (https://docs.google.com/document/d/1VQZ4sgLs4M9r2NDYyecfOalLlPmcf2fd_rDdqG35Zd8/edit)
-    /// or tech doc (https://docs.google.com/document/d/1_TK19mRcD_0eLwbr5uFRabacIzfKocfahjEvoRcs5ko/edit)
-    fn object_link(&self) -> Option<String>;
-
     /// The space containing this object.
     ///
     /// If the object is shared with the current user, the space will reflect that, not the
@@ -168,14 +154,6 @@ pub trait CloudObject: Debug {
     // Returns the path of all the containing "objects" for this object.
     fn containing_objects_path(&self, app: &AppContext) -> Vec<ContainingObject> {
         vec![self.space(app).into_containing_object(app)]
-    }
-
-    fn breadcrumbs(&self, app: &AppContext) -> String {
-        self.containing_objects_path(app)
-            .into_iter()
-            .map(|object| object.name)
-            .collect::<Vec<String>>()
-            .join(" / ")
     }
 
     /// Returns whether this CloudObject is in the given space
@@ -473,12 +451,6 @@ where
     }
 }
 
-lazy_static! {
-    static ref SPACE_DETECT_RE: Regex = Regex::new(r"\s+").expect("Expect regex to be valid");
-    static ref SAFE_URL_CHAR_RE: Regex =
-        Regex::new(r"[^a-zA-Z0-9\s-]").expect("Expect regex to be valid");
-}
-
 impl<K, M> CloudObject for GenericCloudObject<K, M>
 where
     K: HashableId + ToServerId + Debug + Into<String> + Clone + 'static,
@@ -561,35 +533,6 @@ where
 
     fn set_server_id(&mut self, server_id: ServerId) {
         self.id = SyncId::ServerId(server_id);
-    }
-
-    fn object_link(&self) -> Option<String> {
-        if !self.model().supports_linking() {
-            return None;
-        }
-
-        let display_name = self.model().display_name();
-        // First remove all the url unsafe chars
-        let name_without_unsafe_chars = SAFE_URL_CHAR_RE.replace_all(display_name.trim(), "");
-        // Then turn all the spaces into dashes
-        let link_safe_name = SPACE_DETECT_RE.replace_all(&name_without_unsafe_chars, "-");
-        match &self.id {
-            SyncId::ClientId(_) => None,
-            SyncId::ServerId(id) => {
-                let object_type = self.object_type();
-                let object_type_for_link = object_type.to_string();
-
-                let link = format!(
-                    "{}/drive/{}/{}-{}",
-                    ChannelState::server_root_url(),
-                    object_type_for_link,
-                    link_safe_name,
-                    id.uid()
-                );
-
-                Some(link)
-            }
-        }
     }
 
     fn upsert_event(&self) -> ModelEvent {
@@ -718,9 +661,6 @@ pub trait CloudObjectMetadataExt {
     #[cfg_attr(target_family = "wasm", expect(dead_code))]
     fn semantic_creator(&self, app: &AppContext) -> Option<String>;
 
-    /// Returns semantic summary of countdown of days until permadeletion.
-    /// Ex: "27 days until permanent deletion"
-    fn semantic_permadeletion_countdown(&self, app: &AppContext) -> Option<String>;
 }
 
 impl CloudObjectMetadataExt for CloudObjectMetadata {
@@ -758,34 +698,6 @@ impl CloudObjectMetadataExt for CloudObjectMetadata {
             .and_then(|uid| user_profiles.displayable_identifier_for_uid(UserUid::new(uid)))
     }
 
-    fn semantic_permadeletion_countdown(&self, app: &AppContext) -> Option<String> {
-        // 2 cases:
-        // 1) Either the object is a root level object.
-        // 2) Or the object is inside folder(s), call recursive function to get trashed_ts of top level folder.
-        if let Some(trashed_ts) = self
-            .trashed_ts
-            .or_else(|| get_top_folder_trashed_ts(self.folder_id, app))
-        {
-            let deletion_time = trashed_ts.utc() + Duration::days(31);
-            let current_time = Utc::now();
-            let days_left = deletion_time.signed_duration_since(current_time).num_days();
-
-            let full_string = match days_left {
-                0 | 1 => "1 day until permanent deletion".to_string(),
-                _ => format!("{days_left} days until permanent deletion"),
-            };
-            Some(full_string)
-        } else {
-            None
-        }
-    }
-}
-
-fn get_top_folder_trashed_ts(
-    _folder_id: Option<SyncId>,
-    _app: &AppContext,
-) -> Option<ServerTimestamp> {
-    None
 }
 
 #[derive(Default, Clone, Copy, Debug, Eq, Derivative)]

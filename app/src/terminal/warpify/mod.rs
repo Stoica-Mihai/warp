@@ -36,7 +36,7 @@ fn get_subshell_bootstrap_success_block_path(shell_type: ShellType) -> Option<&'
 /// The exact block contents varies based on whether or not the session is local or remote, in
 /// addition to the given `shell_type`.
 pub fn subshell_bootstrap_success_block_bytes(
-    subshell_initialization_info: &SubshellInitializationInfo,
+    _subshell_initialization_info: &SubshellInitializationInfo,
     shell_type: ShellType,
     os: TargetOS,
     disable_tmux: bool,

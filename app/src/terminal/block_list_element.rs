@@ -1013,9 +1013,9 @@ impl BlockListElement {
     pub fn with_hovered_index(
         mut self,
         block_index: BlockIndex,
-        model: &TerminalModel,
-        should_render_tooltip_below_button: bool,
-        app: &AppContext,
+        _model: &TerminalModel,
+        _should_render_tooltip_below_button: bool,
+        _app: &AppContext,
     ) -> Self {
         self.hovered_block_index = Some(block_index);
         let icon_color = self
@@ -2828,17 +2828,13 @@ impl Element for BlockListElement {
                                         && self.subshell_separator_height == 0.
                                         && !block.is_background()
                                     {
-                                        let command = if let SubshellSource::Command(cmd) = command
-                                        {
-                                            cmd.split_whitespace()
-                                                .next()
-                                                .map(|exec| {
-                                                    SubshellSource::Command(exec.to_owned())
-                                                })
-                                                .unwrap_or_else(|| command.clone())
-                                        } else {
-                                            command.clone()
-                                        };
+                                        let SubshellSource::Command(cmd) = command;
+                                        let command = cmd.split_whitespace()
+                                            .next()
+                                            .map(|exec| {
+                                                SubshellSource::Command(exec.to_owned())
+                                            })
+                                            .unwrap_or_else(|| command.clone());
 
                                         let mut flag_element = render_subshell_flag(
                                             command,
@@ -3323,7 +3319,7 @@ impl Element for BlockListElement {
                         .and_then(|header| header.header_rect())
                         .map_or(grid_origin, |r| r.origin());
 
-                    let mut header_grid_origin = header_origin;
+                    let header_grid_origin = header_origin;
 
 
                     // TODO(vorporeal): should probably use `Pixels` here
