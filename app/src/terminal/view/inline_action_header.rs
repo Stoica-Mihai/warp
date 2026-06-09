@@ -43,25 +43,6 @@ pub struct ExpandedConfig {
     pub expands_upwards: bool,
 }
 
-impl ExpandedConfig {
-    pub fn new(is_expanded: bool, toggle_mouse_state: MouseStateHandle) -> Self {
-        Self {
-            is_expanded,
-            on_toggle_expanded: None,
-            on_right_click: None,
-            toggle_mouse_state,
-            expands_upwards: false,
-        }
-    }
-
-    pub fn with_toggle_callback<F>(mut self, callback: F) -> Self
-    where
-        F: Fn(&mut EventContext) + 'static,
-    {
-        self.on_toggle_expanded = Some(Rc::new(callback));
-        self
-    }
-}
 
 #[derive(Clone)]
 pub enum InteractionMode {
@@ -110,28 +91,8 @@ impl HeaderConfig {
         self
     }
 
-    pub fn with_font_family(mut self, font: FamilyId) -> Self {
-        self.font_family = font;
-        self
-    }
-
     pub fn with_icon(mut self, icon: warpui::elements::Icon) -> Self {
         self.icon = Some(icon);
-        self
-    }
-
-    pub fn with_interaction_mode(mut self, interaction_mode: InteractionMode) -> Self {
-        self.interaction_mode = Some(interaction_mode);
-        self
-    }
-
-    pub fn with_selectable_text(mut self) -> Self {
-        self.is_text_selectable = true;
-        self
-    }
-
-    pub fn with_corner_radius_override(mut self, corner_radius: CornerRadius) -> Self {
-        self.corner_radius_override = Some(corner_radius);
         self
     }
 
