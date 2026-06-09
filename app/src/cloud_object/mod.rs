@@ -652,10 +652,6 @@ impl From<&Box<dyn CloudObject>> for ObjectType {
 
 /// Extension trait for CloudObjectMetadata with methods that require AppContext.
 pub trait CloudObjectMetadataExt {
-    /// Returns a semantic summary of the last edit to the object. For example, "Alice edited 4 weeks ago".
-    /// Returns None if the revision and last_editor are None.
-    fn semantic_editing_history(&self, app: &AppContext) -> Option<String>;
-
     /// Returns a semantic summary of the object's creator. For example, "Alice" or "joan@warp.dev".
     #[cfg_attr(target_family = "wasm", expect(dead_code))]
     fn semantic_creator(&self, app: &AppContext) -> Option<String>;
@@ -663,32 +659,6 @@ pub trait CloudObjectMetadataExt {
 }
 
 impl CloudObjectMetadataExt for CloudObjectMetadata {
-    fn semantic_editing_history(&self, app: &AppContext) -> Option<String> {
-        let user_profiles = UserProfiles::as_ref(app);
-
-        // First, the editor. For example, "Joan Didion" or "joan@warp.dev".
-        let editor_string = self
-            .last_editor_uid
-            .as_ref()
-            .and_then(|uid| user_profiles.displayable_identifier_for_uid(UserUid::new(uid)));
-
-        // Second, the time elapsed since the edit. For example, "just now" or "3 months ago".
-        let time_ago_string = self
-            .revision
-            .clone()
-            .map(|r| format_approx_duration_from_now_utc(r.utc()));
-
-        let full_string = match (editor_string, time_ago_string) {
-            (Some(name), Some(time_ago)) if name.is_empty() => format!("Edited {time_ago}"),
-            (Some(name), Some(time_ago)) => format!("{name} edited {time_ago}"),
-            (None, Some(time_ago)) => format!("Edited {time_ago}"),
-            (Some(name), None) => format!("Last edited by {name}"),
-            _ => return None,
-        };
-
-        Some(full_string)
-    }
-
     fn semantic_creator(&self, app: &AppContext) -> Option<String> {
         // Todo(Jack): add creation ts.
         let user_profiles = UserProfiles::as_ref(app);

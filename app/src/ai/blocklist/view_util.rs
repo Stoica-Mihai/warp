@@ -4,7 +4,7 @@ use std::sync::LazyLock;
 use pathfinder_color::ColorU;
 use warp_core::ui::appearance::Appearance;
 use warpui::elements::{ConstrainedBox, Container};
-use warpui::{AppContext, Element, EntityId, SingletonEntity};
+use warpui::{AppContext, Element, SingletonEntity};
 
 use crate::themes::theme::{AnsiColorIdentifier, Fill, WarpTheme};
 use crate::ui_components::icons::Icon;
@@ -68,16 +68,6 @@ pub fn ai_indicator_height(app: &AppContext) -> f32 {
         appearance.monospace_font_size(),
         appearance.line_height_ratio(),
     )
-}
-
-/// Returns the saved position ID of the attached blocks chip inside the [`AIBlock`] header.
-pub fn get_attached_blocks_chip_element_position_id(view_id: EntityId) -> String {
-    format!("aiblock:{view_id}.attached_block_chip_position")
-}
-
-/// Returns the saved position ID of the overflow menu inside the [`AIBlock`] header.
-pub fn get_ai_block_overflow_menu_element_position_id(view_id: EntityId) -> String {
-    format!("aiblock:{view_id}.overflow_menu_position")
 }
 
 

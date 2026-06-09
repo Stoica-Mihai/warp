@@ -1,4 +1,3 @@
-use std::iter;
 use std::path::Path;
 
 use warp_core::ui::theme::Fill;
@@ -9,8 +8,6 @@ use warpui::elements::{
 };
 use warpui::ui_components::components::UiComponent;
 use warpui::{AppContext, Element, EventContext, SingletonEntity};
-
-use crate::ai::agent_types::ProgrammingLanguage;
 use crate::terminal::view::inline_action_header::{
     INLINE_ACTION_HEADER_VERTICAL_PADDING, INLINE_ACTION_HORIZONTAL_PADDING,
 };
@@ -117,45 +114,6 @@ pub fn render_code_block_plain(
     render_code_block_internal(code, code_element, options, app, source, false)
 }
 
-/// Renders a code snippet with a language label and optional buttons.
-/// This command did not come from Agent Mode.
-pub fn render_runnable_code_snippet(
-    code_snippet: &str,
-    language: Option<&ProgrammingLanguage>,
-    on_execute: Option<HandleCode>,
-    on_copy: Option<HandleCode>,
-    mouse_handles: Option<CodeSnippetButtonHandles>,
-    app: &AppContext,
-) -> Box<dyn Element> {
-    let appearance = Appearance::as_ref(app);
-    let theme = appearance.theme();
-    let language_text = language.map(|language| {
-        Text::new_inline(
-            language.display_name(),
-            appearance.monospace_font_family(),
-            appearance.monospace_font_size(),
-        )
-        .with_color(blended_colors::text_sub(theme, theme.surface_3()))
-        .finish()
-    });
-    let allow_execution = language.is_none_or(|lang| lang.is_shell());
-    render_code_block_plain(
-        code_snippet,
-        Box::new(iter::empty()),
-        CodeBlockOptions {
-            on_open: None,
-            on_execute: if allow_execution { on_execute } else { None },
-            on_copy,
-            on_insert: None,
-            footer_element: language_text,
-            mouse_handles,
-            file_path: None,
-        },
-        true,
-        app,
-        None,
-    )
-}
 
 #[allow(clippy::too_many_arguments)]
 fn render_linked_code_block_internal(
