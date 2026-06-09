@@ -10,8 +10,6 @@ use warpui::{Entity, EntityId, ModelContext, ModelHandle, SingletonEntity};
 
 use self::listener::CLIAgentSessionListener;
 use super::CLIAgent;
-use crate::ai::blocklist::InputConfig;
-
 /// Status of a tracked CLI agent session.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CLIAgentSessionStatus {
@@ -49,24 +47,7 @@ pub struct CLIAgentSessionContext {
 /// State of the rich input editor for composing a prompt to send to a CLI agent.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CLIAgentInputState {
-    /// The rich input editor is not open.
     Closed,
-    /// The rich input editor is open.
-    Open {
-        /// How this session was opened (for telemetry).
-        entrypoint: CLIAgentInputEntrypoint,
-        /// The input config that was active before opening rich input.
-        previous_input_config: InputConfig,
-        /// Whether the previous lock state was established while the input buffer was empty.
-        previous_was_lock_set_with_empty_buffer: bool,
-    },
-}
-
-/// How a [`CLIAgentInputState`] was opened.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
-pub enum CLIAgentInputEntrypoint {
-    /// User pressed Ctrl-G while a CLI agent was active.
-    CtrlG,
 }
 
 impl CLIAgentSessionContext {
@@ -109,9 +90,6 @@ pub struct CLIAgentSession {
     /// `Some("user@hostname")` when running over SSH (warpified or legacy).
     /// Used as a key for per-host plugin install failure tracking.
     pub remote_host: Option<String>,
-    /// Draft text saved from the rich input composer when it was closed.
-    /// Restored into the editor when the composer is reopened.
-    pub draft_text: Option<String>,
     /// When the session was detected via a custom toolbar command pattern,
     /// the first word of the command (the binary/alias the user typed).
     /// Used to customize plugin instructions and force manual install mode.
@@ -216,10 +194,6 @@ pub enum CLIAgentSessionsModelEvent {
     InputSessionChanged {
         terminal_view_id: EntityId,
         agent: CLIAgent,
-        /// The input state BEFORE this change. When transitioning from
-        /// `Open` → `Closed`, contains the saved input config to restore.
-        previous_input_state: CLIAgentInputState,
-        /// The input state AFTER this change.
         new_input_state: CLIAgentInputState,
     },
     Ended {
@@ -279,10 +253,8 @@ impl CLIAgentSessionsModel {
     }
 
     /// Returns `true` if the rich input editor is currently open for this terminal.
-    pub fn is_input_open(&self, terminal_view_id: EntityId) -> bool {
-        self.sessions
-            .get(&terminal_view_id)
-            .is_some_and(|s| matches!(s.input_state, CLIAgentInputState::Open { .. }))
+    pub fn is_input_open(&self, _terminal_view_id: EntityId) -> bool {
+        false
     }
 
     /// Registers a plugin-backed listener on the session for this terminal.
@@ -343,7 +315,6 @@ impl CLIAgentSessionsModel {
                 listener: Some(listener),
                 plugin_version,
                 remote_host,
-                draft_text: None,
                 custom_command_prefix: None,
             },
             ctx,
@@ -407,13 +378,10 @@ impl CLIAgentSessionsModel {
             return;
         }
 
-        let previous_input_state = session.input_state;
-        session.input_state = CLIAgentInputState::Closed;
         session.should_auto_toggle_input = should_auto_toggle_input;
         ctx.emit(CLIAgentSessionsModelEvent::InputSessionChanged {
             terminal_view_id,
             agent: session.agent,
-            previous_input_state,
             new_input_state: CLIAgentInputState::Closed,
         });
     }
@@ -439,13 +407,6 @@ impl CLIAgentSessionsModel {
             terminal_view_id,
             agent,
         });
-    }
-
-    /// Returns and clears the draft text for the given terminal, if any.
-    pub fn take_draft(&mut self, terminal_view_id: EntityId) -> Option<String> {
-        self.sessions
-            .get_mut(&terminal_view_id)
-            .and_then(|s| s.draft_text.take())
     }
 
 }
