@@ -115,7 +115,7 @@ fn is_installed_via_trait_with_claude_home_env() {
     .unwrap();
 
     std::env::set_var("CLAUDE_HOME", dir.path());
-    let result = ClaudeCodePluginManager::new(None, None, None).is_installed();
+    let result = ClaudeCodePluginManager::new().is_installed();
     std::env::remove_var("CLAUDE_HOME");
 
     assert!(result);
@@ -127,7 +127,7 @@ fn not_installed_via_trait_when_claude_home_empty() {
     let dir = tempfile::tempdir().unwrap();
 
     std::env::set_var("CLAUDE_HOME", dir.path());
-    let result = ClaudeCodePluginManager::new(None, None, None).is_installed();
+    let result = ClaudeCodePluginManager::new().is_installed();
     std::env::remove_var("CLAUDE_HOME");
 
     assert!(!result);

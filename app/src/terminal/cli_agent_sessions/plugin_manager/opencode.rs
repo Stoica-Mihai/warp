@@ -1,7 +1,5 @@
 use std::sync::LazyLock;
 
-use async_trait::async_trait;
-
 use super::{CliAgentPluginManager, PluginInstructionStep, PluginInstructions};
 
 // Keep in sync with the opencode-warp npm package version.
@@ -12,7 +10,6 @@ const MINIMUM_PLUGIN_VERSION: &str = "0.1.5";
 
 pub(super) struct OpenCodePluginManager;
 
-#[async_trait]
 impl CliAgentPluginManager for OpenCodePluginManager {
     fn minimum_plugin_version(&self) -> &'static str {
         MINIMUM_PLUGIN_VERSION

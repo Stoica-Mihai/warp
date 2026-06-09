@@ -65,7 +65,7 @@ use crate::code::editor::line::EditorLineLocation;
 use crate::code::editor::model::{
     CodeEditorModel, CodeEditorModelEvent, HoverableLink, LineBound, StableEditorLine,
 };
-use crate::code::editor::nav_bar::{NavBar, NavBarBehavior, NavBarEvent};
+use crate::code::editor::nav_bar::{NavBar, NavBarEvent};
 use crate::code::editor::scroll::{ScrollPosition, ScrollTrigger, ScrollWheelBehavior};
 use crate::code::editor::EditorReviewComment;
 use crate::code::{
@@ -201,9 +201,6 @@ impl SavedComment {
         &self.mouse_state
     }
 
-    pub fn uuid(&self) -> CommentId {
-        self.uuid
-    }
 }
 
 #[derive(Debug)]
@@ -741,12 +738,6 @@ impl CodeEditorView {
         self.display_options.show_nav_bar = show_nav_bar;
     }
 
-    pub fn set_nav_bar_behavior(&self, behavior: NavBarBehavior, ctx: &mut ViewContext<Self>) {
-        self.nav_bar.update(ctx, |nav_bar, _ctx| {
-            nav_bar.set_behavior(behavior);
-        });
-    }
-
     pub fn set_show_current_line_highlights(
         &self,
         show_current_line_highlights: bool,
@@ -757,16 +748,8 @@ impl CodeEditorView {
         })
     }
 
-    pub fn set_scroll_wheel_behavior(&mut self, behavior: ScrollWheelBehavior) {
-        self.display_options.scroll_wheel_behavior = behavior;
-    }
-
     pub fn set_vertical_scrollbar_appearance(&mut self, appearance: ScrollableAppearance) {
         self.display_options.vertical_scrollbar_appearance = appearance;
-    }
-
-    pub fn set_horizontal_scrollbar_appearance(&mut self, appearance: ScrollableAppearance) {
-        self.display_options.horizontal_scrollbar_appearance = appearance;
     }
 
     pub fn set_show_find_references_provider(
@@ -1505,15 +1488,6 @@ impl CodeEditorView {
 
     pub fn is_editable(&self, app: &AppContext) -> bool {
         self.model.as_ref(app).interaction_state() == InteractionState::Editable
-    }
-
-    pub fn set_vertical_expansion_behavior(
-        &mut self,
-        behavior: VerticalExpansionBehavior,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.display_options.vertical_expansion_behavior = behavior;
-        ctx.notify();
     }
 
     pub fn selected_text(&self, ctx: &AppContext) -> Option<String> {

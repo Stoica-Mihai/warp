@@ -12,10 +12,7 @@ pub enum NewFeaturePopupLabel {
     FromString(String),
 }
 
-pub enum FeaturePopupBadge {
-    // Displays "NEW" badge prior to the label
-    New,
-    // Displays an alert icon prior to the label
+enum FeaturePopupBadge {
     AlertIcon,
 }
 
@@ -32,14 +29,6 @@ pub enum NewFeaturePopupAction {
 }
 
 impl FeaturePopup {
-    pub fn new_feature(label: NewFeaturePopupLabel) -> Self {
-        Self {
-            dismiss_mouse_state: Default::default(),
-            label,
-            badge: FeaturePopupBadge::New,
-        }
-    }
-
     pub fn alert_icon(label: NewFeaturePopupLabel) -> Self {
         Self {
             dismiss_mouse_state: Default::default(),
@@ -49,26 +38,7 @@ impl FeaturePopup {
     }
 
     fn render_badge(&self, appearance: &Appearance) -> Box<dyn Element> {
-        let background = appearance.theme().background();
         match self.badge {
-            FeaturePopupBadge::New => Container::new(
-                Text::new(
-                    "NEW",
-                    appearance.ui_font_family(),
-                    appearance.ui_font_size(),
-                )
-                .with_color(appearance.theme().main_text_color(background).into())
-                .finish(),
-            )
-            .with_vertical_padding(2.)
-            .with_horizontal_padding(4.)
-            .with_background_color(
-                appearance
-                    .theme()
-                    .ansi_bg(appearance.theme().terminal_colors().normal.green),
-            )
-            .with_corner_radius(CornerRadius::with_all(Radius::Pixels(2.)))
-            .finish(),
             FeaturePopupBadge::AlertIcon => Container::new(
                 ConstrainedBox::new(
                     Icon::AlertCircle

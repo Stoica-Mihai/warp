@@ -2025,14 +2025,6 @@ impl LocalCodeEditorView {
 }
 
 impl DiffViewer for LocalCodeEditorView {
-    fn editor(&self) -> &ViewHandle<CodeEditorView> {
-        &self.editor
-    }
-
-    fn diff(&self) -> Option<&DiffType> {
-        self.diff_type.as_ref()
-    }
-
     fn reject_diff(&mut self, ctx: &mut ViewContext<Self>) {
         ctx.emit(LocalCodeEditorEvent::DiffRejected);
     }

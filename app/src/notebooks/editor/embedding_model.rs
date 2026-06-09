@@ -16,18 +16,13 @@ use warpui::{AppContext, Element, Entity, ModelAsRef, ModelContext, ModelHandle,
 
 use super::embedded_item::EmbeddedWorkflow;
 use super::model::ChildModelHandle;
-use super::notebook_command::parsed_token_to_color_style_ranges;
 use super::view::EditorViewAction;
 use super::NotebookWorkflow;
 use crate::appearance::Appearance;
-use crate::terminal::input::decorations::ParsedTokensSnapshot;
 use crate::themes::theme::AnsiColorIdentifier;
 
 #[derive(Default)]
 struct MouseStateHandles {
-    insert_button_state: MouseStateHandle,
-    copy_button_state: MouseStateHandle,
-    edit_button_state: MouseStateHandle,
     remove_embedding_button_state: MouseStateHandle,
 }
 
@@ -68,16 +63,6 @@ impl NotebookEmbed {
     }
 
     pub fn highlight_syntax(&self, _ctx: &mut ModelContext<Self>) {}
-
-    fn update_buffer_with_parsed_tokens(
-        &mut self,
-        parsed_tokens: ParsedTokensSnapshot,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        let colors = parsed_token_to_color_style_ranges(parsed_tokens.parsed_tokens);
-        self.cached_syntax_color = Some(colors);
-        self.update_buffer_with_syntax_color(ctx);
-    }
 
     pub fn try_apply_cached_highlighting(&self, ctx: &mut ModelContext<Self>) {
         if self.cached_syntax_color.is_some() {

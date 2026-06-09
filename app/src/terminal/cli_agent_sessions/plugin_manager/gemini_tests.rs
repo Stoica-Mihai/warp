@@ -7,27 +7,27 @@ use super::{
 
 #[test]
 fn can_auto_install_is_true() {
-    assert!(GeminiPluginManager::new(None, None, None).can_auto_install());
+    assert!(GeminiPluginManager::new().can_auto_install());
 }
 
 #[test]
 fn minimum_version() {
     assert_eq!(
-        GeminiPluginManager::new(None, None, None).minimum_plugin_version(),
+        GeminiPluginManager::new().minimum_plugin_version(),
         "1.0.0"
     );
 }
 
 #[test]
 fn install_instructions_has_steps() {
-    let instructions = GeminiPluginManager::new(None, None, None).install_instructions();
+    let instructions = GeminiPluginManager::new().install_instructions();
     assert!(!instructions.steps.is_empty());
     assert!(!instructions.title.is_empty());
 }
 
 #[test]
 fn update_instructions_has_steps() {
-    let instructions = GeminiPluginManager::new(None, None, None).update_instructions();
+    let instructions = GeminiPluginManager::new().update_instructions();
     assert!(!instructions.steps.is_empty());
     assert!(!instructions.title.is_empty());
 }

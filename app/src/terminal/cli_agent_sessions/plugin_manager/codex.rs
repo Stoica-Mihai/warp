@@ -1,12 +1,9 @@
 use std::sync::LazyLock;
 
-use async_trait::async_trait;
-
 use super::{CliAgentPluginManager, PluginInstructionStep, PluginInstructions};
 
 pub(super) struct CodexPluginManager;
 
-#[async_trait]
 impl CliAgentPluginManager for CodexPluginManager {
     fn minimum_plugin_version(&self) -> &'static str {
         "0.0.0"
