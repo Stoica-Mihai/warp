@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use ai::project_context::model::ProjectContextModel;
-use pane_group::{SplitPaneState, TerminalPaneId};
 use repo_metadata::repositories::DetectedRepositories;
 use repo_metadata::watcher::DirectoryWatcher;
 #[cfg(feature = "local_fs")]
@@ -10,7 +9,6 @@ use repo_metadata::CanonicalizedPath;
 use repo_metadata::RepoMetadataModel;
 #[cfg(feature = "local_fs")]
 use tempfile::TempDir;
-use terminal::view::ActiveSessionState;
 use warp_editor::editor::NavigationKey;
 use warpui::platform::WindowStyle;
 use warpui::{AddSingletonModel, App, ViewHandle};
@@ -33,7 +31,7 @@ use crate::editor::Event;
 use crate::gpu_state::GPUState;
 use crate::network::NetworkStatus;
 use crate::notebooks::editor::keys::NotebookKeybindings;
-use crate::pane_group::{Direction, PaneGroupAction, PaneId};
+use crate::pane_group::{Direction, PaneGroupAction};
 #[cfg(not(target_family = "wasm"))]
 use crate::resource_center::Tip;
 use crate::server::cloud_objects::update_manager::UpdateManager;
@@ -492,41 +490,6 @@ impl Drop for TabConfigCleanupGuard {
     }
 }
 
-fn get_newly_created_pane_id(panes: &PaneGroup, existing_ids: &[PaneId]) -> PaneId {
-    panes
-        .pane_ids()
-        .find(|id| !existing_ids.contains(id))
-        .unwrap()
-}
-
-fn split_pane_state(
-    panes: &PaneGroup,
-    pane_id: impl Into<PaneId>,
-    ctx: &AppContext,
-) -> SplitPaneState {
-    // Split pane state is now inferred from the pane group's focus state
-    panes
-        .focus_state_handle()
-        .as_ref(ctx)
-        .split_pane_state_for(pane_id.into())
-}
-
-fn active_session_state(
-    panes: &PaneGroup,
-    pane_id: TerminalPaneId,
-    ctx: &AppContext,
-) -> ActiveSessionState {
-    if panes
-        .terminal_view_from_pane_id(pane_id, ctx)
-        .expect("Not a terminal pane")
-        .as_ref(ctx)
-        .is_active_session(ctx)
-    {
-        ActiveSessionState::Active
-    } else {
-        ActiveSessionState::Inactive
-    }
-}
 
 #[test]
 fn restore_conversation_in_active_pane_enters_existing_live_conversation_without_loading() {

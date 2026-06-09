@@ -21,9 +21,7 @@ use crate::cloud_object::{CloudObjectPermissions, Owner};
 use crate::code::editor_management::CodeSource;
 use crate::persistence::model::ObjectPermissions;
 use crate::persistence::{BlockCompleted, ModelEvent, PersistenceScope};
-use crate::server::ids::ClientId;
 use crate::tab::SelectedTabColor;
-use crate::terminal::model::block::SerializedBlock;
 use crate::terminal::ShellLaunchData;
 
 #[test]

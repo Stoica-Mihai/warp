@@ -36,14 +36,6 @@ impl ServerApi {
         Self::new_with_parts(client, auth_state)
     }
 
-    #[cfg(test)]
-    fn new_for_test_with_bearer_token(bearer_token: Option<String>) -> Self {
-        let auth_state = Arc::new(AuthState::new_logged_out_for_test());
-        if let Some(bearer_token) = bearer_token {
-            auth_state.set_remote_server_bearer_token(bearer_token);
-        }
-        Self::new_with_parts(Arc::new(http_client::Client::new_for_test()), auth_state)
-    }
 
     /// Returns the inner `http_client::Client` used by the `ServerApi`. Callers can use this long-lived
     /// client to make requests without having to create a new client.
