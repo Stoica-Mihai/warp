@@ -160,7 +160,6 @@ use crate::search::slash_command_menu::static_commands::commands;
 use crate::search::QueryFilter;
 use crate::server::ids::SyncId;
 
-use crate::server::server_api::ServerApi;
 use crate::server::telemetry::{
     AICommandSearchEntrypoint,
     AnonymousUserSignupEntrypoint, CommandXRayTrigger, PaletteSource,
@@ -1174,7 +1173,6 @@ pub struct Input {
     menu_positioning_provider: Arc<dyn MenuPositioningProvider>,
     tips_completed: ModelHandle<TipsCompleted>,
     editor: ViewHandle<EditorView>,
-    server_api: Arc<ServerApi>,
     input_suggestions: ViewHandle<InputSuggestions>,
     suggestions_mode_model: ModelHandle<InputSuggestionsModeModel>,
     completions_menu_resizable_width: ResizableStateHandle,
@@ -1606,7 +1604,6 @@ impl Input {
     pub(crate) fn new(
         model: Arc<FairMutex<TerminalModel>>,
         tips_completed: ModelHandle<TipsCompleted>,
-        server_api: Arc<ServerApi>,
         sessions: ModelHandle<Sessions>,
         size_info: SizeInfo,
         menu_positioning_provider: Arc<dyn MenuPositioningProvider>,
@@ -2228,7 +2225,6 @@ impl Input {
             tips_completed,
             editor,
             model,
-            server_api,
             sessions,
             focus_handle: None,
             active_block_metadata: None,
