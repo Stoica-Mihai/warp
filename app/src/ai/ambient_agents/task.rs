@@ -68,33 +68,6 @@ pub struct HarnessConfig {
     pub reasoning_level: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct HarnessModelConfig {
-    pub model_id: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub reasoning_level: Option<String>,
-}
-
-impl HarnessConfig {
-    /// Builds a harness config from just the harness type.
-    pub fn from_harness_type(harness_type: Harness) -> Self {
-        Self {
-            harness_type,
-            model_id: None,
-            reasoning_level: None,
-        }
-    }
-
-    pub fn model_config(&self) -> Option<HarnessModelConfig> {
-        self.model_id
-            .as_ref()
-            .filter(|id| !id.is_empty())
-            .map(|model_id| HarnessModelConfig {
-                model_id: model_id.clone(),
-                reasoning_level: self.reasoning_level.clone(),
-            })
-    }
-}
 
 
 fn serialize_harness<S: Serializer>(harness: &Harness, serializer: S) -> Result<S::Ok, S::Error> {
