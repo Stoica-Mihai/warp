@@ -2929,7 +2929,6 @@ impl CodeReviewView {
                         })
                     },
                     false,
-                    None,
                     ctx,
                 )
                 .with_selection_as_context(Box::new(move |_, app| {
@@ -3021,7 +3020,7 @@ impl CodeReviewView {
 
             let local_code_view = ctx.add_typed_action_view(|ctx| {
                 let local_code_view =
-                    LocalCodeEditorView::new(code_editor_view, None, false, None, ctx);
+                    LocalCodeEditorView::new(code_editor_view, None, false, ctx);
                 // Deleted files have no file backing — no FileModel, no GlobalBufferModel.
                 // file_id() will be None for these editors; no downstream code in code_review
                 // relies on file_id for deleted entries (save/conflict flows early-return on None).

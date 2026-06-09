@@ -392,7 +392,6 @@ impl CodeView {
                     })
                 },
                 false,
-                None,
                 ctx,
             );
             if is_local {
@@ -432,7 +431,7 @@ impl CodeView {
         });
 
         ctx.add_typed_action_view(|ctx| {
-            let local_editor = LocalCodeEditorView::new(editor, None, false, None, ctx);
+            let local_editor = LocalCodeEditorView::new(editor, None, false, ctx);
             local_editor.with_find_references_provider(
                 ShowFindReferencesCard {
                     editor_window_id: ctx.window_id(),

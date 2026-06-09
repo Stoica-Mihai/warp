@@ -12,7 +12,6 @@ use warpui::{
     AppContext, Element, Entity, TypedActionView, View, ViewContext, ViewHandle, WindowId,
 };
 
-pub use super::diff_viewer::DisplayMode;
 use super::editor::view::CodeEditorView;
 use super::ImmediateSaveError;
 use crate::code::buffer_location::LocalOrRemotePath as BufferFileLocation;
@@ -71,7 +70,6 @@ impl LocalCodeEditorView {
         editor: ViewHandle<CodeEditorView>,
         _diff_type: Option<DiffType>,
         _enable_diff_nav_by_default: bool,
-        _display_mode: Option<DisplayMode>,
         _ctx: &mut ViewContext<Self>,
     ) -> Self {
         Self { editor }

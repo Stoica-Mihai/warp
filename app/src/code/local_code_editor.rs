@@ -163,8 +163,6 @@ struct LoadedFileMetadata {
     location: BufferFileLocation,
 }
 
-pub use super::diff_viewer::DisplayMode;
-
 type TerminalTargetFn = dyn Fn(WindowId, &AppContext) -> Option<ViewHandle<TerminalView>>;
 
 struct SelectionAsContextTooltip {
@@ -303,7 +301,6 @@ impl LocalCodeEditorView {
         editor: ViewHandle<CodeEditorView>,
         diff_type: Option<DiffType>,
         enable_diff_nav_by_default: bool,
-        display_mode: Option<DisplayMode>,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
         let context_menu = ctx.add_typed_action_view(|_| {
@@ -488,9 +485,6 @@ impl LocalCodeEditorView {
             find_references_view: None,
         };
 
-        if let Some(display_mode) = display_mode {
-            model.set_display_mode(display_mode, ctx);
-        }
         model
     }
 
@@ -1159,7 +1153,6 @@ impl LocalCodeEditorView {
         location: BufferFileLocation,
         editor_constructor: T,
         enable_diff_nav_by_default: bool,
-        display_mode: Option<DisplayMode>,
         ctx: &mut ViewContext<Self>,
     ) -> Self
     where
@@ -1190,7 +1183,7 @@ impl LocalCodeEditorView {
         }
 
         let mut local_editor =
-            Self::new(editor, None, enable_diff_nav_by_default, display_mode, ctx);
+            Self::new(editor, None, enable_diff_nav_by_default, ctx);
 
         local_editor.metadata = Some(LoadedFileMetadata {
             id: file_id,

@@ -1056,14 +1056,12 @@ impl<V: EditorView> EditorWrapper<V> {
         } else {
             match attached_comment {
                 Some(saved_comment) => (
-                    Some(CodeEditorViewAction::RequestOpenSavedComment {
-                        uuid: saved_comment.uuid(),
-                    }),
+                    Some(CodeEditorViewAction::RequestOpenSavedComment),
                     CommentButton::AddedComment,
                     saved_comment.mouse_state().clone(),
                 ),
                 None => (
-                    Some(CodeEditorViewAction::NewCommentOnLine { line: line.clone() }),
+                    Some(CodeEditorViewAction::NewCommentOnLine),
                     *comment_button,
                     self.state_handle.comment_mouse_state.clone(),
                 ),

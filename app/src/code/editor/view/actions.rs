@@ -23,9 +23,7 @@ use warpui::units::Pixels;
 use warpui::{AppContext, TypedActionView, ViewContext, WeakViewHandle};
 
 use crate::cmd_or_ctrl_shift;
-use crate::code::editor::line::EditorLineLocation;
 use crate::code::editor::view::{CodeEditorEvent, CodeEditorView, VimMode};
-use crate::code_review::comments::CommentId;
 use crate::editor::InteractionState;
 use crate::features::FeatureFlag;
 use crate::notebooks::editor::model::word_unit;
@@ -649,13 +647,8 @@ pub enum CodeEditorViewAction {
     RevertDiffHunk {
         line_range: Range<LineCount>,
     },
-    /// Open comment line (when opening a comment on a specific line)
-    NewCommentOnLine {
-        line: EditorLineLocation,
-    },
-    RequestOpenSavedComment {
-        uuid: CommentId,
-    },
+    NewCommentOnLine,
+    RequestOpenSavedComment,
     DeleteLineLeft,
     DeleteLineRight,
     DeleteWordLeft,
@@ -798,8 +791,8 @@ impl CodeEditorViewAction {
             | Self::HiddenSectionExpansion { .. }
             | Self::AddDiffHunkContext { .. }
             | Self::RevertDiffHunk { .. }
-            | Self::NewCommentOnLine { .. }
-            | Self::RequestOpenSavedComment { .. }
+            | Self::NewCommentOnLine
+            | Self::RequestOpenSavedComment
             | Self::MouseHovered { .. }
             | Self::MaybeClickOnHoveredLink(_)
             | Self::RightMouseDown { .. } => true,
