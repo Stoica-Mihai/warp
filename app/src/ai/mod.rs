@@ -16,7 +16,6 @@ pub(crate) mod get_relevant_files;
 pub(crate) mod persisted_workspace;
 pub(crate) mod skills;
 use warpui::AppContext;
-pub mod cloud_agent_config;
 pub mod cloud_environments;
 pub mod execution_profiles;
 pub(crate) mod loading;
