@@ -139,18 +139,6 @@ impl TryFrom<PersistedObjectAction> for ObjectAction {
     }
 }
 
-/// The server communicates the action history of an object via an "ObjectActionHistory" type that
-/// contains the uid, a list of actions (single or bundled), and the timestamp of the most recent action
-/// (which is redundant from the list of actions). We use this type to convert from the graphql layer into
-/// an identical type the sync_queue and update_manager can pass around.
-#[derive(Clone, Debug, PartialEq)]
-pub struct ObjectActionHistory {
-    pub uid: ObjectUid,
-    pub hashed_sqlite_id: HashedSqliteId,
-    pub latest_processed_at_timestamp: DateTime<Utc>,
-    pub actions: Vec<ObjectAction>,
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub enum ObjectActionSubtype {
     SingleAction {

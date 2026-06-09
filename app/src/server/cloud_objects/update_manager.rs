@@ -1,13 +1,11 @@
-use std::collections::HashSet;
 use std::future::Future;
 use std::sync::mpsc::SyncSender;
 use chrono::Utc;
-use futures::channel::oneshot::{self, Receiver};
-use regex::Regex;
+
 use warp_util::server_timestamp::ServerTimestamp;
 use warp_util::sync::Condition;
 use warpui::{
-    AppContext, Entity, ModelContext,
+    Entity, ModelContext,
     SingletonEntity,
 };
 
@@ -19,7 +17,7 @@ use crate::cloud_object::model::actions::{
 };
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent, UpdateSource};
 use crate::cloud_object::{
-    CloudModelType, CloudObject, CloudObjectEventEntrypoint, CloudObjectLocation,
+    CloudModelType, CloudObjectEventEntrypoint, CloudObjectLocation,
     GenericCloudObject, ObjectIdType, ObjectType, Owner,
     Revision,
 };
@@ -30,13 +28,10 @@ use crate::server::ids::{
     ClientId, HashableId, ObjectUid, ServerId, SyncId,
     ToServerId,
 };
-use crate::workflows::workflow_enum::{CloudWorkflowEnumModel, WorkflowEnum};
+
 use crate::workspaces::team_tester::{TeamTesterStatus, TeamTesterStatusEvent};
 use crate::workspaces::user_workspaces::UserWorkspaces;
 
-lazy_static::lazy_static! {
-    static ref DUPLICATE_OBJECT_NAME_REGEX: Regex = Regex::new(r" \((\d+)\)$").expect("regex should not fail to compile");
-}
 
 #[derive(Debug, PartialEq)]
 pub enum OperationSuccessType {
@@ -79,15 +74,6 @@ impl UpdateManagerEvent {
             UpdateManagerEvent::ObjectOperationComplete { result } => result,
         }
     }
-}
-
-/// An enum for choosing the behavior of the fetch_single_cloud_object function.
-pub enum FetchSingleObjectOption {
-    /// Perform the normal upsert behavior.
-    None,
-    /// Perform the normal upsert behavior, but additionally force overwrite the
-    /// in-memory object to whatever the server object is.
-    ForceOverwrite,
 }
 
 /// An enum that defines whether the action was initiated by the user or the system.
@@ -203,60 +189,6 @@ impl UpdateManager {
         }
     }
 
-    fn save_in_memory_object_metadata_to_sqlite(
-        &mut self,
-        cloud_model: &CloudModel,
-        uid: &ObjectUid,
-        hashed_sqlite_id: &str,
-    ) {
-        if let Some(cloud_object) = cloud_model.get_by_uid(uid) {
-            let metadata = cloud_object.metadata().clone();
-            let event = ModelEvent::UpdateObjectMetadata {
-                id: hashed_sqlite_id.to_string(),
-                metadata,
-            };
-            self.save_to_db([event]);
-        }
-    }
-
-    /// Local-only: no server to fetch from; signals completion immediately.
-    pub fn fetch_single_cloud_object(
-        &mut self,
-        _server_id: &ServerId,
-        _fetch_single_object_option: FetchSingleObjectOption,
-        _ctx: &mut ModelContext<Self>,
-    ) -> Receiver<()> {
-        let (tx, rx) = oneshot::channel::<()>();
-        let _ = tx.send(());
-        rx
-    }
-
-    /// Replace an object's data with the conflicting version from the server. If the object does
-    /// not have a conflict, this has no effect.
-    pub fn replace_object_with_conflict(&mut self, uid: &ObjectUid, ctx: &mut ModelContext<Self>) {
-        let cloud_model_handle = CloudModel::handle(ctx);
-
-        // Update the in-memory model first, and check for conflicts.
-        let had_conflicts = cloud_model_handle.update(ctx, |cloud_model, ctx| {
-            match cloud_model.get_mut_by_uid(uid) {
-                Some(object) if object.has_conflicting_changes() => {
-                    object.replace_object_with_conflict();
-                    ctx.emit(CloudModelEvent::ObjectUpdated {
-                        type_and_id: object.cloud_object_type_and_id(),
-                        source: UpdateSource::Server,
-                    });
-                    true
-                }
-                _ => false,
-            }
-        });
-
-        // Update SQLite, but only if the in-memory model was updated.
-        if had_conflicts {
-            self.save_in_memory_object_to_sqlite(cloud_model_handle.as_ref(ctx), uid);
-        }
-    }
-
     #[cfg(not(target_family = "wasm"))]
     pub fn update_templatable_mcp_server(
         &mut self,
@@ -268,21 +200,6 @@ impl UpdateManager {
         self.update_object(
             CloudTemplatableMCPServerModel::new(templatable_mcp_server),
             templatable_mcp_server_id,
-            revision_ts,
-            ctx,
-        );
-    }
-
-    pub fn update_workflow_enum(
-        &mut self,
-        workflow_enum: WorkflowEnum,
-        workflow_enum_id: SyncId,
-        revision_ts: Option<Revision>,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        self.update_object(
-            CloudWorkflowEnumModel::new(workflow_enum),
-            workflow_enum_id,
             revision_ts,
             ctx,
         );
@@ -358,9 +275,8 @@ impl UpdateManager {
         new_location: CloudObjectLocation,
         ctx: &mut ModelContext<Self>,
     ) {
-        // If we are moving into the trash, we really mean to trash the object
         if let CloudObjectLocation::Trash = new_location {
-            return self.trash_object(object_id, ctx);
+            return;
         }
 
         // A move operation does not make sense offline,
@@ -490,81 +406,6 @@ impl UpdateManager {
         ctx.notify();
     }
 
-    pub fn duplicate_object(
-        &mut self,
-        cloud_object_type_and_id: &CloudObjectTypeAndId,
-        _ctx: &mut ModelContext<Self>,
-    ) {
-        match cloud_object_type_and_id {
-            CloudObjectTypeAndId::Notebook(_) => {
-                log::error!("Tried to duplicate an unsupported type: notebook");
-                debug_assert!(false, "Tried to duplicate an unsupported type: notebook");
-            }
-            CloudObjectTypeAndId::Workflow(_) => {
-                log::error!("Tried to duplicate an unsupported type: workflow");
-                debug_assert!(false, "Tried to duplicate an unsupported type: workflow");
-            }
-            CloudObjectTypeAndId::GenericStringObject { .. } => {
-                log::error!("Tried to duplicate an unsupported type: json object");
-                debug_assert!(false, "Tried to duplicate an unsupported type: json object");
-            }
-            CloudObjectTypeAndId::Folder(_) => {
-                // Duplicating folders not currently supported.
-                log::error!("Tried to duplicate an unsupported type: folder");
-                debug_assert!(false, "Tried to duplicate an unsupported type: folder");
-            }
-        }
-    }
-
-    fn duplicate_object_internal<K, M>(&mut self, id: &SyncId, ctx: &mut ModelContext<Self>)
-    where
-        K: HashableId
-            + ToServerId
-            + std::fmt::Debug
-            + Into<String>
-            + Clone
-            + Copy
-            + Send
-            + Sync
-            + 'static,
-        M: CloudModelType<IdType = K, CloudObjectType = GenericCloudObject<K, M>> + 'static,
-    {
-        let (duplicate_model, client_id, owner, initial_folder_id, entrypoint) = {
-            let cloud_model = CloudModel::as_ref(ctx);
-            let object: GenericCloudObject<K, M> = cloud_model
-                .get_object_of_type(id)
-                .expect("object should exist in order to be duplicated")
-                .clone();
-            let client_id = ClientId::new();
-            let owner = object.permissions.owner;
-            let initial_folder_id = object.metadata.folder_id;
-            let entrypoint = CloudObjectEventEntrypoint::Unknown;
-            let mut duplicate_model = object.model().clone();
-            let duplicate_name =
-                self.get_next_duplicate_object_name(&object as &dyn CloudObject, cloud_model, ctx);
-            duplicate_model.set_display_name(&duplicate_name);
-            (
-                duplicate_model,
-                client_id,
-                owner,
-                initial_folder_id,
-                entrypoint,
-            )
-        };
-        self.create_object(
-            duplicate_model,
-            owner,
-            client_id,
-            entrypoint,
-            true,
-            initial_folder_id,
-            // When adding the initiated_by parameter to this function call, InitiatedBy::User was set as a default value.
-            // This can be changed to InitiatedBy::System if this action was automatically kicked off by the system and we do not want a user facing toast.
-            InitiatedBy::User,
-            ctx,
-        );
-    }
-
     #[cfg(not(target_family = "wasm"))]
     pub fn create_templatable_mcp_server(
         &mut self,
@@ -586,59 +427,6 @@ impl UpdateManager {
         );
     }
 
-
-    fn get_next_duplicate_object_name(
-        &self,
-        original_cloud_object: &dyn CloudObject,
-        cloud_model: &CloudModel,
-        app: &AppContext,
-    ) -> String {
-        let original_name = original_cloud_object.display_name();
-
-        // Iterate through items in the same folder as the original object that are of the
-        // same type, and populate a hashset with those names.
-        let same_type_and_folder_names = cloud_model
-            .active_cloud_objects_in_location_without_descendents(
-                original_cloud_object.location(cloud_model, app),
-                app,
-            )
-            .filter(|&object| object.object_type() == original_cloud_object.object_type())
-            .map(|object| object.display_name())
-            .collect::<HashSet<String>>();
-
-        // Start with "{original_object_name} ({original_object_name's count + 1})".
-        // Keep incrementing by one if there already exists an object of the same type in
-        // the same folder (using the hashset generated above).
-        let mut duplicate_name = get_duplicate_object_name(&original_name);
-        while same_type_and_folder_names.contains(&duplicate_name) {
-            duplicate_name = get_duplicate_object_name(&duplicate_name);
-        }
-        duplicate_name
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn create_workflow_enum(
-        &mut self,
-        workflow_enum: WorkflowEnum,
-        owner: Owner,
-        client_id: ClientId,
-        entrypoint: CloudObjectEventEntrypoint,
-        force_expand: bool,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        self.create_object(
-            CloudWorkflowEnumModel::new(workflow_enum),
-            owner,
-            client_id,
-            entrypoint,
-            force_expand,
-            None,
-            // When adding the initiated_by parameter to this function call, InitiatedBy::User was set as a default value.
-            // This can be changed to InitiatedBy::System if this action was automatically kicked off by the system and we do not want a user facing toast.
-            InitiatedBy::User,
-            ctx,
-        );
-    }
 
     #[allow(clippy::too_many_arguments)]
     /// Bulk creates a list of generic string objects, all in a single
@@ -763,137 +551,6 @@ impl UpdateManager {
 
     }
 
-    /// Optimistically marks the object as trashed, updates the metadata sync status to pending, and returns both
-    /// the metadata timestamp and the newly-set trashed timestamp. We need to check the metadata timestamp
-    /// in the case where we need to revert this (i.e. if there was a rtc message in the meantime, we shouldn't
-    /// overwrite the values and don't need to).
-    // TODO: we currently set trashed_ts here with the client's clock, but we should revise this metadata flow
-    // to get the timestamp from the server instead.
-    fn mark_object_trashed_and_return_timestamps(
-        &self,
-        uid: &ObjectUid,
-        ctx: &mut ModelContext<Self>,
-    ) -> (Option<ServerTimestamp>, Option<ServerTimestamp>) {
-        let timestamp = ServerTimestamp::new(Utc::now());
-        CloudModel::handle(ctx).update(ctx, |cloud_model, ctx| {
-            if let Some(object) = cloud_model.get_mut_by_uid(uid) {
-                // Here, we write a timestamp to the trashed_ts field. The client will eventually update to
-                // the canonical version of the timestamp once it receives an rtc message from the server.
-
-                object.metadata_mut().trashed_ts = Some(timestamp);
-                object
-                    .metadata_mut()
-                    .pending_changes_statuses
-                    .has_pending_metadata_change = true;
-                ctx.emit(CloudModelEvent::ObjectTrashed {
-                    type_and_id: object.cloud_object_type_and_id(),
-                    source: UpdateSource::Local,
-                });
-                ctx.notify();
-                (
-                    object.metadata().metadata_last_updated_ts,
-                    object.metadata().trashed_ts,
-                )
-            } else {
-                (None, None)
-            }
-        })
-    }
-
-    pub fn trash_object(&mut self, id: CloudObjectTypeAndId, ctx: &mut ModelContext<Self>) {
-        let Some(server_id) = id.server_id() else {
-            return;
-        };
-
-        let hashed_id = id.uid();
-        let Some(has_pending_online_only_operation) =
-            CloudModel::handle(ctx).read(ctx, |model, _| {
-                model
-                    .get_by_uid(&hashed_id)
-                    .map(|object| object.metadata().has_pending_online_only_change())
-            })
-        else {
-            return;
-        };
-
-        if has_pending_online_only_operation {
-            return;
-        }
-
-        self.mark_object_trashed_and_return_timestamps(&hashed_id, ctx);
-
-        CloudModel::handle(ctx).update(ctx, |cloud_model, _| {
-            if let Some(object) = cloud_model.get_mut_by_uid(&hashed_id) {
-                object
-                    .metadata_mut()
-                    .pending_changes_statuses
-                    .has_pending_metadata_change = false;
-            }
-        });
-
-        let hashed_sqlite_id = server_id.sqlite_type_and_uid_hash(id.object_id_type());
-        let cloud_model = CloudModel::as_ref(ctx);
-        self.save_in_memory_object_metadata_to_sqlite(cloud_model, &hashed_id, &hashed_sqlite_id);
-
-        ctx.emit(UpdateManagerEvent::ObjectOperationComplete {
-            result: ObjectOperationResult {
-                success_type: OperationSuccessType::Success,
-                operation: ObjectOperation::Trash,
-                client_id: None,
-                server_id: Some(ServerId::from_string_lossy(&hashed_id)),
-                num_objects: None,
-            },
-        });
-        ctx.notify();
-    }
-
-    pub fn untrash_object(&mut self, id: CloudObjectTypeAndId, ctx: &mut ModelContext<Self>) {
-        let Some(_server_id) = id.server_id() else {
-            return;
-        };
-
-        let hashed_id = id.uid();
-        let Some(has_pending_online_only_operation) =
-            CloudModel::handle(ctx).read(ctx, |model, _| {
-                model
-                    .get_by_uid(&hashed_id)
-                    .map(|object| object.metadata().has_pending_online_only_change())
-            })
-        else {
-            return;
-        };
-
-        if has_pending_online_only_operation {
-            return;
-        }
-
-        CloudModel::handle(ctx).update(ctx, |cloud_model, ctx| {
-            if let Some(object) = cloud_model.get_mut_by_uid(&hashed_id) {
-                object.metadata_mut().trashed_ts = None;
-                object
-                    .metadata_mut()
-                    .pending_changes_statuses
-                    .pending_untrash = false;
-                ctx.emit(CloudModelEvent::ObjectUntrashed {
-                    type_and_id: object.cloud_object_type_and_id(),
-                    source: UpdateSource::Local,
-                });
-                ctx.notify();
-            }
-        });
-
-        ctx.emit(UpdateManagerEvent::ObjectOperationComplete {
-            result: ObjectOperationResult {
-                success_type: OperationSuccessType::Success,
-                operation: ObjectOperation::Untrash,
-                client_id: None,
-                server_id: Some(ServerId::from_string_lossy(&hashed_id)),
-                num_objects: None,
-            },
-        });
-        ctx.notify();
-    }
-
     pub fn delete_object_by_user(
         &mut self,
         id: CloudObjectTypeAndId,
@@ -981,30 +638,6 @@ impl UpdateManager {
         num_deleted_objects
     }
 
-}
-
-/// Return the newly duplicated object's name based on the original object's name. E.g.:
-/// - "my object name" -> "my object name (1)"
-pub fn get_duplicate_object_name(original_name: &str) -> String {
-    match DUPLICATE_OBJECT_NAME_REGEX
-        .captures(original_name)
-        .and_then(|caps| caps.get(1))
-        .and_then(|num| num.as_str().parse::<usize>().ok())
-    {
-        Some(num) => {
-            let new_num = num.saturating_add(1);
-
-            // edge case check for when the duplicate number is usize::MAX
-            if new_num == usize::MAX {
-                format!("{original_name} (1)")
-            } else {
-                DUPLICATE_OBJECT_NAME_REGEX
-                    .replace(original_name, format!(" ({new_num})"))
-                    .to_string()
-            }
-        }
-        None => format!("{original_name} (1)"),
-    }
 }
 
 impl Entity for UpdateManager {
