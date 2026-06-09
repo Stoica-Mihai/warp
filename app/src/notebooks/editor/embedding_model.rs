@@ -16,13 +16,10 @@ use warpui::{AppContext, Element, Entity, ModelAsRef, ModelContext, ModelHandle,
 
 use super::embedded_item::EmbeddedWorkflow;
 use super::model::ChildModelHandle;
-use super::notebook_command::{
-    parsed_token_to_color_style_ranges, transform_ansi_color_to_solid_color,
-};
+use super::notebook_command::parsed_token_to_color_style_ranges;
 use super::view::EditorViewAction;
-use super::{rich_text_styles, NotebookWorkflow};
+use super::NotebookWorkflow;
 use crate::appearance::Appearance;
-use crate::settings::FontSettings;
 use crate::terminal::input::decorations::ParsedTokensSnapshot;
 use crate::themes::theme::AnsiColorIdentifier;
 
@@ -78,45 +75,24 @@ impl NotebookEmbed {
         ctx: &mut ModelContext<Self>,
     ) {
         let colors = parsed_token_to_color_style_ranges(parsed_tokens.parsed_tokens);
-        self.cached_syntax_color = Some(colors.clone());
-
-        self.update_buffer_with_syntax_color(&colors, ctx);
+        self.cached_syntax_color = Some(colors);
+        self.update_buffer_with_syntax_color(ctx);
     }
 
     pub fn try_apply_cached_highlighting(&self, ctx: &mut ModelContext<Self>) {
-        if let Some(colors) = &self.cached_syntax_color {
-            self.update_buffer_with_syntax_color(colors, ctx);
+        if self.cached_syntax_color.is_some() {
+            self.update_buffer_with_syntax_color(ctx);
         }
     }
 
-    fn update_buffer_with_syntax_color(
-        &self,
-        colors: &[(Range<ByteOffset>, AnsiColorIdentifier)],
-        ctx: &mut ModelContext<Self>,
-    ) {
+    fn update_buffer_with_syntax_color(&self, ctx: &mut ModelContext<Self>) {
         let Some(offset) = self.start_offset(ctx) else {
             return;
         };
-
-        let appearance = Appearance::as_ref(ctx);
-        let font_settings = FontSettings::as_ref(ctx);
-        let terminal_colors_normal = appearance.theme().terminal_colors().normal.to_owned();
-        let background_color = rich_text_styles(appearance, font_settings)
-            .embedding_background
-            .start_color();
-
         self.content.update(ctx, |buffer, ctx| {
             buffer.replace_embedding_at_offset(
                 offset,
-                Arc::new(
-                    EmbeddedWorkflow::new(self.hashed_id.clone()).with_syntax_highlighting(
-                        transform_ansi_color_to_solid_color(
-                            colors,
-                            &terminal_colors_normal,
-                            background_color,
-                        ),
-                    ),
-                ),
+                Arc::new(EmbeddedWorkflow::new(self.hashed_id.clone())),
                 self.selection_model.clone(),
                 ctx,
             )

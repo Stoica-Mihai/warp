@@ -1,22 +1,17 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use chrono::{Duration, Utc};
 use warp_util::server_timestamp::ServerTimestamp;
 use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 
 use super::persistence::{CloudModel, CloudModelEvent};
-use crate::auth::{AuthStateProvider, UserUid};
+use crate::auth::AuthStateProvider;
 use crate::cloud_object::{CloudObject, Space};
-use crate::safe_info;
 use crate::server::cloud_objects::update_manager::{
     OperationSuccessType, UpdateManager, UpdateManagerEvent,
 };
 use crate::server::ids::{ObjectUid, SyncId};
-use crate::workspaces::user_profiles::UserProfiles;
 use warp_server_client::drive::sharing::SharingAccessLevel;
-
-pub const EDITOR_TIMEOUT_DURATION_MINUTES: i64 = 15;
 
 /// Whether or not a shared object's contents are editable by the current user.
 ///
@@ -32,35 +27,6 @@ pub enum ContentEditability {
 impl ContentEditability {
     pub fn can_edit(self) -> bool {
         matches!(self, ContentEditability::Editable)
-    }
-}
-
-#[derive(Default, Clone, Debug, PartialEq)]
-pub enum EditorState {
-    #[default]
-    None,
-    CurrentUser,
-    OtherUserActive,
-    OtherUserIdle,
-}
-
-/// Stores information about the current editor of
-/// a particular notebook, for display purposes.
-/// For now, this just includes the state and
-/// an email, but will eventually hold more information
-/// about the user.
-#[derive(Default, Clone, Debug, PartialEq)]
-pub struct Editor {
-    pub state: EditorState,
-    pub email: Option<String>,
-}
-
-impl Editor {
-    pub fn no_editor() -> Self {
-        Self {
-            state: EditorState::None,
-            email: None,
-        }
     }
 }
 
@@ -96,92 +62,6 @@ impl CloudViewModel {
     #[cfg(test)]
     pub fn mock(ctx: &mut ModelContext<Self>) -> Self {
         Self::new(ctx)
-    }
-
-    /// Returns the current editor of the object based on what current exists in CloudModel. If the current editor
-    /// matches the logged in user's email, we assume that that user is the current editor.
-    /// If the current editor hasn't made an edit in the past 15 minutes, they are considered idle and
-    /// we instead just return Editor::OtherUserIdle. This is to prevent introducing friction into the baton grabbing process
-    /// when it's not needed. For more info see:
-    /// https://docs.google.com/document/d/1KgDFLApPg1uDVP-vOwhZzL1kRIviS8mMECIZg2VCKLY/edit
-    pub fn object_current_editor(&self, uid: &ObjectUid, ctx: &AppContext) -> Option<Editor> {
-        let cloud_model = CloudModel::as_ref(ctx);
-        let object = cloud_model.get_by_uid(uid)?;
-
-        match &object.metadata().current_editor_uid {
-            Some(uid) => {
-                let auth_state = AuthStateProvider::as_ref(ctx).get();
-                let user_uid = auth_state.user_id();
-
-                // If the logged in user matches the current UID, then the editor is the current
-                // user.
-                if user_uid.is_some_and(|user_uid| user_uid.as_string() == uid.clone()) {
-                    return Some(Editor {
-                        state: EditorState::CurrentUser,
-                        email: auth_state.user_email().clone(),
-                    });
-                }
-
-                let editor_uid = UserUid::new(uid);
-                let editor_email = UserProfiles::as_ref(ctx)
-                    .profile_for_uid(editor_uid)
-                    .map(|profile| profile.email.clone());
-
-                match &object.metadata().revision {
-                    Some(revision) => {
-                        let time_since_last_edit = Utc::now() - revision.utc();
-                        let time_since_last_metadata_change = Utc::now()
-                            - object
-                                .metadata()
-                                .metadata_last_updated_ts
-                                .unwrap_or(Utc::now().into())
-                                .utc();
-                        if time_since_last_edit > Duration::minutes(EDITOR_TIMEOUT_DURATION_MINUTES)
-                            && time_since_last_metadata_change
-                                > Duration::minutes(EDITOR_TIMEOUT_DURATION_MINUTES)
-                        {
-                            safe_info!(
-                                safe: ("Current editor idle, eagerly grabbing edit access for notebook"),
-                                full: ("Current editor idle, eagerly grabbing edit access for notebook with editor: {}", uid.clone())
-                            );
-                            Some(Editor {
-                                state: EditorState::OtherUserIdle,
-                                email: editor_email,
-                            })
-                        } else {
-                            Some(Editor {
-                                state: EditorState::OtherUserActive,
-                                email: editor_email,
-                            })
-                        }
-                    }
-                    None => Some(Editor {
-                        state: EditorState::OtherUserActive,
-                        email: editor_email,
-                    }),
-                }
-            }
-            _ => Some(Editor::no_editor()),
-        }
-    }
-
-    /// Get the [`Space`] that contains an object.
-    pub fn object_space(&self, id: &ObjectUid, app: &AppContext) -> Option<Space> {
-        CloudModel::as_ref(app)
-            .get_by_uid(id)
-            .map(|object| object.space(app))
-    }
-
-    /// Get the current user's access level on a Warp Drive object.
-    ///
-    /// This is based on the client's current view of the object permissions, which may be stale. The
-    /// server is the source of truth for all permission data, and it may reject a request that the
-    /// client expects is allowed.
-    pub fn access_level(&self, object_uid: &ObjectUid, app: &AppContext) -> SharingAccessLevel {
-        match CloudModel::as_ref(app).get_by_uid(object_uid) {
-            Some(object) => Self::object_access_level(object, app),
-            None => SharingAccessLevel::View,
-        }
     }
 
     fn object_access_level(object: &dyn CloudObject, app: &AppContext) -> SharingAccessLevel {
@@ -250,39 +130,6 @@ impl CloudViewModel {
             // Assume objects not yet in CloudModel are new, and therefore editable.
             None => ContentEditability::Editable,
         }
-    }
-
-    /// Get the timestamp to sort `object` according to `timestamp_kind`.
-    pub fn object_sorting_timestamp(
-        &self,
-        object: &dyn CloudObject,
-        timestamp_kind: UpdateTimestamp,
-        app: &AppContext,
-    ) -> Option<ServerTimestamp> {
-        match timestamp_kind {
-            // When sorting in the trash, we only ever consider the object's own trashed timestamp.
-            // For trashed folders, their indirectly-trashed children will not have a trashed_ts,
-            // so there's no need to recurse.
-            UpdateTimestamp::Trashed => object.metadata().trashed_ts,
-            // When sorting in the main index, we consider all of the children of a folder. This
-            // can be expensive, so it's cached.
-            UpdateTimestamp::Revision => {
-                self.sorting_timestamp_rec(object, CloudModel::as_ref(app), app)
-            }
-        }
-    }
-
-    /// Calculate the sorting timestamp for `object`:
-    /// * For a folder, this is the max of the folder's timestamp and all of its children's timestamps
-    ///   (recursively, for sub-folders).
-    /// * For other objects, this is the object's own timestamp.
-    fn sorting_timestamp_rec(
-        &self,
-        object: &dyn CloudObject,
-        cloud_model: &CloudModel,
-        app: &AppContext,
-    ) -> Option<ServerTimestamp> {
-        object.metadata().revision.clone().map(Into::into)
     }
 
     fn handle_cloud_model_event(&mut self, event: &CloudModelEvent, ctx: &mut ModelContext<Self>) {
@@ -385,12 +232,3 @@ impl Entity for CloudViewModel {
 /// Mark CloudViewModel as global application state.
 impl SingletonEntity for CloudViewModel {}
 
-/// The timestamp to use when sorting objects by their last updated time.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum UpdateTimestamp {
-    /// Sort objects by their revision timestamp, when they were last edited.
-    #[default]
-    Revision,
-    /// Sort objects by their trashed timestamp.
-    Trashed,
-}
