@@ -904,14 +904,6 @@ impl CodeEditorView {
         self
     }
 
-    pub(crate) fn starting_line_number(&self) -> Option<usize> {
-        self.display_options.starting_line_number
-    }
-
-    pub(crate) fn set_starting_line_number(&mut self, starting_line_number: Option<usize>) {
-        self.display_options.starting_line_number = starting_line_number;
-    }
-
     fn handle_searcher_event(&mut self, _event: &SearchEvent, ctx: &mut ViewContext<Self>) {
         // Only update decorations if the find bar is open.
         if self.find_bar_open(ctx) {
@@ -1472,18 +1464,6 @@ impl CodeEditorView {
         self.model.as_ref(ctx).buffer_version(ctx)
     }
 
-    pub fn system_append_autoscroll_vertical_only(&self, text: &str, ctx: &mut ViewContext<Self>) {
-        self.model.update(ctx, |model, ctx| {
-            model.system_insert_autoscroll_vertical_only(text, ctx);
-        });
-    }
-
-    pub fn truncate(&self, len: usize, ctx: &mut ViewContext<Self>) {
-        self.model.update(ctx, |model, ctx| {
-            model.truncate(len, ctx);
-        });
-    }
-
     pub fn retrieve_unified_diff(&self, file_name: String, ctx: &mut ViewContext<Self>) {
         self.model.update(ctx, |model, ctx| {
             model.retrieve_unified_diff(file_name, ctx);
@@ -1525,12 +1505,6 @@ impl CodeEditorView {
 
     pub fn is_editable(&self, app: &AppContext) -> bool {
         self.model.as_ref(app).interaction_state() == InteractionState::Editable
-    }
-
-    fn navigate_current_diff_hunk(&self, ctx: &mut ViewContext<Self>) {
-        self.nav_bar.update(ctx, |nav_bar, ctx| {
-            nav_bar.autoscroll(ctx);
-        });
     }
 
     pub fn set_vertical_expansion_behavior(

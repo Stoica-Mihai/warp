@@ -107,35 +107,6 @@ impl Input {
     ) {
     }
 
-    /// Applies background highlighting to slash command and skill command prefixes that should be
-    /// syntax highlighted.
-    fn apply_slash_command_prefix_highlighting(
-        &mut self,
-        buffer_text: &str,
-        ctx: &mut ViewContext<Self>,
-    ) -> bool {
-        let highlighted_prefix_len = self
-            .slash_command_model
-            .as_ref(ctx)
-            .state()
-            .command_prefix_highlight_len(buffer_text);
-
-        let Some(highlighted_prefix_len) = highlighted_prefix_len else {
-            return false;
-        };
-
-        let theme = Appearance::as_ref(ctx).theme();
-        let color = theme.ansi_fg_magenta();
-        self.editor.update(ctx, |editor, ctx| {
-            editor.update_buffer_styles(
-                vec![CharOffset::from(0)..CharOffset::from(highlighted_prefix_len)],
-                TextStyleOperation::default().set_syntax_color(color),
-                ctx,
-            )
-        });
-        true
-    }
-
     /// Computes information about the currently-entered command in a background
     /// task and then uses it to decorate the input, specifically applying
     /// styles for syntax highlighting and error underlining.

@@ -86,7 +86,7 @@ use warpui::{
 use self::decorations::InputBackgroundJobOptions;
 use super::alias::is_expandable_alias;
 use super::block_list_viewport::InputMode;
-use super::event::{BlockCompletedEvent, BlockType, UserBlockCompleted};
+use super::event::{BlockCompletedEvent, BlockType};
 use super::ligature_settings::LigatureSettings;
 use super::model::block::{
     AgentInteractionMetadata, BlockId, BlockMetadata,
@@ -195,8 +195,6 @@ use crate::terminal::input::suggestions_mode_model::{
 };
 use crate::terminal::input::terminal_message_bar::TerminalInputMessageBar;
 use crate::terminal::model::session::active_session::ActiveSession;
-use crate::terminal::package_installers::command_at_cursor_has_common_package_installer_prefix;
-use crate::terminal::universal_developer_input::AtContextMenuDisabledReason;
 use crate::terminal::view::agent_view_state::AgentViewEntryOrigin;
 use crate::terminal::view::CodeDiffAction;
 use crate::terminal::CLIAgent;
@@ -1003,8 +1001,6 @@ pub struct CompleterData {
     pub sessions: ModelHandle<Sessions>,
     pub active_block_metadata: Option<BlockMetadata>,
     command_registry: Arc<CommandRegistry>,
-    #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
-    last_user_block_completed: Option<UserBlockCompleted>,
 }
 
 impl CompleterData {
@@ -1012,13 +1008,11 @@ impl CompleterData {
         sessions: ModelHandle<Sessions>,
         active_block_metadata: Option<BlockMetadata>,
         command_registry: Arc<CommandRegistry>,
-        last_user_block_completed: Option<UserBlockCompleted>,
     ) -> Self {
         Self {
             sessions,
             active_block_metadata,
             command_registry,
-            last_user_block_completed,
         }
     }
 
@@ -1240,10 +1234,6 @@ pub struct Input {
     /// Whether the most recent intelligent autosuggestion was accepted or not.
     /// Cleared once a command is run.
     was_intelligent_autosuggestion_accepted: bool,
-    /// The last block that the user ran. This is used for generating autosuggestions.
-    #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
-    last_user_block_completed: Option<UserBlockCompleted>,
-
     hoverable_handle: MouseStateHandle,
 
     #[cfg(feature = "local_fs")]
@@ -1619,7 +1609,6 @@ impl Input {
                 sessions.clone(),
                 None, // active_block_metadata will be set later when blocks are available
                 CommandRegistry::global_instance(),
-                None, // last_user_block_completed will be set later
             );
             completer_data.completion_session_context(ctx)
         };
@@ -2253,7 +2242,6 @@ impl Input {
             deferred_remote_operations,
             shared_session_input_state: None,
             was_intelligent_autosuggestion_accepted: false,
-            last_user_block_completed: None,
             hoverable_handle: Default::default(),
             terminal_view_id,
             #[cfg(feature = "local_fs")]
@@ -2425,19 +2413,6 @@ impl Input {
             self.focus_input_box(ctx);
         }
     }
-
-    fn open_prompts_menu(&mut self, ctx: &mut ViewContext<Self>) {
-        self.suggestions_mode_model.update(ctx, |model, ctx| {
-            model.set_mode(InputSuggestionsMode::PromptsMenu, ctx);
-        });
-
-        ctx.notify();
-    }
-
-    fn open_skill_selector(&mut self, _ctx: &mut ViewContext<Self>) {}
-
-    fn open_invoke_skill_selector(&mut self, _ctx: &mut ViewContext<Self>) {}
-
 
     fn handle_plan_menu_event(&mut self, event: &InlinePlanMenuEvent, ctx: &mut ViewContext<Self>) {
         match event {
@@ -2654,8 +2629,6 @@ impl Input {
         });
     }
 
-
-    fn auto_attach_last_block_for_query(&mut self, _ctx: &mut ViewContext<Self>) {}
 
     pub fn clear_attached_context(&mut self, ctx: &mut ViewContext<Self>) {
         ctx.emit(Event::ClearSelectionsWhenShellMode);
@@ -2876,7 +2849,6 @@ impl Input {
             self.sessions.clone(),
             self.active_block_metadata.clone(),
             CommandRegistry::global_instance(),
-            self.last_user_block_completed.clone(),
         )
     }
 
@@ -2964,17 +2936,6 @@ impl Input {
             editor.attach_files(ctx);
         });
     }
-    pub(super) fn insert_into_cli_agent_rich_input(
-        &mut self,
-        text: &str,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.focus_input_box(ctx);
-        self.editor.update(ctx, |editor, ctx| {
-            editor.user_initiated_insert(text, PlainTextEditorViewAction::Paste, ctx);
-        });
-    }
-
     fn enable_auto_detection(&mut self, ctx: &mut ViewContext<Self>) {
         // Don't allow enabling autodetection when agent is monitoring a command
         if self
@@ -4501,16 +4462,6 @@ impl Input {
         self.clear_selected_workflow(ctx);
     }
 
-    /// Closes any active suggestion mode UI when starting a new conversation.
-    ///
-    /// This is intentionally narrower than `close_overlays`: it does not close Voltron, workflow
-    /// info overlays, etc.
-    fn close_suggestion_modes_for_new_conversation(&mut self, ctx: &mut ViewContext<Self>) {
-        self.suggestions_mode_model.update(ctx, |model, ctx| {
-            model.set_mode(InputSuggestionsMode::Closed, ctx);
-        });
-    }
-
     fn close_voltron(&mut self, ctx: &mut ViewContext<Input>) {
         self.is_voltron_open = false;
         ctx.notify();
@@ -5136,21 +5087,6 @@ impl Input {
         }
     }
 
-    /// Whether the given event should trigger a request to generate an AI-based natural language
-    /// autosuggestion, due to the buffer content meaningfully changing.
-    fn is_nl_ai_autosuggestion_triggering_event(event: &EditorEvent) -> bool {
-        matches!(
-            event,
-            EditorEvent::Edited(_)
-                | EditorEvent::BufferReplaced
-                | EditorEvent::InsertLastWordPrevCommand
-                | EditorEvent::AutosuggestionAccepted { .. }
-                | EditorEvent::DeleteAllLeft
-                | EditorEvent::BackspaceOnEmptyBuffer
-                | EditorEvent::BackspaceAtBeginningOfBuffer
-                | EditorEvent::MiddleClickPaste
-        )
-    }
 
     fn handle_editor_event(&mut self, event: &EditorEvent, ctx: &mut ViewContext<Self>) {
         // We want to clear the token description hover on any editor action
@@ -6316,66 +6252,6 @@ impl Input {
         *InputSettings::as_ref(app)
             .completions_open_while_typing
             .value()
-    }
-
-    /// Returns true if an AI context menu should be enabled at the current cursor position based
-    /// on the buffer text and surrounding context. This is triggered when the user just typed '@'
-    /// in a valid context and the menu is not disabled for other reasons.
-    fn should_enable_ai_context(
-        &self,
-        buffer_text: &str,
-        cursor_position: usize,
-        is_alias_expansion_enabled: bool,
-        session_context: Option<&SessionContext>,
-        shell_family: ShellFamily,
-        app: &AppContext,
-    ) -> bool {
-        if cursor_position == 0 {
-            return false;
-        }
-
-        if buffer_text.chars().nth(cursor_position.saturating_sub(1)) != Some('@') {
-            return false;
-        }
-
-        // Check if '@' is at beginning of line or after non-alphanumeric
-        let is_valid_context = if cursor_position == 1 {
-            true // '@' is the first character
-        } else {
-            buffer_text
-                .chars()
-                .nth(cursor_position.saturating_sub(2))
-                .is_some_and(|c| !c.is_alphanumeric())
-        };
-
-        if !is_valid_context {
-            return false;
-        }
-
-        let is_disabled = AtContextMenuDisabledReason::get_disable_reason(
-            self.active_block_metadata.as_ref(),
-            self.sessions.as_ref(app),
-            &InputConfig { input_type: InputType::Shell, is_locked: false },
-            app,
-        )
-        .is_some();
-
-        if is_disabled {
-            return false;
-        }
-
-        // AI input type is always Shell; always check for package installer prefix.
-        let is_shell_mode = true;
-        let looks_like_package_install = is_shell_mode
-            && command_at_cursor_has_common_package_installer_prefix(
-                buffer_text,
-                cursor_position - 1,
-                shell_family,
-                is_alias_expansion_enabled,
-                session_context,
-            );
-
-        !looks_like_package_install
     }
 
     fn is_classic_completions_enabled(&self, ctx: &AppContext) -> bool {
@@ -7882,9 +7758,7 @@ impl Input {
         block: BlockType,
         ctx: &mut ViewContext<Self>,
     ) {
-        if let BlockType::User(block_completed) = block {
-            self.last_user_block_completed = Some(block_completed.clone());
-
+        if let BlockType::User(_block_completed) = block {
             ctx.emit(Event::InputStateChanged(InputState::Enabled));
         } else if block.is_bootstrap_block()
             && self
@@ -8162,40 +8036,6 @@ impl Input {
                 None
             }
         })
-    }
-
-    fn apply_input_banner_padding(
-        &self,
-        banner: Box<dyn Element>,
-        is_compact_mode: bool,
-        input_mode: InputMode,
-        appearance: &Appearance,
-        app: &AppContext,
-    ) -> Box<dyn Element> {
-        let constrained_banner = ConstrainedBox::new(banner)
-            .with_height(2. * appearance.line_height_ratio() * appearance.monospace_font_size())
-            .finish();
-        let should_use_udi_spacing = self.should_show_universal_developer_input(app);
-        let mut container: Container = Container::new(constrained_banner);
-        let (suggestion_to_prompt_padding, suggestion_to_input_border_padding) =
-            if should_use_udi_spacing {
-                (0., 0.)
-            } else if is_compact_mode {
-                (0., 8.)
-            } else {
-                (-12., 8.)
-            };
-
-        container = match input_mode {
-            InputMode::PinnedToTop => container
-                .with_padding_top(suggestion_to_prompt_padding)
-                .with_padding_bottom(suggestion_to_input_border_padding),
-            InputMode::PinnedToBottom | InputMode::Waterfall => container
-                .with_padding_bottom(suggestion_to_prompt_padding)
-                .with_padding_top(suggestion_to_input_border_padding),
-        };
-
-        container.finish()
     }
 
     /// Renders a banner that should stay next to the input box.

@@ -242,16 +242,6 @@ impl CommentEditor {
         }
     }
 
-    fn attach_to_line(&mut self, line: &EditorLineLocation, ctx: &mut ViewContext<Self>) {
-        self.editor.update(ctx, |editor, ctx| {
-            // TODO: clear_buffer doesn't properly clear code blocks.
-            // The `reset_with_markdown` call below is a band-aid fix.
-            editor.reset_with_markdown("", ctx);
-        });
-        self.line = Some(line.clone());
-        self.update_save_button_state(ctx);
-    }
-
     pub fn reopen_saved_comment(
         &mut self,
         id: &CommentId,
