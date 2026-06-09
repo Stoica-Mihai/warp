@@ -80,15 +80,11 @@ struct SpawnedServerInfo {
 /// Information about a single connected MCP server.
 #[cfg_attr(target_family = "wasm", allow(dead_code))]
 pub struct TemplatableMCPServerInfo {
-    name: String,
     service: rmcp::service::RunningService<
         rmcp::RoleClient,
         Box<dyn rmcp::service::DynService<rmcp::RoleClient>>,
     >,
-    resources: Vec<rmcp::model::Resource>,
     tools: Vec<rmcp::model::Tool>,
-    installation_id: Uuid,
-    description: Option<String>,
     /// Whether the underlying transport uses authentication.
     ///
     /// TODO(vorporeal): Use this to display a toast when server authentication and connection is complete, and
@@ -97,27 +93,6 @@ pub struct TemplatableMCPServerInfo {
     is_authenticated_transport: bool,
 }
 
-impl TemplatableMCPServerInfo {
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn resources(&self) -> &Vec<rmcp::model::Resource> {
-        &self.resources
-    }
-
-    pub fn tools(&self) -> &Vec<rmcp::model::Tool> {
-        &self.tools
-    }
-
-    pub fn installation_id(&self) -> Uuid {
-        self.installation_id
-    }
-
-    pub fn description(&self) -> Option<&str> {
-        self.description.as_deref()
-    }
-}
 
 /// The current status of the Figma MCP server.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -198,84 +173,11 @@ impl TemplatableMCPServerManager {
             .map(|s| s.as_str())
     }
 
-    pub fn resources(&self) -> impl Iterator<Item = &rmcp::model::Resource> {
-        self.active_servers
-            .values()
-            .flat_map(|server| server.resources.iter())
-    }
-
-    pub fn tools(&self) -> impl Iterator<Item = &rmcp::model::Tool> {
-        self.active_servers
-            .values()
-            .flat_map(|server| server.tools.iter())
-    }
-
     pub fn tools_for_server(&self, uuid: Uuid) -> Vec<rmcp::model::Tool> {
         self.active_servers
             .get(&uuid)
             .map(|server| server.tools.clone())
             .unwrap_or_default()
-    }
-
-    /// Returns the JSON Schema `input_schema` for a named tool across active MCP servers.
-    ///
-    /// If `installation_id` is `Some`, only that server is considered; otherwise, the
-    /// first active server providing a matching tool name wins (matching the existing
-    /// `server_with_tool_name` lookup behavior).
-    ///
-    /// Used by the MCP tool executor to coerce integer-typed args before dispatch, since
-    /// `structpb.NumberValue` on the wire cannot preserve the integer/float distinction.
-    /// See <https://json-schema.org/understanding-json-schema/reference/type>.
-    pub fn tool_input_schema(
-        &self,
-        installation_id: Option<Uuid>,
-        tool_name: &str,
-    ) -> Option<std::sync::Arc<rmcp::model::JsonObject>> {
-        let candidates: Box<dyn Iterator<Item = &TemplatableMCPServerInfo>> =
-            if let Some(uuid) = installation_id {
-                Box::new(self.active_servers.get(&uuid).into_iter())
-            } else {
-                Box::new(self.active_servers.values())
-            };
-
-        candidates
-            .flat_map(|server| server.tools.iter())
-            .find(|t| t.name == tool_name)
-            .map(|t| t.input_schema.clone())
-    }
-
-    #[cfg(not(target_family = "wasm"))]
-    pub fn server_from_tool(&self, tool: String) -> Option<&Uuid> {
-        self.active_servers
-            .iter()
-            .find(|(_, server)| server.tools.iter().any(|t| t.name == tool))
-            .map(|(uuid, _)| uuid)
-    }
-
-    /// Returns the installation UUID of the server that provides a resource matching the given
-    /// name or URI.
-    #[cfg(not(target_family = "wasm"))]
-    pub fn server_from_resource(&self, name: &str, uri: Option<&str>) -> Option<&Uuid> {
-        self.active_servers
-            .iter()
-            .find(|(_, server)| {
-                server.resources.iter().any(|r| {
-                    if let Some(uri) = uri {
-                        r.uri == uri
-                    } else {
-                        r.name == name
-                    }
-                })
-            })
-            .map(|(uuid, _)| uuid)
-    }
-
-    /// Returns installed templatable servers that are currently active.
-    pub fn get_active_templatable_servers(&self) -> HashMap<Uuid, &TemplatableMCPServerInfo> {
-        self.locally_installed_servers
-            .keys()
-            .filter_map(|uuid| self.active_servers.get(uuid).map(|info| (*uuid, info)))
-            .collect()
     }
 
 }

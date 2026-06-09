@@ -21,7 +21,7 @@ use warpui::windowing::WindowManager;
 use warpui::{AppContext, ModelContext, SingletonEntity};
 
 use super::oauth::{self, AuthContext, FileBasedPersistedCredentialsMap, PersistedCredentialsMap};
-use super::utils::{query_resources_for, query_tools_for};
+use super::utils::query_tools_for;
 use super::{
     MCPServerState, SpawnedServerInfo, TemplatableMCPServerInfo, TemplatableMCPServerManager,
     TemplatableMCPServerManagerEvent,
@@ -528,31 +528,6 @@ impl TemplatableMCPServerManager {
         });
     }
 
-    /// Get all runnable MCP servers (templatable installations).
-    pub fn get_all_runnable_mcp_servers(ctx: &AppContext) -> Vec<(Uuid, String)> {
-        TemplatableMCPServerManager::as_ref(ctx)
-            .get_installed_templatable_servers()
-            .iter()
-            .map(|(uuid, installation)| (*uuid, installation.templatable_mcp_server().name.clone()))
-            .collect()
-    }
-
-    /// Get all cloud synced MCP servers (templatable templates).
-    pub fn get_all_cloud_synced_mcp_servers(ctx: &AppContext) -> HashMap<Uuid, String> {
-        TemplatableMCPServerManager::as_ref(ctx)
-            .get_all_templatable_mcp_servers()
-            .iter()
-            .map(|&server| (server.uuid, server.name.clone()))
-            .collect()
-    }
-
-    /// Get the name for an MCP server based on uuid.
-    pub fn get_mcp_name(uuid: &Uuid, app: &AppContext) -> Option<String> {
-        TemplatableMCPServerManager::as_ref(app)
-            .get_installed_server_name(uuid)
-            .or_else(|| TemplatableMCPServerManager::as_ref(app).get_template_server_name(uuid))
-    }
-
     /// Extracts some piece of server info for all servers (template & installation) and returns it in a HashSet.
     pub fn extract_server_info<T: std::cmp::Eq + std::hash::Hash>(
         &self,
@@ -573,16 +548,6 @@ impl TemplatableMCPServerManager {
         template_results
             .chain(installation_results)
             .collect::<HashSet<T>>()
-    }
-
-    fn get_installed_server_name(&self, installation_uuid: &Uuid) -> Option<String> {
-        self.get_installed_server(installation_uuid)
-            .map(|server| server.templatable_mcp_server().name.clone())
-    }
-
-    fn get_template_server_name(&self, template_uuid: &Uuid) -> Option<String> {
-        self.get_templatable_mcp_server(*template_uuid)
-            .map(|template| template.name.clone())
     }
 
     fn persist_is_mcp_running(
@@ -626,15 +591,6 @@ impl TemplatableMCPServerManager {
             },
             ctx,
         );
-    }
-
-    /// Spawns an ephemeral MCP server started via the CLI (`oz agent run --mcp`).
-    pub fn spawn_cli_ephemeral_server(
-        &mut self,
-        installation: TemplatableMCPServerInstallation,
-        ctx: &mut ModelContext<Self>,
-    ) {
-        self.spawn_ephemeral_server(installation, ctx);
     }
 
     /// Spawns a new MCP server from a given installation UUID.
@@ -811,7 +767,6 @@ impl TemplatableMCPServerManager {
         };
 
         let server_name = server.name.clone();
-        let description = installation.templatable_mcp_server().description.clone();
 
         // Extract values from mode before moving it into the closure.
         let should_persist = mode.should_persist_running_state_to_sqlite();
@@ -821,7 +776,6 @@ impl TemplatableMCPServerManager {
         let task = ctx.spawn(
             spawn_server(
                 server_name,
-                description,
                 installation_uuid,
                 server.transport_type.clone(),
                 logger.clone(),
@@ -1432,22 +1386,6 @@ impl TemplatableMCPServerManager {
         self.server_credentials.contains_key(&template_uuid)
     }
 
-    /// Returns the peer for the given installation UUID if it is connected and the transport is not closed.
-    pub fn get_peer_if_connected(
-        &self,
-        installation_uuid: Uuid,
-    ) -> Option<rmcp::Peer<rmcp::RoleClient>> {
-        self.active_servers
-            .get(&installation_uuid)
-            .and_then(|server| {
-                if server.service.is_transport_closed() {
-                    None
-                } else {
-                    Some(server.service.clone())
-                }
-            })
-    }
-
     fn spawn_file_based_servers(
         &mut self,
         installations: &[TemplatableMCPServerInstallation],
@@ -1517,8 +1455,7 @@ type ReqwestSseTransport = mcp::sse_transport::SseClientTransport<reqwest::Clien
 /// Spawns a new MCP server from a given [`TransportType`].
 async fn spawn_server(
     server_name: String,
-    description: Option<String>,
-    uuid: Uuid,
+    _uuid: Uuid,
     transport_type: TransportType,
     logger: SimpleLogger,
     auth_context: AuthContext,
@@ -1736,17 +1673,11 @@ async fn spawn_server(
 
     let capabilities = server_info.map(|info| &info.capabilities);
 
-    let resources =
-        query_resources_for(capabilities, &server_name, || service.list_all_resources()).await;
     let tools = query_tools_for(capabilities, &server_name, || service.list_all_tools()).await;
 
     Ok(TemplatableMCPServerInfo {
-        name: server_name,
         service,
-        resources,
         tools,
-        installation_id: uuid,
-        description,
         is_authenticated_transport,
     })
 }
