@@ -35,6 +35,8 @@ For **every** symbol the feature touches, classify it. Most mistakes are misclas
 ### DELETE — feature-specific and dead
 Warp/cloud/feature-proprietary code with no live consumer. Verify via the 3-gate intersection (below), then delete.
 
+**"Generic by design, Warp-AI by sole caller."** A mechanism may be architecturally generic (reconnect logic, server-lookup-by-tool, working-directory scan) but if its **only** callers were stripped Warp-AI code, it is DELETE — not KEEP. Caller-origin determines specificity, not the mechanism's internal design. Dead infrastructure with no remaining entry point is noise that hides regressions; there is no "keep for future use" in a permanent strip.
+
 ### COLLAPSE — runtime-dead but compiled
 The code still compiles and is *called*, but the predicate is permanently false / the accessor permanently empty because the backend that fed it is gone.
 - e.g. `is_cloud_handoff_enabled()` → always `false`; `current_team()` → always `None`; `has_teams()` → always `false`.
