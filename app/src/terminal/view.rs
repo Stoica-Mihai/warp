@@ -15027,14 +15027,6 @@ pub fn cell_size_and_padding(
     }
 }
 
-
-fn command_first_word_and_suffix(command: &str) -> Option<(&str, &str)> {
-    let first_word = command.split_whitespace().next()?;
-    let word_start = command.find(first_word)?;
-    let rest = &command[word_start + first_word.len()..];
-    Some((first_word, rest))
-}
-
 /// Conditionally wrap a terminal element (altscreen / blocklist element) in a scrollable element.
 /// TODO: We should not conditionally composite the scrollable element.
 #[allow(clippy::too_many_arguments)]

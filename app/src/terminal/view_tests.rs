@@ -116,26 +116,6 @@ fn test_create_new_block_with_local_status() {
 
 
 
-#[test]
-fn command_first_word_and_suffix_preserves_leading_whitespace() {
-    assert_eq!(
-        command_first_word_and_suffix("  myssh arg"),
-        Some(("myssh", " arg"))
-    );
-}
-
-#[test]
-fn command_first_word_and_suffix_handles_alias_without_args() {
-    assert_eq!(
-        command_first_word_and_suffix("  myssh"),
-        Some(("myssh", ""))
-    );
-}
-
-
-
-
-
 /// Test clearing of session flag state when terminal is cleared
 #[test]
 fn test_clear_session_flag_state() {

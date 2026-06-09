@@ -8,7 +8,6 @@ pub use model::terminal_model::TerminalModel;
 use ordered_float::Float;
 use pathfinder_geometry::vector::vec2f;
 use serde::{Deserialize, Serialize};
-mod package_installers;
 pub(crate) use history::UpArrowHistoryConfig;
 pub use history::{History, HistoryEntry, HistoryEvent, ShellHost};
 pub use view::{Event, TerminalView};
