@@ -5,14 +5,12 @@ pub(crate) mod agent_icons;
 pub(crate) mod agent_types;
 pub(crate) mod conversation_types;
 pub mod ambient_agents;
-pub mod artifacts;
 pub(crate) mod attachment_utils;
 #[cfg(not(target_family = "wasm"))]
 pub(crate) mod blocklist;
 pub(crate) mod conversation_navigation;
 pub(crate) mod conversation_status_ui;
 pub(crate) mod document;
-pub(crate) mod get_relevant_files;
 pub(crate) mod persisted_workspace;
 pub(crate) mod skills;
 use warpui::AppContext;

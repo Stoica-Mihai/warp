@@ -1,6 +1,5 @@
 pub mod ai;
 pub mod auth;
-pub mod harness_support;
 pub(crate) mod presigned_upload;
 
 use std::sync::Arc;
