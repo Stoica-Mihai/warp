@@ -182,7 +182,7 @@ use crate::search::command_search::searcher::{
 use crate::search::command_search::view::{CommandSearchEvent, CommandSearchView};
 use crate::search::{self, QueryFilter};
 use crate::server::cloud_objects::update_manager::{
-    ObjectOperation, OperationSuccessType, UpdateManager, UpdateManagerEvent,
+    ObjectOperation, UpdateManager, UpdateManagerEvent,
 };
 use crate::server::ids::{ObjectUid, ServerId, SyncId};
 use crate::server::network_log_pane_manager::NetworkLogPaneManager;
@@ -10160,29 +10160,18 @@ impl Workspace {
                     &result.success_type,
                     ctx,
                 ) {
-                    self.toast_stack
-                        .update(ctx, |view, ctx| match result.success_type {
-                            OperationSuccessType::Success => {
-                                let mut new_toast =
-                                    DismissibleToast::success(message).with_object_id(object_id);
-
-                                if result.operation == ObjectOperation::Trash {
-                                    new_toast = new_toast.with_link(
-                                        ToastLink::new("Undo".to_string()).with_onclick_action(
-                                            WorkspaceAction::UndoTrash(cloud_object_type_and_id),
-                                        ),
-                                    )
-                                }
-
-                                view.add_ephemeral_toast(new_toast, ctx);
-                            }
-                            OperationSuccessType::Rejection => {
-                                view.add_persistent_toast(
-                                    DismissibleToast::error(message).with_object_id(object_id),
-                                    ctx,
-                                );
-                            }
-                        });
+                    self.toast_stack.update(ctx, |view, ctx| {
+                        let mut new_toast =
+                            DismissibleToast::success(message).with_object_id(object_id);
+                        if result.operation == ObjectOperation::Trash {
+                            new_toast = new_toast.with_link(
+                                ToastLink::new("Undo".to_string()).with_onclick_action(
+                                    WorkspaceAction::UndoTrash(cloud_object_type_and_id),
+                                ),
+                            )
+                        }
+                        view.add_ephemeral_toast(new_toast, ctx);
+                    });
                 }
             }
         }
@@ -10194,17 +10183,10 @@ impl Workspace {
                 &result.operation,
                 &result.success_type,
             ) {
-                self.toast_stack
-                    .update(ctx, |view, ctx| match result.success_type {
-                        OperationSuccessType::Success => {
-                            let new_toast = DismissibleToast::success(message);
-                            view.add_ephemeral_toast(new_toast, ctx);
-                        }
-                        OperationSuccessType::Rejection => {
-                            let new_toast = DismissibleToast::error(message);
-                            view.add_ephemeral_toast(new_toast, ctx);
-                        }
-                    })
+                self.toast_stack.update(ctx, |view, ctx| {
+                    let new_toast = DismissibleToast::success(message);
+                    view.add_ephemeral_toast(new_toast, ctx);
+                })
             }
         }
 

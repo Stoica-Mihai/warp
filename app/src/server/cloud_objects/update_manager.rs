@@ -36,20 +36,14 @@ use crate::workspaces::user_workspaces::UserWorkspaces;
 #[derive(Debug, PartialEq)]
 pub enum OperationSuccessType {
     Success,
-    Rejection,
 }
 
 #[derive(Debug, PartialEq)]
 pub enum ObjectOperation {
-    Update,
     MoveToFolder,
     MoveToDrive,
     Trash,
-    TakeEditAccess,
-    Untrash,
     Delete { initiated_by: InitiatedBy },
-    EmptyTrash,
-    Leave,
 }
 
 #[derive(Debug)]
