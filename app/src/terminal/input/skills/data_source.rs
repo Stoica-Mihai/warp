@@ -13,7 +13,7 @@ use warpui::keymap::Keystroke;
 use warpui::scene::{CornerRadius, Radius};
 use warpui::text_layout::ClipConfig;
 use warpui::{
-    AppContext, Element, Entity, EntityId, ModelContext, ModelHandle, SingletonEntity as _,
+    AppContext, Element, Entity, ModelContext, ModelHandle, SingletonEntity as _,
 };
 
 use crate::ai::skills::SkillManager;
@@ -64,7 +64,6 @@ pub struct UpdatedAvailableSkills;
 
 pub struct SkillSelectorDataSource {
     active_session: ModelHandle<ActiveSession>,
-    terminal_view_id: EntityId,
     /// Whether bundled skills should be included in results.
     /// False for `/open-skill` (bundled skills can't be edited), true for `/skills` (they can be invoked).
     include_bundled: bool,
@@ -73,11 +72,9 @@ pub struct SkillSelectorDataSource {
 impl SkillSelectorDataSource {
     pub fn new(
         active_session: ModelHandle<ActiveSession>,
-        terminal_view_id: EntityId,
         ctx: &mut ModelContext<Self>,
     ) -> Self {
         ctx.subscribe_to_model(&active_session, |_, event, ctx| match event {
-            // Emit event so the mixer can re-run its query with the new pwd
             ActiveSessionEvent::UpdatedPwd | ActiveSessionEvent::Bootstrapped => {
                 ctx.emit(UpdatedAvailableSkills);
             }
@@ -85,7 +82,6 @@ impl SkillSelectorDataSource {
 
         Self {
             active_session,
-            terminal_view_id,
             include_bundled: false,
         }
     }

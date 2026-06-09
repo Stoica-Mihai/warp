@@ -1,6 +1,6 @@
 use ai::skills::SkillReference;
 use warpui::elements::ChildView;
-use warpui::{Element, Entity, EntityId, ModelHandle, View, ViewContext, ViewHandle};
+use warpui::{Element, Entity, ModelHandle, View, ViewContext, ViewHandle};
 
 use crate::search::data_source::Query;
 use crate::search::mixer::{SearchMixer, SearchMixerEvent};
@@ -36,11 +36,10 @@ impl InlineSkillSelectorView {
         input_buffer_model: &ModelHandle<InputBufferModel>,
         positioner: &ModelHandle<InlineMenuPositioner>,
         active_session: ModelHandle<ActiveSession>,
-        terminal_view_id: EntityId,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
         let data_source = ctx
-            .add_model(|ctx| SkillSelectorDataSource::new(active_session, terminal_view_id, ctx));
+            .add_model(|ctx| SkillSelectorDataSource::new(active_session, ctx));
 
         let mixer = ctx.add_model(|_| {
             let mut mixer = SearchMixer::<AcceptSkill>::new();

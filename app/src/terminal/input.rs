@@ -2109,7 +2109,6 @@ impl Input {
                 &buffer_model,
                 &inline_terminal_menu_positioner,
                 active_session,
-                terminal_view_id,
                 ctx,
             )
         });
