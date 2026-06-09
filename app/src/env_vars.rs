@@ -11,13 +11,6 @@ pub struct EnvVarSecretCommand {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub struct EnvVar {
-    pub name: String,
-    pub value: EnvVarValue,
-    pub description: Option<String>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum EnvVarValue {
     Constant(String),
     Command(EnvVarSecretCommand),
@@ -27,40 +20,6 @@ pub enum EnvVarValue {
 impl Default for EnvVarValue {
     fn default() -> Self {
         EnvVarValue::Constant(String::new())
-    }
-}
-
-impl EnvVar {
-    pub fn new(name: String, value: String, description: Option<String>) -> Self {
-        Self {
-            name,
-            value: EnvVarValue::Constant(value),
-            description,
-        }
-    }
-
-    pub fn get_initialization_string(&self, shell_type: ShellType) -> String {
-        let shell_family = ShellFamily::from(shell_type);
-        let name = shell_family.escape(&self.name);
-        let value = get_init_command_for_env_var(&self.value, shell_family);
-        match shell_type {
-            ShellType::Bash | ShellType::Zsh => format!("export {name}={value};"),
-            ShellType::Fish => format!("set -x {name} {value};"),
-            ShellType::PowerShell => format!("$env:{name} = {value};"),
-        }
-    }
-}
-
-fn get_init_command_for_env_var(value: &EnvVarValue, shell_family: ShellFamily) -> String {
-    match value {
-        EnvVarValue::Constant(val) => match shell_family {
-            ShellFamily::Posix => shell_family.escape(val).into_owned(),
-            ShellFamily::PowerShell => format!("'{}'", val.replace("'", "''")),
-        },
-        EnvVarValue::Command(cmd) => format!("$({})", cmd.command),
-        EnvVarValue::Secret(secret) => {
-            format!("$({})", secret.get_secret_extraction_command(shell_family))
-        }
     }
 }
 
@@ -77,6 +36,19 @@ pub fn serialize_variables_for_shell<'s, I: IntoIterator<Item = (&'s str, &'s En
         }
         ShellType::PowerShell => {
             serialize_variables_internal(pairs, "$env:", " = ", ";", " ", shell_type.into())
+        }
+    }
+}
+
+fn get_init_command_for_env_var(value: &EnvVarValue, shell_family: ShellFamily) -> String {
+    match value {
+        EnvVarValue::Constant(val) => match shell_family {
+            ShellFamily::Posix => shell_family.escape(val).into_owned(),
+            ShellFamily::PowerShell => format!("'{}'", val.replace("'", "''")),
+        },
+        EnvVarValue::Command(cmd) => format!("$({})", cmd.command),
+        EnvVarValue::Secret(secret) => {
+            format!("$({})", secret.get_secret_extraction_command(shell_family))
         }
     }
 }
