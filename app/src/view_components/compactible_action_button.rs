@@ -79,33 +79,6 @@ impl CompactibleActionButton {
         }
     }
 
-    pub fn set_label<T: View>(&mut self, label: String, ctx: &mut ViewContext<T>) {
-        self.expanded_button.update(ctx, |button, ctx| {
-            button.set_label(label.clone(), ctx);
-        });
-        self.compact_button.update(ctx, |button, ctx| {
-            button.set_tooltip(Some(label), ctx);
-        });
-    }
-
-    pub fn set_keybinding<T: View>(
-        &mut self,
-        keybinding: Option<KeystrokeSource>,
-        ctx: &mut ViewContext<T>,
-    ) {
-        self.expanded_button.update(ctx, |button, ctx| {
-            button.set_keybinding(keybinding.clone(), ctx);
-        });
-
-        self.compact_button.update(ctx, |button, ctx| {
-            if let Some(keybinding) = keybinding {
-                button.set_tooltip_sublabel(keybinding.displayed(ctx), ctx);
-            } else {
-                button.set_tooltip_sublabel(None::<String>, ctx);
-            }
-        });
-    }
-
     pub fn set_adjoined_side<T: View>(
         &mut self,
         adjoined_side: AdjoinedSide,
@@ -116,30 +89,6 @@ impl CompactibleActionButton {
         });
         self.expanded_button.update(ctx, |button, ctx| {
             button.set_adjoined_side(adjoined_side, ctx);
-        });
-    }
-
-    /// Sets the disabled state on both the compact and expanded buttons.
-    pub fn set_disabled<T: View>(&mut self, disabled: bool, ctx: &mut ViewContext<T>) {
-        self.compact_button.update(ctx, |button, ctx| {
-            button.set_disabled(disabled, ctx);
-        });
-        self.expanded_button.update(ctx, |button, ctx| {
-            button.set_disabled(disabled, ctx);
-        });
-    }
-
-    /// Sets the tooltip on both buttons. Passing `None` clears the compact
-    /// button's hover affordance; use [`set_label`](Self::set_label) to
-    /// preserve the label tooltip.
-    pub fn set_tooltip<T: View>(&mut self, tooltip: Option<String>, ctx: &mut ViewContext<T>) {
-        let compact_tooltip = tooltip.clone();
-        let expanded_tooltip = tooltip;
-        self.compact_button.update(ctx, |button, ctx| {
-            button.set_tooltip(compact_tooltip, ctx);
-        });
-        self.expanded_button.update(ctx, |button, ctx| {
-            button.set_tooltip(expanded_tooltip, ctx);
         });
     }
 

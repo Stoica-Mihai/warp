@@ -4652,20 +4652,6 @@ impl Input {
     /// Emits an `AgentModeAutodetectionFalsePositive` telemetry event if the current input text has
     /// been autodetected as AI input and the user manually toggled to shell.
     /// Also emits `AgentModeChangedInputType` if the user is part of the analytics experiment.
-    ///
-    /// This is intended to be called whenever the user manually toggles the input to new_input_type. Because the user is manually toggling
-    /// back to shell mode after input has been autodetected as natural language, we infer that the
-    /// current input text may not have been correctly classified as natural language.
-    /// For users opted in to the analytics experiment, we collect the input buffer text whenever the input type is toggled
-    /// in either direction.
-    fn maybe_send_autodetection_telemetry_on_manual_toggle(
-        &self,
-        _new_input_type: InputType,
-        _ctx: &mut ViewContext<Self>,
-    ) {
-        // AI input type is always Shell; no telemetry to send.
-    }
-
     /// Takes the current collpased/expanded state of the info box and saves it to the user's settings so that last value can be
     /// reused the next time the user opens a workflow.
     fn update_workflows_info_box_expanded_setting(

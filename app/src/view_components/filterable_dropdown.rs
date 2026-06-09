@@ -34,7 +34,6 @@ pub enum FilterableDropdownEvent {
 
 #[derive(Default, Debug, PartialEq)]
 pub enum FilterableDropdownOrientation {
-    Up,
     #[default]
     Down,
 }
@@ -133,28 +132,6 @@ where
         }
     }
 
-    /// See `Dropdown::set_use_overlay_layer`.
-    pub fn set_use_overlay_layer(&mut self, use_overlay_layer: bool, ctx: &mut ViewContext<Self>) {
-        self.use_overlay_layer = use_overlay_layer;
-        ctx.notify();
-    }
-
-    /// Override the top-bar height.
-    /// so callers (e.g. the orchestrate environment picker) that mix
-    /// `Dropdown` and `FilterableDropdown` in the same row can size them
-    /// identically.
-    pub fn set_top_bar_height(&mut self, height: f32, ctx: &mut ViewContext<Self>) {
-        self.top_bar_height = height;
-        ctx.notify();
-    }
-
-    pub fn set_menu_header_text_override<F>(&mut self, formatter: F)
-    where
-        F: Fn(&str) -> String + 'static,
-    {
-        self.menu_header_text_override = Some(Box::new(formatter));
-    }
-
     pub fn set_footer<F>(&mut self, builder: F, ctx: &mut ViewContext<Self>)
     where
         F: Fn(&AppContext) -> Box<dyn Element> + 'static,
@@ -168,36 +145,8 @@ where
         });
     }
 
-    pub fn clear_footer(&mut self, ctx: &mut ViewContext<Self>) {
-        self.has_pinned_footer = false;
-        self.dropdown.update(ctx, |menu, _| {
-            menu.clear_pinned_footer_builder();
-        });
-    }
-
-    /// Set the main_axis_size behavior for the dropdown header button.
-    ///
-    /// Default is MainAxisSize::Max, set to MainAxisSize::Min if you want to wrap the dropdown to
-    /// the text that's filling it.
-    pub fn set_main_axis_size(
-        &mut self,
-        main_axis_size: MainAxisSize,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.main_axis_size = main_axis_size;
-        ctx.notify();
-    }
-
     pub fn set_style(&mut self, style: UiComponentStyles) {
         self.style_override = Some(style);
-    }
-
-    pub fn set_button_variant(&mut self, button_variant: ButtonVariant) {
-        self.button_variant = button_variant;
-    }
-
-    pub fn set_orientation(&mut self, orientation: FilterableDropdownOrientation) {
-        self.orientation = orientation;
     }
 
     pub fn add_items(&mut self, items: Vec<DropdownItem<A>>, ctx: &mut ViewContext<Self>) {
@@ -221,43 +170,6 @@ where
             self.selected_item = None;
             ctx.notify();
         }
-    }
-
-    /// Set items from rich menu items (MenuItem). This passes the rich menu items to the
-    /// internal dropdown but also extracts searchable DropdownItem objects for filtering.
-    pub fn set_rich_items(
-        &mut self,
-        items: Vec<MenuItem<DropdownAction<A>>>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        // Extract simple DropdownItem objects from MenuItem for filtering
-        self.items = items
-            .iter()
-            .filter_map(|item| match item {
-                MenuItem::Item(fields) => {
-                    let label = fields.label().to_string();
-                    fields.on_select_action().and_then(|action| {
-                        if let DropdownAction::SelectActionAndClose(a) = action {
-                            Some(DropdownItem::new(label, a.clone()))
-                        } else {
-                            None
-                        }
-                    })
-                }
-                _ => None, // Skip headers and separators
-            })
-            .collect();
-
-        // Set the full rich items on the internal dropdown
-        self.dropdown.update(ctx, |dropdown, ctx| {
-            dropdown.set_items(items, ctx);
-        });
-        ctx.notify();
-    }
-
-    /// The number of items in the dropdown.
-    pub fn len(&self) -> usize {
-        self.items.len()
     }
 
     #[expect(dead_code)]
@@ -326,22 +238,6 @@ where
             menu.set_width(width);
             ctx.notify();
         })
-    }
-
-    /// When enabled, the open menu sizes itself to the last rendered width of
-    /// the dropdown's top bar. This is useful for flexible dropdowns whose
-    /// trigger width is determined by parent layout rather than a fixed max.
-    pub fn set_match_menu_width_to_top_bar(
-        &mut self,
-        match_width: bool,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        self.match_menu_width_to_top_bar = match_width;
-        let top_bar_label = self.top_bar_label();
-        self.dropdown.update(ctx, |menu, _ctx| {
-            menu.set_width_match_position_id(match_width.then_some(top_bar_label));
-        });
-        ctx.notify();
     }
 
     pub fn set_disabled(&mut self, ctx: &mut ViewContext<Self>) {

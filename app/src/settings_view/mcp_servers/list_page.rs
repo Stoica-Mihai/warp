@@ -1004,7 +1004,7 @@ impl MCPServersListPageView {
         ctx: &mut ViewContext<Self>,
     ) {
         match event {
-            TemplatableMCPServerManagerEvent::StateChanged { uuid: _, state: _ }
+            TemplatableMCPServerManagerEvent::StateChanged
             | TemplatableMCPServerManagerEvent::ServerInstallationAdded(_)
             | TemplatableMCPServerManagerEvent::ServerInstallationDeleted(_)
             | TemplatableMCPServerManagerEvent::TemplatableMCPServersUpdated

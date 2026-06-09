@@ -27,9 +27,7 @@ use crate::pane_group::pane::{
     ToolbeltButton,
 };
 use crate::pane_group::{BackingView, Direction, PaneDragDropLocation, PaneId, TabBarHoverIndex};
-use crate::settings::CodeSettings;
 use crate::tab::tab_position_id;
-use crate::view_components::{FeaturePopup, NewFeaturePopupEvent, NewFeaturePopupLabel};
 use crate::workspace::{TabBarDropTargetData, TabBarLocation, VerticalTabsPaneDropTargetData};
 
 
@@ -120,7 +118,6 @@ pub struct PaneHeader<P: BackingView> {
     toolbelt_buttons: Vec<ToolbeltButton>,
     open_overlay: OpenOverlay,
     is_visible_in_pane_group: bool, // If this pane header is being dragged along the tab bar, then it is not visible in the pane group
-    toolbelt_feature_popup: ViewHandle<FeaturePopup>,
 }
 
 impl<P: BackingView> PaneHeader<P> {
@@ -132,15 +129,6 @@ impl<P: BackingView> PaneHeader<P> {
         let overflow_menu = ctx.add_typed_action_view(|_| Menu::new());
         ctx.subscribe_to_view(&overflow_menu, move |me, _, event, ctx| {
             me.handle_overflow_menu_action(event, ctx);
-        });
-
-        let toolbelt_feature_popup = ctx.add_view(|_| {
-            FeaturePopup::new_feature(NewFeaturePopupLabel::FromString(
-                "Open files and review code diffs".to_string(),
-            ))
-        });
-        ctx.subscribe_to_view(&toolbelt_feature_popup, move |me, _, event, ctx| {
-            me.handle_toolbelt_feature_popup_event(event, ctx);
         });
 
         ctx.subscribe_to_model(&pane_configuration, Self::handle_pane_state_event);
@@ -155,7 +143,6 @@ impl<P: BackingView> PaneHeader<P> {
             open_overlay: Default::default(),
             toolbelt_buttons: Default::default(),
             is_visible_in_pane_group: true,
-            toolbelt_feature_popup,
         }
     }
 
@@ -217,24 +204,6 @@ impl<P: BackingView> PaneHeader<P> {
             });
             ctx.emit(Event::PaneHeaderOverflowMenuToggled(false));
             ctx.notify();
-        }
-    }
-
-    fn handle_toolbelt_feature_popup_event(
-        &mut self,
-        event: &NewFeaturePopupEvent,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        match event {
-            NewFeaturePopupEvent::Dismissed => {
-                // Update the setting to mark the popup as dismissed
-                CodeSettings::handle(ctx).update(ctx, |settings, ctx| {
-                    let _ = settings
-                        .dismissed_code_toolbelt_new_feature_popup
-                        .set_value(true, ctx);
-                });
-                ctx.notify();
-            }
         }
     }
 

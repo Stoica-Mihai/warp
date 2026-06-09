@@ -2,7 +2,7 @@ use ordered_float::OrderedFloat;
 use warp_core::ui::icons::Icon;
 use warpui::elements::{
     Container, CrossAxisAlignment, Expanded, Flex, Highlight, MainAxisSize,
-    MouseStateHandle, ParentElement, Text,
+    ParentElement, Text,
 };
 use warpui::fonts::{Properties, Weight};
 use warpui::{AppContext, Element, SingletonEntity};
@@ -30,15 +30,11 @@ pub enum ConversationAction {
 #[derive(Debug)]
 pub struct ConversationSearchItem {
     action_info: ConversationAction,
-    action_button_mouse_state: MouseStateHandle,
 }
 
 impl ConversationSearchItem {
     pub fn new(action_info: ConversationAction) -> Self {
-        Self {
-            action_info,
-            action_button_mouse_state: MouseStateHandle::default(),
-        }
+        Self { action_info }
     }
 
     /// Renders the new conversation item for the command palette.

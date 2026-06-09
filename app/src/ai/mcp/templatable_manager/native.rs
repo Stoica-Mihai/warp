@@ -389,10 +389,7 @@ impl TemplatableMCPServerManager {
             return;
         }
         self.server_states.insert(installation_uuid, new_state);
-        ctx.emit(TemplatableMCPServerManagerEvent::StateChanged {
-            uuid: installation_uuid,
-            state: new_state,
-        });
+        ctx.emit(TemplatableMCPServerManagerEvent::StateChanged);
     }
 
     pub fn is_server_template_shared(&self, template_uuid: Uuid, app: &AppContext) -> bool {

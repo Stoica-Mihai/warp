@@ -97,12 +97,6 @@ impl WorkflowViewMode {
         }
     }
 
-    fn is_editable(&self) -> bool {
-        match self {
-            Self::View => false,
-            Self::Edit | Self::Create => true,
-        }
-    }
 }
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
@@ -160,10 +154,6 @@ impl WorkflowType {
         None
     }
 
-    /// We don't show env var selection for Agent Mode suggested commands.
-    pub(super) fn should_show_env_var_selection(&self) -> bool {
-        !matches!(self, WorkflowType::AIGenerated { .. },)
-    }
 }
 
 #[cfg(test)]

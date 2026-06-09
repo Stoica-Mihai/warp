@@ -938,7 +938,6 @@ fn trigger_keybinding_notifier(
 
 #[derive(Default)]
 struct KeybindingsWidget {
-    local_only_icon_mouse_state: MouseStateHandle,
 }
 
 impl KeybindingsWidget {
