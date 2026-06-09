@@ -1432,12 +1432,6 @@ impl RichTextEditorView {
         self.is_editable(ctx) && ctx.is_self_or_child_focused()
     }
 
-    /// Whether an edit operation should be allowed, when only an [`AppContext`] is available.
-    /// Where possible, prefer [`Self::can_edit`].
-    pub(super) fn can_edit_app(&self, app: &AppContext) -> bool {
-        self.is_editable(app) && self.is_focused(app)
-    }
-
     /// Whether or not the editor or a child is focused.
     /// The focus state is cached in the `on_focus` and `on_blur` handlers.
     /// The editor is considered focused if it or any of its children are focused and the

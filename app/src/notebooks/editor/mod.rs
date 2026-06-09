@@ -87,24 +87,6 @@ impl BlockType {
         Self::ALL.into_iter()
     }
 
-    /// Block types that behave as code:
-    /// * [`BlockType::RunnableCommand`]
-    /// * [`BlockType::Code`]
-    ///
-    /// These types support multiple paragraphs and syntax highlighting, but not user-defined
-    /// formatting. In the block insertion menu, these types are grouped together.
-    fn code_block_types() -> impl Iterator<Item = Self> {
-        [BlockType::RunnableCommand, BlockType::Code].into_iter()
-    }
-
-    /// Block types that behave as text (plain text, headings, and lists). These types support
-    /// user-defined formatting. In the block insertion menu, these types are grouped together.
-    fn text_block_types() -> impl Iterator<Item = Self> {
-        Self::all().filter(|block_type| {
-            *block_type != BlockType::Code && *block_type != BlockType::RunnableCommand
-        })
-    }
-
     fn icon(self) -> Icon {
         match self {
             BlockType::Text => Icon::TextBlock,

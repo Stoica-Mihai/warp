@@ -3,7 +3,6 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 
 use itertools::Itertools as _;
-use pathfinder_color::ColorU;
 use pathfinder_geometry::vector::vec2f;
 use settings::Setting;
 use warp_core::settings::SyncToCloud;
@@ -804,41 +803,6 @@ pub fn render_input_list<SettingsPageAction: Action + Clone>(
     column.finish()
 }
 
-pub fn render_alternating_color_list<
-    ListItem: Display,
-    SettingsPageAction: Action + Clone,
-    F: Fn(usize) -> SettingsPageAction,
->(
-    body: &mut Flex,
-    patterns: &[ListItem],
-    mouse_states: &[MouseStateHandle],
-    create_action: F,
-    appearance: &Appearance,
-) {
-    debug_assert!(
-        mouse_states.len() >= patterns.len(),
-        "mouse_states length ({}) is less than patterns length ({})",
-        mouse_states.len(),
-        patterns.len()
-    );
-    for (i, pattern) in patterns.iter().enumerate() {
-        let background = if i % 2 == 0 {
-            internal_colors::fg_overlay_1(appearance.theme())
-        } else {
-            Fill::Solid(ColorU::transparent_black())
-        };
-
-        body.add_child(render_alternating_color_list_item::<SettingsPageAction>(
-            background,
-            pattern.to_string(),
-            mouse_states[i].clone(),
-            create_action(i),
-            false,
-            appearance,
-        ));
-    }
-}
-
 fn render_workspace_override_row_tooltip(
     child: Box<dyn Element>,
     mouse_state: MouseStateHandle,
@@ -1541,10 +1505,6 @@ impl<V: warpui::View> Category<V> {
         }
     }
 
-    pub(super) fn with_subtitle(mut self, subtitle: &'static str) -> Self {
-        self.subtitle = Some(subtitle);
-        self
-    }
 }
 
 /// A [`Category`] with only the results which match a search query.
