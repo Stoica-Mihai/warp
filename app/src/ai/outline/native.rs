@@ -35,7 +35,7 @@ struct OutlineState {
 }
 
 pub enum RepoOutlinesEvent {
-    OutlinesUpdated(PathBuf),
+    OutlinesUpdated,
 }
 
 const MAX_REPO_FILE_SIZE_LIMIT: usize = 5000;
@@ -250,9 +250,7 @@ impl RepoOutlines {
                                 {
                                     outline_state.status = OutlineStatus::Complete(outline);
                                 }
-                                ctx.emit(RepoOutlinesEvent::OutlinesUpdated(
-                                    canonicalized_path.into(),
-                                ));
+                                ctx.emit(RepoOutlinesEvent::OutlinesUpdated);
                             }
                             Err(e) => {
                                 safe_warn!(
@@ -364,7 +362,7 @@ impl RepoOutlines {
                     move |me, (outline, repo_path), ctx| {
                         if let Some(state) = me.outlines.get_mut(&repo_path) {
                             state.status = OutlineStatus::Complete(outline);
-                            ctx.emit(RepoOutlinesEvent::OutlinesUpdated(repo_path));
+                            ctx.emit(RepoOutlinesEvent::OutlinesUpdated);
                         }
                     },
                 );

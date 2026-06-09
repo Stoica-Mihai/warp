@@ -38,19 +38,6 @@ pub type CloudScheduledAmbientAgent =
 pub type CloudScheduledAmbientAgentModel =
     GenericStringModel<ScheduledAmbientAgent, JsonSerializer>;
 
-impl ScheduledAmbientAgent {
-    pub fn new(name: String, cron_schedule: String, enabled: bool, prompt: String) -> Self {
-        Self {
-            name,
-            cron_schedule,
-            enabled,
-            prompt,
-            last_spawn_error: None,
-            agent_config: Default::default(),
-        }
-    }
-}
-
 impl StringModel for ScheduledAmbientAgent {
     type CloudObjectType = CloudScheduledAmbientAgent;
 

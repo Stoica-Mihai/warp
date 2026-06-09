@@ -115,14 +115,6 @@ pub(crate) enum IconWithStatusVariant {
         status: Option<ConversationStatus>,
         is_ambient: bool,
     },
-    /// A pre-rendered avatar with an optional status overlay (cloud lobe when
-    /// ambient). Caller must size `avatar` to `circle_size(total_size)` so the
-    /// overlay's overhang matches the other variants.
-    CustomAvatar {
-        avatar: Box<dyn Element>,
-        status: Option<ConversationStatus>,
-        is_ambient: bool,
-    },
 }
 
 /// Renders an icon-with-status component sized entirely from a single `total_size`. All
@@ -219,19 +211,6 @@ pub(crate) fn render_icon_with_status(
                 status_container_background,
             )
         }
-        IconWithStatusVariant::CustomAvatar {
-            avatar,
-            status,
-            is_ambient,
-        } => attach_status_overlay(
-            avatar,
-            status.as_ref(),
-            is_ambient,
-            total_size,
-            overlay_extra_overhang_ratio,
-            theme,
-            status_container_background,
-        ),
     }
 }
 
