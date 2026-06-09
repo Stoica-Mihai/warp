@@ -17,7 +17,7 @@ use crate::cloud_object::model::actions::{
 };
 use crate::cloud_object::model::persistence::{CloudModel, CloudModelEvent, UpdateSource};
 use crate::cloud_object::{
-    CloudModelType, CloudObjectEventEntrypoint, CloudObjectLocation,
+    CloudModelType, CloudObject, CloudObjectEventEntrypoint, CloudObjectLocation,
     GenericCloudObject, ObjectIdType, ObjectType, Owner,
     Revision,
 };
