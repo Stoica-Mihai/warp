@@ -82,14 +82,6 @@ pub enum PtySpawnMode {
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-pub enum SaveAsWorkflowModalSource {
-    Block,
-    Input,
-    WarpAIWorkflowCard,
-    WarpAIPanel,
-}
-
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum LaunchConfigUiLocation {
     CommandPalette,
     AppMenu,

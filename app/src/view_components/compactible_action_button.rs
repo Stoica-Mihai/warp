@@ -14,7 +14,6 @@ use crate::view_components::action_button::{
 };
 const BUTTON_MARGIN: f32 = 8.;
 
-pub const SMALL_SIZE_SWITCH_THRESHOLD: f32 = 400.0;
 
 /// Stores normal and compact (i.e. without a keybinding display) versions of action buttons
 /// for use in views that need to display buttons in different modes.
