@@ -5,16 +5,13 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 
-use ai::skills::{
-    home_skills_path, provider_rank, ParsedSkill, SkillProvider, SKILL_PROVIDER_DEFINITIONS,
-};
+use ai::skills::{provider_rank, ParsedSkill, SkillProvider};
 use lazy_static::lazy_static;
 use siphasher::sip::SipHasher;
 use warp_core::ui::Icon;
 
 use super::SkillDescriptor;
 
-use crate::warp_managed_paths_watcher::warp_managed_skill_dirs;
 
 lazy_static! {
     static ref CONTENT_HASHER: SipHasher = SipHasher::new_with_keys(0, 0);
@@ -87,38 +84,6 @@ pub fn icon_override_for_skill_name(name: &str) -> Option<Icon> {
     }
 }
 
-pub fn skill_path_from_file_path(file_path: &Path) -> Option<PathBuf> {
-    for definition in SKILL_PROVIDER_DEFINITIONS.iter() {
-        let home_skill_dirs = if definition.provider == SkillProvider::Warp {
-            warp_managed_skill_dirs()
-        } else {
-            home_skills_path(definition.provider).into_iter().collect()
-        };
-        for home_skills_path in home_skill_dirs {
-            if let Ok(relative_path) = file_path.strip_prefix(&home_skills_path) {
-                let skill_name = relative_path.components().next()?;
-                return Some(home_skills_path.join(skill_name).join("SKILL.md"));
-            }
-        }
-    }
-    let path_components: Vec<_> = file_path.components().collect();
-
-    for def in SKILL_PROVIDER_DEFINITIONS.iter() {
-        let skill_components: Vec<_> = def.skills_path.components().collect();
-
-        for (idx, window) in path_components.windows(skill_components.len()).enumerate() {
-            if window == skill_components.as_slice() {
-                let skill_dir = PathBuf::from_iter(
-                    file_path
-                        .components()
-                        .take(idx + skill_components.len() + 1),
-                );
-                return Some(skill_dir.join("SKILL.md"));
-            }
-        }
-    }
-    None
-}
 
 #[cfg(test)]
 #[path = "skill_utils_tests.rs"]

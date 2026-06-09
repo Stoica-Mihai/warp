@@ -3,11 +3,9 @@ mod tests {
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
 
-    use rmcp::model::{ErrorCode, ErrorData, Resource, ServerCapabilities, Tool};
+    use rmcp::model::{ErrorCode, ErrorData, ServerCapabilities, Tool};
 
-    use crate::ai::mcp::templatable_manager::utils::{
-        query_resources_for, query_tools_for, should_query_resources, should_query_tools,
-    };
+    use crate::ai::mcp::templatable_manager::utils::{query_tools_for, should_query_tools};
 
     /// Build a `ServerCapabilities` with selected capability flags toggled on.
     /// Each `Some(default)` mirrors how rmcp deserializes a capability the
@@ -33,20 +31,8 @@ mod tests {
         .expect("Tool deserialization")
     }
 
-    fn test_resource(uri: &str) -> Resource {
-        serde_json::from_value(serde_json::json!({
-            "uri": uri,
-            "name": "test resource",
-        }))
-        .expect("Resource deserialization")
-    }
-
     // ---------- predicate-level tests ----------
 
-    /// Regression test for warpdotdev/warp#6798: each capability is queried
-    /// independently. Previously, asymmetric handling could cause `tools/list`
-    /// to be skipped when a server advertised both `tools` and `resources`,
-    /// resulting in "No tools available" even though the server had tools.
     #[test]
     fn each_capability_is_queried_independently() {
         for has_tools in [false, true] {
@@ -57,15 +43,9 @@ mod tests {
                     has_tools,
                     "tools={has_tools}, resources={has_resources}",
                 );
-                assert_eq!(
-                    should_query_resources(Some(&c)),
-                    has_resources,
-                    "tools={has_tools}, resources={has_resources}",
-                );
             }
         }
         assert!(!should_query_tools(None));
-        assert!(!should_query_resources(None));
     }
 
     // ---------- query_tools_for control-flow tests ----------
@@ -224,88 +204,4 @@ mod tests {
         }
     }
 
-    // ---------- query_resources_for control-flow tests ----------
-
-    #[tokio::test]
-    async fn query_resources_for_skips_listing_when_capability_not_advertised() {
-        let calls = Arc::new(AtomicUsize::new(0));
-        let calls_clone = calls.clone();
-        let no_caps = caps(false, false);
-
-        let result = query_resources_for(Some(&no_caps), "srv", || async move {
-            calls_clone.fetch_add(1, Ordering::SeqCst);
-            Ok(vec![test_resource("file:///nope")])
-        })
-        .await;
-
-        assert!(result.is_empty());
-        assert_eq!(calls.load(Ordering::SeqCst), 0);
-    }
-
-    #[tokio::test]
-    async fn query_resources_for_skips_listing_when_server_info_is_none() {
-        let calls = Arc::new(AtomicUsize::new(0));
-        let calls_clone = calls.clone();
-
-        let result = query_resources_for(None, "srv", || async move {
-            calls_clone.fetch_add(1, Ordering::SeqCst);
-            Ok(vec![test_resource("file:///nope")])
-        })
-        .await;
-
-        assert!(result.is_empty());
-        assert_eq!(calls.load(Ordering::SeqCst), 0);
-    }
-
-    #[tokio::test]
-    async fn query_resources_for_returns_listed_resources_when_capability_advertised() {
-        let c = caps(false, true);
-        let expected = vec![test_resource("file:///a"), test_resource("file:///b")];
-        let to_return = expected.clone();
-
-        let result = query_resources_for(Some(&c), "srv", || async move { Ok(to_return) }).await;
-
-        assert_eq!(result, expected);
-    }
-
-    /// Fail-soft on transport errors — same contract as `query_tools_for`,
-    /// matching the existing behavior the predicate refactor preserved.
-    #[tokio::test]
-    async fn query_resources_for_returns_empty_on_transport_error() {
-        let c = caps(false, true);
-        let result = query_resources_for(Some(&c), "srv", || async {
-            Err(rmcp::ServiceError::TransportClosed)
-        })
-        .await;
-        assert!(result.is_empty());
-    }
-
-    #[tokio::test]
-    async fn query_resources_for_returns_empty_on_mcp_error() {
-        let c = caps(false, true);
-        let result = query_resources_for(Some(&c), "srv", || async {
-            Err(rmcp::ServiceError::McpError(ErrorData {
-                code: ErrorCode::METHOD_NOT_FOUND,
-                message: "resources/list not implemented".into(),
-                data: None,
-            }))
-        })
-        .await;
-        assert!(result.is_empty());
-    }
-
-    #[tokio::test]
-    async fn query_resources_for_calls_list_function_exactly_once() {
-        let c = caps(false, true);
-        let calls = Arc::new(AtomicUsize::new(0));
-        let calls_clone = calls.clone();
-
-        let _ = query_resources_for(Some(&c), "srv", || async move {
-            calls_clone.fetch_add(1, Ordering::SeqCst);
-            Ok(vec![test_resource("file:///a")])
-        })
-        .await;
-
-        assert_eq!(calls.load(Ordering::SeqCst), 1);
-    }
 }

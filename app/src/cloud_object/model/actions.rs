@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 use warpui::{Entity, ModelContext, SingletonEntity};
 
 use crate::persistence::model::PersistedObjectAction;
@@ -25,20 +25,6 @@ impl ToString for ObjectActionType {
     fn to_string(&self) -> String {
         match self {
             ObjectActionType::Execute => String::from("EXECUTE"),
-        }
-    }
-}
-
-impl ObjectActionType {
-    fn singular(&self) -> String {
-        match self {
-            ObjectActionType::Execute => "run".to_string(),
-        }
-    }
-
-    fn plural(&self) -> String {
-        match self {
-            ObjectActionType::Execute => "runs".to_string(),
         }
     }
 }
@@ -234,106 +220,6 @@ impl ObjectActions {
         action
     }
 
-    /// Returns a time-boxed summary of the number of times this action type has occurred on this object.
-    /// This summary prioritizes smaller units of time where possible, starting from Day and going to Year.
-    /// If the action type has occurred on the object in the last day, we return "X actions in the last day".
-    /// If not, we increase the time unit from Day to Week to Month. If no actions have occurred in the last month,
-    /// we return however many actions have occurred in the last year, possibly 0.
-    ///
-    /// This function operates by cloning a filtered Iterator<Item=&ObjectAction>, saving some performance overhead
-    /// by cloning references instead of objects.
-    pub fn get_action_history_summary_for_action_type(
-        &self,
-        uid: &ObjectUid,
-        action_type: ObjectActionType,
-    ) -> Option<String> {
-        // If the object is not in the model, return 0.
-        let all_actions_on_this_object = self.object_actions_by_id.get(uid);
-        if all_actions_on_this_object.is_none() {
-            return Some("0 runs in the last year".to_string());
-        }
-
-        // If the object doesn't have any of these action types recorded, return 0.
-        let all_relevant_actions = all_actions_on_this_object?
-            .iter()
-            .filter(|a| a.action_type == action_type);
-        if all_relevant_actions.clone().count() == 0 {
-            return Some("0 runs in the last year".to_string());
-        }
-
-        // If the action has occurred in the last day, return Day as the time unit.
-        let one_day_ago = Utc::now() - Duration::days(1);
-        let in_the_last_day = all_relevant_actions.clone().filter(|a| matches!(a.action_subtype, ObjectActionSubtype::SingleAction { timestamp, .. } if timestamp > one_day_ago)).count();
-        if in_the_last_day > 0 {
-            return Some(format!(
-                "{} {} in the last day",
-                in_the_last_day,
-                if in_the_last_day == 1 {
-                    action_type.singular()
-                } else {
-                    action_type.plural()
-                }
-            ));
-        }
-
-        // If the action has occurred in the last week, return Week as the time unit.
-        let one_week_ago = Utc::now() - Duration::days(7);
-        let in_the_last_week = all_relevant_actions.clone().filter(|a| matches!(a.action_subtype, ObjectActionSubtype::SingleAction { timestamp, .. } if timestamp > one_week_ago)).count();
-        if in_the_last_week > 0 {
-            return Some(format!(
-                "{} {} in the last week",
-                in_the_last_week,
-                if in_the_last_week == 1 {
-                    action_type.singular()
-                } else {
-                    action_type.plural()
-                }
-            ));
-        }
-
-        // If the action has occurred in the last month, return Month as the time unit.
-        let one_month_ago = Utc::now() - Duration::days(30);
-        let in_the_last_month = all_relevant_actions.clone().filter(|a| matches!(a.action_subtype, ObjectActionSubtype::SingleAction { timestamp, .. } if timestamp > one_month_ago)).count();
-        if in_the_last_month > 0 {
-            return Some(format!(
-                "{} {} in the last month",
-                in_the_last_month,
-                if in_the_last_month == 1 {
-                    action_type.singular()
-                } else {
-                    action_type.plural()
-                }
-            ));
-        }
-
-        // Finally, if all else turned up fruitless, return the yearly count.
-        let one_year_ago = Utc::now() - Duration::days(365);
-        let in_the_last_year: i32 = all_relevant_actions
-            .clone()
-            .filter_map(|a| match a.action_subtype {
-                ObjectActionSubtype::SingleAction { timestamp, .. } if timestamp > one_year_ago => {
-                    Some(1)
-                }
-                ObjectActionSubtype::BundledActions {
-                    count,
-                    oldest_timestamp,
-                    ..
-                } if oldest_timestamp > one_year_ago => Some(count),
-                _ => None,
-            })
-            .sum();
-
-        Some(format!(
-            "{} {} in the last year",
-            in_the_last_year,
-            if in_the_last_year == 1 {
-                action_type.singular()
-            } else {
-                action_type.plural()
-            }
-        ))
-    }
-
     pub fn delete_actions_for_object(&mut self, uid: &ObjectUid, ctx: &mut ModelContext<Self>) {
         self.object_actions_by_id.remove(uid);
         ctx.notify()
@@ -346,7 +232,3 @@ impl Entity for ObjectActions {
 }
 
 impl SingletonEntity for ObjectActions {}
-
-#[cfg(test)]
-#[path = "actions_tests.rs"]
-pub mod tests;

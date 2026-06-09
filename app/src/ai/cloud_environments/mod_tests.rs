@@ -115,13 +115,14 @@ fn deserialize_with_both_providers() {
 
 #[test]
 fn serialize_with_providers_none_omits_field() {
-    let env = AmbientAgentEnvironment::new(
-        "test-env".into(),
-        None,
-        vec![],
-        "ubuntu:latest".into(),
-        vec![],
-    );
+    let env = AmbientAgentEnvironment {
+        name: "test-env".into(),
+        description: None,
+        github_repos: vec![],
+        base_image: BaseImage::DockerImage("ubuntu:latest".into()),
+        setup_commands: vec![],
+        providers: ProvidersConfig::default(),
+    };
 
     let json = serde_json::to_value(&env).unwrap();
     assert!(!json.as_object().unwrap().contains_key("providers"));
@@ -129,13 +130,14 @@ fn serialize_with_providers_none_omits_field() {
 
 #[test]
 fn serialize_with_providers_includes_field() {
-    let mut env = AmbientAgentEnvironment::new(
-        "test-env".into(),
-        None,
-        vec![],
-        "ubuntu:latest".into(),
-        vec![],
-    );
+    let mut env = AmbientAgentEnvironment {
+        name: "test-env".into(),
+        description: None,
+        github_repos: vec![],
+        base_image: BaseImage::DockerImage("ubuntu:latest".into()),
+        setup_commands: vec![],
+        providers: ProvidersConfig::default(),
+    };
     env.providers = ProvidersConfig {
         gcp: None,
         aws: Some(AwsProviderConfig {
@@ -151,13 +153,14 @@ fn serialize_with_providers_includes_field() {
 
 #[test]
 fn roundtrip_serde_with_providers() {
-    let mut env = AmbientAgentEnvironment::new(
-        "rt-env".into(),
-        Some("desc".into()),
-        vec![GithubRepo::new("owner".into(), "repo".into())],
-        "alpine:latest".into(),
-        vec!["make build".into()],
-    );
+    let mut env = AmbientAgentEnvironment {
+        name: "rt-env".into(),
+        description: Some("desc".into()),
+        github_repos: vec![GithubRepo { owner: "owner".into(), repo: "repo".into() }],
+        base_image: BaseImage::DockerImage("alpine:latest".into()),
+        setup_commands: vec!["make build".into()],
+        providers: ProvidersConfig::default(),
+    };
     env.providers = ProvidersConfig {
         gcp: Some(GcpProviderConfig {
             project_number: "999".into(),

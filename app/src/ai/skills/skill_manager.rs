@@ -281,16 +281,6 @@ impl SkillManager {
         self.skills_by_path.get(skill_path)
     }
 
-    /// Get the definition of a skill, if it is cached.
-    pub fn skill_by_reference(&self, reference: &SkillReference) -> Option<&ParsedSkill> {
-        match reference {
-            SkillReference::Path(path) => self.skills_by_path.get(path),
-            SkillReference::BundledSkillId(id) => {
-                self.bundled_skills.get(id).map(|bundled| &bundled.skill)
-            }
-        }
-    }
-
     /// Get the definition of a skill only if it is currently available for invocation.
     ///
     /// Path-based user skills are always controlled by normal path scoping. Bundled

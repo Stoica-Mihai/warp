@@ -325,55 +325,14 @@ impl FileBasedMCPManager {
         repo_path: &PathBuf,
         ctx: &mut ModelContext<Self>,
     ) {
-        let mcp_enabled = AISettings::as_ref(ctx).is_file_based_mcp_enabled(ctx);
-        // FileMCPWatcher emits CloudEnvMcpScanComplete only after emitting ConfigParsed
-        // for every provider config in this repo scan. Each ConfigParsed call records
-        // the UUIDs actually emitted through SpawnServers in
-        // pending_scan_auto_started_servers_by_root, so this remove() returns the wait set
-        // for this completed scan.
-        let wait_server_uuids: Vec<Uuid> = self
-            .pending_scan_auto_started_servers_by_root
-            .remove(repo_path)
-            .into_iter()
-            .flat_map(|provider_map| provider_map.into_values())
-            .flatten()
-            .sorted_by_key(|uuid| uuid.to_string())
-            .collect();
-
-        let mut detected_servers: Vec<CloudEnvMcpScanServer> = Vec::new();
-        if let Some(provider_map) = self.file_based_servers_by_root.get(repo_path) {
-            for (provider, hash_set) in provider_map {
-                for hash in hash_set {
-                    let Some(installation) = self.file_based_servers.get(hash) else {
-                        continue;
-                    };
-                    let uuid = installation.uuid();
-                    let auto_start_eligible = self
-                        .auto_start_decision(*hash, mcp_enabled)
-                        .should_autostart;
-                    detected_servers.push(CloudEnvMcpScanServer {
-                        uuid,
-                        name: installation.templatable_mcp_server().name.clone(),
-                        provider: *provider,
-                        hash: *hash,
-                        auto_start_eligible,
-                    });
-                }
-            }
-        }
+        // Clean up pending auto-start tracking for this scan.
+        self.pending_scan_auto_started_servers_by_root
+            .remove(repo_path);
         log::info!(
-            "Cloud environment file-based MCP scan complete for {}: {} detected server(s), {} auto-started server(s)",
+            "Cloud environment file-based MCP scan complete for {}",
             repo_path.display(),
-            detected_servers.len(),
-            wait_server_uuids.len()
         );
-
-        // Pass the UUIDs of auto-start-requested file-based MCP servers to the AgentDriver.
-        ctx.emit(FileBasedMCPManagerEvent::CloudEnvMcpScanComplete {
-            repo_path: repo_path.clone(),
-            detected_servers,
-            wait_server_uuids,
-        });
+        ctx.emit(FileBasedMCPManagerEvent::CloudEnvMcpScanComplete);
     }
 
     fn handle_file_based_mcp_enabled_change(&mut self, ctx: &mut ModelContext<Self>) {
@@ -501,15 +460,6 @@ enum FileBasedMCPServerType {
     ProjectScoped,
 }
 
-#[derive(Clone, Debug)]
-#[allow(dead_code)]
-pub struct CloudEnvMcpScanServer {
-    pub uuid: Uuid,
-    pub name: String,
-    pub provider: MCPProvider,
-    pub hash: u64,
-    pub auto_start_eligible: bool,
-}
 pub enum FileBasedMCPManagerEvent {
     SpawnServers {
         installations: Vec<TemplatableMCPServerInstallation>,
@@ -520,12 +470,7 @@ pub enum FileBasedMCPManagerEvent {
     PurgeCredentials {
         installation_hashes: Vec<u64>,
     },
-    CloudEnvMcpScanComplete {
-        repo_path: PathBuf,
-        #[allow(dead_code)]
-        detected_servers: Vec<CloudEnvMcpScanServer>,
-        wait_server_uuids: Vec<Uuid>,
-    },
+    CloudEnvMcpScanComplete,
 }
 
 impl Entity for FileBasedMCPManager {

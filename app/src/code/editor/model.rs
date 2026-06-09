@@ -2,9 +2,9 @@
 // Adding this file level gate as some of the code around editability is not used in WASM yet.
 
 use std::future::Future;
+use std::rc::Rc;
 use std::ops::Range;
 use std::path::Path;
-use std::rc::Rc;
 use std::sync::Arc;
 use std::{cmp, mem};
 
@@ -62,8 +62,8 @@ use warpui::text::TextBuffer;
 use warpui::units::{IntoPixels, Pixels};
 use warpui::{AppContext, Entity, ModelContext, ModelHandle, SingletonEntity};
 
-use super::super::DiffResult;
 use super::comments::{EditorCommentsModel, PendingComment, PendingCommentEvent};
+use super::super::DiffResult;
 use super::diff::{
     add_inline_overlay_color, DiffModel, DiffModelEvent, DiffStatus, RenderableDiffHunk,
 };

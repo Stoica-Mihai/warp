@@ -16,12 +16,6 @@ pub struct GithubRepo {
     pub repo: String,
 }
 
-impl GithubRepo {
-    pub fn new(owner: String, repo: String) -> Self {
-        Self { owner, repo }
-    }
-}
-
 impl fmt::Display for GithubRepo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}/{}", self.owner, self.repo)
@@ -99,25 +93,6 @@ pub type CloudAmbientAgentEnvironment =
     GenericCloudObject<GenericStringObjectId, CloudAmbientAgentEnvironmentModel>;
 pub type CloudAmbientAgentEnvironmentModel =
     GenericStringModel<AmbientAgentEnvironment, JsonSerializer>;
-
-impl AmbientAgentEnvironment {
-    pub fn new(
-        name: String,
-        description: Option<String>,
-        github_repos: Vec<GithubRepo>,
-        docker_image: String,
-        setup_commands: Vec<String>,
-    ) -> Self {
-        Self {
-            name,
-            description,
-            github_repos,
-            base_image: BaseImage::DockerImage(docker_image),
-            setup_commands,
-            providers: ProvidersConfig::default(),
-        }
-    }
-}
 
 impl StringModel for AmbientAgentEnvironment {
     type CloudObjectType = CloudAmbientAgentEnvironment;
