@@ -5,8 +5,6 @@ use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 use std::ops::Range;
 use std::path::Path;
-use std::rc::Rc;
-
 use ai::diff_validation::DiffDelta;
 use lazy_static::lazy_static;
 use num_traits::SaturatingSub;
@@ -71,7 +69,7 @@ use crate::code::editor::nav_bar::{NavBar, NavBarBehavior, NavBarEvent};
 use crate::code::editor::scroll::{ScrollPosition, ScrollTrigger, ScrollWheelBehavior};
 use crate::code::editor::EditorReviewComment;
 use crate::code::{
-    DiffResult, NoopCommentEditorProvider, NoopFindReferencesCardProvider,
+    NoopCommentEditorProvider, NoopFindReferencesCardProvider,
     ShowCommentEditorProvider, ShowFindReferencesCardProvider,
 };
 use crate::code_review::comments::{CommentId, CommentOrigin};
@@ -101,7 +99,7 @@ pub enum CodeEditorEvent {
     ContentChanged {
         origin: EditOrigin,
     },
-    UnifiedDiffComputed(Rc<DiffResult>),
+    UnifiedDiffComputed,
     SelectionChanged,
     SelectionStart,
     SelectionEnd,
@@ -128,7 +126,6 @@ pub enum CodeEditorEvent {
     CommentSaved {
         comment: EditorReviewComment,
     },
-    RequestOpenComment(CommentId),
     /// Emitted when the viewport is updated after layout
     ViewportUpdated,
     DelayedRenderingFlushed,
@@ -537,15 +534,6 @@ impl CodeEditorView {
         ctx.notify();
     }
 
-    pub fn changed_lines(&self, app: &AppContext) -> Vec<Range<usize>> {
-        self.model
-            .as_ref(app)
-            .diff()
-            .as_ref(app)
-            .modified_lines()
-            .collect()
-    }
-
     pub fn close_find_bar(&mut self, should_focus_editor: bool, ctx: &mut ViewContext<Self>) {
         if let Some(find_bar) = &self.find_bar {
             let should_update = find_bar.update(ctx, |find_bar, _ctx| {
@@ -622,7 +610,6 @@ impl CodeEditorView {
             vec![],
             false,
             self.display_options.gutter_hover_target,
-            self.comment_save_position_id.clone(),
             self.find_references_save_position_id.clone(),
         )
         .finish()
@@ -1248,22 +1235,16 @@ impl CodeEditorView {
                 }
                 ctx.emit(CodeEditorEvent::ContentChanged { origin: *origin });
             }
-            CodeEditorModelEvent::UnifiedDiffComputed(diff) => {
-                ctx.emit(CodeEditorEvent::UnifiedDiffComputed(diff.clone()));
+            CodeEditorModelEvent::UnifiedDiffComputed(_) => {
+                ctx.emit(CodeEditorEvent::UnifiedDiffComputed);
             }
             CodeEditorModelEvent::ViewportUpdated(version) => {
                 if let Some(trigger) = self
                     .pending_scroll
                     .take_if(|trigger| trigger.minimum_applicable_version <= *version)
                 {
-                    match trigger.position {
-                        ScrollPosition::LineAndColumn(line_col) => {
-                            self.jump_to_line_column(line_col.line_num, line_col.column_num, ctx);
-                        }
-                        ScrollPosition::FocusedDiffHunk => {
-                            self.navigate_current_diff_hunk(ctx);
-                        }
-                    }
+                    let ScrollPosition::LineAndColumn(line_col) = trigger.position;
+                    self.jump_to_line_column(line_col.line_num, line_col.column_num, ctx);
                 }
                 ctx.emit(CodeEditorEvent::ViewportUpdated);
             }
@@ -1489,18 +1470,6 @@ impl CodeEditorView {
 
     pub fn buffer_version(&self, ctx: &AppContext) -> BufferVersion {
         self.model.as_ref(ctx).buffer_version(ctx)
-    }
-
-    /// Append text to the end of the buffer regardless of cursor position.
-    /// This is used for streaming content where we always want to append at the end,
-    /// not at the current cursor position since the user may select text while it's streaming.
-    pub fn append_at_end(&self, text: &str, ctx: &mut ViewContext<Self>) {
-        self.model.update(ctx, |model, ctx| {
-            // Use append_at_end to insert at the end of buffer regardless of cursor position.
-            // This ensures streaming code blocks always append at the end, even when user
-            // has clicked somewhere else in the editor.
-            model.append_at_end(text, ctx);
-        });
     }
 
     pub fn system_append_autoscroll_vertical_only(&self, text: &str, ctx: &mut ViewContext<Self>) {
@@ -2203,7 +2172,6 @@ impl View for CodeEditorView {
             self.comment_locations.clone(),
             self.display_options.expand_diff_indicator_width_on_hover,
             self.display_options.gutter_hover_target,
-            self.comment_save_position_id.clone(),
             self.find_references_save_position_id.clone(),
         );
 
@@ -2215,7 +2183,7 @@ impl View for CodeEditorView {
             .pending_comment;
         // Check if there's an open comment in the model and set the comment box
         if let PendingComment::Open { line, .. } = pending_comment {
-            code_editor.set_comment_box(line.clone(), app);
+            code_editor.set_comment_box(line.clone());
         }
 
         // Set find references anchor if there's an active request

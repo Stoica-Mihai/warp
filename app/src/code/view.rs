@@ -582,7 +582,6 @@ impl CodeView {
                 me.focus_contents(ctx);
             }
             LocalCodeEditorEvent::CommentSaved { .. }
-            | LocalCodeEditorEvent::RequestOpenComment(_)
             | LocalCodeEditorEvent::DeleteComment { .. } => {
                 // Comment events are handled by CodeReviewView, not CodeView
             }

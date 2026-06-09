@@ -26,7 +26,6 @@ impl ScrollWheelBehavior {
 #[derive(Clone)]
 pub enum ScrollPosition {
     LineAndColumn(LineAndColumnArg),
-    FocusedDiffHunk,
 }
 
 /// We don't want to scroll to the provided line number until the content has

@@ -44,13 +44,6 @@ pub const GUTTER_WIDTH: f32 = 94.;
 const VERTICAL_DIFF_HUNK_INDICATOR_WIDTH: f32 = 3.;
 const VERTICAL_DIFF_HUNK_INDICATOR_HOVERED_WIDTH: f32 = 8.;
 
-fn highlight_element(appearance: &Appearance) -> Box<dyn Element> {
-    let border_color = appearance.theme().accent();
-    Container::new(Empty::new().finish())
-        .with_border(Border::all(2.).with_border_fill(border_color))
-        .finish()
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChangeType {
     Add,
@@ -351,7 +344,6 @@ pub struct LineNumberConfig {
 }
 
 struct CommentBox {
-    line_highlight_element: Box<dyn Element>,
     line: EditorLineLocation,
 }
 
@@ -392,7 +384,6 @@ pub struct EditorWrapper<V: EditorView> {
     saved_comments: Vec<SavedComment>,
     gutter_element_hover_target: GutterHoverTarget,
     expand_diff_indicator_width_on_hover: bool,
-    comment_save_position_id: String,
     find_references_save_position_id: String,
     /// The line where find references card is anchored (if active).
     find_references_anchor: Option<EditorLineLocation>,
@@ -491,7 +482,6 @@ impl<V: EditorView> EditorWrapper<V> {
         saved_comments: Vec<SavedComment>,
         expand_diff_indicator_width_on_hover: bool,
         gutter_element_hover_target: GutterHoverTarget,
-        comment_save_position_id: String,
         find_references_save_position_id: String,
     ) -> Self {
         Self {
@@ -515,19 +505,14 @@ impl<V: EditorView> EditorWrapper<V> {
             gutter_element_hover_target,
             comment_box: None,
             saved_comments,
-            comment_save_position_id,
             find_references_save_position_id,
             find_references_anchor: None,
         }
     }
 
     /// Set the comment box to be displayed at a specific line
-    pub fn set_comment_box(&mut self, line: EditorLineLocation, app: &AppContext) {
-        let appearance = Appearance::as_ref(app);
-        self.comment_box = Some(CommentBox {
-            line_highlight_element: highlight_element(appearance),
-            line,
-        });
+    pub fn set_comment_box(&mut self, line: EditorLineLocation) {
+        self.comment_box = Some(CommentBox { line });
     }
 
     /// Set the find references anchor line for position caching

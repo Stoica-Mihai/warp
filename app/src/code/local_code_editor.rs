@@ -138,7 +138,6 @@ pub enum LocalCodeEditorEvent {
     CommentSaved {
         comment: EditorReviewComment,
     },
-    RequestOpenComment(CommentId),
     DeleteComment {
         id: CommentId,
     },
@@ -317,7 +316,7 @@ impl LocalCodeEditorView {
         });
 
         ctx.subscribe_to_view(&editor, |me, _, event, ctx| match event {
-            CodeEditorEvent::UnifiedDiffComputed(_) => {
+            CodeEditorEvent::UnifiedDiffComputed => {
                 ctx.emit(LocalCodeEditorEvent::DiffAccepted);
             }
             CodeEditorEvent::ContentChanged { origin, .. } => {
@@ -428,9 +427,6 @@ impl LocalCodeEditorView {
             }
             CodeEditorEvent::DeleteComment { id } => {
                 ctx.emit(LocalCodeEditorEvent::DeleteComment { id: *id });
-            }
-            CodeEditorEvent::RequestOpenComment(uuid) => {
-                ctx.emit(LocalCodeEditorEvent::RequestOpenComment(*uuid));
             }
             CodeEditorEvent::ViewportUpdated => {
                 ctx.emit(LocalCodeEditorEvent::ViewportUpdated);

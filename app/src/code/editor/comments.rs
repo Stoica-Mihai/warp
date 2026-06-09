@@ -8,7 +8,6 @@ use crate::code_review::comments::{
 
 #[derive(Debug, Clone)]
 pub enum PendingCommentEvent {
-    NewPendingComment(EditorLineLocation),
     ReopenPendingComment {
         id: CommentId,
         line: EditorLineLocation,

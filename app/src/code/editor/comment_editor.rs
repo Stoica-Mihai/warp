@@ -213,17 +213,13 @@ impl CommentEditor {
         event: &PendingCommentEvent,
         ctx: &mut ViewContext<Self>,
     ) {
-        match event {
-            PendingCommentEvent::NewPendingComment(line) => self.attach_to_line(line, ctx),
-            PendingCommentEvent::ReopenPendingComment {
-                id,
-                line,
-                comment_text,
-                origin,
-            } => {
-                self.reopen_saved_comment(id, Some(line.clone()), comment_text, origin, ctx);
-            }
-        }
+        let PendingCommentEvent::ReopenPendingComment {
+            id,
+            line,
+            comment_text,
+            origin,
+        } = event;
+        self.reopen_saved_comment(id, Some(line.clone()), comment_text, origin, ctx);
     }
 
     fn handle_editor_event(&mut self, event: &EditorViewEvent, ctx: &mut ViewContext<Self>) {

@@ -3115,33 +3115,6 @@ impl CodeReviewView {
             LocalCodeEditorEvent::DeleteComment { id } => {
                 self.delete_comment_by_id(*id, ctx);
             }
-            LocalCodeEditorEvent::RequestOpenComment(comment_id) => {
-                let Some(existing_comment) = self.get_comment_by_id(*comment_id, ctx) else {
-                    log::warn!("Tried to reopen non-existent comment with ID {comment_id:?}");
-                    return;
-                };
-                match &existing_comment.target {
-                    AttachedReviewCommentTarget::Line { line, .. } => {
-                        let comment_text = &existing_comment.content;
-                        let origin = &existing_comment.origin;
-                        editor.update(ctx, |local_code_editor, ctx| {
-                            local_code_editor.editor().update(ctx, |code_editor, ctx| {
-                                code_editor.open_existing_comment(
-                                    comment_id,
-                                    line,
-                                    comment_text,
-                                    origin,
-                                    ctx,
-                                );
-                            });
-                        });
-                    }
-                    AttachedReviewCommentTarget::File { .. }
-                    | AttachedReviewCommentTarget::General => {
-                        log::error!("Tried to reopen a non-line review comment.");
-                    }
-                }
-            }
             LocalCodeEditorEvent::DiffStatusUpdated => {}
             LocalCodeEditorEvent::ViewportUpdated => {}
             LocalCodeEditorEvent::LayoutInvalidated => {
