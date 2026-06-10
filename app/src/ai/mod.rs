@@ -5,7 +5,6 @@ pub(crate) mod agent_icons;
 pub(crate) mod agent_types;
 pub(crate) mod conversation_types;
 pub mod ambient_agents;
-pub(crate) mod attachment_utils;
 #[cfg(not(target_family = "wasm"))]
 pub(crate) mod blocklist;
 pub(crate) mod conversation_navigation;
