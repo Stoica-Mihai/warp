@@ -89,7 +89,6 @@ pub struct WorkspaceState {
     pub is_theme_deletion_modal_open: bool,
     pub is_changelog_modal_open: bool,
     pub is_tab_being_dragged: bool,
-    pub is_reward_modal_open: bool,
     pub is_launch_config_save_modal_open: bool,
     pub is_command_search_open: bool,
     pub is_warp_drive_open: bool,
@@ -118,7 +117,6 @@ impl WorkspaceState {
             || self.is_changelog_modal_open
             || self.tab_being_renamed.is_some()
             || self.pane_being_renamed.is_some()
-            || self.is_reward_modal_open
             || self.is_launch_config_save_modal_open
             || self.is_command_search_open
             || self.is_prompt_editor_open
@@ -146,7 +144,6 @@ impl WorkspaceState {
         self.is_changelog_modal_open = false;
         self.tab_being_renamed = None;
         self.pane_being_renamed = None;
-        self.is_reward_modal_open = false;
         self.is_launch_config_save_modal_open = false;
         self.is_command_search_open = false;
         self.is_prompt_editor_open = false;

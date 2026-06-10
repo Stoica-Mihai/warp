@@ -26,7 +26,6 @@ use crate::editor::{
     EditorView, Event as EditorEvent, PropagateAndNoOpNavigationKeys, SingleLineEditorOptions,
     TextOptions,
 };
-use crate::referral_theme_status::ReferralThemeStatus;
 use crate::report_if_error;
 use crate::resource_center::{
     mark_feature_used_and_write_to_user_defaults, Tip, TipAction, TipsCompleted,
@@ -140,7 +139,6 @@ pub struct ThemeChooser {
     filtered_themes: Tracked<Option<Vec<ThemeChooserItem>>>,
     mode: ThemeChooserMode,
     search_editor: ViewHandle<EditorView>,
-    referral_theme_status: ModelHandle<ReferralThemeStatus>,
     tips_completed: ModelHandle<TipsCompleted>,
     window_id: warpui::WindowId,
 }
@@ -167,22 +165,9 @@ pub fn init(app: &mut AppContext) {
     ]);
 }
 
-fn theme_chooser_items(
-    referral_theme_status: &ReferralThemeStatus,
-    theme_config: &WarpThemeConfig,
-) -> Vec<ThemeChooserItem> {
-    let sent_referral_theme_active = referral_theme_status.sent_referral_theme_active();
-    let received_referral_theme_active = referral_theme_status.received_referral_theme_active();
-
+fn theme_chooser_items(theme_config: &WarpThemeConfig) -> Vec<ThemeChooserItem> {
     let mut theme_items: Vec<ThemeChooserItem> = theme_config
         .theme_items()
-        .filter(|(key, _)| match key {
-            // Only show the referral reward themes if they are active
-            ThemeKind::SentReferralReward => sent_referral_theme_active,
-            ThemeKind::ReceivedReferralReward => received_referral_theme_active,
-            // All other themes should show up always
-            _ => true,
-        })
         .map(|(key, theme)| ThemeChooserItem::new(key.clone(), theme.clone()))
         .collect();
     theme_items.sort_by(|a, b| a.kind.cmp(&b.kind));
@@ -191,7 +176,6 @@ fn theme_chooser_items(
 
 impl ThemeChooser {
     pub fn new(
-        referral_theme_status: ModelHandle<ReferralThemeStatus>,
         ctx: &mut ViewContext<Self>,
         tips_completed: ModelHandle<TipsCompleted>,
     ) -> Self {
@@ -210,10 +194,6 @@ impl ThemeChooser {
 
         ctx.subscribe_to_view(&search_editor, move |me, _, event, ctx| {
             me.handle_editor_event(event, ctx);
-        });
-
-        ctx.subscribe_to_model(&referral_theme_status, |me, _, _, ctx| {
-            me.update_themes(ctx);
         });
 
         let warp_config_handle = WarpConfig::handle(ctx);
@@ -237,10 +217,7 @@ impl ThemeChooser {
             }
         });
 
-        let themes = theme_chooser_items(
-            referral_theme_status.as_ref(ctx),
-            WarpConfig::as_ref(ctx).theme_config(),
-        );
+        let themes = theme_chooser_items(WarpConfig::as_ref(ctx).theme_config());
 
         Self {
             themes: Tracked::new(themes),
@@ -252,7 +229,6 @@ impl ThemeChooser {
             filtered_themes: Tracked::new(None),
             mode: ThemeChooserMode::for_active_theme(ctx),
             search_editor,
-            referral_theme_status,
             tips_completed,
             window_id: ctx.window_id(),
         }
@@ -499,10 +475,7 @@ impl ThemeChooser {
     }
 
     fn update_themes(&mut self, ctx: &mut ViewContext<Self>) {
-        *self.themes = theme_chooser_items(
-            self.referral_theme_status.as_ref(ctx),
-            WarpConfig::as_ref(ctx).theme_config(),
-        );
+        *self.themes = theme_chooser_items(WarpConfig::as_ref(ctx).theme_config());
     }
 
     fn up(&mut self, ctx: &mut ViewContext<Self>) {
