@@ -321,7 +321,7 @@ Consumers → core ordering. Full keep-boundary + file:line map in memory `ai-st
 
 - ~~Dead warp:// deep-link URI arms~~ ✅ DONE (`c8db119f`) — Folder/Notebook drive deep-link arms collapsed.
 
-- **Tiny residual dead (optional, low value):** `is_dummy_cloud_mode_session` (TerminalModel bool field, always-false, getter/setter zero-caller — harmless, no warning; removal = ctor-sig surgery across callers for ~0 gain). `QueryFilter::Drive`/`PaletteMode::WarpDrive` = the "Warp Drive" search over KEPT local cloud_object store (MCP/generic_string_objects) — functional, NOT dead (rename territory).
+- ~~`is_dummy_cloud_mode_session`~~ ✅ DONE (`783bf504`) — dead always-false TerminalModel bool field + getter/setter removed. **`QueryFilter::Drive`/`PaletteMode::WarpDrive`** = the "Warp Drive" search over KEPT local cloud_object store (MCP/generic_string_objects) — functional, NOT dead (rename territory).
 
 - **Referrals / `reward_view`** (Warp-proprietary feature, still LIVE) — `reward_view.rs` (RewardView referral-theme reward modal, registered typed-action-view in workspace) + `referral_theme_status.rs` (ReferralThemeStatus, woven into theme_chooser + GlobalResourceHandles) + `RewardKind::{SentReferralTheme,ReceivedReferralTheme}`. A real feature removal (own strip; verify the theme_chooser/GlobalResourceHandles coupling first — old KEEP note may be stale).
 
