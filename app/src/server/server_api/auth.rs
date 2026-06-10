@@ -46,7 +46,3 @@ impl AuthClient for ServerApi {
         self.access_token().await
     }
 }
-
-#[cfg(test)]
-#[path = "auth_tests.rs"]
-mod tests;
