@@ -278,29 +278,6 @@ watcher.workspace = true
 warp_files.workspace = true
 tantivy = "0.26.0"
 
-[target.'cfg(target_family = "wasm")'.dependencies]
-console_error_panic_hook = { version = "0.1.6" }
-# We only have an indirect dependency on this crate; we depend on reqwest-eventsource@0.6.0 which depends on
-# futures-timer@3.0.2. For whatever unfortunate reason, this crate doesn't automatically enable its feature
-# required for wasm-compatibility when targeting wasm. So we need to explicitly specify this dependency when
-# targeting wasm and leverage the fact that cargo enables the superset of enabled features for a given crate.
-futures-timer = { version = "3.0.2", features = ["wasm-bindgen"] }
-js-sys = "0.3.63"
-# Make sure we embed the data into the wasm binary even when running in debug
-# mode, as it cannot be read directly from the filesystem.
-rust-embed = { workspace = true, features = ["debug-embed"] }
-syntect = { version = "5.0", default-features = false, features = [
-    "default-fancy",
-] }
-wasm-bindgen.workspace = true
-# We need to make sure that "js" is enabled as a feature when using wasm.
-getrandom = { version = "0.2", features = ["js"] }
-gloo.workspace = true
-serde-wasm-bindgen = "0.6.5"
-# For wasm, we don't use the feature "embed-signatures".
-warp-command-signatures = { workspace = true }
-web-sys.workspace = true
-
 [target.'cfg(unix)'.dependencies]
 cvt = "0.1.1"
 signal-hook = "0.3.17"

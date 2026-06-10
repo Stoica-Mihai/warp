@@ -34,8 +34,6 @@ log.workspace = true
 [target.'cfg(windows)'.dependencies]
 windows.workspace = true
 
-[target.'cfg(target_family = "wasm")'.dependencies]
-gloo.workspace = true
 
 [dev-dependencies]
 futures-lite.workspace = true
