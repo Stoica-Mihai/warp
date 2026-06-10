@@ -114,12 +114,7 @@ impl FilterChipRenderer for QueryFilter {
             | QueryFilter::StaticSlashCommands
             | QueryFilter::Skills
             | QueryFilter::BaseModels
-            | QueryFilter::FullTerminalUseModels
-            | QueryFilter::CurrentDirectoryConversations => appearance
-                .theme()
-                .main_text_color(appearance.theme().surface_2())
-                .into_solid(),
-            QueryFilter::Conversations => appearance
+            | QueryFilter::FullTerminalUseModels => appearance
                 .theme()
                 .main_text_color(appearance.theme().surface_2())
                 .into_solid(),

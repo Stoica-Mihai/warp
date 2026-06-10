@@ -196,11 +196,7 @@ impl InlineHistoryMenuView {
             let mut mixer = SearchMixer::<AcceptHistoryItem>::new();
             mixer.add_sync_source(
                 data_source,
-                [
-                    QueryFilter::Commands,
-                    QueryFilter::Conversations,
-                    QueryFilter::PromptHistory,
-                ],
+                [QueryFilter::Commands, QueryFilter::PromptHistory],
             );
             mixer.run_query(
                 Query {

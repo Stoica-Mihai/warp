@@ -5,7 +5,6 @@ use warp_util::path::LineAndColumnArg;
 use warpui::keymap::BindingId;
 use warpui::{EntityId, WindowId};
 
-use crate::ai::conversation_types::AIConversationId;
 use crate::drive::CloudObjectTypeAndId;
 use crate::launch_configs::launch_config::LaunchConfig;
 use crate::search::command_palette::new_session::{NewSessionOption, NewSessionOptionId};
@@ -38,13 +37,6 @@ pub enum CommandPaletteItemAction {
         pane_group_id: EntityId,
         window_id: WindowId,
     },
-    /// Navigate to a specific conversation.
-    NavigateToConversation {
-        pane_view_locator: Option<PaneViewLocator>,
-        window_id: Option<WindowId>,
-        conversation_id: AIConversationId,
-        terminal_view_id: Option<EntityId>,
-    },
     OpenLaunchConfiguration {
         config: Arc<LaunchConfig>,
         /// See [`OpenLaunchConfigArg::open_in_active_window`].
@@ -70,8 +62,6 @@ pub enum CommandPaletteItemAction {
         path: String,
         project_name: String,
     },
-    /// Start a new AI conversation
-    NewConversation,
     /// No-op action (used for non-interactable separator items that don't do anything on click).
     NoOp,
 }
@@ -90,11 +80,6 @@ impl CommandPaletteItemAction {
             },
             CommandPaletteItemAction::NavigateToTab { pane_group_id, .. } => ItemSummary::Tab {
                 pane_group_id: *pane_group_id,
-            },
-            CommandPaletteItemAction::NavigateToConversation {
-                conversation_id, ..
-            } => ItemSummary::Conversation {
-                id: *conversation_id,
             },
             CommandPaletteItemAction::NewSession { source } => ItemSummary::NewSession {
                 id: source.id().clone(),
@@ -131,7 +116,6 @@ impl CommandPaletteItemAction {
             CommandPaletteItemAction::NewConversationInProject { path, .. } => {
                 ItemSummary::Project { path: path.clone() }
             }
-            CommandPaletteItemAction::NewConversation => ItemSummary::NewConversation,
             CommandPaletteItemAction::NoOp => ItemSummary::NoOp,
         }
     }
@@ -185,10 +169,6 @@ pub enum ItemSummary {
     Project {
         path: String,
     },
-    Conversation {
-        id: AIConversationId,
-    },
-    NewConversation,
     /// No-op action (used for non-interactable separator items that don't do anything on click).
     NoOp,
 }

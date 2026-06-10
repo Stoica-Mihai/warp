@@ -169,9 +169,6 @@ pub enum QueryFilter {
     /// Filter results for open tabs.
     Tabs,
 
-    /// Filter results for all conversations.
-    Conversations,
-
     /// Filter results for launch configurations.
     LaunchConfigurations,
 
@@ -212,9 +209,6 @@ pub enum QueryFilter {
 
     /// Filter results for full terminal use (CLI) models in the inline model selector.
     FullTerminalUseModels,
-
-    /// Include only conversations whose most recent directory matches the session's current working directory.
-    CurrentDirectoryConversations,
 }
 
 impl QueryFilter {
@@ -236,7 +230,6 @@ impl QueryFilter {
             QueryFilter::Actions => "Search actions",
             QueryFilter::Sessions => "Search sessions",
             QueryFilter::Tabs => "Search tabs",
-            QueryFilter::Conversations => "Search conversations",
             QueryFilter::LaunchConfigurations => "Search launch configurations",
             QueryFilter::Drive => "Search objects in drive",
             QueryFilter::PromptHistory => "Search prompt history",
@@ -251,9 +244,6 @@ impl QueryFilter {
             QueryFilter::Skills => "Search skills",
             QueryFilter::BaseModels => "Search base models",
             QueryFilter::FullTerminalUseModels => "Search full terminal use models",
-            QueryFilter::CurrentDirectoryConversations => {
-                "Search conversations in current directory"
-            }
         }
     }
 
@@ -269,7 +259,6 @@ impl QueryFilter {
             QueryFilter::Actions => &ACTIONS_FILTER_ATOM,
             QueryFilter::Sessions => &SESSIONS_FILTER_ATOM,
             QueryFilter::Tabs => &NO_FILTER_ATOM,
-            QueryFilter::Conversations => &CONVERSATIONS_FILTER_ATOM,
             QueryFilter::LaunchConfigurations => &LAUNCH_CONFIG_FILTER_ATOM,
             QueryFilter::Drive => &DRIVE_FILTER_ATOM,
             QueryFilter::PromptHistory => &AI_PROMPTS_FILTER_ATOM,
@@ -284,7 +273,6 @@ impl QueryFilter {
             QueryFilter::Skills => &NO_FILTER_ATOM,
             QueryFilter::BaseModels => &NO_FILTER_ATOM,
             QueryFilter::FullTerminalUseModels => &NO_FILTER_ATOM,
-            QueryFilter::CurrentDirectoryConversations => &NO_FILTER_ATOM,
         }
     }
 
@@ -300,7 +288,6 @@ impl QueryFilter {
             QueryFilter::Actions => "actions",
             QueryFilter::Sessions => "sessions",
             QueryFilter::Tabs => "tabs",
-            QueryFilter::Conversations => "conversations",
             QueryFilter::LaunchConfigurations => "launch configurations",
             QueryFilter::Drive => "Warp Drive",
             QueryFilter::PromptHistory => "prompt history",
@@ -315,7 +302,6 @@ impl QueryFilter {
             QueryFilter::Skills => "skills",
             QueryFilter::BaseModels => "base models",
             QueryFilter::FullTerminalUseModels => "full terminal use models",
-            QueryFilter::CurrentDirectoryConversations => "current directory conversations",
         }
     }
 
@@ -336,7 +322,6 @@ impl QueryFilter {
             QueryFilter::Actions => None,
             QueryFilter::Sessions => Some("bundled/svg/terminal-input.svg"),
             QueryFilter::Tabs => Some("bundled/svg/terminal-input.svg"),
-            QueryFilter::Conversations => Some("bundled/svg/conversation.svg"),
             QueryFilter::LaunchConfigurations => Some("bundled/svg/navigation.svg"),
             QueryFilter::Drive => Some("bundled/svg/warp-drive.svg"),
             QueryFilter::AgentModeWorkflows | QueryFilter::PromptHistory => {
@@ -353,7 +338,6 @@ impl QueryFilter {
             QueryFilter::Skills => None,
             QueryFilter::BaseModels => None,
             QueryFilter::FullTerminalUseModels => None,
-            QueryFilter::CurrentDirectoryConversations => None,
         }
     }
 }

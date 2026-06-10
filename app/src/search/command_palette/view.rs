@@ -44,9 +44,7 @@ use crate::session_management::SessionSource;
 use crate::settings::CtrlTabBehavior;
 use crate::terminal::keys_settings::KeysSettings;
 use crate::themes::theme::WarpTheme;
-use crate::view_components::DismissibleToast;
-use crate::workspace::{active_terminal_in_window, WorkspaceAction};
-use crate::ToastStack;
+use crate::workspace::WorkspaceAction;
 
 lazy_static! {
     /// Set of hardcoded action names that we want to show in the command palette zero state.
@@ -371,7 +369,6 @@ impl View {
                 | (PaletteMode::Navigation, QueryFilter::Sessions)
                 | (PaletteMode::LaunchConfig, QueryFilter::LaunchConfigurations)
                 | (PaletteMode::Files, QueryFilter::Files)
-                | (PaletteMode::Conversations, QueryFilter::Conversations)
                 | (PaletteMode::WarpDrive, QueryFilter::Drive)
         )
     }
@@ -720,14 +717,6 @@ impl View {
                         return;
                     }
                     Some(WorkspaceAction::TogglePalette {
-                        mode: PaletteMode::Conversations,
-                        source: _,
-                    }) => {
-                        self.reset(ctx);
-                        self.set_active_query_filter(QueryFilter::Conversations, ctx);
-                        return;
-                    }
-                    Some(WorkspaceAction::TogglePalette {
                         mode: PaletteMode::Command,
                         source: _,
                     }) => {
@@ -770,38 +759,6 @@ impl View {
                         &pane_group_id,
                     );
                 }
-            }
-            CommandPaletteItemAction::NavigateToConversation {
-                pane_view_locator,
-                window_id,
-                conversation_id,
-                terminal_view_id,
-            } => {
-                let should_block = false;
-
-                if should_block {
-                    if let Some(window_id) = window_id {
-                        ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                            toast_stack.add_ephemeral_toast(
-                                DismissibleToast::error(
-                                    "Cannot switch conversations while agent is monitoring a command."
-                                        .to_string(),
-                                ),
-                                window_id,
-                                ctx,
-                            );
-                        });
-                    }
-                    return;
-                }
-
-                ctx.dispatch_typed_action(&WorkspaceAction::RestoreOrNavigateToConversation {
-                    pane_view_locator,
-                    window_id,
-                    conversation_id,
-                    terminal_view_id,
-                    restore_layout: None,
-                });
             }
             CommandPaletteItemAction::OpenLaunchConfiguration {
                 open_in_active_window,
@@ -881,42 +838,6 @@ impl View {
                 log::warn!(
                     "OpenProjectConvo action unexpectedly handled in command palette for project: {project_name}"
                 );
-            }
-            CommandPaletteItemAction::NewConversation => {
-                let window_id = match self.binding_source.as_ref(ctx) {
-                    BindingSource::View { window_id, .. } => *window_id,
-                    BindingSource::None => return,
-                };
-
-                let (terminal_view_id, can_start_new_conversation) = {
-                    let terminal_view_id =
-                        active_terminal_in_window(window_id, ctx, |terminal_view, _| {
-                            terminal_view.id()
-                        });
-
-                    let should_block = false;
-
-                    (terminal_view_id, should_block)
-                };
-
-                if can_start_new_conversation {
-                    ToastStack::handle(ctx).update(ctx, |toast_stack, ctx| {
-                        toast_stack.add_ephemeral_toast(
-                            DismissibleToast::error(
-                                "Cannot start a new conversation while agent is monitoring a command.".to_string(),
-                            ),
-                            window_id,
-                            ctx,
-                        );
-                    });
-                    return;
-                }
-
-                if let Some(terminal_view_id) = terminal_view_id {
-                    ctx.dispatch_typed_action(&WorkspaceAction::StartNewConversation {
-                        terminal_view_id,
-                    });
-                }
             }
             CommandPaletteItemAction::NoOp => {
                 // No-op action (used for non-interactable separator items that don't do anything on click).
