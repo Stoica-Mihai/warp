@@ -325,7 +325,7 @@ Consumers → core ordering. Full keep-boundary + file:line map in memory `ai-st
 
 - ~~`is_dummy_cloud_mode_session`~~ ✅ DONE (`783bf504`) — dead always-false TerminalModel bool field + getter/setter removed. **`QueryFilter::Drive`/`PaletteMode::WarpDrive`** = the "Warp Drive" search over KEPT local cloud_object store (MCP/generic_string_objects) — functional, NOT dead (rename territory).
 
-- **Referrals / `reward_view`** (Warp-proprietary feature, still LIVE) — `reward_view.rs` (RewardView referral-theme reward modal, registered typed-action-view in workspace) + `referral_theme_status.rs` (ReferralThemeStatus, woven into theme_chooser + GlobalResourceHandles) + `RewardKind::{SentReferralTheme,ReceivedReferralTheme}`. A real feature removal (own strip; verify the theme_chooser/GlobalResourceHandles coupling first — old KEEP note may be stale).
+- ~~**Referrals / `reward_view`**~~ ✅ DONE (`3909f1fd`, −0.21 MB) — RewardView modal + ReferralThemeStatus + ReferralThemeEvent + ThemeKind::{Sent,Received}ReferralReward + builders + workspace wiring + ContextFlag::ShowRewardModal removed. Migration-safe (error-tolerant theme loader). theme_chooser/GRH coupling severed cleanly.
 
 - ~~cloud-handoff increment 2/3~~ ✅ DONE S61. ~~Frontier B — `ai/agent/` AIConversation keystone~~ ✅ DONE S58. ~~cloud_preferences Increment B~~ ✅ DONE S56–59. ~~cloud_object CR1–CR8~~ ✅ DONE S64–66.
 
