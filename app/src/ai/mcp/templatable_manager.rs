@@ -1,15 +1,9 @@
-#[cfg(not(target_family = "wasm"))]
 mod native;
-#[cfg(not(target_family = "wasm"))]
 pub use native::McpIntegration;
-#[cfg(not(target_family = "wasm"))]
 mod oauth;
-#[cfg(not(target_family = "wasm"))]
 mod utils;
-#[cfg(target_family = "wasm")]
-mod wasm;
 
-#[cfg(all(test, not(target_family = "wasm")))]
+#[cfg(test)]
 mod utils_tests;
 
 use std::collections::HashMap;

@@ -8,8 +8,6 @@ mod startup_directory;
 #[path = "view_tests.rs"]
 mod tests;
 mod vertical_tabs;
-#[cfg(target_family = "wasm")]
-mod wasm_view;
 
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};

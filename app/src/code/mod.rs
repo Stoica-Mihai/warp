@@ -11,8 +11,6 @@ use warpui::AppContext;
 pub mod find_references_view;
 #[cfg(not(target_family = "wasm"))]
 pub mod language_server_extension;
-#[cfg_attr(not(target_family = "wasm"), path = "local_code_editor.rs")]
-#[cfg_attr(target_family = "wasm", path = "local_code_editor_wasm.rs")]
 pub mod local_code_editor;
 #[cfg(not(target_family = "wasm"))]
 pub use local_code_editor::ShowFindReferencesCard;
@@ -110,8 +108,6 @@ pub mod active_file;
 pub mod opened_files;
 pub use icon::icon_from_file_path;
 
-#[cfg_attr(not(target_family = "wasm"), path = "view.rs")]
-#[cfg_attr(target_family = "wasm", path = "wasm.rs")]
 pub mod view;
 
 pub fn init(app: &mut AppContext) {
