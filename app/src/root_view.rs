@@ -29,10 +29,8 @@ use crate::ai::conversation_types::ServerConversationToken;
 use crate::ai::blocklist::SerializedBlockListItem;
 use crate::app_state::{AppState, PaneUuid, WindowSnapshot};
 use crate::appearance::Appearance;
-use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::ObjectType;
-use crate::drive::WarpDriveItemId;
-use crate::drive::{CloudObjectTypeAndId, OpenWarpDriveObjectArgs, OpenWarpDriveObjectSettings};
+use crate::drive::{OpenWarpDriveObjectArgs, OpenWarpDriveObjectSettings};
 use crate::interval_timer::IntervalTimer;
 use crate::launch_configs::launch_config;
 use crate::linear::LinearIssueWork;
@@ -1364,41 +1362,10 @@ impl RootView {
         arg: &OpenWarpDriveObjectArgs,
         ctx: &mut ViewContext<Self>,
     ) -> bool {
-        let handle = &self.workspace;
-        {
-            let cloud_model = CloudModel::as_ref(ctx);
-
-            match arg.object_type {
-                ObjectType::Workflow => {}
-                ObjectType::Folder => {
-                    if cloud_model.get_by_uid(&arg.server_id.uid()).is_none() {
-                        display_object_missing_error_in_window(ctx.window_id(), ctx);
-                        return false;
-                    }
-
-                    let item_id = WarpDriveItemId::Object(CloudObjectTypeAndId::Folder(
-                        SyncId::ServerId(arg.server_id),
-                    ));
-                    handle.update(ctx, |workspace, ctx| {
-                        let initialized_section_states =
-                            workspace.has_warp_drive_initialized_sections(ctx);
-                        let _ = ctx.spawn(initialized_section_states, move |workspace, _, ctx| {
-                            workspace.view_in_and_focus_warp_drive(item_id, ctx);
-                        });
-                    });
-                }
-                _ => {
-                    log::info!(
-                        "Object type {:?} not support yet for opening via link",
-                        arg.object_type
-                    )
-                }
-            }
-
-            let window_id = ctx.window_id();
-            ctx.windows().show_window_and_focus_app(window_id);
-            ctx.notify();
-        }
+        log::info!("Object type {:?} not supported for opening via link", arg.object_type);
+        let window_id = ctx.window_id();
+        ctx.windows().show_window_and_focus_app(window_id);
+        ctx.notify();
         true
     }
 

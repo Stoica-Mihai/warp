@@ -8764,12 +8764,6 @@ impl Workspace {
                         ))),
                         ctx,
                     ),
-                    ObjectType::Folder => self.view_in_and_focus_warp_drive(
-                        WarpDriveItemId::Object(CloudObjectTypeAndId::Folder(SyncId::ServerId(
-                            server_id,
-                        ))),
-                        ctx,
-                    ),
                     _ => {
                         log::warn!("Attempted to open an unsupported Warp Drive link")
                     }
