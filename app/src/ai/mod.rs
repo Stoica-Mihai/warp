@@ -7,7 +7,6 @@ pub(crate) mod conversation_types;
 #[cfg(not(target_family = "wasm"))]
 pub(crate) mod blocklist;
 pub(crate) mod conversation_status_ui;
-pub(crate) mod document;
 pub(crate) mod persisted_workspace;
 pub(crate) mod skills;
 use warpui::AppContext;

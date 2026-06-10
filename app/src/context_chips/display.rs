@@ -16,7 +16,6 @@ use super::{git_line_changes_from_chips, ChipResult};
 #[cfg(feature = "integration_tests")]
 use super::ContextChipKind;
 use crate::ai::blocklist::{BlocklistAIInputEvent, BlocklistAIInputModel};
-use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentVersion};
 use crate::completer::SessionContext;
 use crate::context_chips::display_chip::{format_git_branch_command, DisplayChipAction};
 use crate::settings::InputSettings;
@@ -80,10 +79,6 @@ pub enum PromptDisplayEvent {
     OpenCommandPaletteFiles,
     RunAgentQuery(String),
     TryExecuteCommand(String),
-    OpenAIDocument {
-        document_id: AIDocumentId,
-        document_version: AIDocumentVersion,
-    },
 }
 
 impl PromptDisplay {
@@ -233,16 +228,6 @@ impl PromptDisplay {
                 }
                 PromptDisplayChipEvent::TryExecuteCommand(cmd) => {
                     ctx.emit(PromptDisplayEvent::TryExecuteCommand(cmd.clone()));
-                    ctx.notify();
-                }
-                PromptDisplayChipEvent::OpenAIDocument {
-                    document_id,
-                    document_version,
-                } => {
-                    ctx.emit(PromptDisplayEvent::OpenAIDocument {
-                        document_id: *document_id,
-                        document_version: *document_version,
-                    });
                     ctx.notify();
                 }
             });

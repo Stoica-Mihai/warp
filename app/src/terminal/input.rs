@@ -6,7 +6,6 @@ pub mod decorations;
 pub mod inline_history;
 pub mod inline_menu;
 pub mod message_bar;
-pub mod plans;
 pub mod prompts;
 pub mod repos;
 pub mod skills;
@@ -117,7 +116,6 @@ use crate::ai::blocklist::{
     BlocklistAIInputEvent, BlocklistAIInputModel, InputConfig, InputType,
     InputTypeAutoDetectionSource,
 };
-use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentVersion};
 use crate::ai::mcp::TemplatableMCPServerManager;
 use crate::ai::skills::SkillManager;
 use crate::appearance::{Appearance, AppearanceEvent};
@@ -181,7 +179,6 @@ use crate::terminal::cli_agent_sessions::{
 use crate::terminal::input::buffer_model::InputBufferModel;
 use crate::terminal::input::inline_history::InlineHistoryMenuView;
 use crate::terminal::input::inline_menu::InlineMenuPositioner;
-use crate::terminal::input::plans::{InlinePlanMenuEvent, InlinePlanMenuView};
 use crate::terminal::input::prompts::{InlinePromptsMenuEvent, InlinePromptsMenuView};
 use crate::terminal::input::repos::{InlineReposMenuEvent, InlineReposMenuView};
 use crate::terminal::input::skills::{InlineSkillSelectorEvent, InlineSkillSelectorView};
@@ -403,7 +400,6 @@ pub enum TelemetryInputSuggestionsMode {
     SkillMenu,
     InlineHistoryMenu,
     IndexedReposMenu,
-    PlanMenu,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -544,11 +540,6 @@ pub enum InputSuggestionsMode {
     /// Indexed repos switcher menu mode.
     IndexedReposMenu,
 
-    /// Plan menu mode for selecting among multiple AI document plans.
-    PlanMenu {
-        conversation_id: AIConversationId,
-    },
-
     /// Mode indicating that no suggestion UI is being shown.
     Closed,
 }
@@ -577,7 +568,6 @@ impl InputSuggestionsMode {
                 | Self::ConversationMenu
                 | Self::PromptsMenu
                 | Self::InlineHistoryMenu { .. }
-                | Self::PlanMenu { .. }
         ) || (FeatureFlag::InlineRepoMenu.is_enabled() && matches!(self, Self::IndexedReposMenu))
     }
 
@@ -605,7 +595,6 @@ impl InputSuggestionsMode {
             InputSuggestionsMode::ProfileSelector => Some("Search profiles"),
             InputSuggestionsMode::PromptsMenu => Some("Search prompts"),
             InputSuggestionsMode::IndexedReposMenu => Some("Search indexed repos"),
-            InputSuggestionsMode::PlanMenu { .. } => Some("Search plans"),
             _ => None,
         }
     }
@@ -749,16 +738,8 @@ pub enum Event {
         source: PaletteSource,
     },
     TryHandlePassiveCodeDiff(CodeDiffAction),
-    ToggleAIDocumentPane {
-        document_id: AIDocumentId,
-        document_version: AIDocumentVersion,
-    },
     SubmitCLIAgentInput {
         text: String,
-    },
-    OpenAIDocumentPane {
-        document_id: AIDocumentId,
-        document_version: AIDocumentVersion,
     },
     ShowToast {
         message: String,
@@ -1252,9 +1233,6 @@ pub struct Input {
     cloud_mode_v2_slash_commands_view: Option<ViewHandle<CloudModeV2SlashCommandView>>,
     slash_command_data_source: ModelHandle<SlashCommandDataSource>,
     cloud_mode_composer_slash_command_data_source: Option<ModelHandle<SlashCommandDataSource>>,
-
-    /// Inline plan menu for selecting among multiple plans.
-    inline_plan_menu_view: ViewHandle<InlinePlanMenuView>,
 
     /// Inline repos switcher menu.
     inline_repos_menu_view: ViewHandle<InlineReposMenuView>,
@@ -2116,19 +2094,6 @@ impl Input {
             me.handle_inline_skill_selector_event(event, ctx);
         });
 
-        let inline_plan_menu_view = ctx.add_view(|ctx| {
-            InlinePlanMenuView::new(
-                AIConversationId::default(),
-                suggestions_mode_model.clone(),
-                &inline_terminal_menu_positioner,
-                &buffer_model,
-                ctx,
-            )
-        });
-        ctx.subscribe_to_view(&inline_plan_menu_view, |me, _, event, ctx| {
-            me.handle_plan_menu_event(event, ctx);
-        });
-
         let inline_slash_commands_view = ctx.add_view(|ctx| {
             InlineSlashCommandView::new(
                 &slash_command_model,
@@ -2232,7 +2197,6 @@ impl Input {
             slash_command_model,
             inline_slash_commands_view,
             cloud_mode_v2_slash_commands_view,
-            inline_plan_menu_view,
             inline_repos_menu_view,
             inline_prompts_menu_view,
             inline_skill_selector_view,
@@ -2393,34 +2357,6 @@ impl Input {
             }
             self.clear_buffer_and_reset_undo_stack(ctx);
             self.focus_input_box(ctx);
-        }
-    }
-
-    fn handle_plan_menu_event(&mut self, event: &InlinePlanMenuEvent, ctx: &mut ViewContext<Self>) {
-        match event {
-            InlinePlanMenuEvent::OpenPlan {
-                document_id,
-                document_version,
-            } => {
-                ctx.emit(Event::OpenAIDocumentPane {
-                    document_id: *document_id,
-                    document_version: *document_version,
-                });
-                if self.suggestions_mode_model.as_ref(ctx).is_plan_menu() {
-                    self.suggestions_mode_model.update(ctx, |model, ctx| {
-                        model.set_mode(InputSuggestionsMode::Closed, ctx);
-                    });
-                    ctx.notify();
-                }
-            }
-            InlinePlanMenuEvent::Dismissed => {
-                if self.suggestions_mode_model.as_ref(ctx).is_plan_menu() {
-                    self.suggestions_mode_model.update(ctx, |model, ctx| {
-                        model.close_and_restore_buffer(ctx);
-                    });
-                    ctx.notify();
-                }
-            }
         }
     }
 
@@ -2672,15 +2608,6 @@ impl Input {
                         self.input_contents_before_prompt_chip_command = Some(current_input);
                     }
                 }
-            }
-            PromptDisplayEvent::OpenAIDocument {
-                document_id,
-                document_version,
-            } => {
-                ctx.emit(Event::ToggleAIDocumentPane {
-                    document_id: *document_id,
-                    document_version: *document_version,
-                });
             }
         }
     }
@@ -4138,9 +4065,6 @@ impl Input {
                     InputSuggestionsMode::IndexedReposMenu => {
                         // Repos menu selection is handled separately
                     }
-                    InputSuggestionsMode::PlanMenu { .. } => {
-                        // Plan menu selection is handled via InlinePlanMenuView
-                    }
                     InputSuggestionsMode::Closed => {
                         log::warn!("Got a InputSuggestionsEvent::Select when the mode was Closed!");
                     }
@@ -4278,10 +4202,6 @@ impl Input {
             }
             InputSuggestionsMode::IndexedReposMenu => {
                 // Repos menu selection is handled separately
-                false
-            }
-            InputSuggestionsMode::PlanMenu { .. } => {
-                // Plan menu selection is handled via InlinePlanMenuView
                 false
             }
         }
@@ -4491,12 +4411,6 @@ impl Input {
                 });
                 true
             }
-            InputSuggestionsMode::PlanMenu { .. } => {
-                self.inline_plan_menu_view.update(ctx, |view, ctx| {
-                    view.select_up(ctx);
-                });
-                true
-            }
             InputSuggestionsMode::ProfileSelector => false,
             InputSuggestionsMode::HistoryUp { .. }
             | InputSuggestionsMode::CompletionSuggestions { .. }
@@ -4694,12 +4608,6 @@ impl Input {
             }
             InputSuggestionsMode::IndexedReposMenu => {
                 self.inline_repos_menu_view.update(ctx, |view, ctx| {
-                    view.select_down(ctx);
-                });
-                true
-            }
-            InputSuggestionsMode::PlanMenu { .. } => {
-                self.inline_plan_menu_view.update(ctx, |view, ctx| {
                     view.select_down(ctx);
                 });
                 true
@@ -5384,9 +5292,6 @@ impl Input {
                     InputSuggestionsMode::IndexedReposMenu => {
                         // Repos menu handles its own state
                     }
-                    InputSuggestionsMode::PlanMenu { .. } => {
-                        // Plan menu handles its own state
-                    }
                 }
             }
             EditorEvent::BufferReplaced => {
@@ -5469,9 +5374,6 @@ impl Input {
                         }
                         InputSuggestionsMode::IndexedReposMenu => {
                             // Repos menu handles its own selection state
-                        }
-                        InputSuggestionsMode::PlanMenu { .. } => {
-                            // Plan menu handles its own selection state
                         }
                     }
                 }
@@ -7373,10 +7275,6 @@ impl Input {
         } else if self.suggestions_mode_model.as_ref(ctx).is_repos_menu() {
             self.inline_repos_menu_view
                 .update(ctx, |view, ctx| view.accept_selected_item(false, ctx));
-            return;
-        } else if self.suggestions_mode_model.as_ref(ctx).is_plan_menu() {
-            self.inline_plan_menu_view
-                .update(ctx, |view, ctx| view.accept_selected_item(ctx));
             return;
         } else if self.suggestions_mode_model.as_ref(ctx).is_slash_commands() {
             if false {

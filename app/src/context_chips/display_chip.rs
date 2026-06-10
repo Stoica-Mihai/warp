@@ -32,7 +32,6 @@ use super::{
     ContextChipKind,
 };
 use crate::ai::blocklist::BlocklistAIInputModel;
-use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentVersion};
 use crate::appearance::Appearance;
 use crate::code::editor::{add_color, remove_color};
 use crate::code_review::code_review_view::CODE_REVIEW_TOOLTIP_TEXT;
@@ -1531,10 +1530,6 @@ pub enum PromptDisplayChipEvent {
     OpenCommandPaletteFiles,
     TryExecuteCommand(String),
     RunAgentQuery(String),
-    OpenAIDocument {
-        document_id: AIDocumentId,
-        document_version: AIDocumentVersion,
-    },
 }
 
 impl TypedActionView for DisplayChip {

@@ -162,7 +162,6 @@ use crate::ai::blocklist::{
     InputTypeAutoDetectionSource,
     ATTACH_AS_AGENT_MODE_CONTEXT_TEXT,
 };
-use crate::ai::document::ai_document_model::{AIDocumentId, AIDocumentVersion};
 use crate::ai::execution_profiles::profiles::ClientProfileId;
 use crate::ai::loading::shimmering_warp_loading_text;
 #[cfg(feature = "local_fs")]
@@ -1256,20 +1255,6 @@ pub enum Event {
     TerminalViewStateChanged,
     ShowCommandSearch(CommandSearchOptions),
     OpenWarpDriveObjectInPane(ObjectUid),
-    ToggleAIDocumentPane {
-        document_id: AIDocumentId,
-        document_version: AIDocumentVersion,
-    },
-    /// Closes all visible AI document panes without opening a new one.
-    HideAIDocumentPanes,
-    /// Opens an AI document pane.
-    /// When `is_auto_open` is true, subject to conditions to check if auto opening is acceptable.
-    /// When `is_auto_open` is false (user-triggered), always opens unconditionally.
-    OpenAIDocumentPane {
-        document_id: AIDocumentId,
-        document_version: AIDocumentVersion,
-        is_auto_open: bool,
-    },
     OpenPromptEditor,
     OpenAgentToolbarEditor,
     OpenCLIAgentToolbarEditor,
@@ -10697,26 +10682,7 @@ impl TerminalView {
             InputEvent::TryHandlePassiveCodeDiff(action) => {
                 self.resolve_prompt_suggestion_diff(action.clone(), ctx);
             }
-            InputEvent::ToggleAIDocumentPane {
-                document_id,
-                document_version,
-            } => {
-                ctx.emit(Event::ToggleAIDocumentPane {
-                    document_id: *document_id,
-                    document_version: *document_version,
-                });
-            }
             InputEvent::SubmitCLIAgentInput { text: _ } => {}
-            InputEvent::OpenAIDocumentPane {
-                document_id,
-                document_version,
-            } => {
-                ctx.emit(Event::OpenAIDocumentPane {
-                    document_id: *document_id,
-                    document_version: *document_version,
-                    is_auto_open: false,
-                });
-            }
             InputEvent::ShowToast { message, flavor } => {
                 ctx.emit(Event::ShowToast {
                     message: message.clone(),
@@ -13611,7 +13577,6 @@ impl TypedActionView for TerminalView {
             | SetMarkedText { .. }
             | ResumeConversation
             | ForkConversationFromLastKnownGoodState
-            | ToggleAIDocumentPane
             | ClearMarkedText
             | StartLspServer => ActionAccessibilityContent::from_debug(),
             #[cfg(feature = "local_fs")]
@@ -14014,7 +13979,6 @@ impl TypedActionView for TerminalView {
             ToggleQueueNextPrompt => {}
             ResumeConversation => {}
             ForkConversationFromLastKnownGoodState => {}
-            ToggleAIDocumentPane => {}
             ToggleTodoPopup => {}
             CloseTodoPopup => {}
             ToggleCodeReviewPane { entrypoint } => {

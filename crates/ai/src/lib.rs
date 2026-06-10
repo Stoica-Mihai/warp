@@ -1,6 +1,5 @@
 pub mod api_keys;
 pub mod diff_validation;
-pub mod document;
 pub mod gfm_table;
 pub mod index;
 pub mod paths;
