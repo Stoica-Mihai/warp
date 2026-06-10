@@ -141,7 +141,6 @@ use warp_cli::{CliCommand, GlobalOptions};
 #[cfg(feature = "local_fs")]
 use watcher::HomeDirectoryWatcher;
 
-#[cfg(not(target_family = "wasm"))]
 use crate::ai::mcp::{FileBasedMCPManager, FileMCPWatcher};
 
 pub mod workflows;
@@ -489,7 +488,6 @@ pub fn run() -> Result<()> {
                 let _ = socket_name;
                 panic!("The minidump server is not supported on this platform");
             }
-            #[cfg(not(target_family = "wasm"))]
             warp_cli::Command::Worker(warp_cli::WorkerCommand::RemoteServerProxy(args)) => {
                 // Proxy is a thin byte bridge (stdin/stdout ↔ Unix socket).
                 // It only needs logging to stderr since stdout is the protocol
@@ -501,13 +499,11 @@ pub fn run() -> Result<()> {
                 })?;
                 return crate::remote_server::run_proxy(args.identity_key.clone());
             }
-            #[cfg(not(target_family = "wasm"))]
             warp_cli::Command::Worker(warp_cli::WorkerCommand::RemoteServerDaemon(args)) => {
                 // Daemon handles its own full initialization (including
                 // initialize_app and crash reporting) inside run_daemon_app.
                 return crate::remote_server::run_daemon(args.identity_key.clone());
             }
-            #[cfg(not(target_family = "wasm"))]
             warp_cli::Command::Worker(warp_cli::WorkerCommand::RipgrepSearch {
                 parent,
                 ignore_case,
@@ -564,7 +560,6 @@ pub fn run() -> Result<()> {
             warp_cli::Command::DumpDebugInfo => {
                 return debug_dump::run();
             }
-            #[cfg(not(target_family = "wasm"))]
             warp_cli::Command::PrintTelemetryEvents => {
                 return Ok(());
             }
@@ -649,7 +644,6 @@ fn run_internal(mut launch_mode: LaunchMode) -> Result<()> {
     // Configure rustls to use its default crypto provider.  This MUST be called
     // before making any network requests that use TLS, otherwise rustls will
     // panic.
-    #[cfg(not(target_family = "wasm"))]
     rustls::crypto::aws_lc_rs::default_provider()
         .install_default()
         .expect("must be able to initialize crypto provider for TLS support");
@@ -830,7 +824,6 @@ fn run_internal(mut launch_mode: LaunchMode) -> Result<()> {
     );
 
     app_builder.run(move |ctx| {
-        #[cfg(not(target_family = "wasm"))]
         // Rotate the log files in the background.
         ctx.background_executor()
             .spawn(warp_logging::rotate_log_files())
@@ -1118,7 +1111,6 @@ pub(crate) fn initialize_app(
     ctx.add_singleton_model(|_ctx| SyncedInputState::new());
 
     ctx.add_singleton_model(remote_server::manager::RemoteServerManager::new);
-    #[cfg(not(target_family = "wasm"))]
     remote_server::wire_auth_token_rotation(ctx);
 
     log::info!(
@@ -1164,7 +1156,6 @@ pub(crate) fn initialize_app(
         }
     });
 
-    #[cfg(not(target_family = "wasm"))]
     {
         ctx.add_singleton_model(DirectoryWatcher::new);
         ctx.add_singleton_model(|_| DetectedRepositories::default());
@@ -1233,7 +1224,6 @@ pub(crate) fn initialize_app(
     ai::init(ctx);
     app_services::init(ctx);
     // // TODO: Temporarily disabling keybindings for WASM builds. Will be implemented in future WASM support.
-    #[cfg(not(target_family = "wasm"))]
     code::editor::find::view::init(ctx);
     workspace::init(ctx);
     pane_group::init(ctx);
@@ -1410,7 +1400,6 @@ pub(crate) fn initialize_app(
     });
 
     // When running natively, add the http server singleton to the application.
-    #[cfg(not(target_family = "wasm"))]
     ctx.add_singleton_model(move |ctx| {
         let routers = vec![
             app_installation_detection::make_router(),

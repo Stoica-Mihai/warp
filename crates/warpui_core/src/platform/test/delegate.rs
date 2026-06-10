@@ -517,12 +517,10 @@ impl platform::FontDB for FontDB {
         Ok(FamilyId(0))
     }
 
-    #[cfg(not(target_family = "wasm"))]
     fn load_from_system(&mut self, _font_family: &str) -> Result<FamilyId> {
         Ok(FamilyId(0))
     }
 
-    #[cfg(not(target_family = "wasm"))]
     fn load_all_system_fonts(
         &self,
     ) -> futures::future::BoxFuture<'static, Box<dyn platform::LoadedSystemFonts>> {
@@ -532,7 +530,6 @@ impl platform::FontDB for FontDB {
             .boxed()
     }
 
-    #[cfg(not(target_family = "wasm"))]
     fn process_loaded_system_fonts(
         &mut self,
         loaded_system_fonts: Box<dyn platform::LoadedSystemFonts>,

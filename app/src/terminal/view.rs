@@ -23,7 +23,6 @@ mod link_detection;
 mod open_in_warp;
 mod pane_impl;
 mod passive_suggestions;
-#[cfg(not(target_family = "wasm"))]
 pub(crate) mod plugin_instructions_block;
 pub mod rich_content;
 mod shell_terminated_banner;
@@ -77,7 +76,6 @@ use markdown_parser::FormattedTextFragment;
 use parking_lot::FairMutex;
 use pathfinder_color::ColorU;
 use regex::Regex;
-#[cfg(not(target_family = "wasm"))]
 use repo_metadata::repositories::DetectedRepositories;
 use repo_metadata::repositories::RepoDetectionSource;
 use serde::Serialize;
@@ -252,7 +250,6 @@ use crate::terminal::cli_agent_sessions::event::{
 use crate::terminal::cli_agent_sessions::listener::{
     is_agent_supported, CLIAgentSessionListener,
 };
-#[cfg(not(target_family = "wasm"))]
 use crate::terminal::cli_agent_sessions::plugin_manager::{plugin_manager_for, PluginModalKind};
 use crate::terminal::cli_agent_sessions::{
     CLIAgentSessionStatus, CLIAgentSessionsModel,
@@ -1438,7 +1435,6 @@ pub enum Event {
     OpenAgentProfileEditor {
         profile_id: ClientProfileId,
     },
-    #[cfg(not(target_family = "wasm"))]
     OpenPluginInstructionsPane(CLIAgent, PluginModalKind),
     ShowToast {
         message: String,
@@ -2967,7 +2963,6 @@ impl TerminalView {
                     RemoteServerManagerEvent::HostDisconnected { host_id } => {
                         #[cfg(target_family = "wasm")]
                         let _ = host_id;
-                        #[cfg(not(target_family = "wasm"))]
                         DetectedRepositories::handle(ctx).update(ctx, |repos, _| {
                             repos.remove_roots_for_host(host_id);
                         });
@@ -5112,7 +5107,6 @@ impl TerminalView {
 
                             match &repo_path_opt {
                                 Some(LocalOrRemotePath::Remote(remote_path)) => {
-                                    #[cfg(not(target_family = "wasm"))]
                                     DetectedRepositories::handle(ctx).update(
                                         ctx,
                                         |repos, _| {
@@ -5897,7 +5891,6 @@ impl TerminalView {
                 // that child via `kill_on_drop`, which closes the
                 // multiplexed channel on the ControlMaster so the foreground
                 // ssh can exit cleanly instead of hanging.
-                #[cfg(not(target_family = "wasm"))]
                 if FeatureFlag::SshRemoteServer.is_enabled() {
                     use crate::remote_server::manager::RemoteServerManager;
                     RemoteServerManager::handle(ctx).update(
@@ -6127,7 +6120,6 @@ impl TerminalView {
         // No SessionStart event in this path (mid-session install/update).
         // Assume the just-installed plugin meets the minimum version for this agent
         // so the update chip doesn't flash before the user runs /reload-plugins.
-        #[cfg(not(target_family = "wasm"))]
         let plugin_version =
             plugin_manager_for(agent).map(|m| m.minimum_plugin_version().to_owned());
         #[cfg(target_family = "wasm")]
@@ -6825,7 +6817,6 @@ impl TerminalView {
 
     
 
-    #[cfg(not(target_family = "wasm"))]
     pub(crate) fn remove_plugin_instructions_block(
         &mut self,
         block_handle: ViewHandle<plugin_instructions_block::PluginInstructionsBlock>,
@@ -7060,7 +7051,6 @@ impl TerminalView {
         }
     }
 
-    #[cfg(not(target_family = "wasm"))]
     pub(super) fn on_shell_determined(&self, ctx: &mut ViewContext<Self>) {
         // Start a timer for the initial session bootstrapping, so that we can log and show a
         // banner to the user if the bootstrapping takes too long
@@ -7071,7 +7061,6 @@ impl TerminalView {
         self.is_login_shell_bootstrapped
     }
 
-    #[cfg(not(target_family = "wasm"))]
     pub(super) fn on_pty_spawn_failed(
         &mut self,
         pty_spawn_error: anyhow::Error,
@@ -10643,7 +10632,6 @@ impl TerminalView {
             InputEvent::RegisterPluginListener(agent) => {
                 self.register_cli_agent_listener_without_session_start_event(*agent, ctx);
             }
-            #[cfg(not(target_family = "wasm"))]
             InputEvent::OpenPluginInstructionsPane(agent, kind) => {
                 ctx.emit(Event::OpenPluginInstructionsPane(*agent, *kind));
             }

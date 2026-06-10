@@ -135,7 +135,6 @@ pub fn init_pty_controller_model<Sender: EventLoopSender>(
 }
 
 /// Creates a [`RemoteServerController`] that orchestrates the SSH init flow.
-#[cfg(not(target_family = "wasm"))]
 pub fn init_remote_server_controller<Sender: EventLoopSender>(
     pty_controller: &ModelHandle<PtyController<Sender>>,
     model_events: &ModelHandle<ModelEventDispatcher>,

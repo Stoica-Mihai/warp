@@ -7,12 +7,9 @@ use warp_util::file::FileSaveError;
 use warpui::elements::DropTargetData;
 use warpui::AppContext;
 
-#[cfg(not(target_family = "wasm"))]
 pub mod find_references_view;
-#[cfg(not(target_family = "wasm"))]
 pub mod language_server_extension;
 pub mod local_code_editor;
-#[cfg(not(target_family = "wasm"))]
 pub use local_code_editor::ShowFindReferencesCard;
 pub mod buffer_location;
 pub mod diff_viewer;
@@ -21,7 +18,6 @@ pub mod editor_management;
 pub mod global_buffer_model;
 #[cfg(feature = "local_fs")]
 pub mod language_server_shutdown_manager;
-#[cfg(not(target_family = "wasm"))]
 pub mod lsp_logs;
 
 #[derive(Debug, thiserror::Error)]
@@ -113,7 +109,6 @@ pub mod view;
 pub fn init(app: &mut AppContext) {
     self::view::init(app);
     self::file_tree::init(app);
-    #[cfg(not(target_family = "wasm"))]
     self::find_references_view::init(app);
 }
 

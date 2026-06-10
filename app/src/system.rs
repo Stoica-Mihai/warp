@@ -6,10 +6,8 @@ cfg_if::cfg_if! {
     }
 }
 
-#[cfg(not(target_family = "wasm"))]
 use warpui::SingletonEntity;
 
-#[cfg(not(target_family = "wasm"))]
 pub fn long_os_version(ctx: &warpui::AppContext) -> Option<String> {
     crate::system::SystemInfo::as_ref(ctx)
         .long_os_version()

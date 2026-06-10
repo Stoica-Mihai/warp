@@ -3,7 +3,6 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::Result;
-#[cfg(not(target_arch = "wasm32"))]
 use command::r#async::Command;
 use lsp_types::{
     ClientCapabilities, ClientInfo, DidChangeWatchedFilesClientCapabilities, GotoCapability,
@@ -15,7 +14,6 @@ use lsp_types::{
 use crate::supported_servers::LSPServerType;
 
 /// Result of resolving an LSP server command, including the command and init params.
-#[cfg(not(target_arch = "wasm32"))]
 pub struct ResolvedLspCommand {
     pub command: Command,
     pub params: InitializeParams,
@@ -161,7 +159,6 @@ impl LspServerConfig {
     ///
     /// PATH takes precedence over custom installations. If the binary is available
     /// and working on PATH, we use that. Otherwise, we fall back to our custom installation.
-    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) async fn command_and_params(self) -> Result<ResolvedLspCommand> {
         // PATH takes precedence - only use custom installation if not working on PATH
         let executor = crate::CommandBuilder::new(self.path_env_var.clone());
@@ -221,7 +218,6 @@ pub(crate) fn path_to_lsp_uri(path: &Path) -> Result<Uri> {
     // url::Url::from_file_path handles percent-encoding internally but is not
     // available on WASM. LSP is not supported on WASM either, so the fallback
     // is a simple string concatenation.
-    #[cfg(not(target_arch = "wasm32"))]
     {
         let url = url::Url::from_file_path(path).map_err(|()| {
             anyhow::anyhow!("Failed to convert path to file URI: {}", path.display())

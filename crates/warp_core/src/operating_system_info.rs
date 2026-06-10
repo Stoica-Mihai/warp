@@ -38,7 +38,6 @@ pub struct OperatingSystemInfo {
 }
 
 impl OperatingSystemInfo {
-    #[cfg(not(target_family = "wasm"))]
     fn new() -> Result<Self, OperatingSystemInfoError> {
         let os_category =
             OperatingSystemCategory::new().ok_or(OperatingSystemInfoError::Unknown)?;

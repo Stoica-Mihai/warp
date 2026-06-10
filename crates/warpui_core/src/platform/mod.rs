@@ -332,19 +332,16 @@ pub trait FontDB: 'static {
     fn load_from_bytes(&mut self, name: &str, bytes: Vec<Vec<u8>>) -> Result<FamilyId>;
 
     /// Loads a font from the system by family name.
-    #[cfg(not(target_family = "wasm"))]
     fn load_from_system(&mut self, font_family: &str) -> Result<FamilyId>;
 
     /// Returns a background task that produces the set of data the font DB
     /// needs to make all system fonts available to the application.
-    #[cfg(not(target_family = "wasm"))]
     fn load_all_system_fonts(
         &self,
     ) -> futures::future::BoxFuture<'static, Box<dyn LoadedSystemFonts>>;
 
     /// Processes the data produced by [`FontDB::load_all_system_fonts`],
     /// returning the list of system fonts that can be used by the application.
-    #[cfg(not(target_family = "wasm"))]
     fn process_loaded_system_fonts(
         &mut self,
         loaded_system_fonts: Box<dyn LoadedSystemFonts>,

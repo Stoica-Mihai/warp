@@ -28,7 +28,6 @@ impl SyncQueueTaskTrait for FileInvalidationTask {
     type Error = FileInvalidationError;
     /// The first element is the repo-relative path of the updated file.
     type Result = (String, Option<Arc<FileDiffAndContent>>);
-    #[cfg(not(target_arch = "wasm32"))]
     type Fut = Pin<Box<dyn Future<Output = Result<Self::Result, Self::Error>> + Send>>;
     #[cfg(target_arch = "wasm32")]
     type Fut = Pin<Box<dyn Future<Output = Result<Self::Result, Self::Error>>>>;

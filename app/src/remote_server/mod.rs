@@ -1,21 +1,14 @@
-#[cfg(not(target_family = "wasm"))]
 use remote_server::manager::RemoteServerManager;
 // Re-export everything from the `remote_server` crate so existing
 // `crate::remote_server::*` imports in `app` continue to work.
 pub use remote_server::*;
-#[cfg(not(target_family = "wasm"))]
 use warpui::SingletonEntity;
 
-#[cfg(not(target_family = "wasm"))]
 pub mod auth_context;
 pub mod diff_state_proto;
-#[cfg(not(target_family = "wasm"))]
 pub mod diff_state_tracker;
-#[cfg(not(target_family = "wasm"))]
 pub mod server_buffer_tracker;
-#[cfg(not(target_family = "wasm"))]
 pub mod server_model;
-#[cfg(not(target_family = "wasm"))]
 pub mod ssh_transport;
 #[cfg(unix)]
 pub mod unix;
@@ -44,7 +37,6 @@ pub fn run_daemon(_identity_key: String) -> anyhow::Result<()> {
 
 /// Forwards app auth-token rotation and privacy preference change events
 /// to the remote-server manager.
-#[cfg(not(target_family = "wasm"))]
 pub fn wire_auth_token_rotation(ctx: &mut warpui::AppContext) {
     // Forward crash reporting preference changes to all connected daemons.
     use crate::settings::{PrivacySettings, PrivacySettingsChangedEvent};

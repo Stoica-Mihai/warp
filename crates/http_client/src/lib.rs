@@ -3,7 +3,6 @@ use std::pin::Pin;
 use std::time::Duration;
 use std::{fmt, future};
 
-#[cfg(not(target_family = "wasm"))]
 use async_compat::{Compat, CompatExt};
 use async_stream::stream;
 use bytes::Bytes;
@@ -119,7 +118,6 @@ impl Client {
         let mut builder = reqwest::Client::builder();
 
         // Set some HTTP/2-related settings that aren't available on wasm.
-        #[cfg(not(target_family = "wasm"))]
         {
             builder = builder
                 .http2_keep_alive_interval(Duration::from_secs(60))
@@ -236,7 +234,6 @@ impl Client {
         })
     }
 
-    #[cfg(not(target_family = "wasm"))]
     fn include_warp_http_headers<U: IntoUrl + Clone>(_url: U) -> bool {
         true
     }
@@ -519,7 +516,6 @@ impl<'a> RequestBuilder<'a> {
 
     /// Attach a `multipart/form-data` body.
     /// Not available on wasm because reqwest's multipart builder API is native-only.
-    #[cfg(not(target_family = "wasm"))]
     pub fn multipart(self, form: reqwest::multipart::Form) -> RequestBuilder<'a> {
         Self {
             wrapped: self.wrapped.multipart(form),
@@ -656,7 +652,6 @@ impl<'c> oauth2::AsyncHttpClient<'c> for Client {
 
     #[cfg(target_arch = "wasm32")]
     type Future = Pin<Box<dyn Future<Output = Result<oauth2::HttpResponse, Self::Error>> + 'c>>;
-    #[cfg(not(target_arch = "wasm32"))]
     type Future =
         Pin<Box<dyn Future<Output = Result<oauth2::HttpResponse, Self::Error>> + Send + Sync + 'c>>;
 
@@ -676,7 +671,6 @@ impl<'c> oauth2::AsyncHttpClient<'c> for Client {
 
             let mut builder = ::http::Response::builder().status(response.status());
 
-            #[cfg(not(target_arch = "wasm32"))]
             {
                 builder = builder.version(response.0.version());
             }

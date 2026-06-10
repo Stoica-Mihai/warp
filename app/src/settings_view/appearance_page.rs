@@ -955,7 +955,6 @@ impl AppearanceSettingsPageView {
 
         // There's no such thing as a "system font" on the web, so the
         // `all_system_fonts` API doesn't exist.
-        #[cfg(not(target_family = "wasm"))]
         {
             let all_system_fonts = warpui::fonts::Cache::handle(ctx)
                 .update(ctx, |font_cache, ctx| font_cache.all_system_fonts(ctx));

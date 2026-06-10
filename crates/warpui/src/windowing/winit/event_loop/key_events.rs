@@ -6,7 +6,6 @@ use winit::event::ElementState;
 #[cfg(windows)]
 use winit::keyboard::NativeKey;
 use winit::keyboard::{Key, ModifiersState, NamedKey};
-#[cfg(not(target_family = "wasm"))]
 use winit::platform::modifier_supplement::KeyEventExtModifierSupplement;
 
 use super::WindowState;
@@ -152,7 +151,6 @@ pub fn convert_keyboard_input_event(
     })
 }
 
-#[cfg(not(target_family = "wasm"))]
 /// Returns the base key without any modifiers applied, or `None` if it cannot be determined.
 fn get_key_without_modifiers(input: &winit::event::KeyEvent) -> Option<String> {
     let unmodified = input.key_without_modifiers();
@@ -165,7 +163,6 @@ fn get_key_without_modifiers(_input: &winit::event::KeyEvent) -> Option<String> 
     None
 }
 
-#[cfg(not(target_family = "wasm"))]
 /// Returns the text of the [`winit::event::KeyEvent`] with the characters modified by `ctrl`.
 /// For example,  `Ctrl+a` produces `Some("\x01")`.
 fn text_with_modifiers(

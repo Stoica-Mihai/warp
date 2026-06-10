@@ -19,13 +19,11 @@ cfg_if::cfg_if! {
         use std::fs;
     }
 }
-#[cfg(not(target_family = "wasm"))]
 use warp_core::channel::ChannelState;
 #[cfg(feature = "local_fs")]
 use warp_core::sync_queue::SyncQueue;
 use warp_util::git::run_git_command;
 use warpui::r#async::SpawnedFutureHandle;
-#[cfg(not(target_arch = "wasm32"))]
 use warpui::AppContext;
 use warpui::ModelContext;
 

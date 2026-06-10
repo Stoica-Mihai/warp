@@ -1,6 +1,5 @@
 #![allow(unused)]
 
-#[cfg(not(target_family = "wasm"))]
 mod global_hotkey;
 
 use std::cell::RefCell;
@@ -17,7 +16,6 @@ use parking_lot::Mutex;
 use serde::de::IntoDeserializer;
 use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 
-#[cfg(not(target_family = "wasm"))]
 use self::global_hotkey::GlobalHotKeyHandler;
 use super::{notifications, CustomEvent};
 use crate::clipboard::{self, ClipboardContent, InMemoryClipboard};
@@ -239,7 +237,6 @@ impl platform::Delegate for AppDelegate {
         self.clipboard.as_mut()
     }
 
-    #[cfg(not(target_family = "wasm"))]
     fn system_theme(&self) -> platform::SystemTheme {
         #[cfg(any(target_os = "linux", target_os = "freebsd"))]
         match super::linux::get_system_theme() {
@@ -313,7 +310,6 @@ impl platform::Delegate for AppDelegate {
         // TODO(wasm): Investigate implementing this by creating a <input> element
         // and calling `click` on it.
 
-        #[cfg(not(target_family = "wasm"))]
         {
             // This callback is called either on the “File Picker” background thread or, if starting
             // that thread fails, on this thread. Wrap this type in order to make ownership work.
@@ -406,7 +402,6 @@ impl platform::Delegate for AppDelegate {
         callback: SaveFilePickerCallback,
         config: SaveFilePickerConfiguration,
     ) {
-        #[cfg(not(target_family = "wasm"))]
         {
             let event_loop_proxy = self.event_loop_proxy.clone();
             std::thread::Builder::new()

@@ -10,7 +10,6 @@ pub use resources::{adapter_has_rendering_offset_bug, Resources};
 use wgpu::wgt::WgpuHasDisplayHandle;
 
 use crate::platform::GraphicsBackend;
-#[cfg(not(target_family = "wasm"))]
 use crate::{rendering::GPUPowerPreference, windowing};
 
 static WGPU_INSTANCE: LazyLock<Mutex<Option<Arc<wgpu::Instance>>>> = LazyLock::new(Mutex::default);
@@ -146,7 +145,6 @@ fn wgpu_backend_options() -> wgpu::Backends {
     wgpu::Backends::from_env().unwrap_or(wgpu::Backends::all())
 }
 
-#[cfg(not(target_family = "wasm"))]
 pub async fn print_wgpu_adapters(
     gpu_power_preference: GPUPowerPreference,
     backend_preference: Option<GraphicsBackend>,
@@ -188,7 +186,6 @@ pub async fn print_wgpu_adapters(
 /// Returns `true` if a low power GPU is available for rendering. Typically, this is true for
 /// machines with two GPUs -- a dedicated discrete high-performance GPU and a lower power
 /// integrated GPU.
-#[cfg(not(target_family = "wasm"))]
 pub async fn is_low_power_gpu_available() -> bool {
     get_wgpu_instance()
         .enumerate_adapters(::wgpu::Backends::all())

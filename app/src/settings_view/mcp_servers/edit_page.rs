@@ -4,7 +4,6 @@ use std::path::Path;
 use std::sync::Arc;
 
 #[cfg(feature = "local_fs")]
-#[cfg(not(target_family = "wasm"))]
 use diesel::SqliteConnection;
 #[cfg(feature = "local_fs")]
 use parking_lot::Mutex;

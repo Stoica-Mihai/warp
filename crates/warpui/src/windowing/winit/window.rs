@@ -24,7 +24,6 @@ use windows::Win32::Graphics::Dwm;
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize, Position, Size};
 use winit::error::ExternalError;
 use winit::event_loop::{ActiveEventLoop, EventLoopProxy, OwnedDisplayHandle};
-#[cfg(not(target_family = "wasm"))]
 use winit::monitor::MonitorHandle;
 #[cfg(windows)]
 use winit::platform::windows::{BackdropType, WindowExtWindows};
@@ -33,7 +32,6 @@ use winit::window::{CursorIcon, Fullscreen, ResizeDirection, UserAttentionType, 
 use super::app::CustomEvent;
 #[cfg(windows)]
 use super::windows::{get_system_caption_button_bounds, set_window_attribute, WindowAttributeErr};
-#[cfg(not(target_family = "wasm"))]
 use crate::platform::WindowBounds;
 use crate::platform::{
     self, Cursor, FullscreenState, GraphicsBackend, TerminationMode, WindowFocusBehavior,
@@ -1171,7 +1169,6 @@ impl Window {
     ///
     /// See [`Self::set_visible`] for an explanation of what "visible" means in winit. For
     /// platforms where setting visibility is unsupported, e.g. Wayland, always return `true`.
-    #[cfg(not(target_family = "wasm"))]
     fn is_visible(&self) -> bool {
         self.inner
             .borrow()
@@ -1270,7 +1267,6 @@ fn create_window(
     Ok(window)
 }
 
-#[cfg(not(target_family = "wasm"))]
 fn create_window(
     window_target: &ActiveEventLoop,
     window_options: &WindowOptions,

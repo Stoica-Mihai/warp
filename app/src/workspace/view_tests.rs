@@ -30,7 +30,6 @@ use crate::gpu_state::GPUState;
 use crate::network::NetworkStatus;
 use crate::notebooks::editor::keys::NotebookKeybindings;
 use crate::pane_group::{Direction, PaneGroupAction};
-#[cfg(not(target_family = "wasm"))]
 use crate::resource_center::Tip;
 use crate::auth::auth_manager::AuthManager;
 use crate::server::cloud_objects::update_manager::UpdateManager;

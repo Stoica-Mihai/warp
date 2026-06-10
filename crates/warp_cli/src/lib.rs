@@ -443,19 +443,16 @@ pub enum WorkerCommand {
     /// Run the remote development server proxy over SSH stdio.
     /// Ensures the daemon is running, then bridges its stdin/stdout
     /// to the daemon via a Unix domain socket.
-    #[cfg(not(target_family = "wasm"))]
     #[clap(hide = true)]
     RemoteServerProxy(RemoteServerIdentityArgs),
 
     /// Run the long-lived remote development server daemon.
     /// Listens on a Unix domain socket and accepts multiple concurrent
     /// connections from proxy processes.
-    #[cfg(not(target_family = "wasm"))]
     #[clap(hide = true)]
     RemoteServerDaemon(RemoteServerIdentityArgs),
 
     /// Run a headless ripgrep search worker.
-    #[cfg(not(target_family = "wasm"))]
     #[clap(hide = true)]
     RipgrepSearch {
         #[clap(flatten)]
@@ -575,7 +572,6 @@ pub enum Command {
 
     /// Print telemetry events in production and exit.
     #[clap(long_flag = "print-telemetry-events", hide = true)]
-    #[cfg(not(target_family = "wasm"))]
     PrintTelemetryEvents,
 }
 
@@ -586,7 +582,6 @@ impl Command {
             Command::Worker(_) => false,
             Command::CommandLine(_) | Command::DumpDebugInfo => true,
             Command::Completions { .. } => true,
-            #[cfg(not(target_family = "wasm"))]
             Command::PrintTelemetryEvents => true,
         }
     }
@@ -639,7 +634,6 @@ pub fn installation_detection_server_subcommand() -> String {
 }
 
 /// Returns the subcommand name to use for starting the ripgrep search worker.
-#[cfg(not(target_family = "wasm"))]
 pub fn ripgrep_search_subcommand() -> String {
     <Args as CommandFactory>::command()
         .find_subcommand("ripgrep-search")

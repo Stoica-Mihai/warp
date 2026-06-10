@@ -110,15 +110,12 @@ mod loader {
 #[cfg(not(any(target_os = "linux", target_os = "freebsd", target_os = "windows")))]
 mod loader {
     use super::*;
-    #[cfg(not(target_family = "wasm"))]
     use crate::fonts::FontInfo;
 
-    #[cfg(not(target_family = "wasm"))]
     pub fn load_system_font(_font_family: &str) -> Result<FontFamily> {
         anyhow::bail!("have not yet implemented loading system fonts")
     }
 
-    #[cfg(not(target_family = "wasm"))]
     pub fn load_all_system_fonts() -> Vec<(FontInfo, FontFamily)> {
         vec![]
     }
@@ -781,20 +778,17 @@ impl platform::FontDB for FontDB {
         self.insert_font_family(family)
     }
 
-    #[cfg(not(target_family = "wasm"))]
     fn load_from_system(&mut self, font_family: &str) -> Result<FamilyId> {
         let family = loader::load_system_font(font_family)?;
         self.insert_font_family(family)
     }
 
-    #[cfg(not(target_family = "wasm"))]
     fn load_all_system_fonts(
         &self,
     ) -> futures::future::BoxFuture<'static, Box<dyn platform::LoadedSystemFonts>> {
         self.text_layout_system.load_all_system_fonts()
     }
 
-    #[cfg(not(target_family = "wasm"))]
     fn process_loaded_system_fonts(
         &mut self,
         loaded_system_fonts: Box<dyn platform::LoadedSystemFonts>,
@@ -1093,7 +1087,6 @@ impl platform::TextLayoutSystem for TextLayoutSystem {
 }
 
 impl TextLayoutSystem {
-    #[cfg(not(target_family = "wasm"))]
     fn load_all_system_fonts(
         &self,
     ) -> futures::future::BoxFuture<'static, Box<dyn platform::LoadedSystemFonts>> {

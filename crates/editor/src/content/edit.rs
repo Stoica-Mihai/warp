@@ -71,7 +71,6 @@ pub(crate) fn layout_mermaid_block_for_test(
 /// - Relative paths: all other paths, resolved relative to the document location
 ///
 /// Note: Path canonicalization is not available on WASM targets.
-#[cfg(not(target_arch = "wasm32"))]
 pub fn resolve_asset_source_relative_to_directory(
     source: &str,
     base_directory: Option<&Path>,

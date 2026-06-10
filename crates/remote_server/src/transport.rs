@@ -11,14 +11,12 @@
 //!
 //! [`RemoteServerManager`]: crate::manager::RemoteServerManager
 use std::future::Future;
-#[cfg(not(target_family = "wasm"))]
 use std::path::PathBuf;
 use std::pin::Pin;
 
 use async_channel::Receiver;
 use warpui::r#async::executor;
 
-#[cfg(not(target_family = "wasm"))]
 use crate::client::RemoteServerLog;
 use crate::client::{ClientEvent, RemoteServerClient};
 use crate::manager::RemoteServerExitStatus;
@@ -142,7 +140,6 @@ pub struct Connection {
     /// lifetime of the session and drops it on teardown.
     ///
     /// [`RemoteServerManager`]: crate::manager::RemoteServerManager
-    #[cfg(not(target_family = "wasm"))]
     pub child: async_process::Child,
     /// For transports that multiplex through a local SSH
     /// `ControlMaster` socket: the path to that socket, used on
@@ -152,11 +149,9 @@ pub struct Connection {
     /// no separate master process (in-process tests, etc.).
     ///
     /// See [`crate::ssh::stop_control_master`] for the exact command.
-    #[cfg(not(target_family = "wasm"))]
     pub control_path: Option<PathBuf>,
     /// Tail buffer of the last N stderr lines from the SSH subprocess.
     /// Drained on connection failure and attached to telemetry.
-    #[cfg(not(target_family = "wasm"))]
     pub stderr_tail: RemoteServerLog,
 }
 

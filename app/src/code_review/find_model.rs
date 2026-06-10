@@ -2,11 +2,8 @@ use std::collections::HashMap;
 use std::ops::Range;
 
 use string_offset::CharOffset;
-#[cfg(not(target_family = "wasm"))]
 use warp_core::channel::ChannelState;
-#[cfg(not(target_family = "wasm"))]
 use warp_editor::content::find::SearchConfig;
-#[cfg(not(target_family = "wasm"))]
 use warp_editor::search::Searcher;
 use warp_editor::search::{RestorableSearchResults, SelectedResult};
 use warpui::r#async::SpawnedFutureHandle;
@@ -125,7 +122,6 @@ impl CodeReviewFindModel {
         self.run_search(editor_handles, ctx);
     }
 
-    #[cfg(not(target_family = "wasm"))]
     pub fn focus_next_find_match(
         &mut self,
         direction: FindDirection,
@@ -199,7 +195,6 @@ impl CodeReviewFindModel {
         })
     }
 
-    #[cfg(not(target_family = "wasm"))]
     fn get_editor_searcher(
         &self,
         editor_id: EntityId,
@@ -241,7 +236,6 @@ impl CodeReviewFindModel {
         )
     }
 
-    #[cfg(not(target_family = "wasm"))]
     fn handle_run_search_result(
         &mut self,
         all_matches: Vec<SearchMatch>,
@@ -284,7 +278,6 @@ impl CodeReviewFindModel {
         ctx.emit(FindEvent::RanFind);
     }
 
-    #[cfg(not(target_family = "wasm"))]
     pub fn run_search(
         &mut self,
         editor_handles: impl Iterator<Item = ViewHandle<LocalCodeEditorView>>,

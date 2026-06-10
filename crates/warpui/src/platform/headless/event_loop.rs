@@ -82,7 +82,6 @@ pub(super) fn run(
 ///
 /// When Ctrl-C is received, this will send a Terminate event to the event loop,
 /// allowing the app to shut down gracefully via the existing termination logic.
-#[cfg(not(target_family = "wasm"))]
 fn setup_signal_handler(sender: Sender<AppEvent>) {
     let result = ctrlc::set_handler(move || {
         log::info!("Received Ctrl-C signal in headless mode, terminating application");

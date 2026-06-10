@@ -1,21 +1,16 @@
 use std::path::{Path, PathBuf};
-#[cfg(not(target_family = "wasm"))]
 use std::{fs, sync::Arc, time::Duration};
 
 use dirs::home_dir;
-#[cfg(not(target_family = "wasm"))]
 use notify_debouncer_full::notify::{RecursiveMode, WatchFilter};
 use repo_metadata::RepositoryUpdate;
 #[cfg(any(not(target_family = "wasm"), test))]
 use repo_metadata::TargetFile;
-#[cfg(not(target_family = "wasm"))]
 use warpui::ModelHandle;
 use warpui::{Entity, ModelContext, SingletonEntity};
-#[cfg(not(target_family = "wasm"))]
 use watcher::{BulkFilesystemWatcher, BulkFilesystemWatcherEvent};
 
 /// Duration between filesystem watch events for the Warp managed paths watcher, in milliseconds.
-#[cfg(not(target_family = "wasm"))]
 const WARP_MANAGED_PATHS_WATCHER_DEBOUNCE_MILLI_SECS: u64 = 500;
 
 pub(crate) fn warp_data_dir() -> PathBuf {
@@ -25,7 +20,6 @@ pub(crate) fn warp_data_dir() -> PathBuf {
 #[cfg(target_family = "wasm")]
 pub(crate) fn ensure_warp_watch_roots_exist() {}
 
-#[cfg(not(target_family = "wasm"))]
 pub(crate) fn ensure_warp_watch_roots_exist() {
     let data_dir = warp_data_dir();
     if let Err(err) = fs::create_dir_all(&data_dir) {
@@ -163,7 +157,6 @@ fn filter_repository_update(
     (!filtered.is_empty()).then_some(filtered)
 }
 
-#[cfg(not(target_family = "wasm"))]
 fn filesystem_event_to_repository_update(event: &BulkFilesystemWatcherEvent) -> RepositoryUpdate {
     RepositoryUpdate {
         added: event
@@ -204,12 +197,10 @@ fn filesystem_event_to_repository_update(event: &BulkFilesystemWatcherEvent) -> 
 #[allow(dead_code)]
 pub(crate) enum WarpManagedPathsWatcherEvent {}
 
-#[cfg(not(target_family = "wasm"))]
 pub(crate) enum WarpManagedPathsWatcherEvent {
     FilesChanged(RepositoryUpdate),
 }
 
-#[cfg(not(target_family = "wasm"))]
 pub(crate) struct WarpManagedPathsWatcher {
     _watcher: ModelHandle<BulkFilesystemWatcher>,
 }
@@ -217,7 +208,6 @@ pub(crate) struct WarpManagedPathsWatcher {
 #[cfg(target_family = "wasm")]
 pub(crate) struct WarpManagedPathsWatcher;
 
-#[cfg(not(target_family = "wasm"))]
 impl WarpManagedPathsWatcher {
     pub(crate) fn new(ctx: &mut ModelContext<Self>) -> Self {
         Self::new_internal(ctx, true)

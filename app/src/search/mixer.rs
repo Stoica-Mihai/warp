@@ -23,7 +23,6 @@ use crate::search::QueryFilter;
 /// if an async source is slow.
 const INITIAL_RESULTS_TIMEOUT: Duration = Duration::from_millis(500);
 
-#[cfg(not(target_family = "wasm"))]
 pub(crate) type BoxFuture<'a, T> =
     std::pin::Pin<Box<dyn std::future::Future<Output = T> + Send + 'a>>;
 

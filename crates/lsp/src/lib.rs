@@ -12,7 +12,6 @@ mod model;
 pub mod servers;
 mod service;
 pub mod supported_servers;
-#[cfg(not(target_arch = "wasm32"))]
 mod transport;
 pub mod types;
 
@@ -50,7 +49,6 @@ impl std::fmt::Display for LspServerLogLevel {
 use std::sync::Arc;
 
 use anyhow::Result;
-#[cfg(not(target_arch = "wasm32"))]
 use simple_logger::SimpleLogger;
 use warpui::r#async::executor::Background;
 use warpui::AppContext;
@@ -64,7 +62,6 @@ pub struct LspServiceInitializationResult {
 ///
 /// If `logger` is provided, stderr output from the LSP server will be written
 /// to its file for debugging purposes.
-#[cfg(not(target_arch = "wasm32"))]
 pub async fn spawn_lsp_service(
     config: LspServerConfig,
     executor: Arc<Background>,

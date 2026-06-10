@@ -4,7 +4,6 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use pathfinder_color::ColorU;
-#[cfg(not(target_family = "wasm"))]
 use settings::Setting as _;
 use warp_core::features::FeatureFlag;
 use warp_core::ui::appearance::Appearance;
@@ -31,13 +30,11 @@ use crate::ai::blocklist::cli_controller::CLISubagentController;
 use crate::ai::blocklist::prompt::PromptIconButtonTheme;
 use crate::ai::blocklist::{BlocklistAIInputModel, InputConfig, InputType};
 use crate::network::NetworkStatus;
-#[cfg(not(target_family = "wasm"))]
 use crate::settings::InputSettings;
 use crate::settings::{AISettings, AISettingsChangedEvent};
 use crate::settings_view::SettingsSection;
 use crate::terminal::keys::TerminalKeybindings;
 use crate::terminal::model::block::BlockMetadata;
-#[cfg(not(target_family = "wasm"))]
 use crate::terminal::model::session::SessionType;
 use crate::terminal::model::session::Sessions;
 use crate::terminal::session_settings::{SessionSettings, SessionSettingsChangedEvent};
@@ -50,11 +47,8 @@ use crate::workspaces::user_workspaces::UserWorkspaces;
 pub enum AtContextMenuDisabledReason {
     #[cfg(target_family = "wasm")]
     Wasm,
-    #[cfg(not(target_family = "wasm"))]
     SshWithoutRemoteServer,
-    #[cfg(not(target_family = "wasm"))]
     Subshell,
-    #[cfg(not(target_family = "wasm"))]
     DisabledInTerminalMode,
 }
 
@@ -69,7 +63,6 @@ impl AtContextMenuDisabledReason {
         Some(AtContextMenuDisabledReason::Wasm)
     }
 
-    #[cfg(not(target_family = "wasm"))]
     pub fn get_disable_reason(
         active_block_metadata: Option<&BlockMetadata>,
         sessions: &Sessions,

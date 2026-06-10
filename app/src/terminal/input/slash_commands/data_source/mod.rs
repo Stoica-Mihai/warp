@@ -40,7 +40,6 @@ pub struct DataSourceArgs {
 struct ActiveCommandsContext {
     session_context: Availability,
     is_orchestration_enabled: bool,
-    #[cfg(not(target_family = "wasm"))]
     active_conversation_is_cloud_oz: bool,
     has_default_host: bool,
     is_cli_agent_input: bool,
@@ -224,7 +223,6 @@ impl SlashCommandDataSource {
         ActiveCommandsContext {
             session_context,
             is_orchestration_enabled: ai_settings.is_orchestration_enabled(ctx),
-            #[cfg(not(target_family = "wasm"))]
             active_conversation_is_cloud_oz: self.active_conversation_is_cloud_oz(ctx),
             has_default_host,
             is_cli_agent_input,
@@ -245,7 +243,6 @@ impl SlashCommandDataSource {
         // /continue-locally only applies to cloud Oz conversations. Local conversations
         // and non-Oz cloud runs (Claude, Gemini) are filtered out so the slash menu
         // doesn't surface a no-op command.
-        #[cfg(not(target_family = "wasm"))]
         if command.name == commands::CONTINUE_LOCALLY.name
             && !context.active_conversation_is_cloud_oz
         {
@@ -312,7 +309,6 @@ impl SlashCommandDataSource {
     /// tombstone gate (`conversation_ended_tombstone_view::render_action_buttons`).
     /// Only an explicit non-Oz harness (Claude, Gemini, OpenCode, Unknown) hides the
     /// command. Conversations without a `task_id` are local and never qualify.
-    #[cfg(not(target_family = "wasm"))]
     fn active_conversation_is_cloud_oz(&self, _ctx: &AppContext) -> bool {
         false
     }

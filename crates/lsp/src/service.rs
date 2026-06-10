@@ -17,7 +17,6 @@ use lsp_types::{
     TextDocumentPositionParams, UnregistrationParams, VersionedTextDocumentIdentifier, WatchKind,
 };
 use serde_json::Value;
-#[cfg(not(target_arch = "wasm32"))]
 use simple_logger::SimpleLogger;
 use warp_util::on_cancel::OnCancelFutureExt;
 
@@ -43,7 +42,6 @@ pub struct LspService {
     open_documents: Arc<Mutex<HashMap<PathBuf, DocumentSyncState>>>,
     watched_files_registry: Arc<Mutex<WatchedFilesRegistry>>,
     notify_tx: async_channel::Sender<ServerNotificationEvent>,
-    #[cfg(not(target_arch = "wasm32"))]
     logger: Option<SimpleLogger>,
 }
 
@@ -155,7 +153,6 @@ impl LspService {
             open_documents: Arc::new(Mutex::new(HashMap::new())),
             watched_files_registry,
             notify_tx,
-            #[cfg(not(target_arch = "wasm32"))]
             logger,
         };
 
@@ -186,7 +183,6 @@ impl LspService {
     }
 
     pub fn log_to_server_log(&self, level: LspServerLogLevel, message: impl Into<String>) {
-        #[cfg(not(target_arch = "wasm32"))]
         {
             if let Some(logger) = &self.logger {
                 logger.log(format!("[{level}] {}", message.into()));

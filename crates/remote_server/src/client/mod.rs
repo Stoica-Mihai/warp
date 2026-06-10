@@ -27,9 +27,7 @@ use crate::proto::{
 };
 use crate::repo_metadata_proto::{proto_snapshot_to_update, proto_to_repo_metadata_update};
 
-#[cfg(not(target_family = "wasm"))]
 mod remote_server_log;
-#[cfg(not(target_family = "wasm"))]
 pub use remote_server_log::RemoteServerLog;
 use warp_core::{safe_error, safe_warn, SessionId};
 use warp_util::standardized_path::StandardizedPath;
@@ -195,7 +193,6 @@ impl fmt::Debug for RemoteServerClient {
     }
 }
 
-#[cfg(not(target_family = "wasm"))]
 impl RemoteServerClient {
     /// Creates a client from a child process's stdin, stdout, and stderr.
     ///
@@ -1351,7 +1348,6 @@ impl RemoteServerClient {
 /// Spawns a background task that reads lines from the server's stderr,
 /// forwards them to the client's logging, and retains the last few lines
 /// in a shared buffer for telemetry.
-#[cfg(not(target_family = "wasm"))]
 pub fn spawn_stderr_forwarder(
     stderr: impl AsyncRead + TransportStream,
     executor: &executor::Background,

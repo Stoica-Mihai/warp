@@ -83,7 +83,6 @@ pub fn initialize_app_for_terminal_view(app: &mut App) {
         AIExecutionProfilesModel::new(&crate::LaunchMode::new_for_unit_test(), ctx)
     });
 
-    #[cfg(not(target_family = "wasm"))]
     app.add_singleton_model(SystemInfo::new);
 
     app.add_singleton_model(OneTimeModalModel::new);

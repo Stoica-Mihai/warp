@@ -4,7 +4,6 @@ use anyhow::{anyhow, Result};
 
 /// Runs a git command and returns the output as a string.
 /// Thin wrapper over [`run_git_command_with_env`] with no `PATH` override.
-#[cfg(not(target_family = "wasm"))]
 pub async fn run_git_command(repo_path: &Path, args: &[&str]) -> Result<String> {
     run_git_command_with_env(repo_path, args, None).await
 }
@@ -12,7 +11,6 @@ pub async fn run_git_command(repo_path: &Path, args: &[&str]) -> Result<String> 
 /// Like [`run_git_command`] but sets `PATH` on the child when `path_env` is
 /// `Some`. Used by callers whose hooks need user-installed binaries (e.g.
 /// the LFS `pre-push` hook → `git-lfs`). See `specs/APP-4188/TECH.md`.
-#[cfg(not(target_family = "wasm"))]
 pub async fn run_git_command_with_env(
     repo_path: &Path,
     args: &[&str],

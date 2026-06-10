@@ -8,18 +8,14 @@
 use std::future::Future;
 
 use futures::future::ready;
-#[cfg(not(target_family = "wasm"))]
 use futures::future::Either;
-#[cfg(not(target_family = "wasm"))]
 use repo_metadata::repositories::DetectedRepositories;
 use repo_metadata::repositories::RepoDetectionSource;
 use warp_core::SessionId;
 use warp_util::local_or_remote_path::LocalOrRemotePath;
-#[cfg(not(target_family = "wasm"))]
 use warpui::SingletonEntity;
 use warpui::{View, ViewContext};
 
-#[cfg(not(target_family = "wasm"))]
 use crate::remote_server::manager::RemoteServerManager;
 
 /// Describes whether the active session is local or remote.
@@ -39,7 +35,6 @@ pub enum RepoDetectionSessionType {
 /// The caller is responsible for registering remote repo roots in
 /// `DetectedRepositories` and triggering downstream side effects (git status,
 /// code review, etc.) in the spawn callback.
-#[cfg(not(target_family = "wasm"))]
 pub fn detect_possible_git_repo<V: View>(
     session_type: RepoDetectionSessionType,
     active_directory: &str,

@@ -12,10 +12,8 @@ use lsp_types::{
     FormattingOptions, NumberOrString, ProgressParams, ProgressParamsValue,
     PublishDiagnosticsParams, WorkDoneProgress,
 };
-#[cfg(not(target_arch = "wasm32"))]
 use simple_logger::manager::LogManager;
 use warpui::r#async::executor::Background;
-#[cfg(not(target_arch = "wasm32"))]
 use warpui::SingletonEntity;
 use warpui::{Entity, ModelContext};
 
@@ -25,7 +23,6 @@ use crate::types::{
     DefinitionLocation, DocumentVersion, HoverResult, Location, ReferenceLocation,
     TextDocumentContentChangeEvent, TextEdit, WatchedFileChangeEvent,
 };
-#[cfg(not(target_arch = "wasm32"))]
 use crate::{spawn_lsp_service, LspServiceInitializationResult};
 use crate::{LspServerConfig, LspServerLogLevel, LspService};
 
@@ -241,7 +238,6 @@ impl LspServerModel {
         }
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) fn start(&mut self, ctx: &mut ModelContext<Self>) -> Result<()> {
         match &self.server_state {
             LspState::Stopped { .. } => {
@@ -313,7 +309,6 @@ impl LspServerModel {
         Ok(())
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn stop(&mut self, manually_stopped: bool, ctx: &mut ModelContext<Self>) -> Result<()> {
         match &self.server_state {
             LspState::Available { service, .. } => {
@@ -340,7 +335,6 @@ impl LspServerModel {
 
     /// Manually starts the server and clears the manually_stopped flag.
     /// This should be called when the user explicitly wants to start the server.
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn manual_start(&mut self, ctx: &mut ModelContext<Self>) -> Result<()> {
         match &self.server_state {
             LspState::Stopped { .. } | LspState::Failed { .. } => {
@@ -381,7 +375,6 @@ impl LspServerModel {
 
     /// Restarts the LSP server by stopping it and starting it again.
     /// The server will emit `LspEvent::Stopped` followed by `LspEvent::Started` on success.
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn restart(&mut self, ctx: &mut ModelContext<Self>) {
         log::info!("Restarting LSP server: {}", self.config.server_name());
 

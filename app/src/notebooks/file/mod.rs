@@ -29,7 +29,6 @@ use warpui::{
     ViewHandle,
 };
 
-#[cfg(not(target_family = "wasm"))]
 use remote_server::manager::RemoteServerManager;
 
 use super::context_menu::{show_rich_editor_context_menu, ContextMenuAction, ContextMenuState};
@@ -896,7 +895,6 @@ impl FileNotebookView {
 
     /// Returns `true` when this notebook is backed by a remote file whose
     /// host no longer has any connected session.
-    #[cfg(not(target_family = "wasm"))]
     fn is_remote_disconnected(&self, app: &AppContext) -> bool {
         let Some(LocalOrRemotePath::Remote(remote_path)) = self.file_state.path() else {
             return false;
@@ -914,7 +912,6 @@ impl FileNotebookView {
             FileState::Loaded(_) => ChildView::new(&self.editor).finish(),
         };
 
-        #[cfg(not(target_family = "wasm"))]
         if matches!(self.file_state, FileState::Loaded(_)) && self.is_remote_disconnected(_app) {
             let banner =
                 crate::code::local_code_editor::render_remote_disconnected_banner(appearance);

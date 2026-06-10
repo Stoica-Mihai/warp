@@ -9,7 +9,6 @@ use warpui::{
     SingletonEntity,
 };
 
-#[cfg(not(target_family = "wasm"))]
 use crate::ai::mcp::templatable::{CloudTemplatableMCPServerModel, TemplatableMCPServer};
 use crate::auth::AuthStateProvider;
 use crate::cloud_object::model::actions::{
@@ -183,7 +182,6 @@ impl UpdateManager {
         }
     }
 
-    #[cfg(not(target_family = "wasm"))]
     pub fn update_templatable_mcp_server(
         &mut self,
         templatable_mcp_server: TemplatableMCPServer,
@@ -400,7 +398,6 @@ impl UpdateManager {
         ctx.notify();
     }
 
-    #[cfg(not(target_family = "wasm"))]
     pub fn create_templatable_mcp_server(
         &mut self,
         templatable_mcp_server: TemplatableMCPServer,

@@ -4,7 +4,6 @@ use std::sync::Arc;
 
 use warp_util::path::ShellFamily;
 use warp_workflows::workflows as global_workflows;
-#[cfg(not(target_family = "wasm"))]
 use warpui::platform::OperatingSystem;
 use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 
@@ -163,7 +162,6 @@ impl SingletonEntity for LocalWorkflows {}
 
 /// Returns all app workflows.
 fn app_workflows() -> Vec<Workflow> {
-    #[cfg(not(target_family = "wasm"))]
     {
         let shell_family = OperatingSystem::get().default_shell_family();
         self::prompt_chip_logging_workflow(shell_family)
@@ -207,7 +205,6 @@ pub fn tail_command_for_shell(shell_family: ShellFamily, path: &PathBuf) -> Stri
     }
 }
 
-#[cfg(not(target_family = "wasm"))]
 pub fn prompt_chip_logging_workflow(shell_family: ShellFamily) -> Option<Workflow> {
     if !warp_core::channel::ChannelState::enable_debug_features() {
         return None;

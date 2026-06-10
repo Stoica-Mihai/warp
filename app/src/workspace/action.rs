@@ -188,7 +188,6 @@ pub enum WorkspaceAction {
     ViewPrivacyPolicy,
     SendFeedback,
     /// Open the log directory in the system file explorer with the current log file selected.
-    #[cfg(not(target_family = "wasm"))]
     ViewLogs,
     ChangeCursor(Cursor),
     ToggleBlockSnackbar,
@@ -707,7 +706,6 @@ impl WorkspaceAction {
             ToggleConversationTranscriptDetailsPanel => false,
             #[cfg(debug_assertions)]
             InstallOpenCodeWarpPlugin | UseLocalOpenCodeWarpPlugin => false,
-            #[cfg(not(target_family = "wasm"))]
             ViewLogs => false,
             #[cfg(target_os = "macos")]
             SampleProcess => false,

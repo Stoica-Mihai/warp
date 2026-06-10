@@ -1,11 +1,9 @@
 use warp_core::features::FeatureFlag;
 use warpui::elements::ScrollOffset;
 use warpui::units::Pixels;
-#[cfg(not(target_family = "wasm"))]
 use warpui::{AppContext, WeakViewHandle};
 use warpui::{ViewContext, ViewHandle};
 
-#[cfg(not(target_family = "wasm"))]
 use super::FILE_HEADER_HEIGHT;
 use super::{CodeReviewView, CodeReviewViewState};
 use crate::code::editor::model::StableEditorLine;
@@ -35,7 +33,6 @@ impl CodeReviewView {
     /// Computes the adjusted item-relative scroll offset for a file diff item
     /// based on the captured scroll context. Called by the `ListState`
     /// adjustment closure when an item's height changes during layout.
-    #[cfg(not(target_family = "wasm"))]
     pub(super) fn adjust_scroll_offset(
         view_handle: &WeakViewHandle<Self>,
         index: usize,
@@ -105,7 +102,6 @@ impl CodeReviewView {
     /// Computes the scroll preservation context for the given index and editor.
     /// Returns `Some(context)` only if the index is the currently scrolled item.
     /// Detects whether scroll is in header, editor content, or footer region.
-    #[cfg(not(target_family = "wasm"))]
     pub(super) fn compute_scroll_context_for_index(
         &self,
         index: usize,

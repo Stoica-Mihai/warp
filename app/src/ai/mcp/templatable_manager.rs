@@ -7,18 +7,14 @@ mod utils;
 mod utils_tests;
 
 use std::collections::HashMap;
-#[cfg(not(target_family = "wasm"))]
 use std::sync::Arc;
 
-#[cfg(not(target_family = "wasm"))]
 use diesel::SqliteConnection;
 use futures_util::stream::AbortHandle;
-#[cfg(not(target_family = "wasm"))]
 use parking_lot::Mutex;
 use uuid::Uuid;
 use warpui::{Entity, SingletonEntity};
 
-#[cfg(not(target_family = "wasm"))]
 use crate::ai::mcp::templatable::CloudTemplatableMCPServer;
 use crate::ai::mcp::templatable_installation::TemplatableMCPServerInstallation;
 use crate::ai::mcp::MCPServerState;
@@ -33,7 +29,6 @@ use crate::ai::mcp::MCPServerState;
 /// The core implementations are in the `native` and `wasm` modules.
 #[derive(Default)]
 pub struct TemplatableMCPServerManager {
-    #[cfg(not(target_family = "wasm"))]
     cloud_templatable_mcp_servers: HashMap<Uuid, CloudTemplatableMCPServer>,
     locally_installed_servers: HashMap<Uuid, TemplatableMCPServerInstallation>,
     server_states: HashMap<Uuid, MCPServerState>,
@@ -45,12 +40,9 @@ pub struct TemplatableMCPServerManager {
     ///
     /// We persist these to secure storage, and if they are present when the server is started,
     /// we use them instead of going through the OAuth flow again.
-    #[cfg(not(target_family = "wasm"))]
     server_credentials: oauth::PersistedCredentialsMap,
     /// Cached credentials for file-based servers, keyed by installation hash.
-    #[cfg(not(target_family = "wasm"))]
     file_based_server_credentials: oauth::FileBasedPersistedCredentialsMap,
-    #[cfg(not(target_family = "wasm"))]
     database_connection: Option<Arc<Mutex<SqliteConnection>>>,
     /// Error messages for failed servers, keyed by installation UUID.
     server_error_messages: HashMap<Uuid, String>,
@@ -59,7 +51,6 @@ pub struct TemplatableMCPServerManager {
     ///
     /// Populated just before opening the authorization URL; removed once the callback
     /// is received or the spawn task terminates.
-    #[cfg(not(target_family = "wasm"))]
     pending_oauth_csrf: HashMap<String, Uuid>,
 }
 
@@ -67,7 +58,6 @@ pub struct TemplatableMCPServerManager {
 #[cfg_attr(target_family = "wasm", allow(dead_code))]
 struct SpawnedServerInfo {
     abort_handle: AbortHandle,
-    #[cfg(not(target_family = "wasm"))]
     oauth_result_tx: async_channel::Sender<oauth::CallbackResult>,
 }
 
@@ -147,12 +137,10 @@ impl TemplatableMCPServerManager {
             .map(|server_installation| server_installation.template_uuid())
     }
 
-    #[cfg(not(target_family = "wasm"))]
     pub fn is_server_active(&self, installation_uuid: Uuid) -> bool {
         self.active_servers.contains_key(&installation_uuid)
     }
 
-    #[cfg(not(target_family = "wasm"))]
     pub fn is_server_active_or_pending(&self, uuid: Uuid) -> bool {
         self.is_server_active(uuid) || self.spawned_servers.contains_key(&uuid)
     }

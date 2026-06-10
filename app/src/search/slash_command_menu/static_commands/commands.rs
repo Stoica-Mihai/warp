@@ -601,7 +601,6 @@ mod tests {
         assert_eq!(argument.hint_text, Some("<tab name>"));
     }
 
-    #[cfg(not(target_family = "wasm"))]
     #[test]
     fn continue_locally_command_is_registered() {
         let command = COMMAND_REGISTRY

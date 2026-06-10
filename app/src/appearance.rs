@@ -344,7 +344,6 @@ fn get_or_load_font_family(_font_name: &str, _ctx: &mut AppContext) -> Option<Fa
     None
 }
 
-#[cfg(not(target_family = "wasm"))]
 /// If we're running on a native platform (where we support font loading),
 /// make sure we load the user's selected monospace font. We first check
 /// the font cache in case we are using a pre-bundled font like Hack.

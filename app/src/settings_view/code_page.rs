@@ -1182,7 +1182,6 @@ impl CodePageWidget {
         }
 
         // Show "View logs" when the server has been started (Available, Starting/Busy, or Failed)
-        #[cfg(not(target_family = "wasm"))]
         {
             let has_logs = server_model.is_some_and(|model| {
                 matches!(

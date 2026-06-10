@@ -3,7 +3,6 @@ use std::sync::mpsc;
 use std::sync::Arc;
 #[cfg(not(test))]
 use std::sync::OnceLock;
-#[cfg(not(target_family = "wasm"))]
 use std::{
     fs::{self, File, OpenOptions},
     io::{self, Write as _},
@@ -97,7 +96,6 @@ impl PromptChipLogger {
         }
     }
 
-    #[cfg(not(target_family = "wasm"))]
     fn init_runtime() -> Self {
         if !warp_core::channel::ChannelState::enable_debug_features() {
             return Self::Disabled;
@@ -129,14 +127,12 @@ impl PromptChipLogger {
     }
 }
 
-#[cfg(not(target_family = "wasm"))]
 pub(crate) fn log_file_path() -> anyhow::Result<PathBuf> {
     let log_directory = warp_logging::log_directory()?;
     let channel_logfile_name = warp_core::channel::ChannelState::logfile_name();
     Ok(log_directory.join(prompt_chip_log_filename(&channel_logfile_name)))
 }
 
-#[cfg(not(target_family = "wasm"))]
 fn spawn_log_writer(log_path: PathBuf) -> io::Result<mpsc::Sender<String>> {
     if let Some(parent) = log_path.parent() {
         fs::create_dir_all(parent)?;
@@ -157,7 +153,6 @@ fn spawn_log_writer(log_path: PathBuf) -> io::Result<mpsc::Sender<String>> {
     Ok(tx)
 }
 
-#[cfg(not(target_family = "wasm"))]
 fn write_log_entries(mut file: File, rx: mpsc::Receiver<String>, log_path: PathBuf) {
     while let Ok(entry) = rx.recv() {
         if let Err(err) = file.write_all(entry.as_bytes()).and_then(|_| file.flush()) {

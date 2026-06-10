@@ -943,7 +943,6 @@ impl EventLoop {
                 // crashes that produce noise in our crash reporting data.
                 // On web, it's not possible to exit cleanly, so just return from the event loop
                 // instead.
-                #[cfg(not(target_family = "wasm"))]
                 std::process::exit(0);
             }
 

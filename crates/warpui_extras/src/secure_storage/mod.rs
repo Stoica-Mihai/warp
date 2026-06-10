@@ -4,7 +4,6 @@
 //! system, implementations of the API for various platforms, testing
 //! utilities, and extension traits to improve ergonomics of using the APIs.
 
-#[cfg(not(target_family = "wasm"))]
 #[cfg_attr(target_os = "macos", path = "mac.rs")]
 #[cfg_attr(any(target_os = "linux", target_os = "freebsd"), path = "linux.rs")]
 #[cfg_attr(target_os = "windows", path = "windows.rs")]

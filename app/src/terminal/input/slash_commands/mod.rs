@@ -516,7 +516,6 @@ impl Input {
                 show_error_toast("AI not available".to_owned(), ctx);
             }
             _export_to_file if command.name == commands::EXPORT_TO_FILE.name => {
-                #[cfg(not(target_family = "wasm"))]
                 {
                     self.export_conversation_to_file(
                         argument.map(|filename| filename.to_owned()),
@@ -602,7 +601,6 @@ impl Input {
             _cost if command.name == commands::COST.name => {
                 show_error_toast("AI not available".to_owned(), ctx);
             }
-            #[cfg(not(target_family = "wasm"))]
             _continue_locally if command.name == commands::CONTINUE_LOCALLY.name => {
                 show_error_toast("AI not available".to_owned(), ctx);
             }

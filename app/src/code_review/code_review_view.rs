@@ -22,7 +22,6 @@ use warp_core::{safe_error, safe_info};
 use warp_editor::content::buffer::{AutoScrollBehavior, InitialBufferState, SelectionOffsets};
 use warp_editor::model::CoreEditorModel;
 use warp_editor::render::element::VerticalExpansionBehavior;
-#[cfg(not(target_family = "wasm"))]
 use warp_editor::render::model::AutoScrollMode;
 use warp_editor::render::model::LineCount;
 use warp_util::content_version::ContentVersion;
@@ -78,7 +77,6 @@ use crate::code::local_code_editor::{
 };
 use crate::code::view::PendingSaveIntent;
 use crate::code::ShowCommentEditorProvider;
-#[cfg(not(target_family = "wasm"))]
 use crate::code::ShowFindReferencesCard;
 use crate::code_review::comments::{
     AttachedReviewCommentTarget, CommentId, ReviewCommentBatch, ReviewCommentBatchEvent,
@@ -281,7 +279,6 @@ fn file_nav_button_tooltip(is_sidebar_expanded: bool, app: &AppContext) -> Strin
 /// Returns true if the file status changed between Deleted and non-Deleted states,
 /// which requires rebuilding the editor state because we can't use global buffer
 /// for files that don't exist on the file system.
-#[cfg(not(target_family = "wasm"))]
 fn file_status_changed_deleted_state(
     current_status: &GitFileStatus,
     new_status: &GitFileStatus,
@@ -436,7 +433,6 @@ pub enum CodeReviewViewEvent {
         line_and_column: Option<LineAndColumnArg>,
     },
     /// Request to open LSP logs for the given log file path.
-    #[cfg(not(target_family = "wasm"))]
     OpenLspLogs {
         log_path: PathBuf,
     },
@@ -616,7 +612,6 @@ pub struct CodeReviewView {
     active_comment_model: Option<ModelHandle<ReviewCommentBatch>>,
 
     init_project_button: ViewHandle<ActionButton>,
-    #[cfg(not(target_family = "wasm"))]
     open_repository_button: ViewHandle<ActionButton>,
 
     ui_state_handles: UiStateHandles,
@@ -785,7 +780,6 @@ impl CodeReviewView {
                 });
             }
             CodeFooterViewEvent::OpenLogs { path } => {
-                #[cfg(not(target_family = "wasm"))]
                 {
                     // Look up the LSP server for this path and emit the log path
                     let lsp_manager = lsp::LspManagerModel::handle(ctx);
@@ -998,7 +992,6 @@ impl CodeReviewView {
     fn create_list_state(ctx: &mut ViewContext<Self>) -> ListState<RelocatableScrollContext> {
         let view_handle: WeakViewHandle<Self> = ctx.handle();
         let render_handle = view_handle.clone();
-        #[cfg(not(target_family = "wasm"))]
         let adjustment_handle = view_handle;
 
         let (list_state, scroll_rx) = ListState::new_with_scroll_preservation(
@@ -1010,7 +1003,6 @@ impl CodeReviewView {
                     .as_ref(app)
                     .render_diff_at_index(index, scroll_offset, app)
             },
-            #[cfg(not(target_family = "wasm"))]
             move |index, captured_context, app| {
                 Self::adjust_scroll_offset(&adjustment_handle, index, captured_context, app)
             },
@@ -1246,7 +1238,6 @@ impl CodeReviewView {
                 })
         });
 
-        #[cfg(not(target_family = "wasm"))]
         let open_repository_button = ctx.add_typed_action_view(|_ctx| {
             ActionButton::new("Open repository", NakedTheme)
                 .with_size(ButtonSize::Small)
@@ -1296,7 +1287,6 @@ impl CodeReviewView {
             pending_jump_to_comment: None,
             active_comment_model: None,
             init_project_button,
-            #[cfg(not(target_family = "wasm"))]
             open_repository_button,
             is_open: false,
             code_review_footer: None,
@@ -1554,7 +1544,6 @@ impl CodeReviewView {
             }
             #[cfg_attr(target_family = "wasm", allow(unused_variables))]
             FindViewEvent::NextMatch { direction } => {
-                #[cfg(not(target_family = "wasm"))]
                 self.find_model.update(ctx, |model, model_ctx| {
                     model.focus_next_find_match(*direction, self.editor_handles(), model_ctx);
                 });
@@ -1611,7 +1600,6 @@ impl CodeReviewView {
         }
     }
 
-    #[cfg(not(target_family = "wasm"))]
     fn update_search_decorations(&mut self, ctx: &mut ViewContext<Self>) {
         let CodeReviewViewState::Loaded(state) = self.state() else {
             return;
@@ -1961,7 +1949,6 @@ impl CodeReviewView {
                 buffer,
             });
 
-            #[cfg(not(target_family = "wasm"))]
             {
                 let CodeReviewViewState::Loaded(state) = self.state() else {
                     return;
@@ -2040,7 +2027,6 @@ impl CodeReviewView {
         unreachable!("get_match_character_bounds should not run on wasm");
     }
 
-    #[cfg(not(target_family = "wasm"))]
     fn get_match_character_bounds(
         &self,
         editor_index: usize,
@@ -2125,7 +2111,6 @@ impl CodeReviewView {
         unreachable!("horizontally_scroll_to_match should not run on wasm");
     }
 
-    #[cfg(not(target_family = "wasm"))]
     fn horizontally_scroll_to_match(
         &self,
         editor_index: usize,
@@ -2207,7 +2192,6 @@ impl CodeReviewView {
         });
 
         // Clear finder match decorations
-        #[cfg(not(target_family = "wasm"))]
         if let CodeReviewViewState::Loaded(state) = self.state() {
             for file_state in state.file_states.values() {
                 if let Some(editor_state) = &file_state.editor_state {
@@ -2506,7 +2490,6 @@ impl CodeReviewView {
                 // (it sets language by extension and skips local-only
                 // wiring like LSP for remote files), so we always go
                 // through the global-buffer path when we have a repo.
-                #[cfg(not(target_family = "wasm"))]
                 {
                     if self.repo_path().is_some() {
                         self.create_code_review_model_with_global_buffer(file, ctx)
@@ -2743,7 +2726,6 @@ impl CodeReviewView {
         Some(&mut self.active_repo.as_mut()?.state)
     }
 
-    #[cfg(not(target_family = "wasm"))]
     fn session_env(&self, app: &AppContext) -> Option<GitSessionState> {
         let terminal_view = self.terminal_view.as_ref()?.upgrade(app)?;
         terminal_view.read(app, |terminal, ctx| {
@@ -2777,7 +2759,6 @@ impl CodeReviewView {
         Self::render_wsl_state(appearance, None)
     }
 
-    #[cfg(not(target_family = "wasm"))]
     fn render_no_repo_for_env(
         &self,
         app: &AppContext,
@@ -2864,7 +2845,6 @@ impl CodeReviewView {
         diff_deltas
     }
 
-    #[cfg(not(target_family = "wasm"))]
     fn create_code_review_model_with_global_buffer(
         &self,
         file: &FileDiffAndContent,
@@ -3123,7 +3103,6 @@ impl CodeReviewView {
                     ctx.notify();
                 }
             }
-            #[cfg(not(target_family = "wasm"))]
             LocalCodeEditorEvent::GotoDefinition {
                 path,
                 line,
@@ -3148,7 +3127,6 @@ impl CodeReviewView {
                     ctx,
                 );
             }
-            #[cfg(not(target_family = "wasm"))]
             LocalCodeEditorEvent::OpenLspLogs { log_path } => {
                 ctx.emit(CodeReviewViewEvent::OpenLspLogs {
                     log_path: log_path.clone(),
@@ -3281,7 +3259,6 @@ impl CodeReviewView {
                     // Reset editor state with incoming content.
                     local_editor.reset_with_state(state, ctx);
                 }
-                #[cfg(not(target_family = "wasm"))]
                 if !is_deleted_file {
                     // We only want to recompute diff is the file is loaded. If not, we can rely on the file load event
                     // for diff computation.

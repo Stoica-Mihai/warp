@@ -171,7 +171,6 @@ use crate::settings_view::{flags, SettingsSection};
 use crate::suggestions::ignored_suggestions_model::{
     IgnoredSuggestionsModel, IgnoredSuggestionsModelEvent, SuggestionType,
 };
-#[cfg(not(target_family = "wasm"))]
 use crate::terminal::cli_agent_sessions::plugin_manager::PluginModalKind;
 use crate::terminal::cli_agent_sessions::{
     CLIAgentInputState, CLIAgentSessionsModel, CLIAgentSessionsModelEvent,
@@ -752,7 +751,6 @@ pub enum Event {
         origin: AgentViewEntryOrigin,
     },
     RegisterPluginListener(CLIAgent),
-    #[cfg(not(target_family = "wasm"))]
     OpenPluginInstructionsPane(CLIAgent, PluginModalKind),
 }
 
@@ -2524,7 +2522,6 @@ impl Input {
         true
     }
 
-    #[cfg(not(target_family = "wasm"))]
     fn export_conversation_to_file(
         &mut self,
         _filename_arg: Option<String>,
