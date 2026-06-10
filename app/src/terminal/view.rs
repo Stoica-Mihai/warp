@@ -2061,9 +2061,6 @@ pub struct TerminalView {
     ignore_next_set_title_event: bool,
     is_using_conversation_for_pane_header_title: bool,
 
-    /// Mouse state handle for the ambient agent cancel button in the pane header.
-    ambient_agent_cancel_mouse_state: warpui::elements::MouseStateHandle,
-
     /// Weak handle to the [`PaneStack`] this view is part of, allowing push/pop operations.
     pane_stack: Option<WeakModelHandle<crate::pane_group::pane::PaneStack<Self>>>,
 
@@ -2149,25 +2146,9 @@ impl TerminalView {
             .and_then(|p| p.to_local_path())
     }
 
-    fn is_nested_cloud_mode(&self, app: &AppContext) -> bool {
-        if !self.is_ambient_agent_session(app) {
-            return false;
-        }
-
-        let Some(pane_stack) = self
-            .pane_stack
-            .as_ref()
-            .and_then(|handle| handle.upgrade(app))
-        else {
-            return false;
-        };
-
-        pane_stack
-            .as_ref(app)
-            .entries()
-            .iter()
-            .position(|(_, view)| view.id() == self.view_id)
-            .is_some_and(|index| index > 0)
+    /// Ambient/cloud agent sessions are stripped, so a terminal is never a nested cloud-mode pane.
+    fn is_nested_cloud_mode(&self, _app: &AppContext) -> bool {
+        false
     }
 
     /// Create a SyncEvent for other terminals to use based on
@@ -2791,7 +2772,6 @@ impl TerminalView {
             terminal_title: Default::default(),
             ignore_next_set_title_event: false,
             is_using_conversation_for_pane_header_title: false,
-            ambient_agent_cancel_mouse_state: Default::default(),
             active_init_project_model: None,
             manual_pty_shutdown_requested: false,
             pane_stack: None,
@@ -3041,23 +3021,7 @@ impl TerminalView {
     /// * Exiting agent view for the selected conversation
     /// * Popping the current view off the navigation stack (for nested cloud mode agents)
     /// Root cloud-mode panes (stack depth ≤ 1) are a no-op — there is nowhere to return to.
-    fn exit_agent_view(&mut self, ctx: &mut ViewContext<Self>) {
-        // For nested ambient agent sessions (cloud mode), pop from pane stack.
-        // Root cloud-mode panes have no parent terminal to return to, so escape
-        // is a no-op to avoid leaving the app in a borked state.
-        if self.is_ambient_agent_session(ctx) {
-            if let Some(pane_stack) = self
-                .pane_stack
-                .as_ref()
-                .and_then(|h| h.upgrade(ctx))
-                .filter(|stack| stack.as_ref(ctx).depth() > 1)
-            {
-                pane_stack.update(ctx, |stack, ctx| {
-                    stack.pop(ctx);
-                });
-            }
-        }
-    }
+    fn exit_agent_view(&mut self, _ctx: &mut ViewContext<Self>) {}
 
     
 
@@ -14611,11 +14575,6 @@ impl View for TerminalView {
                 context.set.insert(flags::CLI_AGENT_RICH_INPUT_OPEN);
             }
         }
-
-        if self.is_ambient_agent_session(app) && !self.is_nested_cloud_mode(app) {
-            context.set.insert(init::ROOT_CLOUD_MODE_PANE_KEY);
-        }
-
 
         if false {
             context.set.insert(flags::HAS_PENDING_PROMPT_SUGGESTION);

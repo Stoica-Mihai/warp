@@ -6,7 +6,6 @@ use warpui::elements::{
 };
 use warpui::prelude::Container;
 use warpui::text_layout::ClipConfig;
-use warpui::ui_components::components::UiComponent;
 #[cfg(not(target_arch = "wasm32"))]
 use warpui::{
     AppContext, Element, ModelHandle, SingletonEntity, TypedActionView, ViewContext,
@@ -25,13 +24,11 @@ use crate::pane_group::pane::view::header::components::{
     render_three_column_header, CenteredHeaderEdgeWidth,
 };
 use crate::pane_group::pane::view::header::render_pane_header_draggable;
-use crate::pane_group::pane::view::PaneHeaderAction;
 use crate::pane_group::pane::{view, PaneStack};
 use crate::pane_group::{BackingView, SplitPaneState};
 use crate::terminal::cli_agent_sessions::CLIAgentSessionsModel;
 use crate::terminal::{TerminalManager, TerminalView};
 use crate::ui_components::agent_icon::terminal_view_agent_icon_variant;
-use crate::ui_components::buttons::icon_button_with_color;
 use crate::ui_components::icon_with_status::render_icon_with_status;
 use crate::ui_components::{blended_colors, icons};
 use crate::workspace::tab_settings::TabSettings;
@@ -99,7 +96,6 @@ impl TerminalView {
 
     /// Set the pane title from agent chrome when available, falling back to the regular terminal title.
     pub(super) fn update_pane_configuration(&mut self, ctx: &mut ViewContext<Self>) {
-        let is_ambient_agent = self.is_ambient_agent_session(ctx);
         let selected_conversation_title = self.selected_conversation_display_title(ctx);
         let selected_cli_agent_title = self.selected_cli_agent_title_for_chrome(ctx);
 
@@ -117,13 +113,7 @@ impl TerminalView {
                     self.is_using_conversation_for_pane_header_title = true;
                     conversation_title
                 }
-                None => {
-                    if is_ambient_agent {
-                        default_agent_conversation_title(is_ambient_agent)
-                    } else {
-                        self.terminal_title.clone()
-                    }
-                }
+                None => self.terminal_title.clone(),
             }
         };
         self.pane_configuration.update(ctx, |pane_config, ctx| {
@@ -260,28 +250,9 @@ impl TerminalView {
             None
         };
 
-        let mut left_of_overflow: Option<Box<dyn Element>> = None;
+        let left_of_overflow: Option<Box<dyn Element>> = None;
 
         let mut icon_button_count: u32 = 0;
-
-        // Cloud-mode-only ambient agent cancel button is shown while we're waiting
-        // for the session to be ready.
-        let is_waiting_for_session = false;
-        let button_element = if is_waiting_for_session {
-            Some(self.render_ambient_agent_cancel_button(app))
-        } else {
-            None
-        };
-
-        if let Some(button) = button_element {
-            icon_button_count += 1;
-            if let Some(existing) = left_of_overflow {
-                left_of_overflow =
-                    Some(Flex::row().with_child(existing).with_child(button).finish());
-            } else {
-                left_of_overflow = Some(button);
-            }
-        }
 
         let mut right_row = Flex::row()
             .with_cross_axis_alignment(CrossAxisAlignment::Center)
@@ -485,30 +456,6 @@ impl BackingView for TerminalView {
 }
 
 impl TerminalView {
-    /// Render the cancel button for cancelling the ambient agent task while it's loading.
-    fn render_ambient_agent_cancel_button(&self, app: &AppContext) -> Box<dyn Element> {
-        let appearance = Appearance::as_ref(app);
-        let theme = appearance.theme();
-        let ui_builder = appearance.ui_builder().clone();
-
-        icon_button_with_color(
-            appearance,
-            icons::Icon::StopFilled,
-            false, /* active */
-            self.ambient_agent_cancel_mouse_state.clone(),
-            blended_colors::text_sub(theme, theme.background()).into(),
-        )
-        .with_tooltip(move || ui_builder.tool_tip("Cancel".to_string()).build().finish())
-        .build()
-        .on_click(|ctx, _, _| {
-            ctx.dispatch_typed_action::<PaneHeaderAction<TerminalAction, TerminalAction>>(
-                PaneHeaderAction::CustomAction(TerminalAction::CancelAmbientAgentTask),
-            );
-        })
-        .finish()
-    }
-
-
     /// Render the indicator for terminal mode (no conversation selected).
     /// Shows error indicator if terminal is in error state, otherwise shell indicator on Windows.
     fn render_terminal_mode_indicator(&self, app: &AppContext) -> Option<Box<dyn Element>> {
@@ -551,27 +498,9 @@ impl TerminalView {
 
     /// Render shared session header content (participant avatars and role controls).
 
-    pub fn is_ambient_agent_session(&self, _ctx: &AppContext) -> bool {
-        false
-    }
-
-    /// Returns `true` while a cloud-mode ambient agent run is still spinning up. This covers
-    /// both the `WaitingForSession` phase (env being provisioned, "Connecting to Host") and
-    /// the post-session pre-first-exchange phase (session ready, harness not started, no
-    /// exchange yet). In either case the run is committed and we want the UI to read as busy.
-    fn is_in_cloud_agent_setup_phase(&self, _ctx: &AppContext) -> bool {
-        false
-    }
-
-    /// Selected conversation status for chrome. Warp AI conversations are stripped, so this only
-    /// surfaces [`ConversationStatus::InProgress`] while the active block is long-running or a
-    /// cloud-mode ambient agent is still in its environment-setup phase.
-    pub fn selected_conversation_status(&self, ctx: &AppContext) -> Option<ConversationStatus> {
-        let long_running = self.is_long_running();
-        let cloud_setup = self.is_in_cloud_agent_setup_phase(ctx);
-        if (long_running || cloud_setup) && self.is_ambient_agent_session(ctx) {
-            return Some(ConversationStatus::InProgress);
-        }
+    /// Selected conversation status for chrome. Warp AI conversations are stripped, so this is
+    /// always `None` (the only producer was a cloud-mode ambient agent session).
+    pub fn selected_conversation_status(&self, _ctx: &AppContext) -> Option<ConversationStatus> {
         None
     }
 
@@ -609,10 +538,3 @@ impl TerminalView {
     }
 }
 
-fn default_agent_conversation_title(is_ambient_agent: bool) -> String {
-    if is_ambient_agent {
-        "New cloud agent".to_owned()
-    } else {
-        "New agent conversation".to_owned()
-    }
-}

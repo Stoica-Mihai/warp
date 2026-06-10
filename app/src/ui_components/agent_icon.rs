@@ -34,9 +34,8 @@ pub(crate) fn terminal_view_agent_icon_variant(
 ) -> Option<IconWithStatusVariant> {
     let cli_agent_session = CLIAgentSessionsModel::as_ref(app).session(terminal_view.id());
 
-    let is_ambient = terminal_view.is_ambient_agent_session(app);
     let inputs = TerminalIconInputs {
-        is_ambient,
+        is_ambient: false,
         cli_session: cli_agent_session.map(|session| CLISessionInputs {
             agent: session.agent,
             has_listener: session.listener.is_some(),

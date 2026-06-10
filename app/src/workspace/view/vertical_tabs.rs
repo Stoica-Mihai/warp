@@ -887,11 +887,10 @@ fn summary_conversation_status_for_terminal(
         return Some(session.status.to_conversation_status());
     }
 
-    let is_ambient = terminal_view.is_ambient_agent_session(app);
     let has_conversation = terminal_view
         .selected_conversation_display_title(app)
         .is_some();
-    (has_conversation || is_ambient)
+    has_conversation
         .then(|| terminal_view.selected_conversation_status_for_display(app))
         .flatten()
 }
@@ -1285,9 +1284,7 @@ fn render_detail_kind_badge_icon(
                 return icon.to_warpui_icon(color).finish();
             }
 
-            let icon = if terminal_view.is_ambient_agent_session(app) {
-                WarpIcon::OzCloud
-            } else if terminal_view
+            let icon = if terminal_view
                 .selected_conversation_display_title(app)
                 .is_some()
             {
@@ -3080,10 +3077,9 @@ fn preferred_agent_tab_titles(
 fn terminal_agent_text(terminal_view: &TerminalView, app: &AppContext) -> TerminalAgentText {
     let cli_agent_session = CLIAgentSessionsModel::as_ref(app).session(terminal_view.id());
     let is_plugin_backed = cli_agent_session.is_some_and(|session| session.listener.is_some());
-    let is_ambient_agent = terminal_view.is_ambient_agent_session(app);
 
     let mut agent_text = TerminalAgentText {
-        is_oz_agent: is_ambient_agent,
+        is_oz_agent: false,
         cli_agent: cli_agent_session.map(|session| session.agent),
         ..Default::default()
     };

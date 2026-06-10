@@ -576,7 +576,6 @@ enum Indicator {
     Maximized,
     /// We should show a shell indicator for the tab.
     Shell(ShellIndicatorType),
-    AmbientAgent,
 }
 
 impl From<TerminalViewState> for Indicator {
@@ -684,18 +683,6 @@ impl<'a> TabComponent<'a> {
         let appearance = Appearance::as_ref(ctx);
         let title = tab.pane_group.as_ref(ctx).display_title(ctx);
 
-        let active_pane_is_ambient_agent_session = tab
-            .pane_group
-            .as_ref(ctx)
-            .active_session_view(ctx)
-            .map(|view| {
-                let view = view.as_ref(ctx);
-                view.is_ambient_agent_session(ctx) || {
-                    let model = view.model.lock();
-                    model.is_shared_ambient_agent_session()
-                }
-            })
-            .unwrap_or(false);
         let active_pane_has_unsaved_code_changes = tab
             .pane_group
             .as_ref(ctx)
@@ -718,9 +705,7 @@ impl<'a> TabComponent<'a> {
         // But if it's on, we want to show the synced indicator if this tab is being synced.
         // If we aren't showing the synced indicator (and we know the setting is on),
         // we will show long-running, error indicators, etc. as applicable.
-        let indicator = if active_pane_is_ambient_agent_session {
-            Indicator::AmbientAgent
-        } else if active_pane_has_unsaved_code_changes {
+        let indicator = if active_pane_has_unsaved_code_changes {
             Indicator::UnsavedChanges
         } else if !should_show_indicators {
             Indicator::None
@@ -839,9 +824,10 @@ impl<'a> TabComponent<'a> {
         None
     }
 
-    /// Check if the given indicator is an agent task indicator
-    fn is_agent_task_indicator(indicator: &Indicator) -> bool {
-        matches!(indicator, Indicator::AmbientAgent)
+    /// Check if the given indicator is an agent task indicator. Ambient/cloud agents are
+    /// stripped, so this is always `false`.
+    fn is_agent_task_indicator(_indicator: &Indicator) -> bool {
+        false
     }
 
     /// Get the current working directory for the tooltip if this is an agent task
@@ -1083,41 +1069,6 @@ impl<'a> TabComponent<'a> {
                     .to_warpui_icon(internal_colors::neutral_5(self.appearance.theme()).into())
                     .finish(),
             ),
-            Indicator::AmbientAgent => {
-                // Always use the active tab font color for the ambient agent cloud icon, with a safe fallback.
-                let active_styles = self.styles.default.merge(self.styles.active);
-                let icon_color = active_styles
-                    .font_color
-                    .unwrap_or_else(|| self.appearance.theme().active_ui_text_color().into());
-
-                let ui_builder = self.ui_builder.clone();
-                let mouse_state = self.tab.indicator_hover_state.clone();
-                Some(
-                    Hoverable::new(mouse_state, move |state| {
-                        let mut stack = Stack::new()
-                            .with_child(Icon::OzCloud.to_warpui_icon(icon_color.into()).finish());
-
-                        if state.is_hovered() {
-                            let tooltip = ui_builder
-                                .tool_tip("Cloud agent run".to_string())
-                                .build()
-                                .finish();
-                            stack.add_positioned_overlay_child(
-                                tooltip,
-                                OffsetPositioning::offset_from_parent(
-                                    vec2f(0., 3.),
-                                    ParentOffsetBounds::WindowByPosition,
-                                    ParentAnchor::BottomMiddle,
-                                    ChildAnchor::TopMiddle,
-                                ),
-                            );
-                        }
-
-                        stack.finish()
-                    })
-                    .finish(),
-                )
-            }
         };
 
         icon.map(|icon| {
