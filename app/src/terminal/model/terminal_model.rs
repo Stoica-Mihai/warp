@@ -470,10 +470,6 @@ pub struct TerminalModel {
     /// this is not a shared session.
     shared_session_source: Option<SharedSessionSource>,
 
-    /// Whether this terminal model was created as a cloud mode dummy session
-    /// (no local shell process, deferred shared-session viewer backing).
-    is_dummy_cloud_mode_session: bool,
-
     /// If Some, this terminal is displaying a read-only conversation transcript.
     /// Tracks both the loading state and the type of conversation being viewed.
     conversation_transcript_viewer_status: Option<ConversationTranscriptViewerStatus>,
@@ -965,7 +961,6 @@ impl TerminalModel {
         is_ai_ugc_telemetry_enabled: bool,
         session_startup_path: Option<PathBuf>,
         shell_state: ShellLaunchState,
-        is_dummy_cloud_mode_session: bool,
     ) -> Self {
         let alt_screen = AltScreen::new(
             sizes.size,
@@ -1015,7 +1010,6 @@ impl TerminalModel {
             shell_launch_state: shell_state,
             obfuscate_secrets,
             shared_session_source: None,
-            is_dummy_cloud_mode_session,
             conversation_transcript_viewer_status: None,
             is_receiving_agent_conversation_replay: false,
             tmux_background_outputs: HashMap::new(),
@@ -1060,7 +1054,6 @@ impl TerminalModel {
             is_ai_ugc_telemetry_enabled,
             session_startup_path,
             shell_state,
-            false,
         )
     }
 
@@ -1095,15 +1088,6 @@ impl TerminalModel {
         if let Some(source) = self.shared_session_source.as_mut() {
             source.source_task_id = task_id;
         }
-    }
-
-    pub fn is_dummy_cloud_mode_session(&self) -> bool {
-        self.is_dummy_cloud_mode_session
-    }
-
-    #[cfg(test)]
-    pub fn set_is_dummy_cloud_mode_session(&mut self, value: bool) {
-        self.is_dummy_cloud_mode_session = value;
     }
 
     pub fn is_shared_ambient_agent_session(&self) -> bool {
