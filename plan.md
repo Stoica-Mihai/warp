@@ -268,7 +268,9 @@ Done via the batched-`python3`/`recast` method (NOT the Edit tool — per-call d
 
 ### AI strip — current state (2026-06-10 session 67)
 
-**Binary**: **612.4 MB** (`f72d4c9d`, last measured). 3-gate **0/0/0 errors**, **1 benign warning** (gate-default + gate-feat only: `CodeEditorModelEvent::UnifiedDiffComputed` field `0` unused in prod code but read in `model_tests.rs` — test-only consumer, not deletable without restructuring test assertions; generic code-editor infra, leave). Per-session detail lives in the `ai-strip-session-*` memory files (this plan stays high-level for 57+).
+**Binary**: **607.7 MB** (`3909f1fd`, last measured). 3-gate **0/0/0 errors** + warp_core green, **1 benign warning** (gate-default + gate-feat only: `CodeEditorModelEvent::UnifiedDiffComputed` field `0` unused in prod code but read in `model_tests.rs` — test-only consumer, not deletable without restructuring test assertions; generic code-editor infra, leave). Per-session detail lives in the `ai-strip-session-*` memory files (this plan stays high-level for 57+).
+
+**S67 (latest): referrals / reward-theme modal feature stripped** (`3909f1fd`, −0.21 MB). Removed Warp-proprietary referral-reward subsystem: `reward_view.rs` + `referral_theme_status.rs`; ThemeKind::{Sent,Received}ReferralReward variants + builders; all workspace wiring (reward_modal field/subscribe/show_reward_modal/handle_referral_theme_status_event/render branch/is_reward_modal_open); ThemeChooser referral param; GlobalResourceHandles.referral_theme_status; ContextFlag::ShowRewardModal. 12 files, −562 LoC. Migration-safe (error-tolerant theme loader → default fallback). **Cloud-surface strip now functionally complete. PRIMARY NEXT = de-brand rename (`warp*` → `sublight*`).**
 
 **S67: Firebase anonymous-auth dead-branch collapse + auth_state dead-code sweep + warp.dev phone-home URL strip.** Commits:
 - `ed753c93` — collapsed always-false `is_user_anonymous()` branch in `initiate_user_signup`; deleted `initiate_anonymous_user_linking` + `open_url_maybe_with_anonymous_token` + `URLConstructorCallback` stubs from `auth_manager.rs`. −30 LoC.
