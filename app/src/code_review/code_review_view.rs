@@ -2462,10 +2462,6 @@ impl CodeReviewView {
                         self.create_code_review_model(file, ctx)
                     }
                 }
-                #[cfg(target_family = "wasm")]
-                {
-                    self.create_code_review_model(file, ctx)
-                }
             };
             let is_expanded = self.should_auto_expand_file(&file.file_diff);
 

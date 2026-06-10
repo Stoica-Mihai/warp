@@ -728,11 +728,6 @@ impl RemoteServerManager {
     ) where
         T: RemoteTransport + 'static,
     {
-        #[cfg(target_family = "wasm")]
-        {
-            log::warn!("Remote server check_binary is a no-op on WASM");
-        }
-
         {
             ctx.emit(RemoteServerManagerEvent::SetupStateChanged {
                 session_id,
@@ -916,11 +911,6 @@ impl RemoteServerManager {
     ) where
         T: RemoteTransport + 'static,
     {
-        #[cfg(target_family = "wasm")]
-        {
-            log::warn!("Remote server connect_session is a no-op on WASM");
-        }
-
         {
             log::info!("Starting remote server connection: session={session_id:?}");
 

@@ -578,10 +578,6 @@ impl EventLoop {
                 }
 
                 // Initialize soft keyboard support on mobile WASM devices.
-                #[cfg(target_family = "wasm")]
-                {
-                    self.initialize_soft_keyboard();
-                }
             }
             Event::UserEvent(CustomEvent::OpenWindow {
                 window_id,
@@ -1642,41 +1638,6 @@ impl EventLoop {
         // the keyboard during drags/scrolls (which start with LeftMouseDown but later get
         // reclassified as scroll gestures). We only trigger the keyboard if the touch purpose
         // is still Tap (meaning it was never reclassified to Scroll, Select, or WindowDrag).
-        #[cfg(target_family = "wasm")]
-        {
-            // First, check what kind of event we have without holding a mutable borrow.
-            let touch_info = self.state.windows.get(&window_id).and_then(|ws| {
-                ws.last_touch_purpose.as_ref().map(|purpose| {
-                    // Check if this is still a tap (not a scroll/drag/select)
-                    matches!(purpose, TouchPurpose::Tap(..))
-                })
-            });
-
-            match (&event, touch_info) {
-                // Regular mouse click (not touch) - update keyboard immediately.
-                (crate::event::Event::LeftMouseDown { .. }, None) => {
-                    self.update_soft_keyboard_state(dispatch_result.soft_keyboard_requested);
-                }
-                // Touch LeftMouseDown - store keyboard request for later use on LeftMouseUp.
-                (crate::event::Event::LeftMouseDown { .. }, Some(_)) => {
-                    if let Some(ws) = self.state.windows.get_mut(&window_id) {
-                        ws.pending_soft_keyboard_request = dispatch_result.soft_keyboard_requested;
-                    }
-                }
-                // Touch tap completed and purpose is still Tap - use stored keyboard request.
-                (crate::event::Event::LeftMouseUp { .. }, Some(true)) => {
-                    let should_show = self
-                        .state
-                        .windows
-                        .get(&window_id)
-                        .map(|ws| ws.pending_soft_keyboard_request)
-                        .unwrap_or(false);
-                    self.update_soft_keyboard_state(should_show);
-                }
-                _ => {}
-            };
-        }
-
         // On LeftMouseUp: clear touch state and start momentum scrolling if applicable.
         if matches!(event, crate::event::Event::LeftMouseUp { .. }) {
             let should_start_momentum = self

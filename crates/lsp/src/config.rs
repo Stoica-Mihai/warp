@@ -230,12 +230,6 @@ pub(crate) fn path_to_lsp_uri(path: &Path) -> Result<Uri> {
         uri_str.parse::<Uri>().map_err(anyhow::Error::from)
     }
 
-    #[cfg(target_arch = "wasm32")]
-    {
-        let path_str = path.to_string_lossy();
-        let uri_string = format!("file://{path_str}");
-        uri_string.parse::<Uri>().map_err(anyhow::Error::from)
-    }
 }
 
 pub(crate) fn lsp_uri_to_path(uri: &Uri) -> Result<PathBuf> {

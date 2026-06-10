@@ -168,10 +168,6 @@ fn app_workflows() -> Vec<Workflow> {
             .into_iter()
             .collect()
     }
-    #[cfg(target_family = "wasm")]
-    {
-        Vec::new()
-    }
 }
 
 /// Loads project-level workflows (if any) from the warp config directory in the current working

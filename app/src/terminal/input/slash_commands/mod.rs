@@ -522,14 +522,6 @@ impl Input {
                         ctx,
                     );
                 }
-                #[cfg(target_family = "wasm")]
-                {
-                    show_error_toast(
-                        "Export conversation to file unsupported in web".to_owned(),
-                        ctx,
-                    );
-                    return true;
-                }
             }
             _init if command.name == commands::INIT.name => {
                 ctx.dispatch_typed_action(&TerminalAction::InitProject);

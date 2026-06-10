@@ -189,10 +189,6 @@ impl LspService {
             }
         }
 
-        #[cfg(target_arch = "wasm32")]
-        {
-            let _ = (level, message.into());
-        }
     }
 
     pub async fn shutdown(&self) -> anyhow::Result<()> {

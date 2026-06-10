@@ -14408,52 +14408,6 @@ impl View for Workspace {
         };
         let mut stack = Stack::new();
 
-        #[cfg(target_family = "wasm")]
-        {
-            let pane_group = self.active_tab_pane_group().as_ref(app);
-            if warpui::platform::wasm::is_mobile_device() && pane_group.left_panel_open {
-                let scrim = Rect::new()
-                    .with_background(Fill::Solid(ColorU::new(
-                        0,
-                        0,
-                        0,
-                        MOBILE_OVERLAY_SCRIM_ALPHA,
-                    )))
-                    .finish();
-                let clickable_scrim = EventHandler::new(scrim)
-                    .on_left_mouse_down(|ctx, _, _| {
-                        ctx.dispatch_typed_action(WorkspaceAction::ToggleLeftPanel);
-                        DispatchEventResult::StopPropagation
-                    })
-                    .finish();
-                stack.add_positioned_overlay_child(
-                    Percentage::width(1.0 - MOBILE_OVERLAY_PANEL_WIDTH_RATIO, clickable_scrim)
-                        .finish(),
-                    OffsetPositioning::offset_from_save_position_element(
-                        TAB_BAR_POSITION_ID,
-                        vec2f(0., 0.),
-                        PositionedElementOffsetBounds::WindowBySize,
-                        PositionedElementAnchor::BottomRight,
-                        ChildAnchor::TopRight,
-                    ),
-                );
-
-                let panel_content = Container::new(ChildView::new(&self.left_panel_view).finish())
-                    .with_background(appearance.theme().surface_1())
-                    .finish();
-                stack.add_positioned_overlay_child(
-                    Percentage::width(MOBILE_OVERLAY_PANEL_WIDTH_RATIO, panel_content).finish(),
-                    OffsetPositioning::offset_from_save_position_element(
-                        TAB_BAR_POSITION_ID,
-                        vec2f(0., 0.),
-                        PositionedElementOffsetBounds::WindowBySize,
-                        PositionedElementAnchor::BottomLeft,
-                        ChildAnchor::TopLeft,
-                    ),
-                );
-            }
-        }
-
         stack.add_child(
             Container::new(panels)
                 .with_uniform_padding(WORKSPACE_PADDING)
