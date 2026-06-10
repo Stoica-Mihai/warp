@@ -654,17 +654,6 @@ fn run_internal(mut launch_mode: LaunchMode) -> Result<()> {
         .install_default()
         .expect("must be able to initialize crypto provider for TLS support");
 
-    // For wasm builds we have this special case to parse out the intent
-    // from the url that is used to visite the app on web.
-    #[cfg(target_family = "wasm")]
-    {
-        use uri::web_intent_parser;
-        if let Some(intent) = web_intent_parser::parse_web_intent_from_current_url() {
-            launch_mode.add_url(intent);
-        }
-        web_intent_parser::set_context_flags_from_current_url();
-    }
-
     // Collect errors that occur in run_internal() before the Sentry client is initialized,
     // so they can be replayed to Sentry once it's ready.
     #[cfg_attr(

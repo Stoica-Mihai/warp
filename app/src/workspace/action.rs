@@ -281,9 +281,6 @@ pub enum WorkspaceAction {
     SignupAnonymousUser,
     SignInAnonymousWebUser,
     OpenLink(String),
-    /// On WASM, opens a given URL in the desktop Warp app (if installed) or redirects to download page.
-    #[cfg(target_family = "wasm")]
-    OpenLinkOnDesktop(url::Url),
     ReopenClosedSession,
     AddWindow,
     AddWindowWithShell {
@@ -722,8 +719,6 @@ impl WorkspaceAction {
             FileDeleted { .. } => false, // File deletion doesn't change workspace state
             #[cfg(target_os = "linux")]
             DismissWaylandCrashRecoveryBannerAndOpenLink => false,
-            #[cfg(target_family = "wasm")]
-            OpenLinkOnDesktop(_) => false,
             // actions that are related to updating user settings or
             // managing some ui elements (like closing/opening modals)
             // that don't reflect on actual workspace and don't need to

@@ -189,9 +189,6 @@ pub fn log_out(app: &mut AppContext) {
             );
         }
     }
-
-    #[cfg(target_family = "wasm")]
-    crate::platform::wasm::emit_event(crate::platform::wasm::WarpEvent::LoggedOut);
 }
 
 // Remove the cloud persisted settings from user defaults.
