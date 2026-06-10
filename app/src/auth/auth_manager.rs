@@ -2,8 +2,7 @@ pub(super) mod user_persistence;
 
 use std::sync::Arc;
 
-use uuid::Uuid;
-use warp_core::channel::ChannelState;
+
 use warpui::{Entity, ModelContext, SingletonEntity};
 
 use super::auth_state::{AuthState, PersistAction};
@@ -14,25 +13,18 @@ use user_persistence::PersistedUser;
 
 pub struct AuthManager {
     auth_state: Arc<AuthState>,
-    pending_auth_state: Option<String>,
 }
 
 impl AuthManager {
     pub fn new(ctx: &mut ModelContext<Self>) -> Self {
         let auth_state = AuthStateProvider::as_ref(ctx).get().clone();
-        Self {
-            auth_state,
-            pending_auth_state: None,
-        }
+        Self { auth_state }
     }
 
     #[cfg(test)]
     pub fn new_for_test(ctx: &mut ModelContext<Self>) -> Self {
         let auth_state = AuthStateProvider::as_ref(ctx).get().clone();
-        Self {
-            auth_state,
-            pending_auth_state: None,
-        }
+        Self { auth_state }
     }
 
     fn set_and_persist(
@@ -67,34 +59,7 @@ impl AuthManager {
     }
 
     pub(super) fn log_out(&mut self, ctx: &mut ModelContext<Self>) {
-        self.pending_auth_state = None;
         self.set_and_persist(None, None, ctx);
-    }
-
-    fn generate_auth_state(&mut self) -> String {
-        let state = Uuid::new_v4().to_string();
-        self.pending_auth_state = Some(state.clone());
-        state
-    }
-
-    pub fn sign_up_url(&mut self) -> String {
-        let state = self.generate_auth_state();
-        format!(
-            "{}/signup/remote?scheme={}&state={}&public_beta=true",
-            ChannelState::server_root_url(),
-            ChannelState::url_scheme(),
-            state,
-        )
-    }
-
-    pub fn sign_in_url(&mut self) -> String {
-        let state = self.generate_auth_state();
-        format!(
-            "{}/login/remote?scheme={}&state={}",
-            ChannelState::server_root_url(),
-            ChannelState::url_scheme(),
-            state,
-        )
     }
 }
 

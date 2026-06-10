@@ -108,14 +108,7 @@ impl ChannelState {
         Ok(())
     }
 
-    pub fn uses_staging_server() -> bool {
-        let Ok(url) = Url::parse(Self::server_root_url().as_ref()) else {
-            return false;
-        };
-        url.host_str() == Some("staging.warp.dev")
-    }
-
-    /// Returns the canonical identifier for the application.
+/// Returns the canonical identifier for the application.
     ///
     /// This should not be used for namespacing persisted data - such use cases
     /// should make use of [`Self::data_domain`] instead.

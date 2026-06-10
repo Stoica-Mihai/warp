@@ -8,11 +8,10 @@ use super::workspace::{
     AdminEnablementSetting, CustomerType, EnterpriseSecretRegex, UgcCollectionEnablementSetting,
     Workspace, WorkspaceUid,
 };
-use crate::auth::{AuthStateProvider, UserUid};
+use crate::auth::AuthStateProvider;
 use crate::channel::ChannelState;
 use crate::cloud_object::model::persistence::CloudModel;
 use crate::cloud_object::{Owner, Space};
-use crate::server::ids::ServerId;
 use crate::settings::{
     AISettings, AISettingsChangedEvent, CodeSettings, CodeSettingsChangedEvent, PrivacySettings,
 };
@@ -20,7 +19,6 @@ use crate::workspaces::workspace::{
     AiAutonomySettings, SandboxedAgentSettings, UsageBasedPricingSettings,
 };
 
-const STRIPE_SUBSCRIPTION_INTERVAL_PAGE_PREFIX: &str = "/upgrade";
 
 #[derive(Debug)]
 pub enum UserWorkspacesEvent {
@@ -81,24 +79,6 @@ impl UserWorkspaces {
         }
     }
 
-    pub fn upgrade_link(user_id: UserUid) -> String {
-        format!(
-            "{}{}/{}/{}",
-            ChannelState::server_root_url(),
-            STRIPE_SUBSCRIPTION_INTERVAL_PAGE_PREFIX,
-            "user",
-            user_id.as_str()
-        )
-    }
-
-    pub fn upgrade_link_for_team(team_uid: ServerId) -> String {
-        format!(
-            "{}{}/{}",
-            ChannelState::server_root_url(),
-            STRIPE_SUBSCRIPTION_INTERVAL_PAGE_PREFIX,
-            team_uid
-        )
-    }
 
     pub fn workspace_from_uid(&self, workspace_uid: WorkspaceUid) -> Option<&Workspace> {
         self.workspaces.iter().find(|w| w.uid == workspace_uid)

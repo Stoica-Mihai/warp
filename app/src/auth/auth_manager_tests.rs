@@ -12,35 +12,6 @@ fn initialize_app(app: &mut App) {
     app.add_singleton_model(AuthManager::new_for_test);
 }
 
-#[test]
-fn test_log_out_clears_pending_auth_state() {
-    App::test((), |mut app| async move {
-        initialize_app(&mut app);
-
-        // `log_out` clears user+credentials and then calls `persist`, which
-        // routes to `PersistedUser::remove_from_secure_storage`. That requires
-        // a `SecureStorage` singleton, so register a no-op one for this test.
-        app.update(|ctx| {
-            warpui_extras::secure_storage::register_noop("warp_test", ctx);
-        });
-
-        AuthManager::handle(&app).update(&mut app, |auth_manager, ctx| {
-            let _pending = auth_manager.generate_auth_state();
-            assert!(
-                auth_manager.pending_auth_state.is_some(),
-                "precondition: generate_auth_state should populate pending_auth_state"
-            );
-
-            auth_manager.log_out(ctx);
-
-            assert!(
-                auth_manager.pending_auth_state.is_none(),
-                "log_out should clear pending_auth_state"
-            );
-        });
-    });
-}
-
 // These two tests verify that `persist` skips writing to secure storage under certain conditions.
 // They rely on the fact that no secure storage singleton is registered in the test app: if
 // `write_to_secure_storage` were ever called, it would panic trying to look up the unregistered

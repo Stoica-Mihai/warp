@@ -7,7 +7,6 @@ use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use warp_core::channel::ChannelState;
 use warp_core::ui::appearance::Appearance;
 use warp_core::ui::theme::color::internal_colors;
 use warp_core::ui::theme::WarpTheme;
@@ -62,21 +61,7 @@ impl ServerConversationToken {
         &self.0
     }
 
-    pub fn debug_link(&self) -> String {
-        format!(
-            "{}/debug/maa/{}",
-            ChannelState::server_root_url(),
-            self.as_str()
-        )
-    }
 
-    pub fn conversation_link(&self) -> String {
-        format!(
-            "{}/conversation/{}",
-            ChannelState::server_root_url(),
-            self.as_str()
-        )
-    }
 }
 
 impl From<ServerConversationToken> for String {

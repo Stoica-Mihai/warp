@@ -117,7 +117,6 @@ use crate::app_state::{
     TerminalPaneSnapshot, WindowSnapshot,
 };
 use crate::appearance::{Appearance, AppearanceManager};
-use crate::auth::auth_manager::AuthManager;
 use crate::auth::auth_state::AuthState;
 use crate::auth::AuthStateProvider;
 use crate::banner::BannerState;
@@ -13391,33 +13390,11 @@ impl Workspace {
     fn initiate_user_signup(
         &mut self,
         _entrypoint: AnonymousUserSignupEntrypoint,
-        ctx: &mut ViewContext<Self>,
+        _ctx: &mut ViewContext<Self>,
     ) {
-        AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-            let sign_up_url = auth_manager.sign_up_url();
-            ctx.open_url(&sign_up_url);
-        });
     }
 
-    fn redirect_to_sign_in(&mut self) {
-        #[cfg(target_family = "wasm")]
-        if let Some(current_url) = parse_current_url() {
-            update_browser_url(
-                Url::parse(&format!(
-                    "{}/login?redirect_to={}",
-                    ChannelState::server_root_url(),
-                    current_url.path()
-                ))
-                .ok(),
-                true,
-            );
-        } else {
-            update_browser_url(
-                Url::parse(&format!("{}/login", ChannelState::server_root_url())).ok(),
-                true,
-            );
-        }
-    }
+    fn redirect_to_sign_in(&mut self) {}
 
     /// Triggers the necessary cleanup for when a user logs out.
     pub fn on_log_out(&mut self, ctx: &mut ViewContext<Self>) {
@@ -13833,12 +13810,7 @@ impl TypedActionView for Workspace {
                 mode: palette_mode,
                 source,
             } => self.toggle_palette(*palette_mode, *source, ctx),
-            ShowUpgrade => {
-                // Teams are not supported in Sublight; always use the personal upgrade link.
-                let auth_state = AuthStateProvider::as_ref(ctx).get();
-                let user_id = auth_state.user_id().unwrap_or_default();
-                ctx.open_url(&UserWorkspaces::upgrade_link(user_id));
-            }
+            ShowUpgrade => {}
             ShowReferralSettingsPage => {
                 self.show_settings_with_section(Some(SettingsSection::Appearance), ctx);
             }
@@ -14201,12 +14173,7 @@ impl TypedActionView for Workspace {
                     view.add_ephemeral_toast(new_toast, ctx);
                 });
             }
-            Reauth => {
-                AuthManager::handle(ctx).update(ctx, |auth_manager, ctx| {
-                    let sign_in_url = auth_manager.sign_in_url();
-                    ctx.open_url(&sign_in_url);
-                });
-            }
+            Reauth => {}
             SignupAnonymousUser => {
                 self.initiate_user_signup(AnonymousUserSignupEntrypoint::SignUpButton, ctx);
             }

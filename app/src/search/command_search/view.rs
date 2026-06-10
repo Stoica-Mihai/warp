@@ -11,7 +11,7 @@ use pathfinder_geometry::vector::Vector2F;
 use warpui::accessibility::{AccessibilityContent, WarpA11yRole};
 use warpui::elements::{
     resizable_state_handle, Align, AnchorPair, Border, ConstrainedBox, Container, CornerRadius,
-    CrossAxisAlignment, Dismiss, Fill, Flex, MouseStateHandle, OffsetPositioning, OffsetType,
+    CrossAxisAlignment, Dismiss, Fill, Flex, OffsetPositioning, OffsetType,
     ParentElement, ParentOffsetBounds, PositionedElementOffsetBounds, PositioningAxis, Radius,
     Resizable, ResizableStateHandle, SavePosition, ScrollStateHandle, Scrollable,
     ScrollableElement, Shrinkable, Stack, UniformList, UniformListState, XAxisAnchor, YAxisAnchor,
@@ -29,19 +29,17 @@ use super::zero_state::{CommandSearchZeroStateEvent, CommandSearchZeroStateView}
 use crate::ai::execution_context::WarpAiExecutionContext;
 use crate::appearance::Appearance;
 use crate::auth::auth_state::AuthState;
-use crate::auth::{AuthStateProvider, UserUid};
+use crate::auth::AuthStateProvider;
 use crate::completer::SessionContext;
 use crate::search::command_search::searcher::{CommandSearchItemAction, CommandSearchMixer};
 use crate::search::mixer::AddAsyncSourceOptions;
 use crate::search::result_renderer::{QueryResultRenderer, QueryResultRendererStyles};
 use crate::search::search_bar::{SearchBar, SearchBarEvent, SearchBarState, SearchResultOrdering};
 use crate::search::QueryFilter;
-use crate::server::ids::ServerId;
 use crate::terminal::input::MenuPositioning;
 use crate::terminal::model::session::SessionId;
 use crate::terminal::resizable_data::{ModalType, ResizableData, DEFAULT_UNIVERSAL_SEARCH_WIDTH};
 use crate::terminal::{History, HistoryEvent};
-use crate::workspaces::user_workspaces::UserWorkspaces;
 
 const DEFAULT_PLACEHOLDER_TEXT: &str = "Search your history, workflows, and more";
 const PANEL_POSITION_ID: &str = "CommandSearchViewPanel";
@@ -88,8 +86,7 @@ pub enum CommandSearchAction {
     },
     Close,
     Resize,
-    OpenUpgradeLink(String),
-    AttemptLoginGatedUpgrade,
+
 }
 
 struct CommandSearchViewState {
@@ -113,7 +110,7 @@ pub struct CommandSearchView {
     search_bar: ViewHandle<SearchBar<CommandSearchItemAction>>,
     search_bar_state: ModelHandle<SearchBarState<CommandSearchItemAction>>,
     mixer: ModelHandle<CommandSearchMixer>,
-    upgrade_link: MouseStateHandle,
+
 }
 
 impl CommandSearchView {
@@ -194,7 +191,7 @@ impl CommandSearchView {
             search_bar,
             search_bar_state,
             mixer,
-            upgrade_link: Default::default(),
+
         }
     }
 
@@ -464,18 +461,12 @@ impl CommandSearchView {
 
     fn render_error_header(
         &self,
-        app: &AppContext,
+        _app: &AppContext,
         message: String,
-        is_ratelimit_error: bool,
+        _is_ratelimit_error: bool,
         appearance: &Appearance,
     ) -> Box<dyn Element> {
-        if is_ratelimit_error {
-            // Teams are not supported in Sublight; always the personal upgrade path.
-            let current_user_id = self.auth_state.user_id().unwrap_or_default();
-            self.render_error_header_with_upgrade_link(app, appearance, None, current_user_id)
-        } else {
-            self.render_error_header_text(message, appearance)
-        }
+        self.render_error_header_text(message, appearance)
     }
 
     fn render_error_header_text(
@@ -508,94 +499,6 @@ impl CommandSearchView {
         .finish()
     }
 
-    fn render_error_header_with_upgrade_link(
-        &self,
-        app: &AppContext,
-        appearance: &Appearance,
-        team_uid: Option<ServerId>,
-        user_id: UserUid,
-    ) -> Box<dyn Element> {
-        let mut row = Flex::row()
-            .with_main_axis_size(warpui::elements::MainAxisSize::Max)
-            .with_cross_axis_alignment(CrossAxisAlignment::Center);
-
-        let upgrade_link = team_uid
-            .map(UserWorkspaces::upgrade_link_for_team)
-            .unwrap_or_else(|| UserWorkspaces::upgrade_link(user_id));
-
-        let link = if AuthStateProvider::as_ref(app)
-            .get()
-            .is_anonymous_or_logged_out()
-        {
-            appearance
-                .ui_builder()
-                .link(
-                    "Upgrade".into(),
-                    None,
-                    Some(Box::new(move |ctx| {
-                        ctx.dispatch_typed_action(CommandSearchAction::AttemptLoginGatedUpgrade);
-                    })),
-                    self.upgrade_link.clone(),
-                )
-                .soft_wrap(false)
-        } else {
-            appearance
-                .ui_builder()
-                .link(
-                    "Upgrade".into(),
-                    None,
-                    Some(Box::new(move |ctx| {
-                        ctx.dispatch_typed_action(CommandSearchAction::OpenUpgradeLink(
-                            upgrade_link.clone(),
-                        ));
-                    })),
-                    self.upgrade_link.clone(),
-                )
-                .soft_wrap(false)
-        };
-
-        row.add_child(
-            appearance
-                .ui_builder()
-                .span("Looks like you're out of credits. ")
-                .with_style(UiComponentStyles {
-                    font_size: Some(appearance.monospace_font_size()),
-                    font_family_id: Some(appearance.ui_font_family()),
-                    font_color: Some(appearance.theme().nonactive_ui_text_color().into()),
-                    ..Default::default()
-                })
-                .build()
-                .finish(),
-        );
-        row.add_child(
-            link.with_style(UiComponentStyles {
-                font_size: Some(appearance.monospace_font_size()),
-                font_family_id: Some(appearance.ui_font_family()),
-                ..Default::default()
-            })
-            .build()
-            .finish(),
-        );
-        row.add_child(
-            appearance
-                .ui_builder()
-                .span(" for more credits.")
-                .with_style(UiComponentStyles {
-                    font_size: Some(appearance.monospace_font_size()),
-                    font_family_id: Some(appearance.ui_font_family()),
-                    font_color: Some(appearance.theme().nonactive_ui_text_color().into()),
-                    ..Default::default()
-                })
-                .build()
-                .finish(),
-        );
-
-        Container::new(row.finish())
-            .with_horizontal_padding(16.)
-            .with_padding_bottom(10.)
-            .with_padding_top(4.)
-            .finish()
-    }
 
     /// Renders the results pane.
     fn render_results(&self, appearance: &Appearance, app: &AppContext) -> Box<dyn Element> {
@@ -811,10 +714,7 @@ impl TypedActionView for CommandSearchView {
                 result_action,
             } => self.handle_result_selected(*result_index, *result_action.clone(), ctx),
             Resize => ctx.emit(CommandSearchEvent::Resize),
-            OpenUpgradeLink(upgrade_link) => {
-                ctx.open_url(upgrade_link);
-            }
-            AttemptLoginGatedUpgrade => {}
+
         }
     }
 }
