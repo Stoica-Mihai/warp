@@ -1,26 +1,22 @@
 use std::sync::Arc;
 
 use async_channel::Receiver;
-use instant::Instant;
 use warpui::{Entity, ModelContext, ModelHandle, SingletonEntity};
 
-use super::event::{BootstrappedEvent, SshLoginStatus};
+use super::event::BootstrappedEvent;
 use super::model::ansi;
-use super::model::ansi::{FinishUpdateValue, WarpificationUnavailableReason};
+use super::model::ansi::FinishUpdateValue;
 use super::model::block::BlockId;
 use super::model::completions::ShellCompletion;
 use super::model::session::{IsLegacySSHSession, SessionId, SessionInfo};
-use super::model::terminal_model::{
-    CommandType, ExitReason, HandlerEvent, TmuxControlModeContext, TmuxInstallationState,
-};
+use super::model::terminal_model::{CommandType, ExitReason, HandlerEvent};
 use super::model::tmux::commands::TmuxCommand;
 use crate::features::FeatureFlag;
 use crate::remote_server::manager::RemoteServerManager;
 use crate::server::telemetry::ImageProtocol;
 use crate::terminal::event::{
     AfterBlockCompletedEvent, BlockCompletedEvent, BlockMetadataReceivedEvent,
-    BlockWorkingDirectoryUpdatedEvent, Event, ExecutedExecutorCommandEvent, InitSshEvent,
-    InitSubshellEvent, SourcedRcFileInSubshellEvent, TerminalMode,
+    BlockWorkingDirectoryUpdatedEvent, Event, ExecutedExecutorCommandEvent, TerminalMode,
 };
 use crate::terminal::model::session::Sessions;
 use crate::terminal::shell::ShellType;
@@ -178,21 +174,8 @@ impl ModelEventDispatcher {
             }
             Event::Handler(HandlerEvent::TmuxControlModeReady {
                 primary_pane,
-                context,
-            }) => {
-                {
-                    if let Some(TmuxControlModeContext::WarpInitiatedForSsh(control_mode)) = context
-                    {
-                        let _duration_ms = Instant::now()
-                            .duration_since(control_mode.start_time)
-                            .as_millis()
-                            // Clip large durations to u64::MAX
-                            .min(u64::MAX as u128)
-                            as u64;
-                    }
-                }
-                ModelEvent::Handler(AnsiHandlerEvent::TmuxControlModeReady { primary_pane })
-            }
+                context: _,
+            }) => ModelEvent::Handler(AnsiHandlerEvent::TmuxControlModeReady { primary_pane }),
             Event::Handler(HandlerEvent::RunTmuxCommand(command)) => {
                 ModelEvent::Handler(AnsiHandlerEvent::RunTmuxCommand(command))
             }
@@ -235,22 +218,8 @@ impl ModelEventDispatcher {
             Event::TmuxControlModeReady { primary_pane } => {
                 ModelEvent::TmuxControlModeReady { primary_pane }
             }
-            Event::DetectedEndOfSshLogin(check_type) => {
-                ModelEvent::DetectedEndOfSshLogin(check_type)
-            }
-            Event::RemoteWarpificationIsUnavailable(reason) => {
-                ModelEvent::RemoteWarpificationIsUnavailable(reason)
-            }
-            Event::SshTmuxInstaller(tmux_installation) => {
-                ModelEvent::SshTmuxInstaller(tmux_installation)
-            }
-            Event::TmuxInstallFailed { line, command } => {
-                ModelEvent::TmuxInstallFailed { line, command }
-            }
             Event::Bell => ModelEvent::Bell,
             Event::Exit { reason } => ModelEvent::Exit { reason },
-            Event::PreInteractiveSSHSession => ModelEvent::PreInteractiveSSHSession,
-            Event::SSH(ssh) => ModelEvent::SSH(ssh),
             Event::SSHControlMasterError => ModelEvent::SSHControlMasterError,
             Event::TerminalModeSwapped(terminal_mode) => {
                 ModelEvent::TerminalModeSwapped(terminal_mode)
@@ -258,13 +227,6 @@ impl ModelEventDispatcher {
             Event::ExecutedInBandCommand(executed_in_band_command_event) => {
                 ModelEvent::ExecutedInBandCommand(executed_in_band_command_event)
             }
-            Event::InitSubshell(init_subshell_event) => {
-                ModelEvent::InitSubshell(init_subshell_event)
-            }
-            Event::SourcedRcFileInSubshell(sourced_rc_file_in_subshell_event) => {
-                ModelEvent::SourcedRcFileInSubshell(sourced_rc_file_in_subshell_event)
-            }
-            Event::InitSsh(init_ssh_event) => ModelEvent::InitSsh(init_ssh_event),
             Event::PromptUpdated => ModelEvent::PromptUpdated,
             Event::HonorPS1OutOfSync => ModelEvent::HonorPS1OutOfSync,
             Event::Typeahead => ModelEvent::Typeahead,
@@ -399,12 +361,6 @@ pub enum ModelEvent {
     Exit {
         reason: ExitReason,
     },
-    /// An indication that we are about to initiate an interactive SSH session
-    /// (which may or may not use the SSH wrapper).
-    PreInteractiveSSHSession,
-    /// An indication that a successful SSH connection was initiated via the
-    /// SSH wrapper.  The argument is the name of the remote shell.
-    SSH(String),
     /// Sent when the model detects an SSH ControlMaster error, which means that
     /// completions reliant on command execution will not work.
     SSHControlMasterError,
@@ -413,20 +369,6 @@ pub enum ModelEvent {
     TmuxControlModeReady {
         primary_pane: u32,
     },
-    /// Sent when a line of output from an interactive ssh session indicates login is complete.
-    /// A line such as "Last login: Wed Oct 30" for example indicates login is complete. This is
-    /// useful for detecting when an ssh session becomes ready for warpification.
-    DetectedEndOfSshLogin(SshLoginStatus),
-    RemoteWarpificationIsUnavailable(WarpificationUnavailableReason),
-    SshTmuxInstaller(TmuxInstallationState),
-    TmuxInstallFailed {
-        line: String,
-        command: String,
-    },
-    InitSubshell(InitSubshellEvent),
-    /// Emitted when the user's RC file has been executed in a subshell.
-    SourcedRcFileInSubshell(SourcedRcFileInSubshellEvent),
-    InitSsh(InitSshEvent),
     /// Emitted when the active block's prompt has been updated.
     PromptUpdated,
     /// Emitted when the honor_ps1 state of the shell is out-of-sync with Warp's settings.

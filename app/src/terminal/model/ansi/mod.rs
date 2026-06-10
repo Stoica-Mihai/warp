@@ -15,7 +15,6 @@ mod handler;
 
 use std::collections::HashMap;
 use std::fmt::Write;
-use std::str::FromStr as _;
 use std::time::Duration;
 use std::{io, str};
 
@@ -34,7 +33,6 @@ use warp_terminal::model::{KeyboardModes, KeyboardModesApplyBehavior};
 use warpui::color::ColorU;
 
 use super::kitty::parse_kitty_chunk;
-use super::terminal_model::TmuxInstallationState;
 use crate::features::FeatureFlag;
 use crate::terminal::model::completions::{
     ShellCompletion, ShellCompletionUpdate, ShellData as CompletionsShellData,
@@ -656,34 +654,10 @@ impl<'a, H: Handler + 'a, W: io::Write> Performer<'a, H, W> {
             Ok(DProtoHook::Precmd { value }) => self.handler.precmd(value),
             Ok(DProtoHook::Preexec { value }) => self.handler.preexec(value),
             Ok(DProtoHook::Bootstrapped { value }) => self.handler.bootstrapped(*value),
-            Ok(DProtoHook::PreInteractiveSSHSession { value }) => {
-                self.handler.pre_interactive_ssh_session(value)
-            }
-            Ok(DProtoHook::SSH { value }) => self.handler.ssh(value),
             Ok(DProtoHook::InitShell { value }) => self.handler.init_shell(value),
             Ok(DProtoHook::InputBuffer { value }) => self.handler.input_buffer(value),
             Ok(DProtoHook::Clear { value }) => self.handler.clear(value),
-            Ok(DProtoHook::InitSubshell { value }) => self.handler.init_subshell(value),
-            Ok(DProtoHook::InitSsh { value }) => self.handler.init_ssh(value),
-            Ok(DProtoHook::SourcedRcFileForWarp { .. }) => {
-                // The SourcedRCFileForWarp hook should only be emitted by the
-                // shell without hex encoding. The RC file snippet given to
-                // users is not hex-encoded for the sake of transparency and
-                // debugability.
-                log::error!("Received hex-encoded SourcedRcFileForWarp escape sequence.");
-            }
             Ok(DProtoHook::FinishUpdate { value }) => self.handler.finish_update(value),
-            Ok(DProtoHook::RemoteWarpificationIsUnavailable { value }) => {
-                self.handler.remote_warpification_is_unavailable(value)
-            }
-            Ok(DProtoHook::SshTmuxInstaller { value }) => {
-                if let Ok(tmux_installation) = TmuxInstallationState::from_str(&value) {
-                    self.handler.notify_ssh_tmux_is_installed(tmux_installation)
-                } else {
-                    log::error!("Received invalid SSH tmux installer value: '{value}'");
-                }
-            }
-            Ok(DProtoHook::TmuxInstallFailed { value }) => self.handler.tmux_install_failed(value),
             Ok(DProtoHook::ExitShell { value }) => self.handler.exit_shell(value),
 
             Err(e) => safe_error!(
@@ -696,27 +670,13 @@ impl<'a, H: Handler + 'a, W: io::Write> Performer<'a, H, W> {
     /// Calls the appropriate `ansi::Handler` function according to the given hook. This function
     /// assumes that the hook was never encoded.
     fn handle_unencoded_hook(&mut self, hook: Result<DProtoHook, serde_json::Error>) {
-        // Currently, only the `SourcedRcFileForWarp`, `InitShell`, `InitSubshell`, and `InitSsh`
-        // DCS's may be emitted without hex-encoding -- other DCS hooks should be sent hex-encoded.
-        // This is because we can guarantee that theses RC file hook don't contain non-ASCII chars
-        // that might otherwise corrupt parsing of the PTY output (the same can't be said for the
-        // payloads of other DCS hooks).
         match hook {
             Ok(DProtoHook::InitShell { value }) => self.handler.init_shell(value),
-            Ok(DProtoHook::InitSubshell { value }) => {
-                self.handler.init_subshell(value);
-            }
-            Ok(DProtoHook::SourcedRcFileForWarp { value }) => {
-                self.handler.sourced_rc_file(value);
-            }
-            Ok(DProtoHook::InitSsh { value }) => {
-                self.handler.init_ssh(value);
-            }
             Ok(_) => {
-                log::error!("Received non hex-encoded hook that is not SourcedRcFileForWarp");
+                log::error!("Received non hex-encoded hook that is not InitShell");
             }
             Err(err) => {
-                log::warn!("Received malformed SourcedRcFileForWarp hook {err:#}");
+                log::warn!("Received malformed unencoded hook {err:#}");
             }
         }
     }

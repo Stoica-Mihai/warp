@@ -15,7 +15,6 @@ use crate::terminal::model::index::VisibleRow;
 use crate::terminal::model::iterm_image::{ITermImage, ITermImageMetadata};
 use crate::terminal::model::kitty::{KittyAction, KittyChunk, KittyResponse};
 use crate::terminal::model::selection::ScrollDelta;
-use crate::terminal::model::terminal_model::TmuxInstallationState;
 use crate::terminal::model::tmux::ControlModeEvent;
 
 /// Trait to be implemented by model objects that handle pty output. The
@@ -259,15 +258,6 @@ pub trait Handler {
     /// bootstrapped
     fn bootstrapped(&mut self, _data: BootstrappedValue) {}
 
-    /// Callback for the Warp pre-interactive SSH session hook - called once
-    /// before initiating an interactive SSH session (either with or without the
-    /// SSH wrapper).
-    fn pre_interactive_ssh_session(&mut self, _data: PreInteractiveSSHSessionValue) {}
-
-    /// Callback for the Warp ssh hook - called once after successfully connecting to
-    /// an SSH server
-    fn ssh(&mut self, _data: SSHValue) {}
-
     /// Callback for the terminal to initialize the shell by writing the bootstrap
     /// logic into the PTY
     fn init_shell(&mut self, _data: InitShellValue) {}
@@ -286,30 +276,9 @@ pub trait Handler {
     /// input buffer (the reporting is itself triggered by Warp).
     fn input_buffer(&mut self, _data: InputBufferValue) {}
 
-    /// Callback emitted during the initialization process for subshells with where the shell type
-    /// is initiall not known.
-    fn init_subshell(&mut self, _data: InitSubshellValue) {}
-
-    /// Callback emitted when executing the user's RC file, which signals a new session is being
-    /// created. If the session is for a subshell, this should triggers Warp's bootstrap process.
-    /// Otherwise, it's ignored.
-    fn sourced_rc_file(&mut self, _data: SourcedRcFileForWarpValue) {}
-
-    /// Callback emitted during the initialization process for ssh sessions
-    fn init_ssh(&mut self, _data: InitSshValue) {}
-
     /// Callback emitted to notify the app that we're ready to complete an
     /// assisted auto-update.
     fn finish_update(&mut self, _data: FinishUpdateValue) {}
-
-    /// Callback emitted from the warpify_ssh_session script if it's discovered
-    /// that we can't warpify the remote session.
-    fn remote_warpification_is_unavailable(&mut self, _data: WarpificationUnavailableReason) {}
-
-    /// How tmux was installed.
-    fn notify_ssh_tmux_is_installed(&mut self, _tmux_installation: TmuxInstallationState) {}
-
-    fn tmux_install_failed(&mut self, _data: TmuxInstallFailedInfo) {}
 
     /// Callback to handle an "in-band command output start" OSC.
     ///

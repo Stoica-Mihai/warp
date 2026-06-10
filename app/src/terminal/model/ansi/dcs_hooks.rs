@@ -44,12 +44,6 @@ pub(super) enum DProtoHook {
         // functionally needs to be wrapped in an `Box`.
         value: Box<BootstrappedValue>,
     },
-    PreInteractiveSSHSession {
-        value: PreInteractiveSSHSessionValue,
-    },
-    SSH {
-        value: SSHValue,
-    },
     InitShell {
         value: InitShellValue,
     },
@@ -59,27 +53,8 @@ pub(super) enum DProtoHook {
     Clear {
         value: ClearValue,
     },
-    InitSubshell {
-        value: InitSubshellValue,
-    },
-    SourcedRcFileForWarp {
-        value: SourcedRcFileForWarpValue,
-    },
-    InitSsh {
-        value: InitSshValue,
-    },
     FinishUpdate {
         value: FinishUpdateValue,
-    },
-    RemoteWarpificationIsUnavailable {
-        // If a value is provided, it's suggesting a way to install TMUX on the remote.
-        value: WarpificationUnavailableReason,
-    },
-    SshTmuxInstaller {
-        value: String,
-    },
-    TmuxInstallFailed {
-        value: TmuxInstallFailedInfo,
     },
     ExitShell {
         value: ExitShellValue,
@@ -93,20 +68,10 @@ impl DProtoHook {
             DProtoHook::Precmd { .. } => "Precmd",
             DProtoHook::Preexec { .. } => "Preexec",
             DProtoHook::Bootstrapped { .. } => "Bootstrapped",
-            DProtoHook::PreInteractiveSSHSession { .. } => "PreInteractiveSSHSession",
-            DProtoHook::SSH { .. } => "SSH",
             DProtoHook::InitShell { .. } => "InitShell",
             DProtoHook::InputBuffer { .. } => "InputBuffer",
             DProtoHook::Clear { .. } => "Clear",
-            DProtoHook::InitSubshell { .. } => "InitSubshell",
-            DProtoHook::SourcedRcFileForWarp { .. } => "SourcedRcFileForWarp",
-            DProtoHook::InitSsh { .. } => "InitSsh",
             DProtoHook::FinishUpdate { .. } => "FinishUpdate",
-            DProtoHook::RemoteWarpificationIsUnavailable { .. } => {
-                "RemoteWarpificationIsUnavailable"
-            }
-            DProtoHook::SshTmuxInstaller { .. } => "SshTmuxInstaller",
-            DProtoHook::TmuxInstallFailed { .. } => "TmuxInstallFailed",
             DProtoHook::ExitShell { .. } => "ExitShell",
         }
     }
@@ -127,12 +92,6 @@ impl DProtoHook {
             "Bootstrapped" => Some(DProtoHook::Bootstrapped {
                 value: Default::default(),
             }),
-            "PreInteractiveSSHSession" => Some(DProtoHook::PreInteractiveSSHSession {
-                value: Default::default(),
-            }),
-            "SSH" => Some(DProtoHook::SSH {
-                value: Default::default(),
-            }),
             "InitShell" => Some(DProtoHook::InitShell {
                 value: Default::default(),
             }),
@@ -142,22 +101,7 @@ impl DProtoHook {
             "Clear" => Some(DProtoHook::Clear {
                 value: Default::default(),
             }),
-            "InitSubshell" => Some(DProtoHook::InitSubshell {
-                value: Default::default(),
-            }),
-            "SourcedRcFileForWarp" => Some(DProtoHook::SourcedRcFileForWarp {
-                value: Default::default(),
-            }),
-            "InitSsh" => Some(DProtoHook::InitSsh {
-                value: Default::default(),
-            }),
             "FinishUpdate" => Some(DProtoHook::FinishUpdate {
-                value: Default::default(),
-            }),
-            "SshTmuxInstaller" => Some(DProtoHook::SshTmuxInstaller {
-                value: Default::default(),
-            }),
-            "TmuxInstallFailed" => Some(DProtoHook::TmuxInstallFailed {
                 value: Default::default(),
             }),
             "ExitShell" => Some(DProtoHook::ExitShell {
@@ -347,68 +291,10 @@ impl DProtoHook {
                     log::warn!("Tried to add unknown field {key} to ExitShell hook");
                 }
             },
-            _ => {
-                debug_assert!(
-                    false,
-                    "Populating fields of the {} hook is not yet supported via key-value pairs",
-                    self.name()
-                );
-            }
         }
     }
 }
 
-/// Details that help us determine which, if any, of our TMUX install scripts
-/// we should suggest to the user.
-#[derive(Clone, Debug, Deserialize, Default, Serialize, PartialEq, Eq)]
-pub struct SystemDetails {
-    #[serde(alias = "os")]
-    pub operating_system: String,
-    #[serde(alias = "pkg")]
-    pub package_manager: String,
-    pub shell: String,
-    /// Is the user's home directory writable? This is None if we haven't gathered that
-    /// information.
-    pub writable_home: Option<bool>,
-}
-
-/// The reason that warpification was not available when the user tried
-/// to warpify.
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all(serialize = "snake_case"))]
-pub enum WarpificationUnavailableReason {
-    TmuxFailed,
-    UnsupportedTmuxVersion {
-        #[serde(flatten)]
-        system_details: SystemDetails,
-    },
-    TmuxNotInstalled {
-        #[serde(flatten)]
-        system_details: SystemDetails,
-        root_access: String,
-    },
-    UnsupportedShell {
-        shell_name: String,
-    },
-    Timeout {
-        is_tmux_install: bool,
-        is_shell_detection: bool,
-        #[serde(flatten)]
-        system_details: Option<SystemDetails>,
-    },
-    TmuxInstallFailed {
-        #[serde(flatten)]
-        system_details: Option<SystemDetails>,
-        line: Option<String>,
-        command: Option<String>,
-    },
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
-pub struct TmuxInstallFailedInfo {
-    pub line: String,
-    pub command: String,
-}
 /// Received from the pty when a command has finished executing.
 #[derive(Debug, Deserialize, Default, Serialize, PartialEq, Eq)]
 pub struct CommandFinishedValue {
@@ -606,11 +492,6 @@ fn parse_float_from_string(s: String) -> Option<OrderedFloat<f64>> {
     s.parse::<f64>().map(|f| f.into()).ok()
 }
 
-/// Received from the pty when Warp's SSH wrapper is executed, prior to
-/// bootstrapping the SSH session.
-#[derive(Debug, Default, PartialEq, Eq, Deserialize, Serialize, Clone)]
-pub struct PreInteractiveSSHSessionValue {}
-
 /// Received from the pty after establishing an SSH connection, prior to
 /// bootstrapping the session.
 #[derive(Debug, Default, PartialEq, Eq, Deserialize, Serialize, Clone)]
@@ -638,30 +519,6 @@ pub struct InitShellValue {
 
     #[serde(deserialize_with = "empty_string_is_none", default)]
     pub wsl_name: Option<String>,
-}
-
-/// Emitted as part of the new ssh session bootstrapping process.
-#[derive(Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
-pub struct InitSshValue {
-    pub shell: String,
-    pub uname: Option<String>,
-}
-
-/// Emitted as part of the tmux bootstrapping process.
-#[derive(Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
-pub struct InitSubshellValue {
-    pub shell: String,
-    pub uname: Option<String>,
-}
-
-/// Emitted by a snippet included in the user's RC file, which signals a new session is being
-/// created; if the session is for a subshell, this triggers Warp's bootstrap process.
-/// Otherwise, it's ignored.
-#[derive(Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
-pub struct SourcedRcFileForWarpValue {
-    pub shell: String,
-    pub uname: Option<String>,
-    pub tmux: Option<bool>,
 }
 
 /// Received from the pty via a shell line editor hook, whether readline (bash),

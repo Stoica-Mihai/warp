@@ -4932,13 +4932,6 @@ impl TerminalView {
     }
 
     fn on_user_block_completed(&mut self, block_id: &BlockId, _ctx: &mut ViewContext<Self>) {
-        {
-            self.model
-                .lock()
-                .clear_pending_warp_initiated_control_mode();
-        }
-        self.model.lock().end_notify_on_ssh_login_complete();
-
         // If the block that just ended was an agent-requested long running command for which the user took over control,
         // and the user exited the command, we should resume the conversation.
         let _conversation_id_to_resume = {
@@ -5759,16 +5752,6 @@ impl TerminalView {
                 // be useful to request attention if the user's session starts
                 //receiving background output, or to auto-scroll it.
             }
-            ModelEvent::PreInteractiveSSHSession => {}
-            ModelEvent::SSH(remote_shell) => {
-                if let Some(shell) = ShellType::from_name(remote_shell) {
-                    if shell.is_fully_supported_remotely() {
-                        // Start a bootstrap timer for the SSH session, so we can log when the session
-                        // takes too long to initialize
-                        self.start_bootstrap_timer(BOOTSTRAP_FAILED_DURATION, ctx);
-                    }
-                }
-            }
             ModelEvent::SSHControlMasterError => {
                 self.handle_control_master_error(ctx);
             }
@@ -5894,10 +5877,6 @@ impl TerminalView {
 
             }
             ModelEvent::TmuxControlModeReady { .. } => {}
-            ModelEvent::DetectedEndOfSshLogin(_) => {}
-            ModelEvent::RemoteWarpificationIsUnavailable(_) => {}
-            ModelEvent::SshTmuxInstaller(_) => {}
-            ModelEvent::TmuxInstallFailed { .. } => {}
             ModelEvent::ExecutedInBandCommand(event) => {
                 // TODO(vorporeal): Figure out a way to not need the terminal view involved
                 // in this flow.
@@ -5908,9 +5887,6 @@ impl TerminalView {
                     });
                 }
             }
-            ModelEvent::InitSubshell(_) => {}
-            ModelEvent::InitSsh(_) => {}
-            ModelEvent::SourcedRcFileInSubshell(_) => {}
             ModelEvent::PromptUpdated => {
                 self.input.update(ctx, |input, ctx| {
                     input.notify_and_notify_children(ctx);
@@ -7203,7 +7179,7 @@ impl TerminalView {
     /// Will send telemetry if the current session is not bootstrapped and will show a banner to
     /// the user if this is the first bootstrap in the session.
     fn on_bootstrap_failed_timer_complete(&mut self, _: (), ctx: &mut ViewContext<Self>) {
-        let (is_ssh, shell, _is_subshell, _was_triggered_by_rc_file, _is_wsl, _is_msys2) = {
+        let (is_ssh, shell, _is_subshell, _is_wsl, _is_msys2) = {
             let model = self.model.lock();
 
             // If we did actually bootstrap, or if the session is no longer usable
@@ -7218,20 +7194,10 @@ impl TerminalView {
                 .map_or("unknown", |shell| shell.name());
             let pending_subshell_info = model.pending_subshell_session();
             let is_subshell = pending_subshell_info.is_some();
-            let was_triggered_by_rc_file = pending_subshell_info
-                .map(|info| info.was_triggered_by_rc_file_snippet)
-                .unwrap_or(false);
             let is_wsl = model.is_pending_wsl();
             let is_msys2 = model.is_pending_msys2();
 
-            (
-                is_ssh,
-                shell,
-                is_subshell,
-                was_triggered_by_rc_file,
-                is_wsl,
-                is_msys2,
-            )
+            (is_ssh, shell, is_subshell, is_wsl, is_msys2)
         };
 
         log::warn!("Bootstrapping failed for shell {shell:?} on ssh {is_ssh}");
@@ -13328,7 +13294,7 @@ impl TerminalView {
             return;
         };
 
-        let sshed = self.model.lock().is_warpified_ssh() || session.is_legacy_ssh_session();
+        let sshed = session.is_legacy_ssh_session();
         if sshed && !paths.is_empty() && FeatureFlag::SshDragAndDrop.is_enabled() {
             self.initiate_ssh_file_upload(paths, ctx);
         } else {
@@ -14040,7 +14006,7 @@ impl TypedActionView for TerminalView {
                 else {
                     return;
                 };
-                let sshed = self.model.lock().is_warpified_ssh() || session.is_legacy_ssh_session();
+                let sshed = session.is_legacy_ssh_session();
                 if sshed && !self.is_file_drop_target {
                     self.is_file_drop_target = true;
                     ctx.notify();

@@ -1,8 +1,6 @@
 use std::collections::HashSet;
 use std::io;
 use std::io::Write;
-use std::path::PathBuf;
-
 use hex;
 use warp_core::command::ExitCode;
 use warpui::color::ColorU;
@@ -187,15 +185,6 @@ impl Handler for MockHandler {
         });
     }
 
-    fn pre_interactive_ssh_session(&mut self, data: PreInteractiveSSHSessionValue) {
-        self.d_proto_hooks
-            .push(DProtoHook::PreInteractiveSSHSession { value: data })
-    }
-
-    fn ssh(&mut self, data: SSHValue) {
-        self.d_proto_hooks.push(DProtoHook::SSH { value: data });
-    }
-
     fn init_shell(&mut self, data: InitShellValue) {
         self.d_proto_hooks
             .push(DProtoHook::InitShell { value: data });
@@ -208,20 +197,6 @@ impl Handler for MockHandler {
     fn input_buffer(&mut self, data: super::InputBufferValue) {
         self.d_proto_hooks
             .push(DProtoHook::InputBuffer { value: data })
-    }
-
-    fn init_subshell(&mut self, data: InitSubshellValue) {
-        self.d_proto_hooks
-            .push(DProtoHook::InitSubshell { value: data })
-    }
-
-    fn init_ssh(&mut self, data: InitSshValue) {
-        self.d_proto_hooks.push(DProtoHook::InitSsh { value: data })
-    }
-
-    fn sourced_rc_file(&mut self, data: SourcedRcFileForWarpValue) {
-        self.d_proto_hooks
-            .push(DProtoHook::SourcedRcFileForWarp { value: data })
     }
 
     fn pluggable_notification(&mut self, title: Option<String>, body: String) {
@@ -475,32 +450,6 @@ fn named_color_to_ansi_escape_invalid() {
 }
 
 #[test]
-fn parse_dcs_ssh() {
-    let bytes = hex_encoded_dcs_string(
-        r#"{
-                "hook": "SSH",
-                "value": {
-                    "socket_path": "~/.ssh/9001",
-                    "remote_shell": "zsh"
-                }
-            }"#,
-    );
-    let (_, handler) = parse_bytes(&bytes);
-
-    assert_eq!(handler.d_proto_hooks.len(), 1);
-    match handler.d_proto_hooks.first().unwrap() {
-        DProtoHook::SSH { value } => assert_eq!(
-            *value,
-            SSHValue {
-                socket_path: PathBuf::from("~/.ssh/9001"),
-                remote_shell: "zsh".to_string(),
-            }
-        ),
-        _ => panic!("incorrect dcs value"),
-    };
-}
-
-#[test]
 fn parse_dcs_precmd() {
     let bytes = hex_encoded_dcs_string(
         r#"{
@@ -723,59 +672,6 @@ fn parse_dcs_input_buffer() {
             *value,
             InputBufferValue {
                 buffer: "ls -al dir".to_string()
-            }
-        ),
-        _ => panic!("incorrect dcs value"),
-    }
-}
-
-#[test]
-fn parse_sourced_rc_file_hook() {
-    let rc_file_hook = r#"{"hook": "SourcedRcFileForWarp", "value": { "shell": "zsh" }}"#;
-    let bytes = [
-        UNENCODED_JSON_DCS_START,
-        &Vec::from(rc_file_hook.as_bytes()),
-        DCS_END,
-    ]
-    .concat();
-
-    let (_, handler) = parse_bytes(&bytes);
-
-    assert_eq!(handler.d_proto_hooks.len(), 1);
-    match handler.d_proto_hooks.first().unwrap() {
-        DProtoHook::SourcedRcFileForWarp { value } => assert_eq!(
-            *value,
-            SourcedRcFileForWarpValue {
-                shell: "zsh".to_owned(),
-                uname: None,
-                tmux: None,
-            }
-        ),
-        _ => panic!("incorrect dcs value"),
-    }
-}
-
-#[test]
-fn parse_sourced_rc_file_hook_with_uname() {
-    let rc_file_hook =
-        r#"{"hook": "SourcedRcFileForWarp", "value": { "shell": "zsh", "uname": "Darwin" }}"#;
-    let bytes = [
-        UNENCODED_JSON_DCS_START,
-        &Vec::from(rc_file_hook.as_bytes()),
-        DCS_END,
-    ]
-    .concat();
-
-    let (_, handler) = parse_bytes(&bytes);
-
-    assert_eq!(handler.d_proto_hooks.len(), 1);
-    match handler.d_proto_hooks.first().unwrap() {
-        DProtoHook::SourcedRcFileForWarp { value } => assert_eq!(
-            *value,
-            SourcedRcFileForWarpValue {
-                shell: "zsh".to_owned(),
-                uname: Some("Darwin".to_owned()),
-                tmux: None,
             }
         ),
         _ => panic!("incorrect dcs value"),

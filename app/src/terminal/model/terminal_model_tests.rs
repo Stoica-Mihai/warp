@@ -86,7 +86,6 @@ fn ssh_bootstraps_if_blocklist_empty() {
     // Clear all the blocks in the blocklist.
     terminal.clear_screen(ClearMode::ResetAndClear);
 
-    terminal.ssh(SSHValue::default());
     terminal.init_shell(InitShellValue {
         shell: "bash".into(),
         user: "zach".to_owned(),
