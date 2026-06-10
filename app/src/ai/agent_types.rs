@@ -13,8 +13,6 @@ use warp_multi_agent_api::diff_hunk as diff_hunk_api;
 
 use crate::code_review::comments::{AttachedReviewComment as CodeReviewComment, ReviewCommentBatch};
 use crate::secret_redaction::{find_secrets_in_text, SECRET_REDACTION_REPLACEMENT_CHARACTER};
-use crate::terminal::shell::ShellType;
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct TaskId(String);
 
@@ -116,35 +114,6 @@ impl Display for CancellationReason {
             CancellationReason::OptimisticCLISubagentCompletion => {
                 write!(f, "LRC command completed")
             }
-        }
-    }
-}
-
-#[allow(unused)]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ProgrammingLanguage {
-    Shell(ShellType),
-    Other(String),
-}
-
-impl ProgrammingLanguage {}
-
-impl Display for ProgrammingLanguage {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ProgrammingLanguage::Shell(shell_type) => write!(f, "{}", shell_type.name()),
-            ProgrammingLanguage::Other(language) => write!(f, "{}", language.to_lowercase()),
-        }
-    }
-}
-
-impl From<String> for ProgrammingLanguage {
-    // Returns a programming language for a markdown language specifier
-    fn from(value: String) -> Self {
-        if let Some(shell_type) = ShellType::from_markdown_language_spec(value.as_str()) {
-            ProgrammingLanguage::Shell(shell_type)
-        } else {
-            ProgrammingLanguage::Other(value)
         }
     }
 }
