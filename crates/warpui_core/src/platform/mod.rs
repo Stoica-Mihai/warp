@@ -4,8 +4,6 @@ pub mod keyboard;
 pub mod menu;
 
 pub mod test;
-#[cfg(target_family = "wasm")]
-pub mod wasm;
 
 use std::any::Any;
 use std::collections::HashSet;
@@ -44,14 +42,8 @@ use crate::{
     OptionalPlatformWindow, Scene, WindowId,
 };
 
-#[cfg(not(target_family = "wasm"))]
 lazy_static! {
     pub static ref KEYS_TO_IGNORE: HashSet<Keystroke> = HashSet::new();
-}
-#[cfg(target_family = "wasm")]
-lazy_static! {
-    pub static ref KEYS_TO_IGNORE: HashSet<Keystroke> =
-        HashSet::from([Keystroke::parse("cmdorctrl-v").unwrap()]);
 }
 
 /// Type of the callback function that provides the result of requesting
@@ -286,14 +278,7 @@ pub enum TerminationMode {
 }
 
 /// A trait for interacting with the main thread.
-#[cfg(not(target_family = "wasm"))]
 pub trait DispatchDelegate: 'static + Send + Sync {
-    fn is_main_thread(&self) -> bool;
-    fn run_on_main_thread(&self, task: Runnable);
-}
-
-#[cfg(target_family = "wasm")]
-pub trait DispatchDelegate: 'static {
     fn is_main_thread(&self) -> bool;
     fn run_on_main_thread(&self, task: Runnable);
 }
@@ -668,9 +653,7 @@ pub enum OperatingSystem {
 impl OperatingSystem {
     pub fn get() -> Self {
         cfg_if::cfg_if! {
-            if #[cfg(target_family = "wasm")] {
-                wasm::current_platform()
-            } else if #[cfg(any(target_os = "linux", target_os = "freebsd"))] {
+            if #[cfg(any(target_os = "linux", target_os = "freebsd"))] {
                 OperatingSystem::Linux
             } else if #[cfg(target_os = "macos")] {
                 OperatingSystem::Mac

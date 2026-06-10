@@ -17,8 +17,7 @@ pub struct LogConfig {
     pub log_destination: Option<LogDestination>,
 }
 
-#[cfg_attr(not(target_family = "wasm"), path = "native.rs")]
-#[cfg_attr(target_family = "wasm", path = "wasm.rs")]
+#[path = "native.rs"]
 mod imp;
 
 pub use imp::init;

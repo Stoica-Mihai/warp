@@ -5,15 +5,8 @@ use std::time::Duration;
 use futures::{pin_mut, FutureExt as _};
 use futures_util::stream::AbortHandle;
 
-cfg_if::cfg_if! {
-    if #[cfg(target_family = "wasm")] {
-        mod wasm;
-        use wasm as imp;
-    } else {
-        mod native;
-        use native as imp;
-    }
-}
+mod native;
+use native as imp;
 
 pub use futures_util::future::LocalBoxFuture;
 // Re-export a variety of symbols from the internal implementation modules.

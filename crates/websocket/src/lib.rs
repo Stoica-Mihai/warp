@@ -7,8 +7,7 @@
 //! `graphql_ws_client::wasm_websocket_combined_split` into a common location that both this crate
 //! and[`graphql_ws_client`] depend on.
 
-#[cfg_attr(not(target_family = "wasm"), path = "native.rs")]
-#[cfg_attr(target_family = "wasm", path = "wasm.rs")]
+#[path = "native.rs"]
 mod imp;
 mod sink_map_err;
 
