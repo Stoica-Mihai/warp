@@ -10,10 +10,7 @@ use super::auth_state::{AuthState, PersistAction};
 use super::credentials::Credentials;
 use super::user::User;
 use super::AuthStateProvider;
-use crate::server::telemetry::AnonymousUserSignupEntrypoint;
 use user_persistence::PersistedUser;
-
-type URLConstructorCallback = Box<dyn FnOnce(Option<&str>) -> String>;
 
 pub struct AuthManager {
     auth_state: Arc<AuthState>,
@@ -72,21 +69,6 @@ impl AuthManager {
     pub(super) fn log_out(&mut self, ctx: &mut ModelContext<Self>) {
         self.pending_auth_state = None;
         self.set_and_persist(None, None, ctx);
-    }
-
-    pub fn initiate_anonymous_user_linking(
-        &self,
-        _entrypoint: AnonymousUserSignupEntrypoint,
-        _ctx: &mut ModelContext<Self>,
-    ) {
-    }
-
-    pub fn open_url_maybe_with_anonymous_token(
-        &self,
-        ctx: &mut ModelContext<Self>,
-        construct_url: URLConstructorCallback,
-    ) {
-        ctx.open_url(&construct_url(None));
     }
 
     fn generate_auth_state(&mut self) -> String {
