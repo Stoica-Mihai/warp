@@ -14,6 +14,3 @@ rustflags = ["-C", "symbol-mangling-version=v0", "-C", "link-args=-Wl,-headerpad
 
 [net]
 git-fetch-with-cli = true
-
-[target.'cfg(target_family = "wasm")']
-rustflags = ["--cfg=web_sys_unstable_apis"]
