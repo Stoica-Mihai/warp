@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use ai::agent::action::InsertReviewComment;
+use crate::code_review::comments::imported_comment::InsertReviewComment;
 use chrono::Local;
 use lsp::LspManagerModel;
 use repo_metadata::repositories::DetectedRepositories;

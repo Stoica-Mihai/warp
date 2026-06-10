@@ -152,7 +152,6 @@ use super::ssh::util::{InteractiveSshCommand, SshWarpifyCommand};
 use super::{cli_agent, CLIAgent, GridType};
 use crate::ai::conversation_types::AIConversationId;
 use crate::ai::agent_types::{AIAgentActionId, AgentReviewCommentBatch};
-use ai::agent::action::AIAgentPtyWriteMode;
 #[cfg(feature = "local_fs")]
 use crate::ai::agent_types::{CurrentHead, DiffBase};
 use crate::context_chips::toolbar::AgentToolbarItemKind;
@@ -1280,10 +1279,6 @@ pub enum Event {
     // `bytes` detail from the view.
     WriteBytesToPty {
         bytes: Cow<'static, [u8]>,
-    },
-    WriteAgentInputToPty {
-        bytes: Cow<'static, [u8]>,
-        mode: AIAgentPtyWriteMode,
     },
     Resize {
         size_update: SizeUpdate,

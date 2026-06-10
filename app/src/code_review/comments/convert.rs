@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use ai::agent::action::InsertReviewComment;
+use crate::code_review::comments::imported_comment::InsertReviewComment;
 use chrono::{DateTime, Local};
 
 use super::comment::ImportedCommentDetails;

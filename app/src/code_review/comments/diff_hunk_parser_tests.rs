@@ -1,4 +1,4 @@
-use ai::agent::action::CommentSide;
+use crate::code_review::comments::imported_comment::CommentSide;
 
 use super::{parse_diff_hunk, DiffHunkParseError};
 

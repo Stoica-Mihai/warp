@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use thiserror::Error;
 use warp_multi_agent_api as api;
 
-use crate::agent::action_result::{AnyFileContent, FileContext};
+use crate::skills::file_context::{AnyFileContent, FileContext};
 use crate::skills::{ParsedSkill, SkillProvider, SkillScope};
 
 #[derive(Error, Debug)]
