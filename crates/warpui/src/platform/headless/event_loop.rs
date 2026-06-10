@@ -102,8 +102,3 @@ fn setup_signal_handler(sender: Sender<AppEvent>) {
         log::warn!("Failed to set up Ctrl-C handler: {e}");
     }
 }
-
-#[cfg(target_family = "wasm")]
-fn setup_signal_handler(_sender: Sender<AppEvent>) {
-    // No signal handling on WASM
-}

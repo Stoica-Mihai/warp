@@ -53,17 +53,3 @@ pub async fn run_git_command_with_env(
         Err(anyhow!("Git command failed: {}, {}", stderr, stdout))
     }
 }
-
-#[cfg(target_family = "wasm")]
-pub async fn run_git_command(_repo_path: &Path, _args: &[&str]) -> Result<String> {
-    Err(anyhow!("Not supported on wasm"))
-}
-
-#[cfg(target_family = "wasm")]
-pub async fn run_git_command_with_env(
-    _repo_path: &Path,
-    _args: &[&str],
-    _path_env: Option<&str>,
-) -> Result<String> {
-    Err(anyhow!("Not supported on wasm"))
-}

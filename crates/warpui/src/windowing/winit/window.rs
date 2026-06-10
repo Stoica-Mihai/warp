@@ -1177,14 +1177,6 @@ impl Window {
             .unwrap_or(true)
     }
 
-    /// Intended for reading whether or not the window is visible. Always returns true.
-    ///
-    /// winit does not support is_visible on wasm. See: https://docs.rs/winit/latest/winit/window/struct.Window.html#method.is_visible
-    #[cfg(target_family = "wasm")]
-    fn is_visible(&self) -> bool {
-        true
-    }
-
     fn set_bounds(&self, bounds: RectF) {
         if let Some(Inner { window, .. }) = self.inner.borrow().as_ref() {
             let origin = bounds.origin();
@@ -1231,40 +1223,6 @@ impl Window {
             window.set_cursor(winit::window::Cursor::Icon(icon));
         }
     }
-}
-
-#[cfg(target_family = "wasm")]
-fn create_window(
-    window_target: &ActiveEventLoop,
-    _window_options: &WindowOptions,
-    _window_class: &Option<String>,
-    _tiling_window_manager: bool,
-) -> Result<winit::window::Window> {
-    use winit::platform::web::{WindowAttributesExtWebSys, WindowExtWebSys};
-
-    use crate::platform::current::add_prevent_default_listener;
-
-    let window_attributes = winit::window::WindowAttributes::default().with_prevent_default(false);
-
-    let window = window_target.create_window(window_attributes)?;
-    let canvas = window
-        .canvas()
-        .ok_or(anyhow::anyhow!("Failed to find canvas element"))?;
-
-    if let Some(element) = gloo::utils::document().get_element_by_id("wasm-container") {
-        log::info!("Attaching canvas element \"{canvas:?}\" to the wasm-container element");
-        element.replace_children_with_node_1(&canvas);
-    } else {
-        log::info!("Attaching canvas element \"{canvas:?}\" to the document body");
-        gloo::utils::body()
-            .append_child(&canvas)
-            .map_err(|_| anyhow::anyhow!("Failed to append canvas element to <body>"))?;
-    }
-
-    add_prevent_default_listener(&canvas);
-    let _ = canvas.focus();
-
-    Ok(window)
 }
 
 fn create_window(

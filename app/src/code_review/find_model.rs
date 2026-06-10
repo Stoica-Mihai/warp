@@ -352,15 +352,6 @@ impl CodeReviewFindModel {
         ));
     }
 
-    #[cfg(target_family = "wasm")]
-    pub fn run_search(
-        &mut self,
-        _editor_handles: impl Iterator<Item = ViewHandle<LocalCodeEditorView>>,
-        _ctx: &mut ModelContext<Self>,
-    ) {
-        unreachable!("Code review is not available on wasm")
-    }
-
     pub fn matches_by_editor(&self) -> HashMap<EntityId, Vec<Range<CharOffset>>> {
         let mut matches_map: HashMap<EntityId, Vec<Range<CharOffset>>> = HashMap::new();
 

@@ -115,15 +115,6 @@ pub async fn spawn_lsp_service(
     })
 }
 
-#[cfg(target_arch = "wasm32")]
-pub async fn spawn_lsp_service(
-    _config: LspServerConfig,
-    _executor: Arc<Background>,
-    _logger: Option<()>,
-) -> Result<LspServiceInitializationResult> {
-    Err(anyhow::anyhow!("LSP is not supported in WASM environments"))
-}
-
 pub fn init(app: &mut AppContext) {
     app.add_singleton_model(|_| LspManagerModel::new());
 }

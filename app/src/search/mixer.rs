@@ -26,9 +26,6 @@ const INITIAL_RESULTS_TIMEOUT: Duration = Duration::from_millis(500);
 pub(crate) type BoxFuture<'a, T> =
     std::pin::Pin<Box<dyn std::future::Future<Output = T> + Send + 'a>>;
 
-#[cfg(target_family = "wasm")]
-pub(crate) type BoxFuture<'a, T> = std::pin::Pin<Box<dyn std::future::Future<Output = T> + 'a>>;
-
 #[derive(Debug, Clone, Default)]
 pub enum DedupeStrategy {
     #[default]

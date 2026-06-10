@@ -17,9 +17,6 @@ pub(crate) fn warp_data_dir() -> PathBuf {
     warp_core::paths::data_dir()
 }
 
-#[cfg(target_family = "wasm")]
-pub(crate) fn ensure_warp_watch_roots_exist() {}
-
 pub(crate) fn ensure_warp_watch_roots_exist() {
     let data_dir = warp_data_dir();
     if let Err(err) = fs::create_dir_all(&data_dir) {
@@ -193,10 +190,6 @@ fn filesystem_event_to_repository_update(event: &BulkFilesystemWatcherEvent) -> 
     }
 }
 
-#[cfg(target_family = "wasm")]
-#[allow(dead_code)]
-pub(crate) enum WarpManagedPathsWatcherEvent {}
-
 pub(crate) enum WarpManagedPathsWatcherEvent {
     FilesChanged(RepositoryUpdate),
 }
@@ -204,9 +197,6 @@ pub(crate) enum WarpManagedPathsWatcherEvent {
 pub(crate) struct WarpManagedPathsWatcher {
     _watcher: ModelHandle<BulkFilesystemWatcher>,
 }
-
-#[cfg(target_family = "wasm")]
-pub(crate) struct WarpManagedPathsWatcher;
 
 impl WarpManagedPathsWatcher {
     pub(crate) fn new(ctx: &mut ModelContext<Self>) -> Self {
@@ -332,18 +322,6 @@ impl WarpManagedPathsWatcher {
         if !update.is_empty() {
             ctx.emit(WarpManagedPathsWatcherEvent::FilesChanged(update));
         }
-    }
-}
-
-#[cfg(target_family = "wasm")]
-impl WarpManagedPathsWatcher {
-    pub(crate) fn new(_ctx: &mut ModelContext<Self>) -> Self {
-        Self
-    }
-
-    #[cfg(test)]
-    pub(crate) fn new_for_testing(_ctx: &mut ModelContext<Self>) -> Self {
-        Self
     }
 }
 

@@ -56,10 +56,6 @@ pub fn is_in_repo(path: &str, app: &warpui::AppContext) -> bool {
         .is_some()
 }
 
-#[cfg(target_family = "wasm")]
-pub fn is_in_repo(_path: &str, _app: &warpui::AppContext) -> bool {
-    false
-}
 pub use file_tree_store::FileTreeEntry;
 pub use file_tree_update::RepoMetadataUpdate;
 pub use local_model::{LocalRepoMetadataModel, RepoContent};

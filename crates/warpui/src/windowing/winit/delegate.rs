@@ -38,15 +38,6 @@ use crate::{
 };
 
 // No-op on WASM since the browser cannot provide this functionality.
-#[cfg(target_family = "wasm")]
-struct GlobalHotKeyHandler {}
-
-#[cfg(target_family = "wasm")]
-impl GlobalHotKeyHandler {
-    fn register(&self, _: keymap::Keystroke) {}
-    fn unregister(&self, _: &keymap::Keystroke) {}
-}
-
 /// Stores the ID of the application's main thread, which we can reference
 /// to determine if a given thread is the main thread or not.
 static MAIN_THREAD_ID: OnceLock<thread::ThreadId> = OnceLock::new();
@@ -258,21 +249,6 @@ impl platform::Delegate for AppDelegate {
             }
         }
 
-        platform::SystemTheme::Light
-    }
-
-    #[cfg(target_family = "wasm")]
-    fn system_theme(&self) -> platform::SystemTheme {
-        // To determine dark mode versus light mode, we check the CSS media query string "prefers-color-scheme". According
-        // to StackOverflow, this is the current consensus solution.
-        // See https://stackoverflow.com/questions/56393880/how-do-i-detect-dark-mode-using-javascript.
-        if let Ok(Some(media_query_list)) =
-            gloo::utils::window().match_media("(prefers-color-scheme: dark)")
-        {
-            if media_query_list.matches() {
-                return platform::SystemTheme::Dark;
-            }
-        }
         platform::SystemTheme::Light
     }
 

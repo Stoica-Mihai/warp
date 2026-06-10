@@ -153,17 +153,6 @@ impl CodeReviewView {
         })
     }
 
-    /// Wasm stub - scroll preservation not supported
-    #[cfg(target_family = "wasm")]
-    pub(super) fn compute_scroll_context_for_index(
-        &self,
-        _index: usize,
-        _editor: &ViewHandle<LocalCodeEditorView>,
-        _ctx: &mut ViewContext<Self>,
-    ) -> Option<RelocatableScrollContext> {
-        None
-    }
-
     /// Called when scrolling settles (via debounced scroll events).
     /// Computes and stores the current scroll context on the ListState
     /// so the explicit invalidation path can adjust scroll position

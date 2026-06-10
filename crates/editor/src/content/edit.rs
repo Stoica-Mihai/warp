@@ -102,20 +102,6 @@ fn resolve_asset_source(source: &str, base_path: Option<&Path>) -> AssetSource {
     resolve_asset_source_relative_to_directory(source, base_directory)
 }
 
-#[cfg(target_arch = "wasm32")]
-pub fn resolve_asset_source_relative_to_directory(
-    source: &str,
-    _base_directory: Option<&Path>,
-) -> AssetSource {
-    if source.starts_with("http://") || source.starts_with("https://") {
-        asset_cache::url_source(source)
-    } else {
-        AssetSource::LocalFile {
-            path: source.to_string(),
-        }
-    }
-}
-
 /// Default height multiplier for images when no dimensions are specified.
 /// Images are rendered at 10x the base line height by default.
 const DEFAULT_IMAGE_HEIGHT_LINE_MULTIPLIER: f32 = 10.0;

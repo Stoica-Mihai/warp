@@ -111,16 +111,6 @@ impl WebSocket {
         Ok(Self(socket))
     }
 
-    /// Create the [`WebSocket`] by connecting against the provided `url`.
-    #[cfg(target_family = "wasm")]
-    pub async fn connect(
-        url: impl AsRef<str>,
-        protocols: impl IntoIterator<Item = &str>,
-    ) -> anyhow::Result<Self> {
-        let socket = imp::connect(url, protocols).await?;
-        Ok(Self(socket))
-    }
-
     pub async fn into_graphql_client_builder(self) -> graphql_ws_client::ClientBuilder {
         self.0.into_graphql_client_builder().await
     }

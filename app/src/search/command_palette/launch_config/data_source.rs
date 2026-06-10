@@ -25,11 +25,6 @@ impl DataSource {
         }
     }
 
-    #[cfg(target_family = "wasm")]
-    pub fn new(ctx: &mut ModelContext<Self>) -> Self {
-        Self::new_fuzzy(ctx)
-    }
-
     fn new_fuzzy(ctx: &mut ModelContext<Self>) -> Self {
         ctx.subscribe_to_model(&WarpConfig::handle(ctx), Self::handle_config_event);
         let mut searcher = Box::new(FuzzyLaunchConfigSearcher::default());

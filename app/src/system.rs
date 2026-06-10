@@ -13,8 +13,3 @@ pub fn long_os_version(ctx: &warpui::AppContext) -> Option<String> {
         .long_os_version()
         .map(ToOwned::to_owned)
 }
-
-#[cfg(target_family = "wasm")]
-pub fn long_os_version(_ctx: &warpui::AppContext) -> Option<String> {
-    None
-}

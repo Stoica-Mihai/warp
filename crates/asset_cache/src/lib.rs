@@ -143,11 +143,6 @@ async fn persist_bytes(bytes: &Bytes, file: &Path) {
     };
 }
 
-#[cfg(target_family = "wasm")]
-async fn persist_bytes(_bytes: &Bytes, file: &Path) {
-    log::debug!("Cannot persist asset to {} on the web", file.display());
-}
-
 async fn fetch_file_and_persist_bytes(url: Url, file: Option<PathBuf>) -> Result<Bytes> {
     let result = fetch_file_to_memory(url).await;
 

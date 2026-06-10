@@ -338,12 +338,6 @@ fn load_password_font_family(ctx: &mut AppContext) -> anyhow::Result<FamilyId> {
     })
 }
 
-#[cfg(target_family = "wasm")]
-/// On wasm we don't support loading fonts, so we just use the default.
-fn get_or_load_font_family(_font_name: &str, _ctx: &mut AppContext) -> Option<FamilyId> {
-    None
-}
-
 /// If we're running on a native platform (where we support font loading),
 /// make sure we load the user's selected monospace font. We first check
 /// the font cache in case we are using a pre-bundled font like Hack.

@@ -53,16 +53,6 @@ pub enum AtContextMenuDisabledReason {
 }
 
 impl AtContextMenuDisabledReason {
-    #[cfg(target_family = "wasm")]
-    pub fn get_disable_reason(
-        _active_block_metadata: Option<&BlockMetadata>,
-        _sessions: &Sessions,
-        _input_config: &InputConfig,
-        _ctx: &AppContext,
-    ) -> Option<AtContextMenuDisabledReason> {
-        Some(AtContextMenuDisabledReason::Wasm)
-    }
-
     pub fn get_disable_reason(
         active_block_metadata: Option<&BlockMetadata>,
         sessions: &Sessions,

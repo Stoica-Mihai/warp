@@ -62,11 +62,6 @@ impl NewSessionDataSource {
         }
     }
 
-    #[cfg(target_family = "wasm")]
-    pub fn new(binding_source: ModelHandle<BindingSource>, ctx: &mut ModelContext<Self>) -> Self {
-        Self::new_fuzzy(binding_source, ctx)
-    }
-
     fn new_fuzzy(binding_source: ModelHandle<BindingSource>, ctx: &mut ModelContext<Self>) -> Self {
         ctx.observe(&binding_source, Self::on_binding_source_changed);
         Self {

@@ -121,10 +121,6 @@ impl PromptChipLogger {
         }
     }
 
-    #[cfg(target_family = "wasm")]
-    fn init_runtime() -> Self {
-        Self::Disabled
-    }
 }
 
 pub(crate) fn log_file_path() -> anyhow::Result<PathBuf> {

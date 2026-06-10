@@ -67,15 +67,3 @@ pub fn detect_possible_git_repo<V: View>(
         repos.detect_possible_git_repo(active_directory, source, remote_detect, ctx)
     })
 }
-
-/// Repository detection is not available in WASM builds because
-/// `DetectedRepositories` is not registered there.
-#[cfg(target_family = "wasm")]
-pub fn detect_possible_git_repo<V: View>(
-    _session_type: RepoDetectionSessionType,
-    _active_directory: &str,
-    _source: RepoDetectionSource,
-    _ctx: &mut ViewContext<V>,
-) -> impl Future<Output = Option<LocalOrRemotePath>> {
-    ready(None)
-}

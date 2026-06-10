@@ -11,9 +11,6 @@ mod imp;
 mod noop;
 
 // Treat this as a noop on web, as there is no backing storage which is "secure".
-#[cfg(target_family = "wasm")]
-use noop as imp;
-
 #[cfg(target_os = "windows")]
 mod windows_only {
     pub(super) use std::string::FromUtf8Error;

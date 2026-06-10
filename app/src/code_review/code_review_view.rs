@@ -286,14 +286,6 @@ fn file_status_changed_deleted_state(
     matches!(current_status, GitFileStatus::Deleted) != matches!(new_status, GitFileStatus::Deleted)
 }
 
-#[cfg(target_family = "wasm")]
-fn file_status_changed_deleted_state(
-    _current_status: &GitFileStatus,
-    _new_status: &GitFileStatus,
-) -> bool {
-    false
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub enum CodeReviewAction {
     OpenInNewTab {
@@ -1628,11 +1620,6 @@ impl CodeReviewView {
         }
     }
 
-    #[cfg(target_family = "wasm")]
-    fn update_search_decorations(&mut self, _ctx: &mut ViewContext<Self>) {
-        unreachable!("Code review is not available on wasm")
-    }
-
     fn open_review_comment_composer(
         &mut self,
         existing_comment: Option<AttachedReviewComment>,
@@ -2016,17 +2003,6 @@ impl CodeReviewView {
         }
     }
 
-    #[cfg(target_family = "wasm")]
-    fn get_match_character_bounds(
-        &self,
-        _editor_index: usize,
-        _start_offset: CharOffset,
-        _end_offset: CharOffset,
-        _ctx: &ViewContext<Self>,
-    ) -> Option<(Pixels, Pixels)> {
-        unreachable!("get_match_character_bounds should not run on wasm");
-    }
-
     fn get_match_character_bounds(
         &self,
         editor_index: usize,
@@ -2098,17 +2074,6 @@ impl CodeReviewView {
                     - self.viewported_list_state.get_viewport_height(),
             );
         }
-    }
-
-    #[cfg(target_family = "wasm")]
-    fn horizontally_scroll_to_match(
-        &self,
-        _editor_index: usize,
-        _start_offset: CharOffset,
-        _end_offset: CharOffset,
-        _ctx: &mut ViewContext<Self>,
-    ) {
-        unreachable!("horizontally_scroll_to_match should not run on wasm");
     }
 
     fn horizontally_scroll_to_match(
@@ -2748,15 +2713,6 @@ impl CodeReviewView {
 
             Some(GitSessionState { enablement })
         })
-    }
-
-    #[cfg(target_family = "wasm")]
-    fn render_no_repo_for_env(
-        &self,
-        _app: &AppContext,
-        appearance: &Appearance,
-    ) -> Box<dyn Element> {
-        Self::render_wsl_state(appearance, None)
     }
 
     fn render_no_repo_for_env(

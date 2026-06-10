@@ -20,8 +20,6 @@ pub trait Clipboard: 'static {
         self.read()
     }
 
-    #[cfg(target_family = "wasm")]
-    fn save(&mut self, content: ClipboardContent);
 }
 
 // Clipboard could contain content with multiple data types at the same type.
@@ -135,6 +133,4 @@ impl Clipboard for InMemoryClipboard {
         self.clipboard_content.lock().clone()
     }
 
-    #[cfg(target_family = "wasm")]
-    fn save(&mut self, _content: ClipboardContent) {}
 }

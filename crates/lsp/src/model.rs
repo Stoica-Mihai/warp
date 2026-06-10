@@ -365,14 +365,6 @@ impl LspServerModel {
         }
     }
 
-    /// Manually starts the server (WASM stub).
-    #[cfg(target_arch = "wasm32")]
-    pub fn manual_start(&mut self, _ctx: &mut ModelContext<Self>) -> Result<()> {
-        Err(anyhow::anyhow!(
-            "Start is not supported in WASM environments"
-        ))
-    }
-
     /// Restarts the LSP server by stopping it and starting it again.
     /// The server will emit `LspEvent::Stopped` followed by `LspEvent::Started` on success.
     pub fn restart(&mut self, ctx: &mut ModelContext<Self>) {
@@ -413,9 +405,6 @@ impl LspServerModel {
         }
     }
 
-    #[cfg(target_arch = "wasm32")]
-    pub fn restart(&mut self, _ctx: &mut ModelContext<Self>) {}
-
     /// Different from stop -- on terminate, we won't update the server state and emit events based on server response.
     fn terminate(&mut self) {
         match &self.server_state {
@@ -442,18 +431,6 @@ impl LspServerModel {
                 );
             }
         }
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    pub(crate) fn start(&mut self, _ctx: &mut ModelContext<Self>) -> Result<()> {
-        Err(anyhow::anyhow!(
-            "Start is not supported in WASM environments"
-        ))
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    pub fn stop(&mut self, _manually_stopped: bool, _ctx: &mut ModelContext<Self>) -> Result<()> {
-        Ok(())
     }
 
     pub fn document_is_open(&self, path: &PathBuf) -> Result<bool> {

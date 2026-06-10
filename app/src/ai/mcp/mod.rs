@@ -488,24 +488,6 @@ impl MCPServer {
     }
 }
 
-#[cfg(target_family = "wasm")]
-impl MCPServer {
-    pub fn from_user_json(_json: &str) -> serde_json::Result<Vec<MCPServer>> {
-        Ok(Vec::new())
-    }
-
-    pub fn to_user_json(&self) -> String {
-        Default::default()
-    }
-
-    pub fn to_parsed_templatable_mcp_server_result(&self) -> ParsedTemplatableMCPServerResult {
-        ParsedTemplatableMCPServerResult {
-            templatable_mcp_server: TemplatableMCPServer::default(),
-            templatable_mcp_server_installation: None,
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub enum Author {
     CurrentUser,
