@@ -1,6 +1,5 @@
 mod action;
 pub mod agent_view_state;
-pub mod ambient_agent;
 pub(crate) mod inline_action_icons;
 pub(crate) mod inline_action_header;
 pub(crate) mod requested_action;
@@ -2146,10 +2145,6 @@ impl TerminalView {
             .and_then(|p| p.to_local_path())
     }
 
-    /// Ambient/cloud agent sessions are stripped, so a terminal is never a nested cloud-mode pane.
-    fn is_nested_cloud_mode(&self, _app: &AppContext) -> bool {
-        false
-    }
 
     /// Create a SyncEvent for other terminals to use based on
     /// the state of this terminal. If this terminal view has an active input
@@ -5389,7 +5384,7 @@ impl TerminalView {
             ModelEvent::AfterBlockStarted {
                 command: _,
                 is_for_in_band_command,
-                block_id,
+                block_id: _,
                 ..
             } => {
                 let did_any_session_contains_remote_blocks =
@@ -5416,8 +5411,6 @@ impl TerminalView {
                     .block_list_mut()
                     .active_block_mut()
                     .set_prompt_snapshot(prompt_snapshot);
-
-                self.maybe_insert_setup_command_blocks(block_id, ctx);
 
                 self.set_current_state(TerminalViewState::LongRunning, ctx);
                 ctx.emit(Event::BlockStarted {
@@ -10519,12 +10512,6 @@ impl TerminalView {
             InputEvent::UnhandledCmdEnter => {}
             InputEvent::CtrlEnter => {}
             InputEvent::EnterAgentView { .. } => {}
-            InputEvent::EnterCloudAgentView { initial_prompt } => {
-                self.enter_cloud_agent_view(initial_prompt.clone(), ctx);
-            }
-            InputEvent::ExitCloudModeAndStartLocalAgent { .. } => {
-                ctx.notify();
-            }
             InputEvent::Escape => {
                 ctx.emit(Event::Escape)
             }
@@ -13603,7 +13590,6 @@ impl TypedActionView for TerminalView {
             | ToggleHideCliResponses
             | OpenConversationsPalette
             | ExitAgentView
-            | EnterCloudAgentView
             | StartNewAgentConversation
             | CancelAmbientAgentTask
             | OpenInlineHistoryMenu
@@ -14091,12 +14077,6 @@ impl TypedActionView for TerminalView {
                     self.exit_agent_view(ctx);
                     ctx.notify();
                 }
-            }
-            EnterCloudAgentView => {
-                let mut draft_text = self.input.as_ref(ctx).buffer_text(ctx);
-                draft_text.truncate(draft_text.trim_end().len());
-                let initial_prompt = (!draft_text.trim().is_empty()).then_some(draft_text);
-                self.enter_cloud_agent_view(initial_prompt, ctx);
             }
             StartNewAgentConversation => {
                 self.input.update(ctx, |input, ctx| {
