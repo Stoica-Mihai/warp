@@ -19,7 +19,6 @@ use warpui::{AppContext, EntityId, SingletonEntity as _, TypedActionView, ViewHa
 
 use self::docker::open_docker_container;
 use crate::ai::conversation_types::ServerConversationToken;
-use crate::ai::ambient_agents::github_auth_notifier::GitHubAuthNotifier;
 use crate::cloud_object::ObjectType;
 use crate::drive::{OpenWarpDriveObjectArgs, OpenWarpDriveObjectSettings};
 use crate::features::FeatureFlag;
@@ -316,11 +315,6 @@ impl UriHost {
                             );
                         }
                         "environments" => {
-                            // Notify that GitHub auth completed so views can refresh
-                            GitHubAuthNotifier::handle(ctx).update(ctx, |notifier, ctx| {
-                                notifier.notify_auth_completed(ctx);
-                            });
-
                             // Open settings page unless auth was initiated from cloud setup
                             // (cloud setup users should stay on their current page)
                             let source = query_string.get("source").map(|s| s.as_ref());
@@ -925,17 +919,10 @@ impl Action {
                                 ctx,
                             );
                         });
-                        // Notify after focusing so Cloud Mode panes can retry in the selected pane.
-                        GitHubAuthNotifier::handle(ctx).update(ctx, |notifier, ctx| {
-                            notifier.notify_auth_completed(ctx);
-                        });
                         return;
                     }
                 }
 
-                GitHubAuthNotifier::handle(ctx).update(ctx, |notifier, ctx| {
-                    notifier.notify_auth_completed(ctx);
-                });
                 dispatch_action_in_new_or_existing_window(
                     primary_window_id,
                     "root_view:open_settings_page_in_existing_window",

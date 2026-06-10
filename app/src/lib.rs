@@ -119,7 +119,6 @@ pub mod tab_configs;
 pub mod terminal;
 pub mod themes;
 use ::ai::project_context::model::ProjectContextModel;
-use ai::ambient_agents::github_auth_notifier::GitHubAuthNotifier;
 use ai::persisted_workspace::PersistedWorkspace;
 use auth::auth_manager::AuthManager;
 use auth::auth_state::{AuthState, AuthStateProvider};
@@ -1285,7 +1284,6 @@ pub(crate) fn initialize_app(
     let display_count = ctx.windows().display_count();
     ctx.add_singleton_model(|_| DisplayCount(display_count));
 
-    ctx.add_singleton_model(|_| GitHubAuthNotifier::new());
     ctx.add_singleton_model(|_| NetworkStatus::new());
     ctx.add_singleton_model(|_| KeybindingChangedNotifier::new());
     ctx.add_singleton_model(notebooks::editor::keys::NotebookKeybindings::new);

@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 use uuid::{NonNilUuid, Uuid};
 
 
-pub mod github_auth_notifier;
 pub mod scheduled;
 pub mod task;
 

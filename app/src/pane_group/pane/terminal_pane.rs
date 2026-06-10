@@ -11,7 +11,7 @@ use super::{
     ShareableLinkError, TerminalPaneId,
 };
 
-use crate::app_state::{AmbientAgentPaneSnapshot, LeafContents, TerminalPaneSnapshot};
+use crate::app_state::{LeafContents, TerminalPaneSnapshot};
 use crate::code::buffer_location::LocalOrRemotePath;
 
 #[cfg(feature = "local_fs")]
@@ -241,28 +241,18 @@ impl PaneContent for TerminalPane {
         let current_input_config = view.input_config(app.as_ref());
 
         if view.model.lock().is_conversation_transcript_viewer() {
-            // Conversation transcript viewers (opened from the conversation list)
-            // can be restored via the ambient agent task if one exists.
-            let task_id = view.model.lock().ambient_agent_task_id();
-            if task_id.is_some() {
-                LeafContents::AmbientAgent(AmbientAgentPaneSnapshot {
-                    uuid: self.uuid.clone(),
-                    task_id,
-                })
-            } else {
-                LeafContents::Terminal(TerminalPaneSnapshot {
-                    uuid: self.uuid.clone(),
-                    cwd: None,
-                    is_active,
-                    is_read_only: false,
-                    shell_launch_data: None,
-                    input_config: None,
-                    llm_model_override: None,
-                    active_profile_id: None,
-                    conversation_ids_to_restore: vec![],
-                    active_conversation_id: None,
-                })
-            }
+            LeafContents::Terminal(TerminalPaneSnapshot {
+                uuid: self.uuid.clone(),
+                cwd: None,
+                is_active,
+                is_read_only: false,
+                shell_launch_data: None,
+                input_config: None,
+                llm_model_override: None,
+                active_profile_id: None,
+                conversation_ids_to_restore: vec![],
+                active_conversation_id: None,
+            })
         } else {
             let llm_model_override = None;
 
