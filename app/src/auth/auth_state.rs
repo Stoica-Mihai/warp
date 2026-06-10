@@ -1,7 +1,6 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-use chrono::{DateTime, Duration, Utc};
 use parking_lot::RwLock;
 use uuid::Uuid;
 use warpui::{AppContext, Entity, SingletonEntity};
@@ -11,13 +10,8 @@ use super::auth_manager::user_persistence::PersistedUser;
 use super::credentials::Credentials;
 #[cfg(any(not(target_family = "wasm"), test))]
 use super::user::UserMetadata;
-use super::user::{
-    AnonymousUserType, PersonalObjectLimits, PrincipalType, User,
-};
+use super::user::{AnonymousUserType, PrincipalType, User};
 use super::{UserUid, API_KEY_PREFIX};
-use crate::cloud_object::ObjectType;
-
-const ANONYMOUS_USER_NOTIFICATION_BLOCK_TIMER: Duration = Duration::days(7);
 
 /// Describes what persistence action to take based on the current auth state.
 pub(super) enum PersistAction {
@@ -72,20 +66,6 @@ impl AuthState {
             anonymous_id: Uuid::new_v4(),
             needs_reauth: AtomicBool::new(false),
             credentials: RwLock::new(None),
-        }
-    }
-
-    #[cfg(test)]
-    pub fn new_anonymous_for_test() -> Self {
-        use super::user::AnonymousUserType;
-        Self {
-            user: RwLock::new(Some(User {
-                anonymous_user_type: Some(AnonymousUserType::NativeClientAnonymousUserFeatureGated),
-                ..User::test()
-            })),
-            anonymous_id: Uuid::new_v4(),
-            needs_reauth: AtomicBool::new(false),
-            credentials: RwLock::new(Some(Credentials::Test)),
         }
     }
 
@@ -370,43 +350,6 @@ impl AuthState {
         })
     }
 
-    /// Returns whether or not the user is a feature gated anonymous user.
-    pub fn is_anonymous_user_feature_gated(&self) -> Option<bool> {
-        self.user.read().as_ref().map(|user| {
-            if !self.is_user_anonymous().unwrap_or_default() {
-                return false;
-            }
-
-            matches!(
-                user.anonymous_user_type(),
-                Some(AnonymousUserType::NativeClientAnonymousUserFeatureGated)
-            )
-        })
-    }
-
-    /// Returns whether or not the anonymous user is past any of their Warp Drive object limits.
-    pub fn is_anonymous_user_past_object_limit(
-        &self,
-        object_type: ObjectType,
-        num_objects: usize,
-    ) -> Option<bool> {
-        self.user.read().as_ref().map(|user| {
-            if !self.is_anonymous_user_feature_gated().unwrap_or_default() {
-                return false;
-            }
-
-            if let Some(limits) = user.personal_object_limits() {
-                match object_type {
-                    ObjectType::Notebook => num_objects > limits.notebook_limit,
-                    ObjectType::Workflow => num_objects > limits.workflow_limit,
-                    _ => false,
-                }
-            } else {
-                false
-            }
-        })
-    }
-
     /// Returns the user's photo URL from Firebase,
     /// typically acquired from linking a provider like Google/GitHub.
     pub fn user_photo_url(&self) -> Option<String> {
@@ -420,25 +363,6 @@ impl AuthState {
     /// The actual value is calculated on the server to avoid additional RPCs to Firebase.
     pub fn needs_sso_link(&self) -> Option<bool> {
         self.user.read().as_ref().map(|user| user.needs_sso_link)
-    }
-
-    /// Returns the anonymous user type.
-    /// Note that a `Some()` value here does NOT mean the user is still anonymous;
-    /// they might have since signed up, but we keep their anonymous user type around.
-    pub fn anonymous_user_type(&self) -> Option<AnonymousUserType> {
-        self.user
-            .read()
-            .as_ref()
-            .and_then(|user| user.anonymous_user_type())
-    }
-
-    /// Returns the personal object limits the user has.
-    /// Currently, only anonymous users have limits.
-    pub fn personal_object_limits(&self) -> Option<PersonalObjectLimits> {
-        self.user
-            .read()
-            .as_ref()
-            .and_then(|user| user.personal_object_limits())
     }
 
     /// Set whether or not the user is onboarded.
@@ -463,20 +387,6 @@ impl AuthState {
     /// of their refresh token.
     pub fn needs_reauth(&self) -> bool {
         self.needs_reauth.load(Ordering::Relaxed)
-    }
-
-    /// Returns whether or not the renotification block to encourage anonymous users to sign up
-    /// has expired.
-    pub fn anonymous_user_renotification_block_expired(
-        &self,
-        last_time_opt: Option<String>,
-    ) -> bool {
-        self.is_anonymous_user_feature_gated().unwrap_or_default()
-            && last_time_opt
-                .and_then(|last_time_string| last_time_string.parse::<DateTime<Utc>>().ok())
-                .is_none_or(|last_time| {
-                    Utc::now() - ANONYMOUS_USER_NOTIFICATION_BLOCK_TIMER >= last_time
-                })
     }
 
     /// Returns whether or not the user is on a work domain.
