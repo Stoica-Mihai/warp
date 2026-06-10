@@ -180,7 +180,6 @@ pub enum JsonObjectType {
     MCPServer,
     AIExecutionProfile,
     TemplatableMCPServer,
-    CloudEnvironment,
 }
 
 impl JsonObjectType {
@@ -193,7 +192,6 @@ impl JsonObjectType {
             JsonObjectType::MCPServer => "MCPSERVER",
             JsonObjectType::AIExecutionProfile => "AIEXECUTIONPROFILE",
             JsonObjectType::TemplatableMCPServer => "TEMPLATABLEMCPSERVER",
-            JsonObjectType::CloudEnvironment => "CLOUDENVIRONMENT",
         }
     }
 }
@@ -210,7 +208,6 @@ impl TryFrom<&str> for JsonObjectType {
             "MCPSERVER" => Ok(JsonObjectType::MCPServer),
             "AIEXECUTIONPROFILE" => Ok(JsonObjectType::AIExecutionProfile),
             "TEMPLATABLEMCPSERVER" => Ok(JsonObjectType::TemplatableMCPServer),
-            "CLOUDENVIRONMENT" => Ok(JsonObjectType::CloudEnvironment),
             _ => Err(anyhow!("could not convert unknown json object type")),
         }
     }

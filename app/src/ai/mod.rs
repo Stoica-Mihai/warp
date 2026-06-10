@@ -13,7 +13,6 @@ pub(crate) mod document;
 pub(crate) mod persisted_workspace;
 pub(crate) mod skills;
 use warpui::AppContext;
-pub mod cloud_environments;
 pub mod execution_profiles;
 pub(crate) mod loading;
 pub mod mcp;

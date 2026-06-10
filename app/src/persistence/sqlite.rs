@@ -47,9 +47,6 @@ use super::{
 };
 use crate::ai::conversation_types::AIConversationId;
 use crate::ai::ambient_agents::AmbientAgentTaskId;
-use crate::ai::cloud_environments::{
-    CloudAmbientAgentEnvironment, CloudAmbientAgentEnvironmentModel,
-};
 use crate::ai::mcp::templatable::{CloudTemplatableMCPServer, CloudTemplatableMCPServerModel};
 use crate::ai::mcp::templatable_installation::VariableValue;
 use crate::ai::mcp::{
@@ -2312,21 +2309,6 @@ fn read_sqlite_data(
                                 })
                             }
                             JsonObjectType::AIExecutionProfile => None,
-                            JsonObjectType::CloudEnvironment => {
-                                let model = CloudAmbientAgentEnvironmentModel::deserialize_owned(
-                                    &object.data,
-                                );
-                                model.ok().map(|model| {
-                                    let boxed: Box<dyn CloudObject> =
-                                        Box::new(CloudAmbientAgentEnvironment::new(
-                                            server_id,
-                                            model,
-                                            to_cloud_object_metadata(metadata),
-                                            cloud_object_permissions,
-                                        ));
-                                    boxed
-                                })
-                            }
                         })
                     })
             })

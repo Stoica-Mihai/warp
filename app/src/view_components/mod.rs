@@ -3,7 +3,6 @@
 pub mod action_button;
 pub mod callout_bubble;
 mod compact_dropdown;
-pub mod copyable_text_field;
 mod dismissible_toast;
 pub mod dropdown;
 mod feature_popup;
