@@ -311,7 +311,7 @@ Consumers → core ordering. Full keep-boundary + file:line map in memory `ai-st
 
 - **`app/src/ai/document/` + `crates/ai/document.rs` stubs** — `AIDocumentModel` is a no-op singleton but `AIDocumentId`/`AIDocumentVersion` thread through live action variants (context_chips, terminal/input, plans, terminal/view, crates/ai agent/action). Removable only with the plans/conversation-cluster cut, not standalone.
 
-- **`crates/ai/agent/` residue (~4,400 LoC, HARD)** — post-keystone. action_result/ (2,913) + action/convert.rs alive ONLY via blocklist-persistence serde map + code_review comment types (`InsertReviewComment`/`CommentSide`) + a never-emitted `WriteAgentInputToPty` event. Kill the dead event + narrow the persisted-block mapping to plain enums → almost all of agent/ goes. Biggest remaining LoC payoff.
+- ~~`crates/ai/agent/` residue~~ ✅ DONE (`5a189696`, −1.48 MB, −5,481 net LoC). Gutted blocklist persistence (PersistedAIAgentActionType cluster), relocated AnyFileContent/FileContext → `skills/file_context.rs` + InsertReviewComment/CommentSide → `code_review/comments/imported_comment.rs`, removed never-emitted WriteAgentInputToPty chain, deleted `crates/ai/src/agent/` entirely.
 
 - **conversation cluster** — `conversation_navigation/` + `search/command_palette/conversations/` + `conversation_types`/`conversation_status_ui` (~400 LoC) — AI-conversation history palette + status pills.
 
