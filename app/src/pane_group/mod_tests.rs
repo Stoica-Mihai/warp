@@ -14,6 +14,7 @@ use warpui::{App, ModelHandle};
 use watcher::HomeDirectoryWatcher;
 
 use super::*;
+use crate::launch_configs::launch_config::PaneMode;
 use crate::ai::document::ai_document_model::AIDocumentModel;
 use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
 use crate::ai::mcp::templatable_manager::TemplatableMCPServerManager;

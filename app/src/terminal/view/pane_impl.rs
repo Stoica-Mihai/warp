@@ -184,8 +184,7 @@ impl TerminalView {
         };
 
         let should_render_ambient_agent_indicator =
-            self.ambient_agent_task_id_for_details_panel(app).is_some()
-                || self.model.lock().is_shared_ambient_agent_session();
+            self.model.lock().is_shared_ambient_agent_session();
         let theme = appearance.theme();
         let render_agent_circle = |variant| {
             render_icon_with_status(

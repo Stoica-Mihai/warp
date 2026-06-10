@@ -693,12 +693,6 @@ impl<'a> TabComponent<'a> {
                 view.is_ambient_agent_session(ctx) || {
                     let model = view.model.lock();
                     model.is_shared_ambient_agent_session()
-                        || matches!(
-                            model.conversation_transcript_viewer_status(),
-                            Some(
-                                crate::terminal::model::terminal_model::ConversationTranscriptViewerStatus::ViewingAmbientConversation(_)
-                            )
-                        )
                 }
             })
             .unwrap_or(false);

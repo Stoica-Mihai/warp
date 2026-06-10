@@ -4,7 +4,6 @@ pub mod execution_context;
 pub(crate) mod agent_icons;
 pub(crate) mod agent_types;
 pub(crate) mod conversation_types;
-pub mod ambient_agents;
 #[cfg(not(target_family = "wasm"))]
 pub(crate) mod blocklist;
 pub(crate) mod conversation_navigation;

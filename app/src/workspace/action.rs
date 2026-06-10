@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use session_sharing_protocol::common::SessionId;
 use ui_components::lightbox;
 use warp_util::path::LineAndColumnArg;
 use warpui::accessibility::AccessibilityVerbosity;
@@ -16,9 +15,7 @@ use super::tab_settings::{
     VerticalTabsTabItemMode, VerticalTabsViewMode,
 };
 use super::view::WorkspaceBanner;
-use crate::ai::conversation_types::ServerConversationToken;
 use crate::ai::conversation_types::AIConversationId;
-use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::drive::WarpDriveItemId;
 use crate::drive::CloudObjectTypeAndId;
 use crate::palette::PaletteMode;
@@ -455,17 +452,6 @@ pub enum WorkspaceAction {
         conversation_id: AIConversationId,
         terminal_view_id: Option<EntityId>,
     },
-    /// Open the canonical ambient agent conversation pane and attach it to a live session.
-    OpenOrAttachAmbientAgentConversation {
-        session_id: SessionId,
-        task_id: AmbientAgentTaskId,
-    },
-    /// Load cloud conversation data into a transcript viewer.
-    /// Used when CloudConversations is enabled and the sandbox is not running.
-    OpenConversationTranscriptViewer {
-        conversation_id: ServerConversationToken,
-        ambient_agent_task_id: Option<AmbientAgentTaskId>,
-    },
     /// Toggle the conversation transcript details panel (WASM-only).
     #[cfg(target_family = "wasm")]
     ToggleConversationTranscriptDetailsPanel,
@@ -707,8 +693,6 @@ impl WorkspaceAction {
             | ToggleNotificationMailbox { .. }
             | ViewAgentRunsForEnvironment { .. }
             | ExecuteDeleteConversation { .. }
-            | OpenOrAttachAmbientAgentConversation { .. }
-            | OpenConversationTranscriptViewer { .. }
             | OpenLightbox { .. }
             | UpdateLightboxImage { .. }
             | ShowSessionConfigModal

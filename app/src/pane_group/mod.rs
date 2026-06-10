@@ -12,7 +12,6 @@ use parking_lot::FairMutex;
 use pathfinder_geometry::rect::RectF;
 use pathfinder_geometry::vector::{vec2f, Vector2F};
 use serde::{Deserialize, Serialize};
-use session_sharing_protocol::common::SessionId;
 use settings::Setting as _;
 use tree::DEFAULT_FLEX_VALUE;
 use typed_path::TypedPath;
@@ -36,7 +35,6 @@ use warpui::{
     ViewHandle, WindowId,
 };
 
-use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::blocklist::{InputConfig, SerializedBlockListItem};
 use crate::ai::execution_profiles::profiles::ClientProfileId;
 #[cfg(feature = "local_fs")]
@@ -59,7 +57,7 @@ use crate::code_review::diff_state::DiffMode;
 use crate::drive::WarpDriveItemId;
 use crate::drive::{CloudObjectTypeAndId, OpenWarpDriveObjectArgs};
 use crate::features::FeatureFlag;
-use crate::launch_configs::launch_config::{self, PaneMode, PaneTemplateType};
+use crate::launch_configs::launch_config::{self, PaneTemplateType};
 use crate::notebooks::file::FileNotebookView;
 use crate::palette::PaletteMode;
 use crate::pane_group::focus_state::PaneGroupFocusEvent;
@@ -677,7 +675,6 @@ pub enum PanesLayout {
     SingleTerminal(Box<NewTerminalOptions>),
     Snapshot(Box<PaneNodeSnapshot>),
     Template(PaneTemplateType),
-    AmbientAgent,
 }
 
 impl Default for PanesLayout {
@@ -1085,7 +1082,7 @@ impl PaneGroup {
                 cwd,
                 commands,
                 is_focused,
-                pane_mode,
+                pane_mode: _,
                 shell,
             } => {
                 let uuid = Uuid::new_v4();
@@ -1100,32 +1097,27 @@ impl PaneGroup {
                     None
                 };
 
-                let (view, terminal_manager) = match pane_mode {
-                    PaneMode::Cloud => {
-                        Self::create_ambient_agent_terminal(resources, view_size, ctx)
-                    }
-                    PaneMode::Terminal | PaneMode::Agent => PaneGroup::create_session(
-                        // Use cwd from the template iff such path exists, otherwise None
-                        // TODO(CORE-3187): On Windows, support WSL directory restoration.
-                        Some(cwd).filter(|p| p.exists()),
-                        HashMap::new(),
-                        uuid.as_bytes(),
-                        IsSharedSessionCreator::No,
-                        resources,
-                        None,
-                        user_default_shell_unsupported_banner_model_handle,
-                        view_size,
-                        model_event_sender.clone(),
-                        chosen_shell,
-                        None,
-                        ctx,
-                    ),
-                };
+                let (view, terminal_manager) = PaneGroup::create_session(
+                    // Use cwd from the template iff such path exists, otherwise None
+                    // TODO(CORE-3187): On Windows, support WSL directory restoration.
+                    Some(cwd).filter(|p| p.exists()),
+                    HashMap::new(),
+                    uuid.as_bytes(),
+                    IsSharedSessionCreator::No,
+                    resources,
+                    None,
+                    user_default_shell_unsupported_banner_model_handle,
+                    view_size,
+                    model_event_sender.clone(),
+                    chosen_shell,
+                    None,
+                    ctx,
+                );
 
                 let has_commands = !commands.is_empty();
 
-                // Runs saved commands on start (terminal and agent modes only).
-                if has_commands && !matches!(pane_mode, PaneMode::Cloud) {
+                // Runs saved commands on start.
+                if has_commands {
                     let command_queue = commands.into_iter().map(|cmd| cmd.exec).collect();
                     view.update(ctx, |terminal, ctx| {
                         terminal.set_pending_command_queue(command_queue, ctx);
@@ -1416,27 +1408,6 @@ impl PaneGroup {
 
                 let pane_id = pane.as_pane().id();
                 pane_contents.insert(pane_id, pane);
-                let focus = InitialFocus {
-                    focused_pane: leaf.is_focused.then_some(pane_id),
-                    active_session: None,
-                };
-                Ok((PaneData::new(pane_id), focus))
-            }
-            LeafContents::AmbientAgent(snapshot) => {
-                let (terminal_view, terminal_manager) =
-                    Self::create_ambient_agent_terminal(resources, view_size, ctx);
-
-                let pane_data = TerminalPane::new(
-                    snapshot.uuid,
-                    terminal_manager,
-                    terminal_view,
-                    model_event_sender,
-                    ctx,
-                );
-                let terminal_pane_id = pane_data.terminal_pane_id();
-                let pane_id = terminal_pane_id.into();
-                pane_contents.insert(pane_id, Box::new(pane_data));
-
                 let focus = InitialFocus {
                     focused_pane: leaf.is_focused.then_some(pane_id),
                     active_session: None,
@@ -1937,69 +1908,6 @@ impl PaneGroup {
         (PaneData::new(pane_id), focus)
     }
 
-    fn create_cloud_mode_terminal(
-        resources: TerminalViewResources,
-        view_bounds_size: Vector2F,
-        enable_orchestration_polling: bool,
-        ctx: &mut ViewContext<Self>,
-    ) -> (
-        ViewHandle<TerminalView>,
-        ModelHandle<Box<dyn TerminalManager>>,
-    ) {
-        let window_id = ctx.window_id();
-        crate::terminal::view::ambient_agent::create_cloud_mode_view(
-            resources,
-            view_bounds_size,
-            window_id,
-            enable_orchestration_polling,
-            ctx,
-        )
-    }
-
-    /// Helper to create the terminal manager and view for an ambient agent pane.
-    fn create_ambient_agent_terminal(
-        resources: TerminalViewResources,
-        view_bounds_size: Vector2F,
-        ctx: &mut ViewContext<Self>,
-    ) -> (
-        ViewHandle<TerminalView>,
-        ModelHandle<Box<dyn TerminalManager>>,
-    ) {
-        let (terminal_view, terminal_manager) =
-            Self::create_cloud_mode_terminal(resources, view_bounds_size, true, ctx);
-
-        terminal_view.update(ctx, |view, ctx| {
-            view.enter_ambient_agent_setup(None, ctx);
-        });
-
-        (terminal_view, terminal_manager)
-    }
-
-    /// Initial layout for a [`PaneGroup`] with a single ambient agent pane.
-    fn initial_ambient_agent_pane(
-        resources: TerminalViewResources,
-        view_bounds: RectF,
-        model_event_sender: Option<SyncSender<ModelEvent>>,
-        pane_contents: &mut HashMap<PaneId, Box<dyn AnyPaneContent>>,
-        pane_history: &mut Vec<PaneId>,
-        ctx: &mut ViewContext<Self>,
-    ) -> (PaneData, InitialFocus) {
-        let uuid = Uuid::new_v4();
-
-        let (terminal_view, terminal_manager) =
-            Self::create_ambient_agent_terminal(resources, view_bounds.size(), ctx);
-
-        Self::terminal_pane_data(
-            uuid.into_bytes().to_vec(),
-            terminal_view,
-            terminal_manager,
-            model_event_sender,
-            pane_contents,
-            pane_history,
-            ctx,
-        )
-    }
-
     /// Initial layout for a [`PaneGroup`] with a single terminal pane.
     #[allow(clippy::too_many_arguments)]
     fn initial_single_terminal_pane(
@@ -2115,14 +2023,6 @@ impl PaneGroup {
                     pane_history,
                     ctx,
                 ),
-                PanesLayout::AmbientAgent => Self::initial_ambient_agent_pane(
-                    resources,
-                    view_bounds,
-                    model_event_sender_clone,
-                    pane_contents,
-                    pane_history,
-                    ctx,
-                ),
             }
         };
 
@@ -2212,16 +2112,6 @@ impl PaneGroup {
             Box::new(initial_layout),
             ctx,
         )
-    }
-
-    /// Load conversation data into a conversation viewer that was created with a loading state.
-    /// Uses the active session view as the target.
-    pub fn load_data_into_conversation_transcript_viewer(
-        &mut self,
-        _conversation: (),
-        _ambient_agent_task_id: Option<AmbientAgentTaskId>,
-        _ctx: &mut ViewContext<Self>,
-    ) {
     }
 
     fn handle_windowing_state_update(
@@ -4279,20 +4169,6 @@ impl PaneGroup {
     ) -> Option<ViewHandle<TerminalView>> {
         self.terminal_session_by_id(pane_id)
             .map(|session| session.terminal_view(ctx))
-    }
-
-    pub fn attach_execution_session_to_ambient_pane(
-        &mut self,
-        pane_id: PaneId,
-        _session_id: SessionId,
-        ctx: &mut ViewContext<Self>,
-    ) -> bool {
-        let Some(_terminal_view) = self.terminal_view_from_pane_id(pane_id, ctx) else {
-            log::warn!("Tried to attach execution session to non-terminal pane {pane_id:?}");
-            return false;
-        };
-
-        true
     }
 
     /// Given a pane ID, retrieve its backing code view, if the pane is a code pane.

@@ -24,7 +24,6 @@ use lsp::supported_servers::LSPServerType;
 use num_traits::FromPrimitive;
 use pathfinder_geometry::rect::RectF;
 use pathfinder_geometry::vector::Vector2F;
-use persistence::model::AMBIENT_AGENT_PANE_KIND;
 use uuid::Uuid;
 use warp_util::server_timestamp::ServerTimestamp;
 use warpui::platform::FullscreenState;
@@ -46,7 +45,6 @@ use super::{
     StartedCommandMetadata, WriterHandles,
 };
 use crate::ai::conversation_types::AIConversationId;
-use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::mcp::templatable::{CloudTemplatableMCPServer, CloudTemplatableMCPServerModel};
 use crate::ai::mcp::templatable_installation::VariableValue;
 use crate::ai::mcp::{
@@ -54,7 +52,7 @@ use crate::ai::mcp::{
 };
 use crate::ai::persisted_workspace::EnablementState;
 use crate::app_state::{
-    AmbientAgentPaneSnapshot, AppState, BranchSnapshot, CodePaneSnapShot,
+    AppState, BranchSnapshot, CodePaneSnapShot,
     CodePaneTabSnapshot, CodeReviewPaneSnapshot, LeafContents,
     LeafSnapshot, LeftPanelSnapshot, NotebookPaneSnapshot, PaneFlex, PaneNodeSnapshot,
     RightPanelSnapshot, SettingsPaneSnapshot, SplitDirection, TabSnapshot, TerminalPaneSnapshot,
@@ -978,7 +976,6 @@ fn save_pane_state(
         LeafContents::Code(_) => CODE_PANE_KIND,
         LeafContents::Settings(_) => SETTINGS_PANE_KIND,
         LeafContents::CodeReview(_) => CODE_REVIEW_PANE_KIND,
-        LeafContents::AmbientAgent(_) => AMBIENT_AGENT_PANE_KIND,
         LeafContents::NetworkLog => {
             debug_assert!(
                 false,
@@ -1115,17 +1112,6 @@ fn save_pane_state(
 
             diesel::insert_into(schema::code_review_panes::dsl::code_review_panes)
                 .values(code_review)
-                .execute(conn)?;
-        }
-        LeafContents::AmbientAgent(snapshot) => {
-            let ambient_agent_pane = model::NewAmbientAgentPane {
-                id,
-                uuid: snapshot.uuid.clone(),
-                task_id: snapshot.task_id.map(|t| t.to_string()),
-            };
-
-            diesel::insert_into(schema::ambient_agent_panes::dsl::ambient_agent_panes)
-                .values(ambient_agent_pane)
                 .execute(conn)?;
         }
         LeafContents::NetworkLog => {
@@ -1994,21 +1980,6 @@ fn read_node(conn: &mut SqliteConnection, node: model::PaneNode) -> Result<PaneN
                             })
                         }
                     }
-                }
-                AMBIENT_AGENT_PANE_KIND => {
-                    let pane = schema::ambient_agent_panes::dsl::ambient_agent_panes
-                        .find(node.id)
-                        .select(model::AmbientAgentPane::as_select())
-                        .first(conn)?;
-
-                    let task_id = pane
-                        .task_id
-                        .and_then(|id_str| id_str.parse::<AmbientAgentTaskId>().ok());
-
-                    LeafContents::AmbientAgent(AmbientAgentPaneSnapshot {
-                        uuid: pane.uuid,
-                        task_id,
-                    })
                 }
                 other => bail!("Unrecognized pane kind: {other}"),
             };

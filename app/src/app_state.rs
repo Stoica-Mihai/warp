@@ -8,7 +8,6 @@ use warpui::platform::FullscreenState;
 use warpui::{AppContext, SingletonEntity as _};
 
 use crate::ai::conversation_types::AIConversationId;
-use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::ai::blocklist::{InputConfig, SerializedBlockListItem};
 use crate::code::editor_management::CodeSource;
 use crate::root_view::quake_mode_window_id;
@@ -112,7 +111,6 @@ pub enum LeafContents {
     Code(CodePaneSnapShot),
     Settings(SettingsPaneSnapshot),
     CodeReview(CodeReviewPaneSnapshot),
-    AmbientAgent(AmbientAgentPaneSnapshot),
     /// The in-app network log pane. Not persisted across restarts because the
     /// backing log is an in-memory ring buffer that starts empty on launch.
     NetworkLog,
@@ -140,19 +138,9 @@ impl LeafContents {
             | LeafContents::Notebook(_)
             | LeafContents::Code(_)
             | LeafContents::Settings(_)
-            | LeafContents::CodeReview(_)
-            | LeafContents::AmbientAgent(_) => true,
+            | LeafContents::CodeReview(_) => true,
         }
     }
-}
-
-/// Snapshot of an ambient agent pane.
-#[derive(Clone, Debug, PartialEq)]
-pub struct AmbientAgentPaneSnapshot {
-    pub uuid: Vec<u8>,
-    // `task_id` is purposefully optional,
-    // as you can have a valid state (i.e. an empty cloud mode pane) where it is None.
-    pub task_id: Option<AmbientAgentTaskId>,
 }
 
 /// Snapshot of the contents of a terminal pane.

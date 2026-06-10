@@ -155,7 +155,6 @@ use crate::ai::agent_types::{AIAgentActionId, AgentReviewCommentBatch};
 use ai::agent::action::AIAgentPtyWriteMode;
 #[cfg(feature = "local_fs")]
 use crate::ai::agent_types::{CurrentHead, DiffBase};
-use crate::ai::ambient_agents::AmbientAgentTaskId;
 use crate::context_chips::toolbar::AgentToolbarItemKind;
 use crate::terminal::view::agent_view_state::get_agent_view_entry_block_position_id;
 use crate::ai::blocklist::{
@@ -3527,21 +3526,6 @@ impl TerminalView {
 
     
 
-    fn ambient_agent_task_id_for_details_panel_from_model(
-        &self,
-        model: &TerminalModel,
-        _app: &AppContext,
-    ) -> Option<AmbientAgentTaskId> {
-        model.ambient_agent_task_id()
-    }
-
-    pub fn ambient_agent_task_id_for_details_panel(
-        &self,
-        app: &AppContext,
-    ) -> Option<AmbientAgentTaskId> {
-        let model = self.model.lock();
-        self.ambient_agent_task_id_for_details_panel_from_model(&model, app)
-    }
 
 
     pub fn active_session(&self) -> &ModelHandle<ActiveSession> {
@@ -10793,13 +10777,6 @@ impl TerminalView {
                 self.run_find(options, ctx)
             }
         }
-    }
-
-    pub(crate) fn enter_ambient_agent_setup(
-        &mut self,
-        _initial_prompt: Option<String>,
-        _ctx: &mut ViewContext<Self>,
-    ) {
     }
 
     fn update_block_filter_for_block_with_active_editor(
