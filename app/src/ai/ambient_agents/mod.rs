@@ -5,10 +5,6 @@ use serde::{Deserialize, Serialize};
 use uuid::{NonNilUuid, Uuid};
 
 
-pub mod scheduled;
-pub mod task;
-
-pub use task::AgentConfigSnapshot;
 
 #[derive(Debug, thiserror::Error)]
 #[error("Invalid task ID: {0}")]

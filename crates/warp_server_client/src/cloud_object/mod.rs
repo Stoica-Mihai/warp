@@ -181,8 +181,6 @@ pub enum JsonObjectType {
     AIExecutionProfile,
     TemplatableMCPServer,
     CloudEnvironment,
-    ScheduledAmbientAgent,
-    CloudAgentConfig,
 }
 
 impl JsonObjectType {
@@ -196,8 +194,6 @@ impl JsonObjectType {
             JsonObjectType::AIExecutionProfile => "AIEXECUTIONPROFILE",
             JsonObjectType::TemplatableMCPServer => "TEMPLATABLEMCPSERVER",
             JsonObjectType::CloudEnvironment => "CLOUDENVIRONMENT",
-            JsonObjectType::ScheduledAmbientAgent => "SCHEDULEDAMBIENTAGENT",
-            JsonObjectType::CloudAgentConfig => "CLOUDAGENTCONFIG",
         }
     }
 }
@@ -215,8 +211,6 @@ impl TryFrom<&str> for JsonObjectType {
             "AIEXECUTIONPROFILE" => Ok(JsonObjectType::AIExecutionProfile),
             "TEMPLATABLEMCPSERVER" => Ok(JsonObjectType::TemplatableMCPServer),
             "CLOUDENVIRONMENT" => Ok(JsonObjectType::CloudEnvironment),
-            "SCHEDULEDAMBIENTAGENT" => Ok(JsonObjectType::ScheduledAmbientAgent),
-            "CLOUDAGENTCONFIG" => Ok(JsonObjectType::CloudAgentConfig),
             _ => Err(anyhow!("could not convert unknown json object type")),
         }
     }
