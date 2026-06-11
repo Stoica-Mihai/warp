@@ -361,14 +361,12 @@ Zero-caller accessors (verified): `ws_server_url`, `rtc_http_url`, `session_shar
 - [ ] R3a — remove Oz CLI install/uninstall workspace commands + toast
 - [ ] R3b — strip agent/task/schedule/environment/federate/secret/artifact/api_key/harness_support subcommands + lib.rs dispatch + help text + `oz*` argv0 branch
 
-### R4 — small dead items (one sweep commit)
-- [ ] `computer_use` crate = zero lib users (only its own bin). Drop deps `app/Cargo.toml:61` + `crates/ai/Cargo.toml:19`, empty features `agent_mode_computer_use`(+ its line in feature list)/`local_computer_use`, the `computer_use_override` plumbing in lib.rs:534-550 (falls out with R3b), then decide: delete crate or leave unbuilt (not in default-members → prefer delete).
-- [ ] Dead workspace action variants `AttemptLoginGatedAIUpgrade` / `FixInAgentMode` / `OpenAIFactCollection` (`workspace/action.rs:328-338`, empty handlers view.rs:13774-13781).
-- [ ] `app/src/server/server_api/ai.rs` = 0-line empty file, still mod-declared (server_api.rs:1).
-- [ ] Telemetry residue: `app/src/server/telemetry/` (events.rs 5.2K + Rudder SDK license), `app/src/notebooks/telemetry.rs` (emit-nowhere enums), Rudderstack comment refs `system/info.rs:111-140`, **lying stale comment** `remote_server/unix/mod.rs:75-90` (claims a TelemetryCollector flushes to Rudderstack — no such type exists in tree).
-- [ ] `app-installation-detection` crate — local HTTP server `/install_detection` with CORS allowing warp.dev + subdomains (lets the warp.dev website detect the install). Find the spawner, delete crate.
-- [ ] Privacy page vestiges (`settings_view/privacy_page.rs`): telemetry/crash sections already auto-hidden (configs None) — delete them + "Manage your data / delete your Warp account" section + `TELEMETRY_FREE_TIER_NOTE` AI copy.
-- [ ] Stale doc: skill_manager.rs:488 documents a `{{warp_server_url}}` template var that's no longer in the context map.
+### R4 — small dead items ✅ DONE (4 commits, ~0 MB)
+- [x] **R4.1** (`c6e2ff48`) — dead workspace action variants AttemptLoginGatedAIUpgrade/FixInAgentMode/OpenAIFactCollection (no emitter, no-op handlers) + 0-line `server_api/ai.rs` + its mod decl + stale `{{warp_server_url}}` doc line.
+- [x] **R4.2** (`04066d64`, −4447 LoC) — deleted the `computer_use` crate (zero `computer_use::` refs in app/src + crates/ai/src — dead deps) + workspace alias + the inert `agent_mode_computer_use`/`local_computer_use` cargo features. (warp_cli `--computer-use` flags are independent = R3.)
+- [x] **R4.3** (`722a3372`) — removed the `app-installation-detection` crate + its localhost `/install_detection` server (warp.dev-only CORS) + the WEB-only `UserAppInstallDetectionSettings`. Kept the profiling HTTP router.
+- [x] **R4.4** (`7621072b`) — removed the dead "Manage your data" privacy-page widget (DataManagementWidget + 3 constants + the no-op `OpenDataManagementWebpage` action that the link dispatched).
+- **SKIPPED (not dead):** `server/telemetry/` is live shared enums (LaunchConfigUiLocation/PaletteSource/ImageProtocol/CLIAgentType… used everywhere as params); `notebooks/telemetry.rs` (`NotebookTelemetryAction`) is called by `notebooks/file/mod.rs`. The audit mis-framed these. The `remote_server/unix/mod.rs` "TelemetryCollector→Rudderstack" comment is stale/misleading but comment-only — left.
 
 ### R5 — AI/cloud FeatureFlag sweep (~25 variants, `crates/warp_features/src/lib.rs`)
 AgentMode, AgentModeAnalytics, AIRules, AgentModeWorkflows, AIContextMenuEnabled, AIContextMenuCode, ProfilesDesignRevamp, AgentManagementView, AgentView, InteractiveConversationManagementView, SummarizationViaMessageReplacement, ConversationsAsContext, OrchestrationV2, LocalClaudeCodexChildHarnesses, OrchestrationViewerPillBar, QueueSlashCommand, CustomInferenceEndpoints, CustomInferenceEndpointsEnterprise, APIKeyAuthentication, DiffSetAsContext, BlocklistMarkdownTableRendering, SharedWithMe, ArtifactCommand. Per-flag guard census first (session-26/27 method); remember the warp_cli/managed_secrets extra-gate lesson. HOANotifications/OpenCode/Codex/Gemini notification flags = vendor-CLI infra, KEEP.
