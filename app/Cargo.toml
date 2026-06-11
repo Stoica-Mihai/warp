@@ -58,7 +58,6 @@ clap.workspace = true
 command = { workspace = true }
 command-corrections.workspace = true
 command-signatures-v2 = { workspace = true, optional = true }
-computer_use.workspace = true
 crc.workspace = true
 content_inspector = "0.2.4"
 concat-idents.workspace = true
@@ -368,7 +367,6 @@ autoupdate = []
 figma_detection = []
 bundled_skills = []
 agent_mode = []
-agent_mode_computer_use = []
 agent_mode_debug = []
 agent_mode_primary_xml = []
 agent_mode_pre_plan_xml = []
@@ -487,7 +485,6 @@ default = [
     "cloud_mode",
     "cloud_mode_from_local_session",
     "cloud_mode_image_context",
-    "agent_mode_computer_use",
     "oz_platform_skills",
     "oz_identity_federation",
     "sync_ambient_plans",
@@ -624,7 +621,6 @@ list_skills = []
 # support having a local tty/shell session.  It can be used to conditionally
 # include dependencies that should only exist in such environments.
 local_tty = []
-local_computer_use = []
 local_claude_codex_child_harnesses = []
 # This feature is enabled in build.rs when compiling for platforms which
 # have APIs for interacting with a local filesystem.  It can be used to
