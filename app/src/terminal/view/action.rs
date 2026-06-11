@@ -209,7 +209,6 @@ pub enum TerminalAction {
         index: usize,
     },
     ToggleAutoexecuteMode,
-    ToggleQueueNextPrompt,
     ResumeConversation,
     ForkConversationFromLastKnownGoodState,
     ToggleTodoPopup,
@@ -423,7 +422,6 @@ impl fmt::Debug for TerminalAction {
                 write!(f, "OpenAttachmentLightbox({index:?})")
             }
             ToggleAutoexecuteMode => write!(f, "ToggleAutoexecuteMode"),
-            ToggleQueueNextPrompt => write!(f, "ToggleQueueNextPrompt"),
             ResumeConversation => write!(f, "ResumeConversation"),
             ForkConversationFromLastKnownGoodState => {
                 write!(f, "ForkConversationFromLastKnownGoodState")

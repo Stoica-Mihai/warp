@@ -177,7 +177,6 @@ impl UserWorkspaces {
         self.current_workspace()
             .map(|workspace| {
                 workspace.billing_metadata.customer_type != CustomerType::Enterprise
-                    || FeatureFlag::CustomInferenceEndpointsEnterprise.is_enabled()
                     || ChannelState::channel().is_dogfood()
             })
             .unwrap_or(true)

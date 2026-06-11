@@ -335,19 +335,6 @@ pub static COMPACT_AND: LazyLock<StaticCommand> = LazyLock::new(|| StaticCommand
     argument: Some(Argument::optional().with_hint_text("<prompt to send after compaction>")),
 });
 
-pub static QUEUE: LazyLock<StaticCommand> = LazyLock::new(|| StaticCommand {
-    name: "/queue",
-    description: "Queue a prompt to send after the agent finishes responding",
-    icon_path: "bundled/svg/clock-plus.svg",
-    availability: Availability::AGENT_VIEW
-        | Availability::ACTIVE_CONVERSATION
-        | Availability::NO_LRC_CONTROL
-        | Availability::AI_ENABLED
-        | Availability::NOT_CLOUD_AGENT,
-    auto_enter_ai_mode: true,
-    argument: Some(Argument::required().with_hint_text("<prompt to send when agent is done>")),
-});
-
 pub static FORK_AND_COMPACT: LazyLock<StaticCommand> = LazyLock::new(|| {
     let hint_text = "<optional prompt to send after compaction>";
     StaticCommand {
@@ -530,10 +517,6 @@ fn all_commands() -> Vec<StaticCommand> {
     ];
 
     commands.push(OPEN_CODE_REVIEW);
-
-    if FeatureFlag::QueueSlashCommand.is_enabled() {
-        commands.push(QUEUE.clone());
-    }
 
     if !false {
         commands.extend([

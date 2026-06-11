@@ -911,19 +911,7 @@ pub(crate) fn initialize_app(
         ctx.set_zoom_factor(WindowSettings::as_ref(ctx).zoom_level.as_zoom_factor());
     }
 
-    // Extract API key from command line options, if applicable.
-    let api_key = match launch_mode {
-        LaunchMode::CommandLine { global_options, .. } => global_options.api_key.clone(),
-        LaunchMode::App { api_key, .. } if ChannelState::channel().is_dogfood() => api_key.clone(),
-        _ => None,
-    };
-    let api_key = if FeatureFlag::APIKeyAuthentication.is_enabled() {
-        api_key
-    } else {
-        None
-    };
-
-    let auth_state = Arc::new(AuthState::initialize(ctx, api_key));
+    let auth_state = Arc::new(AuthState::initialize(ctx, None));
     timer.mark_interval_end("AUTH_MANAGER_SET_USER");
 
     // NetworkLogModel must be registered before ServerApiProvider so that

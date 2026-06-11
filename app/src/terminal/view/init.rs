@@ -29,7 +29,6 @@ pub const TOGGLE_BLOCK_FILTER_KEYBINDING: &str =
 
 pub const CANCEL_COMMAND_KEYBINDING: &str = "terminal:cancel_command";
 pub const TOGGLE_AUTOEXECUTE_MODE_KEYBINDING: &str = "terminal:toggle_autoexecute_mode";
-pub const TOGGLE_QUEUE_NEXT_PROMPT_KEYBINDING: &str = "terminal:toggle_queue_next_prompt";
 pub const TOGGLE_HIDE_CLI_RESPONSES_KEYBINDING: &str = "terminal:toggle_hide_cli_responses";
 pub const OPEN_CLI_AGENT_RICH_INPUT_KEYBINDING: &str = "terminal:open_cli_agent_rich_input";
 
@@ -715,15 +714,6 @@ pub fn init(app: &mut AppContext) {
         .with_group(bindings::BindingGroup::WarpAi.as_str())
         .with_context_predicate(id!(flags::IS_ANY_AI_ENABLED) & id!("Terminal"))
         .with_enabled(|| FeatureFlag::FastForwardAutoexecuteButton.is_enabled()),
-        EditableBinding::new(
-            TOGGLE_QUEUE_NEXT_PROMPT_KEYBINDING,
-            "Toggle Queue Next Prompt",
-            TerminalAction::ToggleQueueNextPrompt,
-        )
-        .with_key_binding("cmdorctrl-shift-J")
-        .with_group(bindings::BindingGroup::WarpAi.as_str())
-        .with_context_predicate(id!(flags::IS_ANY_AI_ENABLED) & id!("Terminal"))
-        .with_enabled(|| FeatureFlag::QueueSlashCommand.is_enabled()),
     ]);
 
     app.register_editable_bindings([EditableBinding::new(

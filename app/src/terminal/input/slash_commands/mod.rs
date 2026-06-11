@@ -602,9 +602,6 @@ impl Input {
             _compact_and if command.name == commands::COMPACT_AND.name => {
                 show_error_toast("AI not available".to_owned(), ctx);
             }
-            _queue if command.name == commands::QUEUE.name => {
-                show_error_toast("AI not available".to_owned(), ctx);
-            }
             _open_repo if command.name == commands::OPEN_REPO.name => {
                 if !FeatureFlag::InlineRepoMenu.is_enabled() {
                     return false;

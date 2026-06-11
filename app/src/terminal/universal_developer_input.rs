@@ -5,7 +5,6 @@ use std::rc::Rc;
 
 use pathfinder_color::ColorU;
 use settings::Setting as _;
-use warp_core::features::FeatureFlag;
 use warp_core::ui::appearance::Appearance;
 use warp_core::ui::color::contrast::{
     foreground_color_with_minimum_contrast, MinimumAllowedContrast,
@@ -522,8 +521,7 @@ impl View for UniversalDeveloperInputButtonBar {
 
             buttons = buttons.with_child(ChildView::new(&self.file_button).finish());
 
-            let show_model_selector = FeatureFlag::ProfilesDesignRevamp.is_enabled()
-                || *SessionSettings::as_ref(app).show_model_selectors_in_prompt;
+            let show_model_selector = *SessionSettings::as_ref(app).show_model_selectors_in_prompt;
             if show_model_selector {
                 buttons = buttons
                     .with_child(create_divider())

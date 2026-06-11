@@ -202,7 +202,7 @@ impl Args {
                     }
                 }
 
-                if !FeatureFlag::ArtifactCommand.is_enabled() {
+                {
                     let args: Vec<String> = env::args().collect();
                     if args.len() > 1 && args[1] == "artifact" {
                         eprintln!("error: unrecognized subcommand 'artifact'\n");
@@ -300,9 +300,7 @@ impl Args {
         }
 
         // Hide the artifact subcommand from help text.
-        if !FeatureFlag::ArtifactCommand.is_enabled() {
-            command = command.mut_subcommand("artifact", |c| c.hide(true));
-        }
+        command = command.mut_subcommand("artifact", |c| c.hide(true));
 
         // Hide the api-key subcommand from help text.
         command = command.mut_subcommand("api-key", |c| c.hide(true));

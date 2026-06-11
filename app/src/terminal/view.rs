@@ -58,7 +58,7 @@ use command_corrections::{correct_command, Command, Correction, HistoryItem, Ses
 use enclose::enclose;
 pub use init::{
     init, CANCEL_COMMAND_KEYBINDING, TOGGLE_AUTOEXECUTE_MODE_KEYBINDING,
-    TOGGLE_HIDE_CLI_RESPONSES_KEYBINDING, TOGGLE_QUEUE_NEXT_PROMPT_KEYBINDING,
+    TOGGLE_HIDE_CLI_RESPONSES_KEYBINDING,
 };
 use init::{INPUT_BOX_VISIBLE_KEY, TOGGLE_BLOCK_FILTER_KEYBINDING};
 use inline_banner::{
@@ -13546,7 +13546,6 @@ impl TypedActionView for TerminalView {
             | LoadAgentModeConversation
             | OpenAttachmentLightbox { .. }
             | ToggleAutoexecuteMode
-            | ToggleQueueNextPrompt
             | ToggleTodoPopup
             | CloseTodoPopup
             | ToggleCodeReviewPane { .. }
@@ -13901,7 +13900,6 @@ impl TypedActionView for TerminalView {
             LoadAgentModeConversation => {}
             OpenAttachmentLightbox { .. } => {}
             ToggleAutoexecuteMode => {}
-            ToggleQueueNextPrompt => {}
             ResumeConversation => {}
             ForkConversationFromLastKnownGoodState => {}
             ToggleTodoPopup => {}

@@ -51,14 +51,10 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::DynamicWorkflowEnums,
         #[cfg(feature = "shared_with_me")]
         FeatureFlag::SharedWithMe,
-        #[cfg(feature = "am_workflows")]
-        FeatureFlag::AgentModeWorkflows,
         #[cfg(feature = "ssh_tmux_wrapper")]
         FeatureFlag::SSHTmuxWrapper,
         #[cfg(feature = "shell_selector")]
         FeatureFlag::ShellSelector,
-        #[cfg(feature = "artifact_command")]
-        FeatureFlag::ArtifactCommand,
         #[cfg(feature = "full_screen_zen_mode")]
         FeatureFlag::FullScreenZenMode,
         #[cfg(feature = "minimalist_ui")]
@@ -106,12 +102,8 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::CodeFindReplace,
         #[cfg(feature = "command_palette_file_search")]
         FeatureFlag::CommandPaletteFileSearch,
-        #[cfg(feature = "ai_context_menu_code")]
-        FeatureFlag::AIContextMenuCode,
         #[cfg(feature = "tab_close_button_on_left")]
         FeatureFlag::TabCloseButtonOnLeft,
-        #[cfg(feature = "profiles_design_revamp")]
-        FeatureFlag::ProfilesDesignRevamp,
 #[cfg(feature = "tabbed_editor_view")]
         FeatureFlag::TabbedEditorView,
         #[cfg(feature = "undo_closed_panes")]
@@ -138,8 +130,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::FileTree,
         #[cfg(feature = "allow_ignoring_input_suggestions")]
         FeatureFlag::AllowIgnoringInputSuggestions,
-        #[cfg(feature = "api_key_authentication")]
-        FeatureFlag::APIKeyAuthentication,
         #[cfg(feature = "mcp_oauth")]
         FeatureFlag::McpOauth,
         #[cfg(feature = "file_based_mcp")]
@@ -185,8 +175,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::IncrementalAutoReload,
         #[cfg(feature = "orchestration_v2")]
         FeatureFlag::OrchestrationV2,
-#[cfg(feature = "queue_slash_command")]
-        FeatureFlag::QueueSlashCommand,
         #[cfg(feature = "kitty_keyboard_protocol")]
         FeatureFlag::KittyKeyboardProtocol,
         #[cfg(feature = "inline_menu_headers")]

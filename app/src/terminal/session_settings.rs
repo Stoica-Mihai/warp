@@ -346,9 +346,7 @@ define_settings_group!(SessionSettings, settings: [
         private: true,
         storage_key: "GitPromptDirtyIndicator",
     },
-    // TODO: Remove this setting when `FeatureFlag::ProfilesDesignRevamp` is cleaned up.
-    // When ProfilesDesignRevamp is enabled, model selectors are always shown in the prompt.
-    // This setting only controls visibility when ProfilesDesignRevamp is disabled.
+    // Controls whether model selectors are shown in the prompt.
     show_model_selectors_in_prompt: ShowModelSelectorsInPrompt {
         type: bool,
         default: true,

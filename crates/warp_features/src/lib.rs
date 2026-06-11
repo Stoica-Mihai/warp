@@ -43,11 +43,6 @@ pub enum FeatureFlag {
     /// Warp Agent Mode.
     AgentMode,
 
-    /// Whether the user is part of the Warp Alpha Program (AI Trusted Testers).
-    /// This is enabled automatically for local and dev builds.
-    /// Collect conversation and input autodetection data for agent mode.
-    /// Also collects block data for Next Command, if enabled.
-    AgentModeAnalytics,
 
     /// A setting to enable a traditional completions experience.
     ClassicCompletions,
@@ -85,8 +80,6 @@ pub enum FeatureFlag {
     /// Enables receiving shared Warp Drive objects.
     SharedWithMe,
 
-    /// Enables workflows for use with Agent Mode.
-    AgentModeWorkflows,
 
 
     /// Routes SSH sessions through the tmux-backed SSH wrapper.
@@ -177,20 +170,12 @@ pub enum FeatureFlag {
     CommandPaletteFileSearch,
 
 
-    /// Enables code symbols in AI context menu
-    AIContextMenuCode,
 
 
 
     /// Enables close button on left side of tabs
     TabCloseButtonOnLeft,
 
-    /// Enables AI agent profile settings UI and functionality.
-    ///
-    /// TODO: When cleaning up this flag, also remove the `show_model_selectors_in_prompt`
-    /// setting in [`SessionSettings`] (defined in `app/src/terminal/session_settings.rs`),
-    /// as model selectors are always shown when this flag is enabled.
-    ProfilesDesignRevamp,
 
 
 
@@ -238,8 +223,6 @@ pub enum FeatureFlag {
     AllowIgnoringInputSuggestions,
 
 
-    /// Enables API key authentication for Agent SDK
-    APIKeyAuthentication,
 
     /// Enables OAuth support for MCP.
     McpOauth,
@@ -268,8 +251,6 @@ pub enum FeatureFlag {
     AutoOpenCodeReviewPane,
 
 
-    /// Enables the artifact command for uploading and downloading CLI artifacts.
-    ArtifactCommand,
 
     /// Displays debugging IDs for MCP servers, installations, and gallery items.
     McpDebuggingIds,
@@ -354,9 +335,6 @@ pub enum FeatureFlag {
 
 
 
-    /// Gates the `/queue` slash command, which lets users queue a follow-up prompt
-    /// while the agent is mid-response.
-    QueueSlashCommand,
 
     /// Enables Kitty keyboard protocol support (CSI u encoding, progressive enhancement).
     KittyKeyboardProtocol,
@@ -395,8 +373,6 @@ pub enum FeatureFlag {
     /// Enables tab configs — user-definable TOML templates for launching custom tab layouts.
     TabConfigs,
 
-    /// Enables Custom Inference endpoints for enterprise users.
-    CustomInferenceEndpointsEnterprise,
 
     /// Enables commit, push, and create-PR actions in the code review panel.
     GitOperationsInCodeReview,
@@ -443,10 +419,8 @@ pub const DOGFOOD_FLAGS: &[FeatureFlag] = &[
     FeatureFlag::ToggleBootstrapBlock,
     FeatureFlag::RemoveAutosuggestionDuringTabCompletions,
     FeatureFlag::ResizeFix,
-    FeatureFlag::AgentModeWorkflows,
     #[cfg(not(windows))]
     FeatureFlag::SSHTmuxWrapper,
-    FeatureFlag::AgentModeAnalytics,
     FeatureFlag::SshDragAndDrop,
     FeatureFlag::MultiWorkspace,
     FeatureFlag::ImeMarkedText,
@@ -455,7 +429,6 @@ pub const DOGFOOD_FLAGS: &[FeatureFlag] = &[
     FeatureFlag::RunGeneratorsWithCmdExe,
     FeatureFlag::Projects,
     FeatureFlag::FileAndDiffSetComments,
-    FeatureFlag::QueueSlashCommand,
     FeatureFlag::EditableMarkdownMermaid,
     FeatureFlag::CodeReviewScrollPreservation,
     FeatureFlag::GeminiNotifications,

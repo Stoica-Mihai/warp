@@ -12,7 +12,6 @@ use warpui::{
 use crate::appearance::Appearance;
 use crate::search::command_palette::FilterChipRenderer;
 use crate::search::QueryFilter;
-use crate::settings::AISettings;
 
 /// A zero-state view for the command palette.
 pub struct ZeroState {
@@ -72,16 +71,11 @@ impl ZeroState {
 
     /// Returns the set of valid query filters for this zero state view.
     fn valid_query_filters(
-        app: &AppContext,
+        _app: &AppContext,
     ) -> impl Iterator<Item = QueryFilter> {
         let mut valid_filters = vec![];
         {
             valid_filters.push(QueryFilter::Workflows);
-            if FeatureFlag::AgentModeWorkflows.is_enabled()
-                && AISettings::as_ref(app).is_any_ai_enabled(app)
-            {
-                valid_filters.push(QueryFilter::AgentModeWorkflows);
-            }
             valid_filters.push(QueryFilter::Notebooks);
 
         }

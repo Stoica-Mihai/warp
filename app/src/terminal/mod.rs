@@ -92,7 +92,7 @@ pub use shell_launch_state::ShellLaunchState;
 pub use terminal_manager::TerminalManager;
 pub use view::{
     CANCEL_COMMAND_KEYBINDING, TOGGLE_AUTOEXECUTE_MODE_KEYBINDING,
-    TOGGLE_HIDE_CLI_RESPONSES_KEYBINDING, TOGGLE_QUEUE_NEXT_PROMPT_KEYBINDING,
+    TOGGLE_HIDE_CLI_RESPONSES_KEYBINDING,
 };
 
 /// Minimum number of visible lines.

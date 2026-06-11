@@ -400,7 +400,6 @@ default = [
     "warp_packs",
     "suggested_rules",
     "default_waterfall_mode",
-    "am_workflows",
     "autoupdate_ui_revamp",
     "render_agent_mode_output_markdown",
     "agent_mode_primary_xml",
@@ -422,12 +421,10 @@ default = [
     "tab_close_button_on_left",
     "ai_resume_button",
     "code_find_replace",
-    "ai_context_menu_code",
     "agent_decides_command_execution",
     "linked_code_blocks",
     "drive_objects_as_context",
     "search_codebase_ui",
-    "profiles_design_revamp",
     "multi_profile",
     "tabbed_editor_view",
     "allow_opening_file_links_using_editor_env",
@@ -445,7 +442,6 @@ default = [
     "mcp_oauth",
     "expand_edit_to_pane",
     "fallback_model_load_output_messaging",
-    "api_key_authentication",
     "api_key_management",
     "summarization_cancellation_confirmation",
     "ui_zoom",
@@ -456,7 +452,6 @@ default = [
     "inline_code_review",
     "web_search_ui",
     "integration_command",
-    "artifact_command",
     "conversation_api",
     "code_review_find",
     "mcp_grouped_server_context",
@@ -683,7 +678,6 @@ workflow_aliases = []
 rect_selection = []
 alacritty_settings_import = []
 shared_with_me = []
-am_workflows = []
 shell_selector = []
 blocklist_markdown_images = []
 minimalist_ui = []
@@ -718,10 +712,8 @@ command_palette_file_search = []
 conversation_filter = []
 ai_context_menu_commands = []
 preview_channel = []
-ai_context_menu_code = []
 expand_edit_to_pane = []
 fallback_model_load_output_messaging = []
-profiles_design_revamp = []
 search_codebase_ui = []
 changed_lines_only_apply_diff_result = []
 linked_code_blocks = []
@@ -744,7 +736,6 @@ code_review_save_changes = []
 remote_code_review = []
 file_tree = []
 code_launch_modal = []
-api_key_authentication = []
 api_key_management = []
 diff_set_as_context = []
 discard_per_file_and_all_changes = []
@@ -754,7 +745,6 @@ code_review_find = []
 auto_open_code_review_pane = []
 inline_code_review = []
 integration_command = []
-artifact_command = []
 summarize_conversation_command = []
 mcp_grouped_server_context = []
 web_search_ui = []
@@ -795,7 +785,6 @@ orchestration_v2 = []
 orchestration_pill_bar = []
 run_agents_tool = []
 pending_user_query_indicator = []
-queue_slash_command = []
 inline_menu_headers = []
 directory_tab_colors = []
 open_warp_new_settings_modes = []
