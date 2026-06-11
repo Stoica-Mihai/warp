@@ -12664,15 +12664,8 @@ dependencies = [
 name = "warp_isolation_platform"
 version = "0.1.0"
 dependencies = [
- "anyhow",
- "base64 0.22.1",
- "chrono",
- "command",
  "log",
  "serde",
- "serde_json",
- "thiserror 2.0.17",
- "warp_core",
 ]
 
 [[package]]
