@@ -7,7 +7,6 @@ use warp_util::standardized_path::StandardizedPath;
 use warpui::{AppContext, Entity, ModelContext, ModelHandle};
 
 use super::{Session, SessionType, Sessions};
-use crate::ai::execution_context::WarpAiExecutionContext;
 use crate::terminal::model::session::SessionsEvent;
 use crate::terminal::model_events::{ModelEvent, ModelEventDispatcher};
 use crate::terminal::shell::ShellType;
@@ -120,11 +119,6 @@ impl ActiveSession {
     ) -> Option<LocalOrRemotePath> {
         let cwd = self.current_working_directory()?;
         self.location_for_path(cwd.as_str(), app)
-    }
-
-    /// Returns the `WarpAiExecutionContext` for the active session.
-    pub fn ai_execution_environment(&self, app: &AppContext) -> Option<WarpAiExecutionContext> {
-        self.session(app).as_ref().map(WarpAiExecutionContext::new)
     }
 }
 

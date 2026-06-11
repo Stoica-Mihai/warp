@@ -26,7 +26,6 @@ use warpui::{
 use super::history::history_data_source_for_session;
 use super::workflows::WorkflowsDataSource;
 use super::zero_state::{CommandSearchZeroStateEvent, CommandSearchZeroStateView};
-use crate::ai::execution_context::WarpAiExecutionContext;
 use crate::appearance::Appearance;
 use crate::auth::auth_state::AuthState;
 use crate::auth::AuthStateProvider;
@@ -200,7 +199,6 @@ impl CommandSearchView {
         &mut self,
         session_id: SessionId,
         session_context: Option<SessionContext>,
-        _ai_execution_context: Option<WarpAiExecutionContext>,
         ctx: &mut ViewContext<Self>,
     ) {
         self.mixer.update(ctx, |mixer, ctx| {
@@ -269,10 +267,9 @@ impl CommandSearchView {
         initial_query: String,
         query_filter: Option<QueryFilter>,
         menu_positioning: MenuPositioning,
-        _ai_execution_context: Option<WarpAiExecutionContext>,
         ctx: &mut ViewContext<Self>,
     ) {
-        self.reset_command_search_mixer(session_id, session_context, _ai_execution_context, ctx);
+        self.reset_command_search_mixer(session_id, session_context, ctx);
         let ordering = match menu_positioning {
             MenuPositioning::AboveInputBox => SearchResultOrdering::BottomUp,
             MenuPositioning::BelowInputBox => SearchResultOrdering::TopDown,

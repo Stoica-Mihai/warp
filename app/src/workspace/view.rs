@@ -101,7 +101,6 @@ use crate::ai::conversation_types::ServerConversationToken;
 use crate::ai::conversation_types::AIConversationId;
 use crate::ai::blocklist::SerializedBlockListItem;
 use crate::ai::persisted_workspace::PersistedWorkspace;
-use crate::ai::execution_context::WarpAiExecutionContext;
 use crate::terminal::view::AskAIType;
 use crate::app_state::{
     LeafContents, LeafSnapshot, LeftPanelDisplayedTab, LeftPanelSnapshot, NotebookPaneSnapshot,
@@ -9252,10 +9251,6 @@ impl Workspace {
                 input_handle.read(ctx, |input, ctx| input.completion_session_context(ctx))
             });
 
-            let ai_execution_context = session_context
-                .as_ref()
-                .map(|session_context| WarpAiExecutionContext::new(&session_context.session));
-
             let menu_positioning = active_input_handle
                 .as_ref()
                 .map_or_else(MenuPositioning::default, |input_handle| {
@@ -9279,7 +9274,6 @@ impl Workspace {
                     initial_query,
                     query_filter,
                     menu_positioning,
-                    ai_execution_context,
                     ctx,
                 );
             });
