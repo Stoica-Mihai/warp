@@ -77,8 +77,6 @@ pub enum FeatureFlag {
     DynamicWorkflowEnums,
 
 
-    /// Enables receiving shared Warp Drive objects.
-    SharedWithMe,
 
 
 

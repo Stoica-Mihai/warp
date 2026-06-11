@@ -4,7 +4,6 @@ use std::fmt::Debug;
 
 use async_trait::async_trait;
 use derivative::Derivative;
-use warp_core::features::FeatureFlag;
 use warpui::{AppContext, SingletonEntity};
 
 use self::breadcrumbs::ContainingObject;
@@ -198,10 +197,9 @@ pub trait CloudObject: Debug {
                 match cloud_model.get_by_uid(&hashed_parent_id) {
                     Some(parent) => parent.is_trashed_internal(cloud_model, ancestors),
                     None => {
-                        // If the object has a parent, but the parent is not in CloudModel, assume
-                        // the object is shared, but not its parent. For backwards compatibility,
-                        // if sharing is disabled, default to trashed rather than untrashed.
-                        !FeatureFlag::SharedWithMe.is_enabled()
+                        // If the object has a parent that is not in CloudModel, treat the object
+                        // as trashed (sharing is not supported in this fork).
+                        true
                     }
                 }
             }

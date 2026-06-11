@@ -2,33 +2,13 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 use warp_util::server_timestamp::ServerTimestamp;
-use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
+use warpui::{Entity, ModelContext, SingletonEntity};
 
 use super::persistence::{CloudModel, CloudModelEvent};
-use crate::auth::AuthStateProvider;
-use crate::cloud_object::{CloudObject, Space};
 use crate::server::cloud_objects::update_manager::{
     OperationSuccessType, UpdateManager, UpdateManagerEvent,
 };
 use crate::server::ids::{ObjectUid, SyncId};
-use warp_server_client::drive::sharing::SharingAccessLevel;
-
-/// Whether or not a shared object's contents are editable by the current user.
-///
-/// Not purely a function of access level: anonymous users are not allowed to edit (lack of
-/// attribution).
-#[derive(Debug, Clone, Copy)]
-pub enum ContentEditability {
-    ReadOnly,
-    RequiresLogin,
-    Editable,
-}
-
-impl ContentEditability {
-    pub fn can_edit(self) -> bool {
-        matches!(self, ContentEditability::Editable)
-    }
-}
 
 /// Singleton model for storing and querying the data and logic logic needed by various view, based on the information
 /// stored in [CloudModel]. As a general, rule, any new API that requires logic beyond just retrieving the raw value
@@ -62,74 +42,6 @@ impl CloudViewModel {
     #[cfg(test)]
     pub fn mock(ctx: &mut ModelContext<Self>) -> Self {
         Self::new(ctx)
-    }
-
-    fn object_access_level(object: &dyn CloudObject, app: &AppContext) -> SharingAccessLevel {
-        match object.space(app) {
-            // For now, users have full access to all objects in their own drives. We may introduce
-            // drive-level ACLs in the future.
-            Space::Personal => SharingAccessLevel::Full,
-            Space::Shared => {
-                let mut access_level = SharingAccessLevel::View;
-
-                // Check the default link-based access (if set, this is *at least* View).
-                if let Some(link_settings) = &object.permissions().anyone_with_link {
-                    access_level = link_settings.access_level;
-                }
-
-                let user_uid = AuthStateProvider::as_ref(app).get().user_id();
-                if let Some(user_uid) = user_uid {
-                    for guest in object.permissions().guests.iter() {
-                        if guest.subject.is_user(user_uid) {
-                            access_level = access_level.max(guest.access_level);
-                        }
-                    }
-                }
-
-                // If the user created an object in a shared space, they will be treated as a guest and not the owner.
-                // The guest permissions aren't fetched until the object is re-fetched, and this fixes this behavior
-                // by forcing edit access if they created the object.
-                if let (Some(creator_uid), Some(user_uid)) =
-                    (object.metadata().creator_uid.clone(), user_uid)
-                {
-                    if creator_uid == user_uid.as_string() {
-                        access_level = access_level.max(SharingAccessLevel::Edit);
-                    }
-                }
-
-                access_level
-            }
-        }
-    }
-
-    /// Get the current user's editability state for a Warp Drive object.
-    pub fn object_editability(
-        &self,
-        object_uid: &ObjectUid,
-        app: &AppContext,
-    ) -> ContentEditability {
-        match CloudModel::as_ref(app).get_by_uid(object_uid) {
-            Some(object) => {
-                let access_level = Self::object_access_level(object, app);
-                if access_level < SharingAccessLevel::Edit {
-                    ContentEditability::ReadOnly
-                } else if AuthStateProvider::as_ref(app)
-                    .get()
-                    .is_anonymous_or_logged_out()
-                {
-                    // The object is editable, but the user is not logged in.
-                    if object.space(app) == Space::Personal {
-                        ContentEditability::Editable
-                    } else {
-                        ContentEditability::RequiresLogin
-                    }
-                } else {
-                    ContentEditability::Editable
-                }
-            }
-            // Assume objects not yet in CloudModel are new, and therefore editable.
-            None => ContentEditability::Editable,
-        }
     }
 
     fn handle_cloud_model_event(&mut self, event: &CloudModelEvent, ctx: &mut ModelContext<Self>) {

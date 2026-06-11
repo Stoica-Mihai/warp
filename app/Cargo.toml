@@ -385,7 +385,6 @@ cross_repo_context = []
 default = [
     "agent_mode",
     "render_continuous_block_selections_with_single_border",
-    "shared_with_me",
     "external_agent_mode_context",
     "shell_selector",
     "minimalist_ui",
@@ -676,7 +675,6 @@ traces = []
 workflow_aliases = []
 rect_selection = []
 alacritty_settings_import = []
-shared_with_me = []
 shell_selector = []
 blocklist_markdown_images = []
 minimalist_ui = []

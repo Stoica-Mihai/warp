@@ -49,8 +49,6 @@ fn enabled_features() -> HashSet<FeatureFlag> {
         FeatureFlag::AlacrittySettingsImport,
         #[cfg(feature = "dynamic_workflow_enums")]
         FeatureFlag::DynamicWorkflowEnums,
-        #[cfg(feature = "shared_with_me")]
-        FeatureFlag::SharedWithMe,
         #[cfg(feature = "ssh_tmux_wrapper")]
         FeatureFlag::SSHTmuxWrapper,
         #[cfg(feature = "shell_selector")]

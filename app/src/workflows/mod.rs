@@ -1,8 +1,7 @@
 
 use serde::{Deserialize, Serialize};
 use warp_core::context_flag::ContextFlag;
-use warp_core::features::FeatureFlag;
-use warpui::{AppContext, SingletonEntity};
+use warpui::AppContext;
 
 pub mod categories;
 use anyhow::Result;
@@ -16,7 +15,6 @@ pub mod workflow;
 pub mod workflow_enum;
 pub use categories::{CategoriesView, CategoriesViewEvent, WorkflowsViewAction};
 
-use crate::cloud_object::model::view::CloudViewModel;
 use crate::drive::CloudObjectTypeAndId;
 use crate::server::ids::{ServerId, SyncId};
 
@@ -61,36 +59,15 @@ pub enum WorkflowViewMode {
 }
 
 impl WorkflowViewMode {
-    /// The editing mode supported for a workflow.
-    pub fn supported_edit_mode(workflow_id: Option<SyncId>, app: &AppContext) -> Self {
-        let can_edit = workflow_id
-            .map(|id| {
-                CloudViewModel::as_ref(app)
-                    .object_editability(&id.uid(), app)
-                    .can_edit()
-            })
-            .unwrap_or(true);
-
-        if !FeatureFlag::SharedWithMe.is_enabled() || can_edit {
-            Self::Edit
-        } else {
-            Self::View
-        }
+    /// The editing mode supported for a workflow. Object sharing is not
+    /// supported in this fork, so all workflows are editable.
+    pub fn supported_edit_mode(_workflow_id: Option<SyncId>, _app: &AppContext) -> Self {
+        Self::Edit
     }
 
     /// The viewing mode supported for this workflow.
-    pub fn supported_view_mode(workflow_id: Option<SyncId>, app: &AppContext) -> Self {
-        let can_edit = workflow_id
-            .map(|id| {
-                CloudViewModel::as_ref(app)
-                    .object_editability(&id.uid(), app)
-                    .can_edit()
-            })
-            .unwrap_or(true);
-
-        if FeatureFlag::SharedWithMe.is_enabled() && !can_edit {
-            Self::View
-        } else if ContextFlag::RunWorkflow.is_enabled() {
+    pub fn supported_view_mode(_workflow_id: Option<SyncId>, _app: &AppContext) -> Self {
+        if ContextFlag::RunWorkflow.is_enabled() {
             Self::Edit
         } else {
             Self::View

@@ -4,7 +4,6 @@ use std::sync::mpsc::SyncSender;
 use chrono::{DateTime, Duration, Utc};
 use itertools::Itertools;
 use rand::Rng;
-use warp_core::features::FeatureFlag;
 use warp_util::server_timestamp::ServerTimestamp;
 use warpui::{AppContext, Entity, ModelContext, SingletonEntity};
 
@@ -683,7 +682,7 @@ impl CloudModel {
                     }
                 }
             }
-            None => !FeatureFlag::SharedWithMe.is_enabled(),
+            None => true,
         };
 
         cache.insert(uid.to_owned(), result);
