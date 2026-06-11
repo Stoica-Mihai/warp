@@ -24,10 +24,6 @@ pub fn init_global_actions(app: &mut AppContext) {
     app.add_global_action("workspace:toggle_focus_reporting", toggle_focus_reporting);
     app.add_global_action("workspace:save_app", save_app);
     app.add_global_action(
-        "workspace:summarize_ai_conversation",
-        summarize_ai_conversation,
-    );
-    app.add_global_action(
         "workspace:toggle_debug_network_status",
         toggle_debug_network_status,
     );
@@ -153,16 +149,6 @@ fn open_repository(path: &String, ctx: &mut AppContext) {
         let path_buf = PathBuf::from(path);
         ctx.dispatch_global_action("root_view:open_new_from_path", &OpenPath { path: path_buf });
     }
-}
-
-fn summarize_ai_conversation(prompt: &Option<String>, ctx: &mut AppContext) {
-    dispatch_to_active_workspace(
-        ctx,
-        WorkspaceAction::SummarizeAIConversation {
-            prompt: prompt.clone(),
-            initial_prompt: None,
-        },
-    );
 }
 
 fn trigger_log_out(_: &(), ctx: &mut AppContext) {

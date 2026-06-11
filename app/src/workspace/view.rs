@@ -7548,27 +7548,6 @@ impl Workspace {
 
 
 
-    /// Fork an existing AI conversation.
-    /// Optionally summarizes the conversation after forking and/or sends an initial prompt.
-    /// When cloud conversation storage is enabled and the source has a server token,
-    /// a server-side fork is created first so the new conversation immediately gets
-    /// cloud storage and a server identity.
-    #[allow(clippy::too_many_arguments)]
-    fn summarize_active_ai_conversation(
-        &mut self,
-        _prompt: Option<String>,
-        ctx: &mut ViewContext<Self>,
-    ) {
-        let Some(_terminal_view) = self
-            .active_tab_pane_group()
-            .as_ref(ctx)
-            .active_session_view(ctx)
-        else {
-            return;
-        };
-
-    }
-
     // Move tab, given tab index, left or right
     fn move_tab(&mut self, index: usize, direction: TabMovement, ctx: &mut ViewContext<Self>) {
         let tabs_len = self.tabs.len();
@@ -13892,9 +13871,6 @@ impl TypedActionView for Workspace {
                     *restore_layout,
                     ctx,
                 );
-            }
-            SummarizeAIConversation { prompt, .. } => {
-                self.summarize_active_ai_conversation(prompt.clone(), ctx);
             }
             QueuePromptForConversation { .. } => {}
             #[cfg(feature = "local_fs")]

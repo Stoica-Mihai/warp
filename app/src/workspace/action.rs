@@ -377,12 +377,6 @@ pub enum WorkspaceAction {
         /// Otherwise, fall back to the user's setting.
         restore_layout: Option<RestoreConversationLayout>,
     },
-    /// Summarize the active AI conversation in the focused pane.
-    SummarizeAIConversation {
-        prompt: Option<String>,
-        /// Optional prompt to send after summarization completes successfully.
-        initial_prompt: Option<String>,
-    },
     /// Queue a prompt to be sent after the current conversation finishes.
     QueuePromptForConversation {
         prompt: String,
@@ -556,7 +550,6 @@ impl WorkspaceAction {
             | OpenFileInNewTab { .. }
             | RestoreOrNavigateToConversation { .. }
             | NewCodeFile
-            | SummarizeAIConversation { .. }
             | OpenRepository { .. }
             | SelectTabConfig(_)
             | ToggleVerticalTabsPanel => true, // actions that actually change a state of the state of user's
