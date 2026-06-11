@@ -15,31 +15,7 @@ use reqwest::IntoUrl;
 use reqwest_eventsource::RequestBuilderExt;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use warp_core::channel::ChannelState;
-use warp_core::operating_system_info::OperatingSystemInfo;
-use warp_core::{execution_mode, report_error};
-
-pub mod headers {
-    /// Custom Warp header indicating the version of the Warp app.
-    pub const CLIENT_RELEASE_VERSION_HEADER_KEY: &str = "X-Warp-Client-Version";
-
-    /// Custom Warp header indicating the OS category the request was sent from.
-    pub(crate) const WARP_OS_CATEGORY: &str = "X-Warp-OS-Category";
-    /// Custom Warp header indicating the OS name the request was sent from. On Linux this is the
-    /// name of the distribution. On all other platforms it should be equivalent to
-    /// `WARP_OS_CATEGORY`.
-    pub(crate) const WARP_OS_NAME: &str = "X-Warp-OS-Name";
-    /// Custom Warp header indicating the version of the operating system. On Linux this is the
-    /// version of the distribution, not the Linux kernel version.
-    pub(crate) const WARP_OS_VERSION: &str = "X-Warp-OS-Version";
-
-    /// Custom Warp header indicating the linux kernel version. This is only sent from Linux.
-    pub(crate) const WARP_OS_LINUX_KERNEL_VERSION: &str = "X-Warp-OS-Linux-Kernel-Version";
-
-    /// Custom Warp header indicating the client role. We don't use the User-Agent header
-    /// because it can't be set from WASM.
-    pub(crate) const WARP_CLIENT_ID: &str = "X-Warp-Client-ID";
-}
+use warp_core::report_error;
 
 /// A wrapper around a `reqwest::Client` to execute requests. Returns a custom `RequestBuilder` type
 /// that ensures any call to the underlying `reqwest::Client` are properly adapted so that they can
@@ -145,108 +121,33 @@ impl Client {
         self.after_response_received = Some(hook_fn);
     }
 
-    fn builder(
-        &self,
-        wrapped: reqwest::RequestBuilder,
-        include_warp_headers: bool,
-    ) -> RequestBuilder<'_> {
-        let mut builder = RequestBuilder {
+    fn builder(&self, wrapped: reqwest::RequestBuilder) -> RequestBuilder<'_> {
+        RequestBuilder {
             wrapped,
             client: self,
             serialized_payload: None,
             prevent_sleep_reason: None,
-        };
-
-        if include_warp_headers {
-            builder = Self::add_warp_http_headers(builder);
         }
-
-        builder
     }
 
-    pub fn get<U: IntoUrl + Clone>(&self, url: U) -> RequestBuilder<'_> {
-        self.builder(
-            self.wrapped.get(url.clone()),
-            Self::include_warp_http_headers(url),
-        )
+    pub fn get<U: IntoUrl>(&self, url: U) -> RequestBuilder<'_> {
+        self.builder(self.wrapped.get(url))
     }
 
-    pub fn post<U: IntoUrl + Clone>(&self, url: U) -> RequestBuilder<'_> {
-        self.builder(
-            self.wrapped.post(url.clone()),
-            Self::include_warp_http_headers(url),
-        )
+    pub fn post<U: IntoUrl>(&self, url: U) -> RequestBuilder<'_> {
+        self.builder(self.wrapped.post(url))
     }
 
-    pub fn put<U: IntoUrl + Clone>(&self, url: U) -> RequestBuilder<'_> {
-        self.builder(
-            self.wrapped.put(url.clone()),
-            Self::include_warp_http_headers(url),
-        )
+    pub fn put<U: IntoUrl>(&self, url: U) -> RequestBuilder<'_> {
+        self.builder(self.wrapped.put(url))
     }
 
-    pub fn patch<U: IntoUrl + Clone>(&self, url: U) -> RequestBuilder<'_> {
-        self.builder(
-            self.wrapped.patch(url.clone()),
-            Self::include_warp_http_headers(url),
-        )
+    pub fn patch<U: IntoUrl>(&self, url: U) -> RequestBuilder<'_> {
+        self.builder(self.wrapped.patch(url))
     }
 
-    pub fn delete<U: IntoUrl + Clone>(&self, url: U) -> RequestBuilder<'_> {
-        self.builder(
-            self.wrapped.delete(url.clone()),
-            Self::include_warp_http_headers(url),
-        )
-    }
-
-    fn include_warp_http_headers<U: IntoUrl + Clone>(_url: U) -> bool {
-        true
-    }
-
-    fn add_warp_http_headers(mut builder: RequestBuilder) -> RequestBuilder {
-        // Include the client ID header.
-        if let Some(client_id) = execution_mode::current_client_id() {
-            builder = builder.header(headers::WARP_CLIENT_ID, client_id);
-        }
-
-        // If there's an app version, include it as an HTTP request header.
-        if let Some(app_version) = ChannelState::app_version() {
-            builder = builder.header(headers::CLIENT_RELEASE_VERSION_HEADER_KEY, app_version);
-        }
-
-        // Headers indicating the details of the client's operating system, if available here at runtime.
-        if let Ok(os_system_info) = OperatingSystemInfo::get() {
-            // Operating system category.
-            let category = os_system_info.category().to_string();
-            if let Ok(category) = HeaderValue::from_str(&category) {
-                builder = builder.header(headers::WARP_OS_CATEGORY, category);
-            }
-
-            // Operating system name.
-            builder = builder.header(
-                headers::WARP_OS_NAME,
-                HeaderValue::from_static(os_system_info.name()),
-            );
-
-            // Operating system version.
-            if let Some(version) = os_system_info
-                .version()
-                .and_then(|version| HeaderValue::from_str(version).ok())
-            {
-                builder = builder.header(headers::WARP_OS_VERSION, version);
-            }
-
-            // Linux kernel version.
-            if let Some(linux_kernel_version) = os_system_info
-                .linux_kernel_version()
-                .and_then(|kernel_version| HeaderValue::from_str(kernel_version).ok())
-            {
-                builder =
-                    builder.header(headers::WARP_OS_LINUX_KERNEL_VERSION, linux_kernel_version);
-            }
-        }
-
-        builder
+    pub fn delete<U: IntoUrl>(&self, url: U) -> RequestBuilder<'_> {
+        self.builder(self.wrapped.delete(url))
     }
 
     pub async fn execute(&self, request: Request) -> reqwest::Result<Response> {
@@ -561,17 +462,12 @@ impl<'c> oauth2::AsyncHttpClient<'c> for Client {
 
     fn call(&'c self, request: oauth2::HttpRequest) -> Self::Future {
         Box::pin(async move {
-            let include_warp_headers = Self::include_warp_http_headers(request.uri().to_string());
             let builder = reqwest::RequestBuilder::from_parts(
                 self.wrapped.clone(),
                 request.try_into().map_err(Box::new)?,
             );
 
-            let response = self
-                .builder(builder, include_warp_headers)
-                .send()
-                .await
-                .map_err(Box::new)?;
+            let response = self.builder(builder).send().await.map_err(Box::new)?;
 
             let mut builder = ::http::Response::builder().status(response.status());
 
