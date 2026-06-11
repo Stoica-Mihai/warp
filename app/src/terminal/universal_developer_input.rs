@@ -26,7 +26,6 @@ use warpui::{
     View, ViewContext, ViewHandle,
 };
 
-use crate::ai::blocklist::cli_controller::CLISubagentController;
 use crate::ai::blocklist::prompt::PromptIconButtonTheme;
 use crate::ai::blocklist::{BlocklistAIInputModel, InputConfig, InputType};
 use crate::network::NetworkStatus;
@@ -198,7 +197,6 @@ pub enum UniversalDeveloperInputButtonBarEvent {
 impl UniversalDeveloperInputButtonBar {
     pub fn new(
         input_model: ModelHandle<BlocklistAIInputModel>,
-        cli_subagent_controller: ModelHandle<CLISubagentController>,
         terminal_model: std::sync::Arc<parking_lot::FairMutex<crate::terminal::TerminalModel>>,
         ctx: &mut ViewContext<Self>,
     ) -> Self {
@@ -357,11 +355,6 @@ impl UniversalDeveloperInputButtonBar {
                 control.set_selected_option(input_mode, ctx);
             });
             me.notify_and_notify_children(ctx);
-        });
-
-        // Keep the control disabled state in sync with agent control state
-        ctx.subscribe_to_model(&cli_subagent_controller, move |me, _, _, ctx| {
-            me.update_segmented_control_disabled_state(ctx);
         });
 
         let mut me = Self {

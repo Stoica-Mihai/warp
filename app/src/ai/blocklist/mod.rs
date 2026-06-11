@@ -1,5 +1,4 @@
 //! This module contains model and view logic for Blocklist AI.
-pub(crate) mod cli_controller;
 pub mod code_block;
 
 pub mod history_model {}

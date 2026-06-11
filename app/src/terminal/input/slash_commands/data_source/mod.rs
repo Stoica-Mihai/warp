@@ -13,7 +13,6 @@ use warpui::{AppContext, Entity, EntityId, ModelContext, ModelHandle, SingletonE
 pub use zero_state::*;
 
 use super::AcceptSlashCommandOrSavedPrompt;
-use crate::ai::blocklist::cli_controller::{CLISubagentController, CLISubagentEvent};
 use crate::search::data_source::{Query, QueryResult};
 use crate::search::mixer::DataSourceRunErrorWrapper;
 use crate::search::slash_command_menu::fuzzy_match::SlashCommandFuzzyMatchResult;
@@ -32,7 +31,6 @@ use crate::workspaces::user_workspaces::{UserWorkspaces, UserWorkspacesEvent};
 
 pub struct DataSourceArgs {
     pub active_session: ModelHandle<ActiveSession>,
-    pub cli_subagent_controller: ModelHandle<CLISubagentController>,
     pub terminal_view_id: EntityId,
 }
 
@@ -47,7 +45,6 @@ struct ActiveCommandsContext {
 
 pub struct SlashCommandDataSource {
     active_session: ModelHandle<ActiveSession>,
-    cli_subagent_controller: ModelHandle<CLISubagentController>,
     terminal_view_id: EntityId,
     active_commands_by_id: HashMap<SlashCommandId, StaticCommand>,
     active_repo_root: Option<PathBuf>,
@@ -66,19 +63,10 @@ impl SlashCommandDataSource {
     fn build(args: DataSourceArgs, is_cloud_mode_v2: bool, ctx: &mut ModelContext<Self>) -> Self {
         let DataSourceArgs {
             active_session,
-            cli_subagent_controller,
             terminal_view_id,
         } = args;
         ctx.subscribe_to_model(&active_session, |me, event, ctx| match event {
             ActiveSessionEvent::UpdatedPwd | ActiveSessionEvent::Bootstrapped => {
-                me.recompute_active_commands(ctx);
-            }
-        });
-        ctx.subscribe_to_model(&cli_subagent_controller, |me, event, ctx| {
-            if let CLISubagentEvent::SpawnedSubagent { .. }
-            | CLISubagentEvent::FinishedSubagent { .. }
-            | CLISubagentEvent::UpdatedControl { .. } = event
-            {
                 me.recompute_active_commands(ctx);
             }
         });
@@ -128,7 +116,6 @@ impl SlashCommandDataSource {
         );
         let mut me = Self {
             active_session,
-            cli_subagent_controller,
             terminal_view_id,
             active_commands_by_id: Default::default(),
             active_repo_root: None,
@@ -190,13 +177,8 @@ impl SlashCommandDataSource {
             session_context |= Availability::LOCAL;
         }
 
-        if !self
-            .cli_subagent_controller
-            .as_ref(ctx)
-            .is_agent_in_control()
-        {
-            session_context |= Availability::NO_LRC_CONTROL;
-        }
+        // No agent ever takes control of long-running commands, so this bit is always set.
+        session_context |= Availability::NO_LRC_CONTROL;
 
 
         if UserWorkspaces::as_ref(ctx).is_codebase_context_enabled(ctx) {

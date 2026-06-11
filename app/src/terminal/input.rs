@@ -110,7 +110,6 @@ use super::warpify::SubshellSource;
 use super::{prompt, History, HistoryEntry, SizeInfo, TerminalModel, UpArrowHistoryConfig};
 use crate::ai::conversation_types::AIConversationId;
 use crate::ai::agent_types::CancellationReason;
-use crate::ai::blocklist::cli_controller::CLISubagentController;
 use crate::ai::blocklist::{
     ai_indicator_height, render_ai_agent_mode_icon,
     BlocklistAIInputEvent, BlocklistAIInputModel, InputConfig, InputType,
@@ -1568,10 +1567,6 @@ impl Input {
         let ai_input_model = ctx.add_model(|ctx| {
             BlocklistAIInputModel::new(model.clone(), terminal_view_id, ctx)
         });
-        let cli_subagent_controller = ctx.add_model(|ctx| {
-            CLISubagentController::new(model.clone(), &model_events, terminal_view_id, ctx)
-        });
-
         let _footer_display_chip_config = DisplayChipConfig {
             ai_input_model: ai_input_model.clone(),
             terminal_view_id,
@@ -1624,7 +1619,6 @@ impl Input {
         let universal_developer_input_button_bar = ctx.add_typed_action_view(|ctx| {
             UniversalDeveloperInputButtonBar::new(
                 ai_input_model.clone(),
-                cli_subagent_controller.clone(),
                 model.clone(),
                 ctx,
             )
@@ -2011,7 +2005,6 @@ impl Input {
         let slash_command_data_source = ctx.add_model(|ctx| {
             let args = slash_commands::DataSourceArgs {
                 active_session: active_session.clone(),
-                cli_subagent_controller: cli_subagent_controller.clone(),
                 terminal_view_id,
             };
             SlashCommandDataSource::new(args, ctx)

@@ -9,7 +9,7 @@ use super::AgentInteractionMetadata;
 use crate::ai::conversation_types::AIConversationId;
 use crate::ai::agent_types::TaskId;
 use crate::ai::agent_types::AIAgentActionId;
-use crate::ai::blocklist::cli_controller::LongRunningCommandControlState;
+use crate::terminal::model::block::interaction_mode::LongRunningCommandControlState;
 use crate::terminal::model::block::{
     has_block_failed, AgentViewVisibility, Block, BlockState, PromptInfo,
     MAX_SERIALIZED_STYLIZED_OUTPUT_LINES,

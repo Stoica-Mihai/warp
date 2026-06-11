@@ -6,13 +6,65 @@ use super::{Block, SerializedAIMetadata};
 use crate::ai::conversation_types::AIConversationId;
 use crate::ai::agent_types::TaskId;
 use crate::ai::agent_types::AIAgentActionId;
-use crate::ai::blocklist::cli_controller::{
-    LongRunningCommandControlState, UserTakeOverReason,
-};
 use crate::terminal::event::Event;
 use crate::terminal::model::grid::grid_handler::GridHandler;
 use crate::terminal::model::grid::RespectDisplayedOutput;
 use crate::terminal::model::RespectObfuscatedSecrets;
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+pub enum UserTakeOverReason {
+    Manual,
+    Stop,
+    TransferFromAgent { reason: String },
+}
+
+impl UserTakeOverReason {
+    pub fn is_stop(&self) -> bool {
+        matches!(self, Self::Stop)
+    }
+
+    pub fn is_transfer_from_agent(&self) -> bool {
+        matches!(self, Self::TransferFromAgent { .. })
+    }
+
+    pub fn transfer_reason(&self) -> Option<&str> {
+        match self {
+            Self::TransferFromAgent { reason } => Some(reason.as_str()),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+pub enum LongRunningCommandControlState {
+    Agent { is_blocked: bool, should_hide_responses: bool },
+    User { reason: UserTakeOverReason },
+}
+
+impl LongRunningCommandControlState {
+    pub fn is_agent_in_control(&self) -> bool {
+        matches!(self, Self::Agent { .. })
+    }
+
+    pub fn is_agent_blocked(&self) -> bool {
+        matches!(self, Self::Agent { is_blocked: true, .. })
+    }
+
+    pub fn is_user_in_control(&self) -> bool {
+        matches!(self, Self::User { .. })
+    }
+
+    pub fn should_hide_responses(&self) -> bool {
+        matches!(self, Self::Agent { should_hide_responses: true, .. })
+    }
+
+    pub fn user_take_over_reason(&self) -> Option<&UserTakeOverReason> {
+        match self {
+            LongRunningCommandControlState::Agent { .. } => None,
+            LongRunningCommandControlState::User { reason } => Some(reason),
+        }
+    }
+}
 
 impl Block {
     /// `true` if the command is executing and the user has opened the agent mode input.
