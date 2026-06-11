@@ -856,21 +856,11 @@ pub fn init(ctx: &mut AppContext) {
     ]);
 
     ctx.register_editable_bindings([
-        // With Agent Mode, cmdorctrl-i toggles AI input mode (same as GH Copilot) -- so
-        // reassign command x ray to something else.
         EditableBinding::new(
             "editor_view:inspect_command",
             "Inspect Command",
             EditorAction::InspectCommand,
         )
-        .with_enabled(|| FeatureFlag::AgentMode.is_enabled())
-        .with_context_predicate(id!("EditorView") & !id!("IMEOpen")),
-        EditableBinding::new(
-            "editor_view:inspect_command",
-            "Inspect Command",
-            EditorAction::InspectCommand,
-        )
-        .with_enabled(|| !FeatureFlag::AgentMode.is_enabled())
         .with_context_predicate(id!("EditorView") & !id!("IMEOpen"))
         .with_key_binding("cmdorctrl-i"),
     ]);

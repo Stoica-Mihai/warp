@@ -7,7 +7,6 @@ use lazy_static::lazy_static;
 use ordered_float::OrderedFloat;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use warp_core::features::FeatureFlag;
 use warp_core::ui::theme::Fill;
 use warpui::{Action, AppContext, Element, Entity, ModelHandle};
 
@@ -312,13 +311,7 @@ impl QueryFilter {
             QueryFilter::Workflows => Some("bundled/svg/workflow.svg"),
             QueryFilter::Notebooks => Some("bundled/svg/notebook.svg"),
             QueryFilter::Plans => Some("bundled/svg/compass-3.svg"),
-            QueryFilter::NaturalLanguage => {
-                if !FeatureFlag::AgentMode.is_enabled() {
-                    Some(Icon::AiAssistant.into())
-                } else {
-                    Some(Icon::Oz.into())
-                }
-            }
+            QueryFilter::NaturalLanguage => Some(Icon::AiAssistant.into()),
             QueryFilter::Actions => None,
             QueryFilter::Sessions => Some("bundled/svg/terminal-input.svg"),
             QueryFilter::Tabs => Some("bundled/svg/terminal-input.svg"),
