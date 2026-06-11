@@ -409,13 +409,6 @@ impl LaunchMode {
         }
     }
 
-    #[cfg(test)]
-    pub(crate) fn new_for_unit_test() -> Self {
-        LaunchMode::Test {
-            driver: Box::new(None),
-            is_integration_test: false,
-        }
-    }
 }
 
 /// If the given event is a key down event containing alt modifiers, and those
@@ -1365,8 +1358,6 @@ pub(crate) fn initialize_app(
     if let Some(is_ssh_tmux_wrapper_enabled) = is_ssh_tmux_wrapper_enabled {
         FeatureFlag::SSHTmuxWrapper.set_user_preference(is_ssh_tmux_wrapper_enabled);
     }
-
-    ctx.add_singleton_model(|ctx| ai::execution_profiles::profiles::AIExecutionProfilesModel::new(launch_mode, ctx));
 
     ctx.add_singleton_model(DefaultTerminal::new);
 

@@ -15,7 +15,6 @@ use watcher::HomeDirectoryWatcher;
 
 use super::*;
 use crate::launch_configs::launch_config::PaneMode;
-use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
 use crate::ai::mcp::templatable_manager::TemplatableMCPServerManager;
 use crate::ai::mcp::{FileBasedMCPManager, FileMCPWatcher};
 use crate::ai::outline::RepoOutlines;
@@ -91,9 +90,6 @@ fn initialize_app(app: &mut App) {
     app.add_singleton_model(NotebookKeybindings::new);
     app.add_singleton_model(TerminalKeybindings::new);
     app.add_singleton_model(|_| CLIAgentSessionsModel::new());
-    app.add_singleton_model(|ctx| {
-        AIExecutionProfilesModel::new(&crate::LaunchMode::new_for_unit_test(), ctx)
-    });
     #[cfg(feature = "local_fs")]
     app.add_singleton_model(RepoMetadataModel::new);
     app.add_singleton_model(SkillManager::new);

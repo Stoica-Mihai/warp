@@ -66,28 +66,3 @@ impl ComputerUsePermission {
     pub fn is_enabled(&self) -> bool { !matches!(self, Self::Never | Self::Unknown) }
     pub fn is_always_allow(&self) -> bool { matches!(self, Self::AlwaysAllow) }
 }
-
-pub mod profiles {
-    use warpui::{Entity, ModelContext, SingletonEntity};
-
-    #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-    pub struct ClientProfileId(pub usize);
-    impl std::fmt::Display for ClientProfileId {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { write!(f, "{}", self.0) }
-    }
-
-    #[allow(dead_code)]
-    pub enum AIExecutionProfilesModelEvent {
-        UpdatedActiveProfile { terminal_view_id: warpui::EntityId },
-        ProfileUpdated(ClientProfileId),
-        ProfilesChanged,
-    }
-    pub struct AIExecutionProfilesModel;
-    impl Entity for AIExecutionProfilesModel {
-        type Event = AIExecutionProfilesModelEvent;
-    }
-    impl SingletonEntity for AIExecutionProfilesModel {}
-    impl AIExecutionProfilesModel {
-        pub fn new(_launch_mode: &crate::LaunchMode, _ctx: &mut ModelContext<Self>) -> Self { Self }
-    }
-}

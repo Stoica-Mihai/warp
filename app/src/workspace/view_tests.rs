@@ -15,7 +15,6 @@ use warpui::{AddSingletonModel, App, ViewHandle};
 use watcher::HomeDirectoryWatcher;
 
 use super::*;
-use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
 use crate::ai::mcp::gallery::MCPGalleryManager;
 use crate::ai::mcp::templatable_manager::TemplatableMCPServerManager;
 use crate::ai::mcp::{FileBasedMCPManager, FileMCPWatcher};
@@ -100,9 +99,6 @@ fn initialize_app(app: &mut App) {
     app.add_singleton_model(|_| FileBasedMCPManager::default());
 
     app.add_singleton_model(|_| TemplatableMCPServerManager::default());
-    app.add_singleton_model(|ctx| {
-        AIExecutionProfilesModel::new(&crate::LaunchMode::new_for_unit_test(), ctx)
-    });
     app.add_singleton_model(RepoOutlines::new_for_test);
     app.add_singleton_model(|_| GPUState::new());
     app.add_singleton_model(OneTimeModalModel::new);

@@ -5,10 +5,8 @@ use std::time::Duration;
 
 use prost::Message;
 use warpui::integration::TestStep;
-use warpui::{async_assert, SingletonEntity};
+use warpui::async_assert;
 
-use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
-use crate::ai::execution_profiles::ActionPermission;
 use crate::integration_testing::step::{
     new_step_with_default_assertions, new_step_with_default_assertions_for_pane,
 };
@@ -167,22 +165,3 @@ fn get_input_data(file_name: &str) -> Cursor<Vec<u8>> {
     Cursor::new(read(&path).expect("Failed to read binary input data"))
 }
 
-/// Sets the execution profile to not auto-execute commands.
-/// This changes the `execute_commands` permission from `AlwaysAllow` to `AlwaysAsk`,
-/// which means commands will be proposed but not automatically executed.
-pub fn set_execution_profile_no_auto_execute() -> TestStep {
-    TestStep::new("Set execution profile to not auto-execute commands").add_named_assertion(
-        "Update execution profile",
-        |app, _window_id| {
-            AIExecutionProfilesModel::handle(app).update(app, |profiles, ctx| {
-                let default_profile_id = *profiles.default_profile(ctx).id();
-                profiles.set_execute_commands(
-                    default_profile_id,
-                    &ActionPermission::AlwaysAsk,
-                    ctx,
-                );
-            });
-            async_assert!(true, "Successfully updated execution profile")
-        },
-    )
-}

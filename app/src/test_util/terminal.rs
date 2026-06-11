@@ -9,7 +9,6 @@ use watcher::HomeDirectoryWatcher;
 
 use super::settings::initialize_history_persistence_for_tests;
 use crate::ai::blocklist::SerializedBlockListItem;
-use crate::ai::execution_profiles::profiles::AIExecutionProfilesModel;
 use crate::ai::mcp::gallery::MCPGalleryManager;
 use crate::ai::mcp::templatable_manager::TemplatableMCPServerManager;
 use crate::ai::outline::RepoOutlines;
@@ -79,9 +78,6 @@ pub fn initialize_app_for_terminal_view(app: &mut App) {
     app.add_singleton_model(WarpManagedPathsWatcher::new_for_testing);
     app.add_singleton_model(SkillManager::new);
     app.add_singleton_model(|_| TemplatableMCPServerManager::default());
-    app.add_singleton_model(|ctx| {
-        AIExecutionProfilesModel::new(&crate::LaunchMode::new_for_unit_test(), ctx)
-    });
 
     app.add_singleton_model(SystemInfo::new);
 
