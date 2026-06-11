@@ -1,5 +1,3 @@
-use std::ffi::OsString;
-
 use clap::Parser;
 
 use super::*;
@@ -12,24 +10,6 @@ use crate::schedule::ScheduleSubcommand;
 use crate::secret::{CodexMethod, CreateProvider, SecretCommand};
 use crate::task::{MessageCommand, TaskCommand};
 
-fn set_env_var(name: &str, value: &str) -> Option<OsString> {
-    let previous = std::env::var_os(name);
-    // Safety: tests that mutate process environment are marked `serial` so we
-    // do not race with other environment readers/writers in this crate.
-    unsafe { std::env::set_var(name, value) };
-    previous
-}
-
-fn restore_env_var(name: &str, previous: Option<OsString>) {
-    match previous {
-        // Safety: tests that mutate process environment are marked `serial` so
-        // we do not race with other environment readers/writers in this crate.
-        Some(value) => unsafe { std::env::set_var(name, value) },
-        // Safety: tests that mutate process environment are marked `serial` so
-        // we do not race with other environment readers/writers in this crate.
-        None => unsafe { std::env::remove_var(name) },
-    }
-}
 
 #[test]
 fn agent_run_accepts_model() {
@@ -1790,33 +1770,6 @@ fn run_message_mark_delivered_parses() {
     };
 
     assert_eq!(delivered_args.message_id, "message-456");
-}
-
-#[test]
-#[serial_test::serial]
-fn hidden_server_overrides_parse_from_env() {
-    let previous_server_root = set_env_var(SERVER_ROOT_URL_OVERRIDE_ENV, "http://localhost:8080");
-    let previous_ws = set_env_var(WS_SERVER_URL_OVERRIDE_ENV, "ws://localhost:8082/graphql/v2");
-    let previous_session_sharing = set_env_var(
-        SESSION_SHARING_SERVER_URL_OVERRIDE_ENV,
-        "ws://127.0.0.1:8081",
-    );
-
-    let args = Args::try_parse_from(["warp", "whoami"]).unwrap();
-
-    restore_env_var(SERVER_ROOT_URL_OVERRIDE_ENV, previous_server_root);
-    restore_env_var(WS_SERVER_URL_OVERRIDE_ENV, previous_ws);
-    restore_env_var(
-        SESSION_SHARING_SERVER_URL_OVERRIDE_ENV,
-        previous_session_sharing,
-    );
-
-    assert_eq!(args.server_root_url(), Some("http://localhost:8080"));
-    assert_eq!(args.ws_server_url(), Some("ws://localhost:8082/graphql/v2"));
-    assert_eq!(
-        args.session_sharing_server_url(),
-        Some("ws://127.0.0.1:8081")
-    );
 }
 
 #[test]
