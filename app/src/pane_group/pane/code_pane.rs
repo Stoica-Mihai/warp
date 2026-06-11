@@ -153,8 +153,6 @@ impl PaneContent for CodePane {
                         log_path: log_path.clone(),
                     });
                 }
-                #[cfg(target_family = "wasm")]
-                CodeViewEvent::OpenLspLogs { .. } => {}
             },
         );
 

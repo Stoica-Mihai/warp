@@ -2961,8 +2961,6 @@ impl TerminalView {
                             .unwrap_or((None, None));
                     }
                     RemoteServerManagerEvent::HostDisconnected { host_id } => {
-                        #[cfg(target_family = "wasm")]
-                        let _ = host_id;
                         DetectedRepositories::handle(ctx).update(ctx, |repos, _| {
                             repos.remove_roots_for_host(host_id);
                         });
@@ -5900,10 +5898,6 @@ impl TerminalView {
                         },
                     );
                 }
-                // The remote-server manager only exists on non-wasm targets,
-                // so this handler is a no-op on wasm.
-                #[cfg(target_family = "wasm")]
-                let _ = session_id;
             }
             // Handled by RemoteServerController via model subscription.
             ModelEvent::SshInitShell { .. } => {}
@@ -6122,8 +6116,6 @@ impl TerminalView {
         // so the update chip doesn't flash before the user runs /reload-plugins.
         let plugin_version =
             plugin_manager_for(agent).map(|m| m.minimum_plugin_version().to_owned());
-        #[cfg(target_family = "wasm")]
-        let plugin_version = None;
         let notification = CLIAgentEvent {
             v: 1,
             agent,
