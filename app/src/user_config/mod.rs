@@ -58,7 +58,6 @@ pub enum WarpConfigUpdateEvent {
     #[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
     TabConfigs,
     /// Emitted when one or more tab config files failed to parse.
-    #[cfg_attr(target_family = "wasm", allow(dead_code))]
     TabConfigErrors(Vec<TabConfigError>),
     /// The settings file (`settings.toml`) was created, modified, or deleted.
     #[cfg_attr(not(feature = "local_fs"), expect(dead_code))]
@@ -82,7 +81,6 @@ pub enum WarpConfigUpdateEvent {
 pub struct WarpConfig {
     launch_configs: Vec<LaunchConfig>,
     tab_configs: Vec<TabConfig>,
-    #[cfg_attr(target_family = "wasm", allow(dead_code))]
     tab_config_errors: Vec<TabConfigError>,
     theme_config: WarpThemeConfig,
     local_user_workflows: Vec<Workflow>,
@@ -174,7 +172,6 @@ pub fn themes_dir() -> PathBuf {
 }
 
 /// Returns the path to the directory containing the user's custom workflows.
-#[cfg_attr(target_family = "wasm", expect(dead_code))]
 pub fn workflows_dir() -> PathBuf {
     crate::workflows::local_workflows::workflows_dir(base_dir())
 }
@@ -192,7 +189,6 @@ pub fn tab_configs_dir() -> PathBuf {
 
 /// Returns the path to the directory containing the built-in default tab configs.
 /// These are shipped with Warp and user-editable (Warp does not overwrite modifications).
-#[cfg_attr(target_family = "wasm", expect(dead_code))]
 pub fn default_tab_configs_dir() -> PathBuf {
     base_dir().join("default_tab_configs")
 }

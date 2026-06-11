@@ -214,7 +214,6 @@ pub struct Cache {
     glyph_advances: DashMap<(FontId, GlyphId), Result<Vector2I, Error>>,
     glyph_typographic_bounds: DashMap<(FontId, GlyphId), Result<RectI, Error>>,
     raster_bounds: DashMap<RasterBoundsKey, Result<RectI, Error>>,
-    #[cfg_attr(target_family = "wasm", allow(dead_code))]
     available_system_fonts: Option<Vec<(Option<FamilyId>, FontInfo)>>,
     font_fallback_cache: FontFallbackCache,
 }

@@ -398,7 +398,6 @@ impl Default for UiStateHandles {
     }
 }
 
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 struct GitSessionState {
     enablement: CodingPanelEnablementState,
 }
@@ -488,7 +487,6 @@ pub struct DiscardDialogState {
     file_list_scroll_state: ClippedScrollStateHandle,
 }
 
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 struct PendingPreciseScroll {
     editor_index: usize,
     /// Starting character offset of the target range to scroll to.
@@ -1532,7 +1530,6 @@ impl CodeReviewView {
                     model.update_query(query.clone(), self.editor_handles(), model_ctx);
                 });
             }
-            #[cfg_attr(target_family = "wasm", allow(unused_variables))]
             FindViewEvent::NextMatch { direction } => {
                 self.find_model.update(ctx, |model, model_ctx| {
                     model.focus_next_find_match(*direction, self.editor_handles(), model_ctx);

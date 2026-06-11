@@ -54,7 +54,6 @@ pub use parsing::ParsedTemplatableMCPServerResult;
 pub mod http_client;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(target_family = "wasm", expect(dead_code))]
 pub struct JSONMCPServer {
     #[serde(flatten)]
     pub transport_type: JSONTransportType,
@@ -89,7 +88,6 @@ pub struct MCPServer {
 }
 
 #[derive(Debug, Clone, Copy)]
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 pub enum MCPServerState {
     NotRunning,
     Starting,

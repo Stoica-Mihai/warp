@@ -65,7 +65,6 @@ pub enum LspState {
 }
 
 impl LspState {
-    #[cfg_attr(target_family = "wasm", allow(dead_code))]
     pub fn name(&self) -> &str {
         match self {
             Self::Stopped { .. } => "stopped",

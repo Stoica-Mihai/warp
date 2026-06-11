@@ -1936,7 +1936,6 @@ impl AppearanceSettingsPageView {
         ctx.notify();
     }
 
-    #[cfg_attr(target_family = "wasm", allow(dead_code))]
     pub fn set_system_fonts(
         &mut self,
         available_families: Vec<(Option<FamilyId>, FontInfo)>,

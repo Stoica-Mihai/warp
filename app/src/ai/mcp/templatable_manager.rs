@@ -34,7 +34,6 @@ pub struct TemplatableMCPServerManager {
     server_states: HashMap<Uuid, MCPServerState>,
     active_servers: HashMap<Uuid, TemplatableMCPServerInfo>,
 
-    #[cfg_attr(target_family = "wasm", allow(dead_code))]
     spawned_servers: HashMap<Uuid, SpawnedServerInfo>,
     /// Cached credentials for each server.
     ///
@@ -55,14 +54,12 @@ pub struct TemplatableMCPServerManager {
 }
 
 /// Information about a spawned server task.
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 struct SpawnedServerInfo {
     abort_handle: AbortHandle,
     oauth_result_tx: async_channel::Sender<oauth::CallbackResult>,
 }
 
 /// Information about a single connected MCP server.
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 pub struct TemplatableMCPServerInfo {
     service: rmcp::service::RunningService<
         rmcp::RoleClient,
@@ -165,7 +162,6 @@ impl TemplatableMCPServerManager {
 }
 
 #[derive(Debug)]
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 pub enum TemplatableMCPServerManagerEvent {
     StateChanged,
     // TODO(aeybel) Right now most of the app doesn't use these events to communicate

@@ -37,7 +37,6 @@ pub(crate) fn ensure_warp_watch_roots_exist() {
     }
 }
 
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 pub(crate) fn warp_home_config_dir() -> Option<PathBuf> {
     warp_core::paths::warp_home_config_dir()
 }
@@ -46,12 +45,10 @@ pub(crate) fn warp_home_skills_dir() -> Option<PathBuf> {
     warp_core::paths::warp_home_skills_dir()
 }
 
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 pub(crate) fn warp_home_mcp_config_file_path() -> Option<PathBuf> {
     warp_core::paths::warp_home_mcp_config_file_path()
 }
 
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct WarpMcpConfigPath {
     pub(crate) root_path: PathBuf,
@@ -62,7 +59,6 @@ pub(crate) fn warp_managed_skill_dirs() -> Vec<PathBuf> {
     warp_home_skills_dir().into_iter().collect()
 }
 
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 pub(crate) fn warp_managed_mcp_config_path() -> Option<WarpMcpConfigPath> {
     Some(WarpMcpConfigPath {
         root_path: home_dir()?,
@@ -70,17 +66,14 @@ pub(crate) fn warp_managed_mcp_config_path() -> Option<WarpMcpConfigPath> {
     })
 }
 
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 pub(crate) fn repository_update_touches_path(update: &RepositoryUpdate, path: &Path) -> bool {
     repository_update_paths(update).any(|candidate| candidate == path)
 }
 
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 pub(crate) fn repository_update_touches_prefix(update: &RepositoryUpdate, prefix: &Path) -> bool {
     repository_update_paths(update).any(|candidate| candidate.starts_with(prefix))
 }
 
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 pub(crate) fn filter_repository_update_by_prefix(
     update: &RepositoryUpdate,
     prefix: &Path,
@@ -88,7 +81,6 @@ pub(crate) fn filter_repository_update_by_prefix(
     filter_repository_update(update, |path| path.starts_with(prefix))
 }
 
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 fn repository_update_paths(update: &RepositoryUpdate) -> impl Iterator<Item = &Path> {
     update
         .added
@@ -101,7 +93,6 @@ fn repository_update_paths(update: &RepositoryUpdate) -> impl Iterator<Item = &P
         }))
 }
 
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 fn filter_repository_update(
     update: &RepositoryUpdate,
     keep_path: impl Fn(&Path) -> bool,

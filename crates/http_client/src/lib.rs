@@ -114,7 +114,6 @@ impl Default for Client {
 
 impl Client {
     pub fn new() -> Self {
-        #[cfg_attr(target_family = "wasm", expect(unused_mut))]
         let mut builder = reqwest::Client::builder();
 
         // Set some HTTP/2-related settings that aren't available on wasm.
@@ -441,7 +440,6 @@ impl<'a> RequestBuilder<'a> {
     }
 
     // The `timeout` argument is unused on wasm.
-    #[cfg_attr(target_family = "wasm", allow(unused_variables))]
     pub fn timeout(self, timeout: Duration) -> RequestBuilder<'a> {
         cfg_if::cfg_if! {
             // reqwest provides no ability to configure a request timeout

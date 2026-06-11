@@ -31,7 +31,6 @@ use crate::{
 };
 
 /// Prefix for API keys used in authentication
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 pub const API_KEY_PREFIX: &str = "wk-";
 
 pub fn init(_app: &mut AppContext) {}

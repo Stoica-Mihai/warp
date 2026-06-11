@@ -535,7 +535,7 @@ fn all_commands() -> Vec<StaticCommand> {
         commands.push(QUEUE.clone());
     }
 
-    if !cfg!(target_family = "wasm") {
+    if !false {
         commands.extend([
             FORK_AND_COMPACT.clone(),
             CONTINUE_LOCALLY.clone(),
@@ -543,7 +543,7 @@ fn all_commands() -> Vec<StaticCommand> {
 
     }
 
-    if !cfg!(target_family = "wasm") {
+    if !false {
         commands.extend([EDIT.clone(), EXPORT_TO_FILE.clone()]);
     }
 
@@ -555,7 +555,7 @@ fn all_commands() -> Vec<StaticCommand> {
     }
 
 
-    if FeatureFlag::InlineRepoMenu.is_enabled() && !cfg!(target_family = "wasm") {
+    if FeatureFlag::InlineRepoMenu.is_enabled() && !false {
         commands.push(OPEN_REPO);
     }
 

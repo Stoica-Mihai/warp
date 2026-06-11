@@ -493,7 +493,6 @@ impl platform::DispatchDelegate for DispatchDelegate {
     }
 }
 
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 struct LoadedSystemFonts;
 impl platform::LoadedSystemFonts for LoadedSystemFonts {
     fn as_any(self: Box<Self>) -> Box<dyn Any> {

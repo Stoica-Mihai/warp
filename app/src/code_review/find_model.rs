@@ -26,7 +26,6 @@ pub struct MultiEditorSelectedResult {
     pub selected_result: SelectedResult,
 }
 
-#[cfg_attr(target_family = "wasm", expect(dead_code))]
 pub struct MultiEditorSearchMatches {
     editor_id: EntityId,
     matches: Vec<SearchMatch>,
@@ -50,7 +49,6 @@ pub struct SelectedMatchInfo {
     pub end_offset: CharOffset,
 }
 
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 pub struct CodeReviewFindModel {
     query_text: String,
     case_sensitive: bool,
@@ -62,7 +60,6 @@ pub struct CodeReviewFindModel {
     weak_view_handle: WeakViewHandle<CodeReviewView>,
 }
 
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 impl CodeReviewFindModel {
     pub fn new(
         weak_view_handle: WeakViewHandle<CodeReviewView>,

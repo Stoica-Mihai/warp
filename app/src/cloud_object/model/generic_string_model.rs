@@ -154,8 +154,7 @@ where
 /// This has common logic for storing string models to SQLite, sending them to the server
 /// updating from the server -- basically for anything not specific to the contents
 /// of the string model.
-#[cfg_attr(not(target_family = "wasm"), async_trait)]
-#[cfg_attr(target_family = "wasm", async_trait(?Send))]
+#[async_trait]
 impl<M, S> CloudModelType for GenericStringModel<M, S>
 where
     M: StringModel<

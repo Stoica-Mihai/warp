@@ -36,7 +36,6 @@ pub enum CustomEvent {
         termination_mode: TerminationMode,
     },
     /// A global hotkey was pressed. Global hotkeys are not yet supported on wasm.
-    #[cfg_attr(target_family = "wasm", allow(dead_code))]
     GlobalShortcutTriggered(keymap::Keystroke),
     /// The active window changed.
     ///
@@ -79,7 +78,6 @@ pub enum CustomEvent {
         notification_info: NotificationInfo,
     },
     /// Focus the native window that triggered a notification.
-    #[cfg_attr(target_family = "wasm", allow(dead_code))]
     FocusWindow {
         window_id: WindowId,
     },

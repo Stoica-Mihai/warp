@@ -125,7 +125,6 @@ impl Error {
 /// once.
 ///
 /// [`RemoteServerManager`]: crate::manager::RemoteServerManager
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 pub struct Connection {
     pub client: RemoteServerClient,
     pub event_rx: Receiver<ClientEvent>,

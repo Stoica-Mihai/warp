@@ -12,7 +12,6 @@ use crate::code::local_code_editor::LocalCodeEditorView;
 /// Context for preserving scroll position across file diff content changes.
 /// The scroll position can be in different regions of the file diff item.
 #[derive(Clone, Debug)]
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 pub(super) enum RelocatableScrollContext {
     /// Scroll position is in the file header region.
     /// Stores the pixel offset from the top of the header.

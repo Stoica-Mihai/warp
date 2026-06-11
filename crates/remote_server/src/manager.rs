@@ -601,7 +601,6 @@ struct NavigationCache {
 /// Persists for the lifetime of the session (removed only in
 /// `deregister_session`) so that `mark_session_connected` can re-send
 /// the notification after a reconnect.
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 struct SessionBootstrapInfo {
     shell_type: String,
     shell_path: Option<String>,
@@ -637,7 +636,6 @@ pub struct RemoteServerManager {
     session_bootstrap_info: HashMap<SessionId, SessionBootstrapInfo>,
     /// App auth context used for connection-time `Initialize` and future
     /// reconnect handshakes.
-    #[cfg_attr(target_family = "wasm", allow(dead_code))]
     auth_context: Option<Arc<RemoteServerAuthContext>>,
     /// Detected remote platform per session, populated during the binary check
     /// phase via `detect_platform()`. Used for telemetry.
@@ -719,7 +717,6 @@ impl RemoteServerManager {
     /// Ok(false) if it is definitively not installed or unsupported setup
     /// should skip install decisions, and
     /// Err(_) if the check failed (e.g. SSH timeout/unreachable).
-    #[cfg_attr(target_family = "wasm", allow(unused_variables))]
     pub fn check_binary<T>(
         &mut self,
         session_id: SessionId,
@@ -900,7 +897,6 @@ impl RemoteServerManager {
     ///    `HostId`) and transition to `Connected`.
     ///
     /// No-op on WASM (remote server connections use a different transport).
-    #[cfg_attr(target_family = "wasm", allow(unused_variables, unused_mut))]
     pub fn connect_session<T>(
         &mut self,
         session_id: SessionId,

@@ -191,7 +191,7 @@ impl SupportedPlatforms {
                 cfg!(all(not(target_family = "wasm"), target_os = "windows"))
             }
             SupportedPlatforms::WEB => {
-                cfg!(target_family = "wasm")
+                false
             }
             SupportedPlatforms::OR(first, second) => {
                 first.matches_current_platform() || second.matches_current_platform()

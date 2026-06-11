@@ -21,7 +21,6 @@ pub mod language_server_shutdown_manager;
 pub mod lsp_logs;
 
 #[derive(Debug, thiserror::Error)]
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 pub enum ImmediateSaveError {
     #[error("No FileId")]
     NoFileId,
@@ -77,7 +76,6 @@ impl ShowFindReferencesCardProvider for NoopFindReferencesCardProvider {
     }
 }
 
-#[cfg_attr(target_family = "wasm", expect(dead_code))]
 #[derive(Debug)]
 pub enum SaveStatus {
     /// Save completed immediately and successfully.
@@ -89,7 +87,6 @@ pub enum SaveStatus {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-#[cfg_attr(target_family = "wasm", expect(dead_code))]
 pub enum SaveOutcome {
     Canceled,
     Failed,
@@ -138,7 +135,6 @@ impl AddAssign<&DiffResult> for DiffResult {
 }
 
 #[derive(Debug)]
-#[cfg_attr(target_family = "wasm", expect(dead_code))]
 pub struct EditorTabBarDropTargetData {
     index: usize,
 }

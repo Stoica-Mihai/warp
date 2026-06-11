@@ -93,7 +93,6 @@ pub fn detect() -> Option<IsolationPlatformType> {
 ///
 /// This will fail if no isolation platform is detected and no platform-agnostic workload token
 /// is available.
-#[cfg_attr(target_family = "wasm", allow(unused_variables))]
 pub async fn issue_workload_token(
     duration: Option<Duration>,
 ) -> Result<WorkloadToken, IsolationPlatformError> {

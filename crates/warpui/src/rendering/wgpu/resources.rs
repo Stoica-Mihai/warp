@@ -243,7 +243,6 @@ fn device_info_from_adapter_info(adapter_info: wgpu::AdapterInfo) -> GPUDeviceIn
 /// This is inspired by the implementation of `request_adapter` in `wgpu_core`:
 /// https://github.com/gfx-rs/wgpu/blob/badb3c88ea29acb159d333e2f60b1cc305bbd512/wgpu-core/src/instance.rs#L857
 #[allow(clippy::too_many_arguments)]
-#[cfg_attr(target_family = "wasm", allow(unused_variables))]
 async fn select_adapter(
     instance: &wgpu::Instance,
     surface: &wgpu::Surface<'static>,

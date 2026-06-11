@@ -763,7 +763,6 @@ impl TextLayoutSystem {
     }
 }
 
-#[cfg_attr(target_family = "wasm", expect(dead_code))]
 struct LoadedSystemFonts(Vec<(crate::fonts::FontInfo, FontFamily)>);
 
 impl platform::LoadedSystemFonts for LoadedSystemFonts {

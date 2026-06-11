@@ -327,7 +327,7 @@ fn convert_touch_moved(
             // Touch in titlebar = window drag
             let initial_pos: winit::dpi::LogicalPosition<f32> =
                 last_touch.location.to_logical(scale_factor as f64);
-            if initial_pos.y < titlebar_height && !cfg!(target_family = "wasm") {
+            if initial_pos.y < titlebar_height && !false {
                 let start_touch = last_touch.location;
                 window_state.last_touch_purpose = Some(TouchPurpose::WindowDrag { start_touch });
                 return Some(ConvertedEvent::MoveWindowBy {
@@ -1579,7 +1579,7 @@ impl EventLoop {
             {
                 // The WASM "window" does not support dragging or maximization.
                 let titlebar_height = winit_window.titlebar_height();
-                if position.y() < titlebar_height && !cfg!(target_family = "wasm") {
+                if position.y() < titlebar_height && !false {
                     // Double-clicking the titlebar does maximize/restore.
                     if click_count >= 2 {
                         window.toggle_maximized();

@@ -54,7 +54,6 @@ const DRAG_RESIZE_MARGIN: f32 = 4.0;
 #[cfg(windows)]
 const IDI_ICON: u16 = 0x101;
 
-#[cfg_attr(target_family = "wasm", allow(dead_code))]
 pub(in crate::windowing::winit) const MIN_WINDOW_SIZE: LogicalSize<f64> = LogicalSize::new(
     crate::windowing::MIN_WINDOW_WIDTH as f64,
     crate::windowing::MIN_WINDOW_HEIGHT as f64,

@@ -79,7 +79,6 @@ impl CodeSubpage {
 #[derive(Clone, Default)]
 struct LspServerRowMouseStates {
     restart: MouseStateHandle,
-    #[cfg_attr(target_family = "wasm", allow(dead_code))]
     view_logs: MouseStateHandle,
     toggle: SwitchStateHandle,
     install: MouseStateHandle,

@@ -7,8 +7,7 @@ use super::ServerApi;
 use crate::auth::credentials::{AuthToken, Credentials};
 
 #[cfg_attr(test, automock)]
-#[cfg_attr(not(target_family = "wasm"), async_trait)]
-#[cfg_attr(target_family = "wasm", async_trait(?Send))]
+#[async_trait]
 pub trait AuthClient: 'static + Send + Sync {
     /// Returns the cached access token, if it is still valid. If it has expired, fetches a new
     /// access token using the user's refresh token, caches it, and the returns it.
@@ -39,8 +38,7 @@ impl ServerApi {
     }
 }
 
-#[cfg_attr(not(target_family = "wasm"), async_trait)]
-#[cfg_attr(target_family = "wasm", async_trait(?Send))]
+#[async_trait]
 impl AuthClient for ServerApi {
     async fn get_or_refresh_access_token(&self) -> Result<AuthToken> {
         self.access_token().await

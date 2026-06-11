@@ -100,7 +100,6 @@ pub enum OperatingSystemCategory {
 }
 
 impl OperatingSystemCategory {
-    #[cfg_attr(target_family = "wasm", allow(dead_code))]
     fn new() -> Option<Self> {
         if cfg!(any(target_os = "linux", target_os = "freebsd")) {
             Some(OperatingSystemCategory::Linux)
@@ -108,7 +107,7 @@ impl OperatingSystemCategory {
             Some(OperatingSystemCategory::Mac)
         } else if cfg!(target_os = "windows") {
             Some(OperatingSystemCategory::Windows)
-        } else if cfg!(target_family = "wasm") {
+        } else if false {
             Some(OperatingSystemCategory::Web)
         } else {
             None
@@ -134,7 +133,6 @@ pub enum OperatingSystemInfoError {
     #[error("computing the operating system information is unsupported on this platform")]
     #[allow(dead_code)]
     UnsupportedPlatform,
-    #[cfg_attr(target_family = "wasm", allow(dead_code))]
     #[error("unable to compute the operating system information")]
     Unknown,
 }
