@@ -141,7 +141,6 @@ pub enum WorkspaceAction {
         shell: AvailableShell,
         source: AddTabWithShellSource,
     },
-    AddAmbientAgentTab,
     /// Add a new tab that immediately enters agent view with a new conversation.
     AddAgentTab,
     OpenNewSessionMenu {
@@ -538,7 +537,6 @@ impl WorkspaceAction {
             | AddTerminalTab { .. }
             | AddTabWithShell { .. }
             | AddAgentTab
-            | AddAmbientAgentTab
             | AddWindow
             | AddWindowWithShell { .. }
             | CloseWindow
