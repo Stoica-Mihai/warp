@@ -311,6 +311,8 @@ Consumers → core ordering. Full keep-boundary + file:line map in memory `ai-st
 
 **REMAINING:**
 
+- **Remnant audit 2026-06-11 (session 70) — see §"Remnant audit — 2026-06-11" below for the full R1–R5 work list** (dead channel URL-config cluster incl. the app.warp.dev/Firebase/oz strings, X-Warp HTTP fingerprint headers, warp_cli agent/Oz CLI cluster, computer_use dead dep, telemetry residue, ~25 AI feature flags, 22 GB stale `app/src/target/`).
+
 - **Full-project audit (2026-06-10 session 67, 4 parallel investigators) — verdict: cloud strip functionally complete, NO phone-home remains.** Every live HTTP/WS path → GitHub (LSP binary downloads, KEEP) or `ws://127.0.0.1:3030` (local daemon, KEEP). Login fully stubbed. KEEP confirmed generic: `mcp/`, `skills/` (app+crate), `outline/`+`index/`, `diff_validation/`, `project_context/`, `gfm_table`, `paths`, `workspace.rs`, `persisted_workspace.rs`, `http_client`, `warp_server_client` (local SQLite store, zero egress — verified no reqwest/ws deps), `remote_server` (SSH), `command`, `managed_secrets` (serde-only). Audit-driven cleanup DONE this session: `field_mask` orphan crate + `llm_id`/`attachment_utils` dead leaves (`dbdee028`); dead Firebase/proxy token machinery in credentials.rs (`eb8e7da2`); dead `GitHubAuthNotifier` singleton (`f19dcccd`).
 
 - **AMBIENT AGENTS strip — ✅ COMPLETE (session 67).** Warp cloud scheduled/cron AI agents, fully removed across 4 commits: `github_auth_notifier` (`f19dcccd`); ambient cloud DATA LAYER (`7152c906`, −0.26 MB) — scheduled/task/JsonObjectType::{ScheduledAmbientAgent,CloudAgentConfig}; Environments context-chip MENU + cloud_environments (`ba6eb805`, −0.38 MB); **AmbientAgentTaskId KEYSTONE (`dc2f00db`, −0.23 MB)** — `ai/ambient_agents/` + `LeafContents::AmbientAgent`/`AmbientAgentPaneSnapshot` + persistence + pane-creation chain + `PaneMode::Cloud`/`TabConfigPaneType::Cloud` + terminal_model `ambient_agent_task_id()`/`ViewingAmbientConversation` + dead workspace actions + handlers + obsolete tests. **Cosmetic-dead cleanup DONE (`9b8b716b`, −0.02 MB):** removed `is_ambient_agent_session`/`is_in_cloud_agent_setup_phase`/`is_nested_cloud_mode`/`Indicator::AmbientAgent`/`render_ambient_agent_cancel_button` + collapsed all callers. **STILL KEPT (live or wire):** `is_shared_ambient_agent_session` (reads always-empty `SessionSourceType::AmbientAgent` wire field), `SessionSourceType::AmbientAgent` (session_sharing_protocol wire), `AddAmbientAgentTab`/`CancelAmbientAgentTask`, `ambient_agent_panes` sqlite table+migration. **cloud-mode-view entry DONE (`542bdc2b`):** the `/cloud-agent` slash command + `EnterCloudAgentView` chain + `terminal/view/ambient_agent/` view dir removed (was a live-dispatched no-op — create_cloud_mode_view orphaned, CLOUD_AGENT not in all_commands()). **KEPT (Frontier-B, not ambient):** `open_cloud_conversation_from_server_token`, ServerConversationToken/AIConversationId paths.
@@ -332,6 +334,51 @@ Consumers → core ordering. Full keep-boundary + file:line map in memory `ai-st
 - ~~**Referrals / `reward_view`**~~ ✅ DONE (`3909f1fd`, −0.21 MB) — RewardView modal + ReferralThemeStatus + ReferralThemeEvent + ThemeKind::{Sent,Received}ReferralReward + builders + workspace wiring + ContextFlag::ShowRewardModal removed. Migration-safe (error-tolerant theme loader). theme_chooser/GRH coupling severed cleanly.
 
 - ~~cloud-handoff increment 2/3~~ ✅ DONE S61. ~~Frontier B — `ai/agent/` AIConversation keystone~~ ✅ DONE S58. ~~cloud_preferences Increment B~~ ✅ DONE S56–59. ~~cloud_object CR1–CR8~~ ✅ DONE S64–66.
+
+---
+
+## Remnant audit — 2026-06-11 (session 70). Full repo sweep for warp.dev URLs / phone-home / dead cloud config / Warp-AI surfaces
+
+**Verdict: the s67 "no phone-home" claim HOLDS** — no live auto-egress found. But the URL *config* cluster, the Warp agent CLI, and ~25 AI feature flags are still compiled in. Work items below, recommended order. Each = one green 3-gate commit + size row.
+
+### R1 — channel server-URL config cluster (dead, delete after severing 2 readers)
+`crates/warp_core/src/channel/config.rs:44-72` still hardcodes `https://app.warp.dev` / `wss://rtc.app.warp.dev/graphql/v2` / `wss://sessions.app.warp.dev` / Firebase API key / `https://oz.warp.dev`, wired via `ChannelState::init()` (state.rs:46-47). **Caller census (verified): every accessor dead except two:**
+- `server_root_domain()` ← `app/src/uri/parse_url_paths.rs` ← `notebooks/link.rs:261` (recognizes pasted warp.dev/drive links — no egress; cloud_object residue, delete the recognition path).
+- `workload_audience_url()` ← `isolation_platform/src/namespace.rs:27` — BUT `issue_workload_token()` has ZERO external callers (no `WorkloadToken` consumers anywhere) → whole token-issuing chain dead. Only `isolation_platform::detect()` is live (local env sniff in `terminal/local_tty/unix.rs:350`, no egress — KEEP detect, delete token issuing).
+
+Zero-caller accessors (verified): `ws_server_url`, `rtc_http_url`, `session_sharing_server_url`, `oz_root_url`, `firebase_api_key`, `rudderstack_non_ugc_destination`, `rudderstack_ugc_destination`, `sentry_url`, `releases_base_url`, `telemetry_file_name`. After severing the 2 readers, delete: `WarpServerConfig`, `OzConfig`, `TelemetryConfig`, `RudderStackConfig`, `RudderStackDestination`, `CrashReportingConfig`, `AutoupdateConfig` (check `show_autoupdate_menu_items` callers) + all accessors + `state_tests.rs` rows. KEEP `McpStaticConfig` (MCP OAuth, live).
+
+- [ ] R1a — sever `notebooks/link.rs` warp-drive-link recognition + delete `parse_url_paths.rs` (`WarpWebLink`) + uri_tests entries
+- [ ] R1b — delete dead `issue_workload_token` chain (isolation_platform lib.rs:96-104 + namespace.rs:19-74 + docker_sandbox.rs:7; keep `detect()`/`is_in_namespace_instance`)
+- [ ] R1c — delete config cluster + accessors (the actual warp.dev/Firebase/oz strings leave the binary here)
+
+### R2 — X-Warp fingerprint headers on ALL outbound HTTP
+`crates/http_client/src/lib.rs:202` — `include_warp_http_headers()` returns `true` unconditionally → `X-Warp-Client-ID`, `X-Warp-Client-Version`, `X-Warp-OS-{Category,Name,Version,Linux-Kernel-Version}` attach to every request through the shared client (MCP, OAuth, LSP downloads…). Delete `add_warp_http_headers` + header consts + the predicate.
+- [ ] R2 — strip warp headers from http_client
+
+### R3 — warp_cli Warp-agent/cloud CLI cluster (biggest remaining AI surface)
+`crates/warp_cli/src/`: `agent.rs` (22K), `task.rs`, `schedule.rs`, `environment.rs`, `federate.rs`, `secret.rs`, `artifact.rs`, `api_key.rs`, `harness_support.rs` — the `sublight agent run --prompt …` cloud-agent CLI. Wired live: `app/src/lib.rs:534` (`LaunchMode::CommandLine` + computer-use override extraction), lib.rs ~565 treats argv0 `oz*` as CLI mode, help text advertises `agent run` (warp_cli/lib.rs:320). Related: **Oz CLI install/uninstall** commands `workspace/mod.rs:861-868` + success toast `workspace/view.rs:4775`. KEEP: `mcp.rs`, `completions.rs`, generic arg plumbing (warp_completer/warp_ripgrep dep on warp_cli). Map `LaunchMode::CommandLine` consumers before cutting — runtime-sensitive.
+- [ ] R3a — remove Oz CLI install/uninstall workspace commands + toast
+- [ ] R3b — strip agent/task/schedule/environment/federate/secret/artifact/api_key/harness_support subcommands + lib.rs dispatch + help text + `oz*` argv0 branch
+
+### R4 — small dead items (one sweep commit)
+- [ ] `computer_use` crate = zero lib users (only its own bin). Drop deps `app/Cargo.toml:61` + `crates/ai/Cargo.toml:19`, empty features `agent_mode_computer_use`(+ its line in feature list)/`local_computer_use`, the `computer_use_override` plumbing in lib.rs:534-550 (falls out with R3b), then decide: delete crate or leave unbuilt (not in default-members → prefer delete).
+- [ ] Dead workspace action variants `AttemptLoginGatedAIUpgrade` / `FixInAgentMode` / `OpenAIFactCollection` (`workspace/action.rs:328-338`, empty handlers view.rs:13774-13781).
+- [ ] `app/src/server/server_api/ai.rs` = 0-line empty file, still mod-declared (server_api.rs:1).
+- [ ] Telemetry residue: `app/src/server/telemetry/` (events.rs 5.2K + Rudder SDK license), `app/src/notebooks/telemetry.rs` (emit-nowhere enums), Rudderstack comment refs `system/info.rs:111-140`, **lying stale comment** `remote_server/unix/mod.rs:75-90` (claims a TelemetryCollector flushes to Rudderstack — no such type exists in tree).
+- [ ] `app-installation-detection` crate — local HTTP server `/install_detection` with CORS allowing warp.dev + subdomains (lets the warp.dev website detect the install). Find the spawner, delete crate.
+- [ ] Privacy page vestiges (`settings_view/privacy_page.rs`): telemetry/crash sections already auto-hidden (configs None) — delete them + "Manage your data / delete your Warp account" section + `TELEMETRY_FREE_TIER_NOTE` AI copy.
+- [ ] Stale doc: skill_manager.rs:488 documents a `{{warp_server_url}}` template var that's no longer in the context map.
+
+### R5 — AI/cloud FeatureFlag sweep (~25 variants, `crates/warp_features/src/lib.rs`)
+AgentMode, AgentModeAnalytics, AIRules, AgentModeWorkflows, AIContextMenuEnabled, AIContextMenuCode, ProfilesDesignRevamp, AgentManagementView, AgentView, InteractiveConversationManagementView, SummarizationViaMessageReplacement, ConversationsAsContext, OrchestrationV2, LocalClaudeCodexChildHarnesses, OrchestrationViewerPillBar, QueueSlashCommand, CustomInferenceEndpoints, CustomInferenceEndpointsEnterprise, APIKeyAuthentication, DiffSetAsContext, BlocklistMarkdownTableRendering, SharedWithMe, ArtifactCommand. Per-flag guard census first (session-26/27 method); remember the warp_cli/managed_secrets extra-gate lesson. HOANotifications/OpenCode/Codex/Gemini notification flags = vendor-CLI infra, KEEP.
+- [ ] R5 — census + collapse + delete in batches
+
+### De-brand-rename inventory (no egress — fold into the rename pass, not strip work)
+~40 `docs.warp.dev` learn-more links (terminal/view.rs:447-474, util/links.rs, settings pages, pane_group/mod.rs:175-176, workspace/view.rs, resource_center, …); `util/links.rs` privacy-policy/Slack URLs; `Cargo.toml` `authors = ["Warp Team <dev@warp.dev>"]`; keyring service name (warpui_extras/secure_storage/linux.rs:101); Windows registry key (registry_backed.rs:14); `Icon::WarpLogoLight` bundled-skill fallback (skill_manager.rs ~531); test-fixture warp.dev strings (harmless, leave).
+
+### Housekeeping
+- [ ] `app/src/target/` = **22 GB** stale build artifacts (gitignored, untracked — but wrong location, pollutes greps; the 3-gate dirs belong at repo root). `rm -rf app/src/target`, re-create gates at root via `CARGO_TARGET_DIR=target/gate-*`.
 
 ---
 
