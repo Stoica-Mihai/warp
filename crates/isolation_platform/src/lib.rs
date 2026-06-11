@@ -108,8 +108,6 @@ pub async fn issue_workload_token(
         _ => read_generic_workload_token()
             .inspect_err(|err| log::debug!("No platform-agnostic workload token: {err}"))
             .map_err(|_| IsolationPlatformError::NoIsolationPlatformDetected),
-        #[cfg(target_family = "wasm")]
-        _ => Err(IsolationPlatformError::NoIsolationPlatformDetected),
     }
 }
 

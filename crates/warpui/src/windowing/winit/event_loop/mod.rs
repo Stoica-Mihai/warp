@@ -157,11 +157,6 @@ struct WindowState {
     scroll_velocity: Option<ScrollVelocity>,
     /// Abort handle for momentum scrolling timer. Present only during the momentum phase.
     momentum_scroll_abort: Option<AbortHandle>,
-    /// For touch events, stores whether soft keyboard was requested during LeftMouseDown.
-    /// This is needed because touch keyboard updates are deferred to LeftMouseUp, but the
-    /// UI element only requests the keyboard during LeftMouseDown.
-    #[cfg(target_family = "wasm")]
-    pending_soft_keyboard_request: bool,
 }
 
 impl WindowState {
@@ -179,8 +174,6 @@ impl WindowState {
             last_touch_purpose: None,
             scroll_velocity: None,
             momentum_scroll_abort: None,
-            #[cfg(target_family = "wasm")]
-            pending_soft_keyboard_request: false,
         }
     }
 
@@ -497,9 +490,6 @@ pub(super) struct EventLoop {
     /// the Integrated GPU won't be rendered to and puts it in an idle / partially loaded state that
     /// will eventually trigger these DRI3 `BadMatch` errors when we attempt to render to it.
     downrank_non_nvidia_vulkan_adapters: bool,
-    /// Soft keyboard manager for mobile WASM.
-    #[cfg(target_family = "wasm")]
-    soft_keyboard_manager: Option<std::rc::Rc<crate::platform::wasm::SoftKeyboardManager>>,
 }
 
 impl EventLoop {
@@ -519,8 +509,6 @@ impl EventLoop {
             proxy,
             ime_enabled: false,
             downrank_non_nvidia_vulkan_adapters: false,
-            #[cfg(target_family = "wasm")]
-            soft_keyboard_manager: None,
         }
     }
 
@@ -778,14 +766,6 @@ impl EventLoop {
             }
             Event::UserEvent(CustomEvent::DragAndDropFilesDebounced { window_id }) => {
                 self.handle_debounced_drag_drop(window_id);
-            }
-            #[cfg(target_family = "wasm")]
-            Event::UserEvent(CustomEvent::SoftKeyboardInput(input)) => {
-                self.handle_soft_keyboard_input(input);
-            }
-            #[cfg(target_family = "wasm")]
-            Event::UserEvent(CustomEvent::VisualViewportResized { width, height }) => {
-                self.handle_visual_viewport_resize(width, height);
             }
             Event::UserEvent(CustomEvent::MomentumScroll { window_id }) => {
                 let Some(window_state) = self.state.windows.get_mut(&window_id) else {
@@ -1304,14 +1284,6 @@ impl EventLoop {
             }
             WindowEvent::Resized(_) => Some(ConvertedEvent::Resize),
             WindowEvent::Focused(is_focused) => {
-                // On mobile WASM, ignore focus-out events. The soft keyboard's hidden input
-                // causes spurious focus events, and mobile doesn't have the concept of
-                // "unfocused windows" anyway - you're either in the app or switched away entirely.
-                #[cfg(target_family = "wasm")]
-                if !is_focused && crate::platform::wasm::is_mobile_device() {
-                    return None;
-                }
-
                 // Clear tracked per-side Alt state when we lose focus so that a release
                 // event dropped while another window had focus can't leave us believing a
                 // side is still held.
@@ -1400,12 +1372,6 @@ impl EventLoop {
         self.ui_app.update(|ctx| {
             ctx.background_executor()
                 .spawn(async move {
-                    #[cfg(target_family = "wasm")]
-                    crate::windowing::winit::notifications::request_notification_permissions(
-                        callback, proxy,
-                    )
-                    .await;
-
                     #[cfg(any(target_os = "linux", target_os = "freebsd"))]
                     {
                         // On Linux, there is no concept of requesting notification permissions. This

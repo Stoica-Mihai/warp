@@ -45,8 +45,6 @@ use crate::view_components::action_button::{
 use crate::workspaces::user_workspaces::UserWorkspaces;
 
 pub enum AtContextMenuDisabledReason {
-    #[cfg(target_family = "wasm")]
-    Wasm,
     SshWithoutRemoteServer,
     Subshell,
     DisabledInTerminalMode,

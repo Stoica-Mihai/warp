@@ -146,13 +146,6 @@ pub fn init(app: &mut AppContext) {
             TerminalAction::ForkConversationFromLastKnownGoodState,
             id!("Terminal") & !id!("IMEOpen") & id!(CAN_FORK_FROM_LAST_KNOWN_GOOD_STATE_KEY),
         ),
-        // On the web, we get pastes from system paste events.
-        #[cfg(target_family = "wasm")]
-        FixedBinding::standard(
-            warpui::actions::StandardAction::Paste,
-            TerminalAction::Paste,
-            id!("Terminal") & !id!("IMEOpen"),
-        ),
     ]);
     if cfg!(target_os = "macos") {
         // On MacOS, if the user has the 'Option as meta' setting enabled, the cmd-alt-y binding

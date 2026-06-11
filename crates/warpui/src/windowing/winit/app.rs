@@ -88,15 +88,6 @@ pub enum CustomEvent {
     DragAndDropFilesDebounced {
         window_id: winit::window::WindowId,
     },
-    /// Input received from the soft keyboard on mobile WASM.
-    #[cfg(target_family = "wasm")]
-    SoftKeyboardInput(crate::platform::wasm::SoftKeyboardInput),
-    /// The visual viewport was resized (typically due to soft keyboard appearing/disappearing).
-    #[cfg(target_family = "wasm")]
-    VisualViewportResized {
-        width: f32,
-        height: f32,
-    },
     /// Momentum scrolling animation frame.
     MomentumScroll {
         window_id: winit::window::WindowId,

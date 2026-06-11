@@ -998,8 +998,6 @@ impl CodeReviewView {
             move |index, captured_context, app| {
                 Self::adjust_scroll_offset(&adjustment_handle, index, captured_context, app)
             },
-            #[cfg(target_family = "wasm")]
-            move |_index, _captured_context, _app| None,
         );
 
         Self::setup_scroll_tracking(scroll_rx, ctx);

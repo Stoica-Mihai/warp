@@ -44,12 +44,6 @@ static MAIN_THREAD_ID: OnceLock<thread::ThreadId> = OnceLock::new();
 
 /// Open a URL using the platform's default handler.
 pub fn open_url_in_system(url: &str) {
-    #[cfg(target_family = "wasm")]
-    if let Some(window) = web_sys::window() {
-        // Try to open the URL in a new tab.
-        let _ = window.open_with_url_and_target(url, "_blank");
-    }
-
     #[cfg(any(target_os = "linux", target_os = "freebsd"))]
     {
         // Opening in WSL is complicated for a few reasons
@@ -262,14 +256,6 @@ impl platform::Delegate for AppDelegate {
                 let _ = command::blocking::Command::new("xdg-open")
                     .arg(path)
                     .spawn();
-            } else if #[cfg(target_family = "wasm")] {
-                if let Some(window) = web_sys::window() {
-                    if let Some(path) = path.to_str() {
-                        // Try to open the path via a file:// URL.
-                        let url = format!("file://{path}");
-                        let _ = window.open_with_url(&url);
-                    }
-                }
             } else if #[cfg(windows)] {
                 if let Err(e) = open::that_detached(path) {
                     log::warn!("Unable to open path {e:?}");
