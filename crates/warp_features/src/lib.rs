@@ -88,8 +88,6 @@ pub enum FeatureFlag {
     /// Enables workflows for use with Agent Mode.
     AgentModeWorkflows,
 
-    /// Enables AI rules for use with Agent Mode.
-    AIRules,
 
     /// Routes SSH sessions through the tmux-backed SSH wrapper.
     SSHTmuxWrapper,
@@ -162,8 +160,6 @@ pub enum FeatureFlag {
 
 
 
-    /// Enables the AI context menu, or at-menu.
-    AIContextMenuEnabled,
 
 
 
@@ -286,8 +282,6 @@ pub enum FeatureFlag {
     /// Enables rendering markdown tables in notebooks.
     MarkdownTables,
 
-    /// Enables rendering markdown tables inline in AI block list responses.
-    BlocklistMarkdownTableRendering,
 
     /// Enables global search
     GlobalSearch,
@@ -296,8 +290,6 @@ pub enum FeatureFlag {
     EmbeddedCodeReviewComments,
 
 
-    /// Agent Management View.
-    AgentManagementView,
 
 
     AgentView,
@@ -312,8 +304,6 @@ pub enum FeatureFlag {
 
 
 
-    /// Enables loading conversations in the Agent Management View.
-    InteractiveConversationManagementView,
 
 
 
@@ -323,9 +313,6 @@ pub enum FeatureFlag {
 
 
 
-    /// When enabled, the server will use message replacement + retroactive subtasks for
-    /// summarization.
-    SummarizationViaMessageReplacement,
 
     /// Enables pluggable notifications via OSC 9 and OSC 777 escape sequences.
     /// External programs can trigger system and in-app notifications.
@@ -349,8 +336,6 @@ pub enum FeatureFlag {
 
 
 
-    /// Enables attaching conversations as context in Agent Mode via the @ menu.
-    ConversationsAsContext,
 
 
     /// Enables incremental (diff-based) buffer updates for auto-reload instead of full replace.
@@ -366,16 +351,7 @@ pub enum FeatureFlag {
     /// real time.
     OrchestrationV2,
 
-    /// Re-enables local Claude Code and Codex child harnesses in orchestration
-    /// flows while the default behavior temporarily keeps them disabled.
-    LocalClaudeCodexChildHarnesses,
 
-    /// Enables the orchestration pill bar in shared session viewers (web and
-    /// native). When enabled, viewing a shared session that used orchestration
-    /// shows a pill bar above the agent view header with the orchestrator and
-    /// each child agent. Clicking a child pill joins the child's shared session
-    /// and switches the view to its transcript.
-    OrchestrationViewerPillBar,
 
 
     /// Gates the `/queue` slash command, which lets users queue a follow-up prompt
@@ -419,8 +395,6 @@ pub enum FeatureFlag {
     /// Enables tab configs — user-definable TOML templates for launching custom tab layouts.
     TabConfigs,
 
-/// Enables the Custom Inference settings UI for adding user-provided third-party / OpenAI-compatible inference endpoints.
-    CustomInferenceEndpoints,
     /// Enables Custom Inference endpoints for enterprise users.
     CustomInferenceEndpointsEnterprise,
 
@@ -481,7 +455,6 @@ pub const DOGFOOD_FLAGS: &[FeatureFlag] = &[
     FeatureFlag::RunGeneratorsWithCmdExe,
     FeatureFlag::Projects,
     FeatureFlag::FileAndDiffSetComments,
-    FeatureFlag::SummarizationViaMessageReplacement,
     FeatureFlag::QueueSlashCommand,
     FeatureFlag::EditableMarkdownMermaid,
     FeatureFlag::CodeReviewScrollPreservation,
@@ -494,7 +467,6 @@ pub const DOGFOOD_FLAGS: &[FeatureFlag] = &[
 /// Features enabled for feature preview build users (e.g.: Friends of Warp).
 /// All PREVIEW_FLAGS are also automatically added to dogfood builds (WarpDev).
 pub const PREVIEW_FLAGS: &[FeatureFlag] = &[
-    FeatureFlag::BlocklistMarkdownTableRendering,
     FeatureFlag::MarkdownTables,
     FeatureFlag::GitOperationsInCodeReview,
 ];
@@ -512,7 +484,7 @@ pub const RELEASE_FLAGS: &[FeatureFlag] = &[
 ];
 
 /// Flags that we want to allow to switch at runtime (assuming RuntimeFeatureFlags is set)
-pub const RUNTIME_FEATURE_FLAGS: &[FeatureFlag] = &[FeatureFlag::LocalClaudeCodexChildHarnesses];
+pub const RUNTIME_FEATURE_FLAGS: &[FeatureFlag] = &[];
 
 impl FeatureFlag {
     pub fn is_enabled(&self) -> bool {
@@ -574,9 +546,6 @@ impl FeatureFlag {
         match self {
             CodeReviewFind => Some("Enables the find bar in the code review pane."),
             GlobalSearch => Some("Enables global search in the left panel"),
-            BlocklistMarkdownTableRendering => {
-                Some("Enables rendering markdown tables inline in AI block list responses.")
-            }
             MarkdownTables => Some("Enables rendering and interaction support for markdown tables in notebooks."),
             SettingsFile => Some("Enables configuring Warp via a user-editable `settings.toml` file, with hot reload and error reporting for invalid values."),
             GitOperationsInCodeReview => Some("Enables commit, push, and create-PR actions directly from the code review panel."),

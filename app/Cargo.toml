@@ -398,7 +398,6 @@ default = [
     "reload_stale_conversation_files",
     "loginless_conversion",
     "warp_packs",
-    "ai_rules",
     "suggested_rules",
     "default_waterfall_mode",
     "am_workflows",
@@ -417,11 +416,8 @@ default = [
     "image_as_context",
     "command_palette_file_search",
     "usage_based_pricing",
-    "ai_context_menu",
     "at_menu_outside_of_ai_mode",
-    "agent_management_view",
     "agent_management_details_view",
-    "interactive_conversation_management_view",
     "shared_block_title_generation",
     "tab_close_button_on_left",
     "ai_resume_button",
@@ -506,7 +502,6 @@ default = [
     "kitty_keyboard_protocol",
     "inline_menu_headers",
     "github_pr_prompt_chip",
-    "conversations_as_context",
     "markdown_tables",
     "markdown_mermaid",
     "blocklist_markdown_images",
@@ -539,14 +534,12 @@ default = [
     "handoff_local_cloud",
     "orchestration_v2",
     "orchestration_pill_bar",
-    "orchestration_viewer_pill_bar",
     "run_agents_tool",
     "pending_user_query_indicator",
     "cloud_mode_input_v2",
     "cloud_mode_setup_v2",
     "handoff_cloud_cloud",
     "solo_user_byok",
-    "custom_inference_endpoints",
     "remote_code_review",
 ]
 # Enable this feature to automatically perform heap profiling.  NOTE: This will
@@ -557,9 +550,7 @@ editable_markdown_mermaid = []
 default_adeberry_theme = []
 drag_tabs_to_windows = []
 embedded_code_review_comments = []
-agent_management_view = []
 agent_management_details_view = []
-interactive_conversation_management_view = []
 default_waterfall_mode = []
 enforce_revisions_to_cloud_objects = []
 suggested_agent_mode_workflows = []
@@ -620,7 +611,6 @@ list_skills = []
 # support having a local tty/shell session.  It can be used to conditionally
 # include dependencies that should only exist in such environments.
 local_tty = []
-local_claude_codex_child_harnesses = []
 # This feature is enabled in build.rs when compiling for platforms which
 # have APIs for interacting with a local filesystem.  It can be used to
 # conditionally include dependencies that should only exist in such
@@ -693,10 +683,8 @@ workflow_aliases = []
 rect_selection = []
 alacritty_settings_import = []
 shared_with_me = []
-ai_rules = []
 am_workflows = []
 shell_selector = []
-blocklist_markdown_table_rendering = []
 blocklist_markdown_images = []
 minimalist_ui = []
 loginless_conversion = []
@@ -722,7 +710,6 @@ reload_stale_conversation_files = []
 shared_block_title_generation = []
 retry_truncated_code_responses = []
 usage_based_pricing = []
-ai_context_menu = []
 at_menu_outside_of_ai_mode = []
 agent_decides_command_execution = []
 fast_forward_autoexecute_button = []
@@ -746,7 +733,6 @@ pr_comments_slash_command = []
 pr_comments_v2 = []
 pr_comments_skill = []
 conversation_artifacts = []
-conversations_as_context = []
 conversation_api = []
 sync_ambient_plans = []
 projects = []
@@ -795,7 +781,6 @@ cloud_mode_image_context = []
 force_classic_completions = []
 inline_history_menu = ["agent_view"]
 inline_repo_menu = ["agent_view"]
-summarization_via_message_replacement = []
 lsp_as_a_tool = []
 inline_model_selector = ["agent_view"]
 inline_profile_selector = ["agent_view"]
@@ -808,7 +793,6 @@ active_conversation_requires_interaction = []
 incremental_auto_reload = []
 orchestration_v2 = []
 orchestration_pill_bar = []
-orchestration_viewer_pill_bar = []
 run_agents_tool = []
 pending_user_query_indicator = []
 queue_slash_command = []
@@ -826,7 +810,6 @@ hoa_notifications = []
 open_code_notifications = []
 transfer_control_tool = []
 skip_firebase_anonymous_user = []
-custom_inference_endpoints = []
 solo_user_byok = []
 configurable_toolbar = []
 warpify_footer = []
