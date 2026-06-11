@@ -1068,9 +1068,6 @@ pub(crate) fn initialize_app(
         )
     });
 
-    // Initialize ApiKeyManager after UserWorkspaces so it can subscribe to workspace/settings changes
-    ctx.add_singleton_model(::ai::api_keys::ApiKeyManager::new);
-
     ctx.add_singleton_model(AntivirusInfo::new);
 
     let _is_crash_reporting_enabled = false;
