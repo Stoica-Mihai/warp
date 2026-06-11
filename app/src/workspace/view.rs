@@ -48,7 +48,7 @@ use warp_core::ui::theme::Fill;
 use warp_core::ui::Icon;
 use warp_editor::editor::NavigationKey;
 use warp_util::path::{user_friendly_path, LineAndColumnArg};
-#[cfg(all(feature = "local_fs", not(target_family = "wasm")))]
+#[cfg(feature = "local_fs")]
 use warpui::accessibility::{
     AccessibilityContent, AccessibilityVerbosity, ActionAccessibilityContent, WarpA11yRole,
 };

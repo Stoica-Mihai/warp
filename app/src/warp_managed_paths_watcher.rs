@@ -4,7 +4,6 @@ use std::{fs, sync::Arc, time::Duration};
 use dirs::home_dir;
 use notify_debouncer_full::notify::{RecursiveMode, WatchFilter};
 use repo_metadata::RepositoryUpdate;
-#[cfg(any(not(target_family = "wasm"), test))]
 use repo_metadata::TargetFile;
 use warpui::ModelHandle;
 use warpui::{Entity, ModelContext, SingletonEntity};

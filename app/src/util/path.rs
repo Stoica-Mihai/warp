@@ -132,6 +132,6 @@ fn windows_path_extensions() -> impl Iterator<Item = String> {
         .into_iter()
 }
 
-#[cfg(all(test, not(target_family = "wasm")))]
+#[cfg(test)]
 #[path = "path_tests.rs"]
 mod tests;

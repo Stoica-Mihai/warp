@@ -378,6 +378,6 @@ mod full_text_searcher {
     struct SessionSearchId(usize);
 }
 
-#[cfg(all(test, not(target_family = "wasm")))]
+#[cfg(test)]
 #[path = "search_tests.rs"]
 mod tests;
