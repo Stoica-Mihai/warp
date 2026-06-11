@@ -4,12 +4,9 @@
 //! UX, as well as small UX configurations.
 
 use std::collections::HashMap;
-use std::path::PathBuf;
 
-use cfg_if::cfg_if;
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
-use lazy_static::lazy_static;
 use regex::Regex;
 use serde::de::Deserializer;
 use serde::{Deserialize, Serialize};
@@ -448,35 +445,6 @@ pub struct AIRequestQuotaInfo {
     pub cycle_history: Vec<CycleInfo>,
 }
 
-#[derive(
-    Debug,
-    Serialize,
-    Deserialize,
-    Clone,
-    Copy,
-    Default,
-    PartialEq,
-    EnumIter,
-    schemars::JsonSchema,
-    settings_value::SettingsValue,
-)]
-#[schemars(
-    description = "File read permission level for the agent.",
-    rename_all = "snake_case"
-)]
-pub enum AgentModeCodingPermissionsType {
-    /// Agent Mode must ask for explicit permission for any type of file read.
-    #[default]
-    AlwaysAskBeforeReading,
-    /// Agent Mode can always read files without explicit consent.
-    AlwaysAllowReading,
-    /// Agent Mode can only read certain files without explicit consent.
-    ///
-    /// The specific filepaths are backed by the
-    /// [`AISettings::agent_mode_coding_file_read_allowlist`] setting.
-    AllowReadingSpecificFiles,
-}
-
 /// Predicate types to match commands that can be executed by Agent Mode.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 enum AgentModeCommandExecutionPredicateType {
@@ -571,53 +539,6 @@ impl settings_value::SettingsValue for AgentModeCommandExecutionPredicate {
     }
 }
 
-lazy_static! {
-    // Matches optional args / options for a top-level command.
-    static ref OPTIONAL_ARGS_REGEX: Regex = Regex::new(r"(\s.*)?").expect("Can parse optional args regex");
-}
-
-cfg_if! {
-    // Compiling the regexes for the default command execution allowlist/denylist can be slow
-    // in an unoptimized build, so we use empty lists in unit tests.
-    if #[cfg(test)] {
-        lazy_static! {
-            pub static ref DEFAULT_COMMAND_EXECUTION_ALLOWLIST: Vec<AgentModeCommandExecutionPredicate> = vec![];
-            pub static ref DEFAULT_COMMAND_EXECUTION_DENYLIST: Vec<AgentModeCommandExecutionPredicate> = vec![];
-        }
-    } else {
-        lazy_static! {
-            pub static ref DEFAULT_COMMAND_EXECUTION_ALLOWLIST: Vec<AgentModeCommandExecutionPredicate> = vec![
-                AgentModeCommandExecutionPredicate::new_regex(&format!("cat{}", OPTIONAL_ARGS_REGEX.as_str())).expect("Can parse default cat rule into regex"),
-                AgentModeCommandExecutionPredicate::new_regex(&format!("echo{}", OPTIONAL_ARGS_REGEX.as_str())).expect("Can parse default echo rule into regex"),
-                AgentModeCommandExecutionPredicate::new_regex("find .*").expect("Can parse default find rule into regex"),
-                AgentModeCommandExecutionPredicate::new_regex(&format!("grep{}", OPTIONAL_ARGS_REGEX.as_str())).expect("Can parse default grep rule into regex"),
-                AgentModeCommandExecutionPredicate::new_regex(&format!("ls{}", OPTIONAL_ARGS_REGEX.as_str())).expect("Can parse default ls rule into regex"),
-                AgentModeCommandExecutionPredicate::new_regex("which .*").expect("Can parse default which rule into regex"),
-            ];
-
-            pub static ref DEFAULT_COMMAND_EXECUTION_DENYLIST: Vec<AgentModeCommandExecutionPredicate> = vec![
-                AgentModeCommandExecutionPredicate::new_regex(&format!("bash{}", OPTIONAL_ARGS_REGEX.as_str())).expect("Can parse default bash rule into regex"),
-                AgentModeCommandExecutionPredicate::new_regex(&format!("fish{}", OPTIONAL_ARGS_REGEX.as_str())).expect("Can parse default fish rule into regex"),
-                AgentModeCommandExecutionPredicate::new_regex(&format!("pwsh{}", OPTIONAL_ARGS_REGEX.as_str())).expect("Can parse default pwsh rule into regex"),
-                AgentModeCommandExecutionPredicate::new_regex(&format!("sh{}", OPTIONAL_ARGS_REGEX.as_str())).expect("Can parse default sh rule into regex"),
-                AgentModeCommandExecutionPredicate::new_regex(&format!("zsh{}", OPTIONAL_ARGS_REGEX.as_str())).expect("Can parse default zsh rule into regex"),
-                AgentModeCommandExecutionPredicate::new_regex(&format!("curl{}", OPTIONAL_ARGS_REGEX.as_str())).expect("Can parse default curl rule into regex"),
-                AgentModeCommandExecutionPredicate::new_regex(&format!("eval{}", OPTIONAL_ARGS_REGEX.as_str())).expect("Can parse default eval rule into regex"),
-                AgentModeCommandExecutionPredicate::new_regex(&format!("exec{}", OPTIONAL_ARGS_REGEX.as_str())).expect("Can parse default exec rule into regex"),
-                AgentModeCommandExecutionPredicate::new_regex(&format!("source{}", OPTIONAL_ARGS_REGEX.as_str())).expect("Can parse default source rule into regex"),
-                AgentModeCommandExecutionPredicate::new_regex(&format!("wget{}", OPTIONAL_ARGS_REGEX.as_str())).expect("Can parse default wget rule into regex"),
-                AgentModeCommandExecutionPredicate::new_regex(&format!("dig{}", OPTIONAL_ARGS_REGEX.as_str())).expect("Can parse default dig rule into regex"),
-                AgentModeCommandExecutionPredicate::new_regex(&format!("nslookup{}", OPTIONAL_ARGS_REGEX.as_str())).expect("Can parse default nslookup rule into regex"),
-                AgentModeCommandExecutionPredicate::new_regex(&format!("host{}", OPTIONAL_ARGS_REGEX.as_str())).expect("Can parse default host rule into regex"),
-                AgentModeCommandExecutionPredicate::new_regex(&format!("ssh{}", OPTIONAL_ARGS_REGEX.as_str())).expect("Can parse default ssh rule into regex"),
-                AgentModeCommandExecutionPredicate::new_regex(&format!("scp{}", OPTIONAL_ARGS_REGEX.as_str())).expect("Can parse default scp rule into regex"),
-                AgentModeCommandExecutionPredicate::new_regex(&format!("rsync{}", OPTIONAL_ARGS_REGEX.as_str())).expect("Can parse default rsync rule into regex"),
-                AgentModeCommandExecutionPredicate::new_regex(&format!("telnet{}", OPTIONAL_ARGS_REGEX.as_str())).expect("Can parse default telnet rule into regex"),
-                AgentModeCommandExecutionPredicate::new_regex(&format!("rm{}", OPTIONAL_ARGS_REGEX.as_str())).expect("Can parse default rm rule into regex"),
-            ];
-        }
-    }
-}
 
 /// Maps custom toolbar command regex patterns to CLI agent names.
 /// Keys are regex patterns (insertion-ordered), values are serialized CLIAgent names (e.g. "Claude").
@@ -851,135 +772,6 @@ define_settings_group!(AISettings, settings: [
         sync_to_cloud: SyncToCloud::Never,
         private: true,
     },
-    // Predicates that Agent Mode can use to decide if it can execute
-    // a command without explicit user consent.
-    //
-    // Prefer [`BlocklistAIPermissions::can_autoexecute_command`] to
-    // interpret this allowlist.
-    agent_mode_command_execution_allowlist: AgentModeCommandExecutionAllowlist {
-        type: Vec<AgentModeCommandExecutionPredicate>,
-        default: DEFAULT_COMMAND_EXECUTION_ALLOWLIST.clone(),
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: false,
-        toml_path: "agents.profiles.agent_mode_command_execution_allowlist",
-        description: "Commands that the agent can execute without explicit permission.",
-    },
-    // Predicates that Agent Mode can use to decide if a command must
-    // be executed by the user.
-    //
-    // Prefer [`BlocklistAIPermissions::can_autoexecute_command`] to
-    // interpret this denylist.
-    agent_mode_command_execution_denylist: AgentModeCommandExecutionDenylist {
-        type: Vec<AgentModeCommandExecutionPredicate>,
-        default: DEFAULT_COMMAND_EXECUTION_DENYLIST.clone(),
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: false,
-        toml_path: "agents.profiles.agent_mode_command_execution_denylist",
-        description: "Commands that the agent must always ask before executing.",
-    },
-    // Enabled iff Agent Mode can execute readonly commands without explicit user consent.
-    //
-    // Prefer [`BlocklistAIPermissions::can_autoexecute_command`] to
-    // interpret this setting.
-    agent_mode_execute_read_only_commands: AgentModeExecuteReadonlyCommands {
-        type: bool,
-        default: false,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: false,
-        toml_path: "agents.profiles.agent_mode_execute_readonly_commands",
-        description: "Whether the agent can auto-execute read-only commands without asking.",
-    },
-    // Determines coding permissions that Agent Mode has.
-    // Note that if Agent Mode has permissions to execute readonly commands,
-    // that automatically gives Agent Mode the ability to also _read_ files for coding
-    // tasks, including codebase search.
-    //
-    // Prefer [`BlocklistAIPermissions::can_read_file`] to interpret this setting.
-    agent_mode_coding_permissions: AgentModeCodingPermissions {
-        type: AgentModeCodingPermissionsType,
-        default: AgentModeCodingPermissionsType::default(),
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: false,
-        toml_path: "agents.profiles.agent_mode_coding_permissions",
-        description: "The file read permission level for the agent.",
-    }
-    // Specific filepaths that Agent Mode can read without asking for additional permissions.
-    // These should be persisted as absolute filepaths to avoid ambiguity.
-    //
-    // This is used in conjunction with [`AgentModeCodingPermissionsType::AllowReadingSpecificFiles`]
-    // but modelled as a separate setting because it is not cloud-synced.
-    //
-    // Prefer [`BlocklistAIPermissions::can_read_file`] to interpret this setting.
-    agent_mode_coding_file_read_allowlist: AgentModeCodingFileReadAllowlist {
-        type: Vec<PathBuf>,
-        default: vec![],
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Never,
-        private: false,
-        toml_path: "agents.profiles.agent_mode_coding_file_read_allowlist",
-        description: "File paths the agent can read without asking for permission.",
-    }
-    // Whether or not the profile-level command autoexecution speedbump has been shown.
-    //
-    // Not a user-visible setting - we model it as a setting so we can track how often
-    // it's shown across devices.
-    has_shown_agent_mode_profile_command_autoexecution_speedbump: HasShownAgentModeProfileCommandAutoexecutionSpeedbump {
-        type: bool,
-        default: false,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: true,
-    }
-    // Whether or not we should show the speedbump for auto-executing readonly cmds.
-    //
-    // Not a user-visible settings - we model it as a setting so we can track how often
-    // it's shown across devices.
-    should_show_agent_mode_autoexecute_readonly_commands_speedbump: ShouldShowAgentModeModelExecuteReadonlyCommandsSpeedbump {
-        type: bool,
-        default: true,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: true,
-    }
-    // Whether or not we should show the speedbump for auto-writing to the PTY.
-    //
-    // Not a user-visible settings - we model it as a setting so we can track how often
-    // it's shown across devices.
-    should_show_agent_mode_write_to_pty_speedbump: ShouldShowAgentModeWriteToPtySpeedbump {
-        type: bool,
-        default: true,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: true,
-    }
-    // Whether or not we should show the speedbump for auto-reading files.
-    //
-    // Not a user-visible settings - we model it as a setting so we can track how often
-    // it's shown across devices.
-    should_show_agent_mode_autoread_files_speedbump: ShouldShowAgentModeCodingReadPermissionsNudge {
-        type: bool,
-        default: true,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: true,
-    }
-    // Whether or not we should show the one-shot speedbump on Ask-User-Question cards.
-    //
-    // Not a user-visible setting - we model it as a setting so we can track state.
-    // Intentionally NOT cloud-synced: we want users to see the first-time nudge on
-    // each fresh device, and we avoid a cloud-sync race that would make the flag
-    // silently stay `false` on new devices after being consumed once elsewhere.
-    should_show_agent_mode_ask_user_question_speedbump: ShouldShowAgentModeAskUserQuestionSpeedbump {
-        type: bool,
-        default: true,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Never,
-        private: true,
-    }
     // Information about AI request quotas and usage across billing cycles
     ai_request_quota_info: AIRequestQuotaInfoSetting {
         type: AIRequestQuotaInfo,
@@ -1315,77 +1107,6 @@ impl AISettings {
         report_if_error!(self
             .ai_request_quota_info
             .set_value(AIRequestQuotaInfo { cycle_history }, ctx));
-    }
-
-    pub fn is_command_denylist_editable(&self, app: &AppContext) -> bool {
-        self.is_any_ai_enabled(app)
-    }
-
-    pub fn is_command_allowlist_editable(&self, app: &AppContext) -> bool {
-        let set_by_workspace = UserWorkspaces::as_ref(app)
-            .ai_autonomy_settings()
-            .has_override_for_execute_commands_allowlist();
-
-        self.is_any_ai_enabled(app) && !set_by_workspace
-    }
-
-    pub fn is_directory_allowlist_editable(&self, app: &AppContext) -> bool {
-        let set_by_workspace = UserWorkspaces::as_ref(app)
-            .ai_autonomy_settings()
-            .has_override_for_read_files_allowlist();
-
-        self.is_any_ai_enabled(app) && !set_by_workspace
-    }
-
-    pub fn is_execute_commands_permissions_editable(&self, app: &AppContext) -> bool {
-        let set_by_workspace = UserWorkspaces::as_ref(app)
-            .ai_autonomy_settings()
-            .has_override_for_execute_commands();
-
-        self.is_any_ai_enabled(app) && !set_by_workspace
-    }
-
-    pub fn is_write_to_pty_permissions_editable(&self, app: &AppContext) -> bool {
-        let set_by_workspace = UserWorkspaces::as_ref(app)
-            .ai_autonomy_settings()
-            .has_override_for_write_to_pty();
-        self.is_any_ai_enabled(app) && !set_by_workspace
-    }
-
-    pub fn is_computer_use_permissions_editable(&self, app: &AppContext) -> bool {
-        let set_by_workspace = UserWorkspaces::as_ref(app)
-            .ai_autonomy_settings()
-            .has_override_for_computer_use();
-        self.is_any_ai_enabled(app) && !set_by_workspace
-    }
-
-    pub fn is_read_files_permissions_editable(&self, app: &AppContext) -> bool {
-        let set_by_workspace = UserWorkspaces::as_ref(app)
-            .ai_autonomy_settings()
-            .has_override_for_read_files();
-
-        self.is_any_ai_enabled(app) && !set_by_workspace
-    }
-
-    pub fn is_code_diffs_permissions_editable(&self, app: &AppContext) -> bool {
-        let set_by_workspace = UserWorkspaces::as_ref(app)
-            .ai_autonomy_settings()
-            .has_override_for_code_diffs();
-
-        self.is_any_ai_enabled(app) && !set_by_workspace
-    }
-
-    pub fn is_ask_user_question_permissions_editable(&self, app: &AppContext) -> bool {
-        self.is_any_ai_enabled(app)
-    }
-
-    pub fn is_mcp_permission_editable(&self, app: &AppContext) -> bool {
-        // TODO: Allow workspace overrides on MCP permissions.
-        self.is_any_ai_enabled(app)
-    }
-
-    pub fn is_run_agents_permissions_editable(&self, app: &AppContext) -> bool {
-        self.is_orchestration_enabled(app)
     }
 
     /// Handles first-time voice input setup when user clicks the voice button.
