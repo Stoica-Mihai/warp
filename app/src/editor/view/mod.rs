@@ -98,7 +98,7 @@ use crate::editor::autosuggestion_ignore_view::{AutosuggestionIgnore, Autosugges
 use crate::editor::RangeExt;
 use crate::features::FeatureFlag;
 use crate::settings::{
-    AISettings, AppEditorSettings, AppEditorSettingsChangedEvent, CursorBlink, CursorDisplayType,
+    AppEditorSettings, AppEditorSettingsChangedEvent, CursorBlink, CursorDisplayType,
     InputSettings, SelectionSettings,
 };
 use crate::settings_view::flags;
@@ -4589,13 +4589,9 @@ impl EditorView {
         );
     }
 
-    fn voice_input_toggle_key_code(&self, ctx: &AppContext) -> Option<KeyCode> {
-        let ai_settings_handle = &AISettings::handle(ctx);
-        ai_settings_handle
-            .as_ref(ctx)
-            .voice_input_toggle_key
-            .value()
-            .to_key_code()
+    fn voice_input_toggle_key_code(&self, _ctx: &AppContext) -> Option<KeyCode> {
+        // Voice input was removed; no toggle key.
+        None
     }
 
     pub fn attach_files(&mut self, ctx: &mut ViewContext<Self>) {

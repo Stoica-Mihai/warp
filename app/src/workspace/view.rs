@@ -298,7 +298,6 @@ use crate::workspace::view::left_panel::{
     LeftPanelAction, LeftPanelEvent, LeftPanelView, ToolPanelView,
 };
 use crate::workspace::view::right_panel::{RightPanelEvent, RightPanelView};
-use crate::workspaces::user_workspaces::UserWorkspaces;
 use crate::{report_if_error, GlobalResourceHandles};
 
 /// The padding that should be applied to the workspace as a whole.
@@ -14086,11 +14085,6 @@ impl View for Workspace {
 
         if AISettings::as_ref(app).is_active_ai_enabled(app) {
             context.set.insert(flags::IS_ACTIVE_AI_ENABLED);
-        }
-        if AISettings::as_ref(app).is_voice_input_enabled(app)
-            && UserWorkspaces::as_ref(app).is_voice_enabled()
-        {
-            context.set.insert(flags::IS_VOICE_INPUT_ENABLED);
         }
 
         if self
