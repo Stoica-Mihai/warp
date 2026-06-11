@@ -159,7 +159,6 @@ use crate::ai::blocklist::{
     InputTypeAutoDetectionSource,
     ATTACH_AS_AGENT_MODE_CONTEXT_TEXT,
 };
-use crate::ai::execution_profiles::profiles::ClientProfileId;
 use crate::ai::loading::shimmering_warp_loading_text;
 #[cfg(feature = "local_fs")]
 use crate::ai::persisted_workspace::PersistedWorkspace;
@@ -1432,9 +1431,6 @@ pub enum Event {
         force_open: bool,
     },
     SlowBootstrap,
-    OpenAgentProfileEditor {
-        profile_id: ClientProfileId,
-    },
     OpenPluginInstructionsPane(CLIAgent, PluginModalKind),
     ShowToast {
         message: String,

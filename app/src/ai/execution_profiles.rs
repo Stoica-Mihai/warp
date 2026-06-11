@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use warpui::AppContext;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ActionPermission {
@@ -55,11 +54,6 @@ pub enum ComputerUsePermission {
     Unknown,
 }
 
-pub struct CloudAgentComputerUseState {
-    pub enabled: bool,
-    pub is_forced_by_org: bool,
-}
-
 impl ComputerUsePermission {
     pub fn description(&self) -> &'static str {
         match self {
@@ -71,10 +65,6 @@ impl ComputerUsePermission {
     }
     pub fn is_enabled(&self) -> bool { !matches!(self, Self::Never | Self::Unknown) }
     pub fn is_always_allow(&self) -> bool { matches!(self, Self::AlwaysAllow) }
-
-    pub fn resolve_cloud_agent_state(_ctx: &AppContext) -> CloudAgentComputerUseState {
-        CloudAgentComputerUseState { enabled: false, is_forced_by_org: false }
-    }
 }
 
 pub mod profiles {

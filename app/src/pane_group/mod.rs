@@ -36,7 +36,6 @@ use warpui::{
 };
 
 use crate::ai::blocklist::{InputConfig, SerializedBlockListItem};
-use crate::ai::execution_profiles::profiles::ClientProfileId;
 #[cfg(feature = "local_fs")]
 use crate::app_state::CodePaneSnapShot;
 use crate::app_state::{
@@ -559,9 +558,6 @@ pub enum Event {
     #[cfg(feature = "local_fs")]
     FileDeleted {
         path: PathBuf,
-    },
-    OpenAgentProfileEditor {
-        profile_id: ClientProfileId,
     },
     RepoChanged,
     AttachPathAsContext {
