@@ -747,15 +747,6 @@ define_settings_group!(AISettings, settings: [
         toml_path: "agents.warp_agent.input.nld_in_terminal_enabled",
         description: "Controls whether natural language detection is enabled in the terminal input.",
     },
-    autodetection_command_denylist: AICommandDenylist {
-        type: String,
-        default: String::new(),
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: false,
-        toml_path: "agents.warp_agent.input.ai_command_denylist",
-        description: "Commands to exclude from AI natural language autodetection.",
-    },
     // This field should not be referenced directly to lookup intelligent autosuggestion enablement
     // -- use the `is_intelligent_autosuggestions_enabled()` getter.
     intelligent_autosuggestions_enabled_internal: IntelligentAutosuggestionsEnabled {
@@ -816,28 +807,6 @@ define_settings_group!(AISettings, settings: [
         private: false,
         toml_path: "agents.warp_agent.active_ai.shared_block_title_generation_enabled",
         description: "Controls whether titles are auto-generated when sharing blocks.",
-    }
-    // This field should not be referenced directly to lookup git operations AI autogen
-    // enablement -- use the `is_git_operations_autogen_enabled()` getter.
-    git_operations_autogen_enabled_internal: GitOperationsAutogenEnabled {
-        type: bool,
-        default: true,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: false,
-        toml_path: "agents.warp_agent.active_ai.git_operations_autogen_enabled",
-        description: "Controls whether AI auto-generates commit messages and PR title/body in the code review dialogs.",
-    }
-    // This field should not be referenced directly to lookup Rule Suggestions
-    // enablement -- use the `is_rule_suggestions_enabled()` getter.
-    rule_suggestions_enabled_internal: RuleSuggestionsEnabled {
-        type: bool,
-        default: true,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: false,
-        toml_path: "agents.warp_agent.active_ai.rule_suggestions_enabled",
-        description: "Controls whether the agent suggests rules to save after responses.",
     }
     // This field should not be referenced directly to lookup Voice AI enablement -- use the
     // `is_voice_input_enabled()` getter.
@@ -1011,27 +980,6 @@ define_settings_group!(AISettings, settings: [
         sync_to_cloud: SyncToCloud::Never,
         private: true,
     }
-    // Whether or not the user wants agent mode requests to use their saved rules.
-    memory_enabled: MemoryEnabled {
-        type: bool,
-        default: true,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: false,
-        toml_path: "agents.knowledge.rules_enabled",
-        description: "Whether the agent uses your saved rules during requests.",
-    }
-    // Whether warp drive context should be included in AI requests
-    warp_drive_context_enabled: WarpDriveContextEnabled {
-        type: bool,
-        default: true,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: false,
-        toml_path: "agents.knowledge.warp_drive_context_enabled",
-        description: "Whether Warp Drive context is included in AI requests.",
-    }
-
     // Information about AI request quotas and usage across billing cycles
     ai_request_quota_info: AIRequestQuotaInfoSetting {
         type: AIRequestQuotaInfo,
@@ -1041,18 +989,6 @@ define_settings_group!(AISettings, settings: [
         private: true,
     },
 
-    // Whether or not we should show the speedbump for showing code suggestion banners.
-    // This includes both passive code diffs and suggested prompts (passive unit tests).
-    //
-    // Not a user-visible settings - we model it as a setting so we can track if the speedbump has already been shown or not.
-    show_code_suggestion_speedbump: ShouldShowCodeSuggestionSpeedbump {
-        type: bool,
-        default: true,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: true,
-    }
-
     mcp_execution_path: MCPExecutionPath {
         type: Option<String>,
         default: None,
@@ -1060,16 +996,6 @@ define_settings_group!(AISettings, settings: [
         sync_to_cloud: SyncToCloud::Never,
         private: true,
     },
-
-    // Used to determine whether the "What's new in Oz" section of the agent view
-    // zero state is expanded or collapsed by default.
-    should_expand_oz_updates: ShouldExpandOzUpdates {
-        type: bool,
-        default: false,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Never,
-        private: true,
-    }
 
     // Used to determine whether the "What's new in Oz" section of the agent view
     // zero state is shown or hidden.
@@ -1093,17 +1019,6 @@ define_settings_group!(AISettings, settings: [
         description: "Whether Warp's built-in feedback skill is available to the Warp Agent.",
     }
 
-    // Whether or not the user has enabled fallback to Warp credits for user-provided models.
-    can_use_warp_credits_for_fallback: CanUseWarpCreditsForFallback {
-        type: bool,
-        default: false,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: false,
-        storage_key: "CanUseWarpCreditsWithByok",
-        toml_path: "cloud_platform.third_party_api_keys.can_use_warp_credits_with_byok",
-        description: "Whether Warp credits can be used as a fallback for user-provided models.",
-    }
 
     should_render_use_agent_footer_for_user_commands: ShouldRenderUseAgentToolbarForUserCommands {
         type: bool,
@@ -1151,19 +1066,6 @@ define_settings_group!(AISettings, settings: [
         description: "Whether CLI agent Rich Input automatically opens when a CLI agent session starts.",
     }
 
-    // When enabled and a CLI agent session does NOT have a plugin listener,
-    // rich input auto-closes after the user submits a prompt.
-    // When the plugin IS present, this setting has no effect (auto-show/hide
-    // from auto_toggle_rich_input handles rich input lifecycle).
-    auto_dismiss_rich_input_after_submit: AutoDismissRichInputAfterSubmit {
-        type: bool,
-        default: false,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: false,
-        toml_path: "agents.third_party.auto_dismiss_composer_after_submit",
-        description: "Whether CLI agent Rich Input automatically closes after the user submits a prompt.",
-    }
 
     // Maps custom toolbar command regex patterns to specific CLI agents.
     // Keys are regex patterns matched against the full command string.
@@ -1180,45 +1082,6 @@ define_settings_group!(AISettings, settings: [
         description: "Maps custom toolbar command patterns to specific CLI agents.",
     }
 
-    // This is not a user-visible setting - it tracks whether a paid user has dismissed the
-    // agent management help page by clicking "View Agents".
-    //
-    // When false and user is on a paid plan, the help page is shown.
-    // When true, the help page is hidden (user dismissed it).
-    // Free users never see the help page by default regardless of this setting.
-    did_dismiss_cloud_setup_guide: DidDismissAgentManagementHelpPage {
-        type: bool,
-        default: false,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: true,
-    }
-
-    // This is not a user-visible setting - it tracks whether the FTU model picker callout
-    // has been shown to the user. We set this to `true` as soon as the callout is first
-    // displayed (not when it's dismissed), so it never re-appears.
-    //
-    // Note: this setting was originally named "dismissed" but we now use it to mean "shown".
-    // We kept the same setting key so that users who already dismissed the callout on an
-    // older client don't see it again.
-    ftu_model_callout_dismissed: FtuModelCalloutDismissed {
-        type: bool,
-        default: false,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: true,
-    }
-
-    // Whether the ambient agent trial widget has been dismissed by the user.
-    //
-    // Not a user-visible setting - we model it as a setting so we can track state.
-    ambient_agent_trial_widget_dismissed: AmbientAgentTrialWidgetDismissed {
-        type: bool,
-        default: false,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: true,
-    }
 
     // The raw stored default mode for new sessions. Use `default_session_mode()` to retrieve the
     // effective value, which is gated on AI availability.
@@ -1236,17 +1099,6 @@ define_settings_group!(AISettings, settings: [
         toml_path: "general.default_tab_config_path",
     }
 
-    // Whether computer use is enabled for cloud agent conversations started from the Warp app.
-    // This setting is only used when the AI autonomy setting is AlwaysAsk or not set.
-    cloud_agent_computer_use_enabled: CloudAgentComputerUseEnabled {
-        type: bool,
-        default: warp_core::channel::ChannelState::channel().is_dogfood(),
-        supported_platforms: SupportedPlatforms::DESKTOP,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::Yes),
-        private: false,
-        toml_path: "agents.warp_agent.other.cloud_agent_computer_use_enabled",
-        description: "Whether computer use is enabled for cloud agent conversations.",
-    }
 
 
     // Whether file-based MCP servers from third-party AI tools (e.g. Claude, Codex) should
@@ -1290,19 +1142,6 @@ define_settings_group!(AISettings, settings: [
     }
 
 
-    // Whether Oz should add attribution (co-author line) to commit messages and PRs.
-    // This is the user-level preference; it may be overridden by the team-level
-    // `enable_warp_attribution` AdminEnablementSetting (see
-    // `UserWorkspaces::get_agent_attribution_setting`).
-    agent_attribution_enabled: AgentAttributionEnabled {
-        type: bool,
-        default: true,
-        supported_platforms: SupportedPlatforms::ALL,
-        sync_to_cloud: SyncToCloud::Globally(RespectUserSyncSetting::No),
-        private: false,
-        toml_path: "agents.warp_agent.other.agent_attribution_enabled",
-        description: "Whether the Warp Agent adds an attribution co-author line to commit messages and pull requests it creates.",
-    }
 
 ]);
 
@@ -1400,10 +1239,6 @@ impl AISettings {
         self.is_active_ai_enabled(app) && *self.prompt_suggestions_enabled_internal
     }
 
-    pub fn is_rule_suggestions_enabled(&self, app: &warpui::AppContext) -> bool {
-        self.is_active_ai_enabled(app) && *self.rule_suggestions_enabled_internal
-    }
-
     pub fn is_code_suggestions_enabled(&self, app: &warpui::AppContext) -> bool {
         self.is_active_ai_enabled(app) && *self.code_suggestions_enabled_internal
     }
@@ -1414,10 +1249,6 @@ impl AISettings {
 
     pub fn is_shared_block_title_generation_enabled(&self, app: &warpui::AppContext) -> bool {
         self.is_active_ai_enabled(app) && *self.shared_block_title_generation_enabled_internal
-    }
-
-    pub fn is_git_operations_autogen_enabled(&self, app: &warpui::AppContext) -> bool {
-        self.is_active_ai_enabled(app) && *self.git_operations_autogen_enabled_internal
     }
 
     pub fn is_intelligent_autosuggestions_enabled(&self, app: &warpui::AppContext) -> bool {
@@ -1446,14 +1277,6 @@ impl AISettings {
     /// `ai_autodetection_enabled_internal`.
     pub fn is_nld_in_terminal_enabled(&self, app: &warpui::AppContext) -> bool {
         self.is_any_ai_enabled(app) && *self.nld_in_terminal_enabled_internal
-    }
-
-    pub fn is_memory_enabled(&self, app: &warpui::AppContext) -> bool {
-        self.is_any_ai_enabled(app) && *self.memory_enabled
-    }
-
-    pub fn is_warp_drive_context_enabled(&self, app: &warpui::AppContext) -> bool {
-        self.is_any_ai_enabled(app) && *self.warp_drive_context_enabled
     }
 
     pub fn is_file_based_mcp_enabled(&self, app: &warpui::AppContext) -> bool {
@@ -1563,10 +1386,6 @@ impl AISettings {
 
     pub fn is_run_agents_permissions_editable(&self, app: &AppContext) -> bool {
         self.is_orchestration_enabled(app)
-    }
-
-    pub fn show_code_suggestion_speedbump(&self, app: &AppContext) -> bool {
-        self.is_any_ai_enabled(app) && *self.show_code_suggestion_speedbump
     }
 
     /// Handles first-time voice input setup when user clicks the voice button.
