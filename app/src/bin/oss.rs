@@ -3,7 +3,7 @@
 #![cfg_attr(feature = "release_bundle", windows_subsystem = "windows")]
 
 use anyhow::Result;
-use warp_core::channel::{Channel, ChannelConfig, ChannelState, OzConfig, WarpServerConfig};
+use warp_core::channel::{Channel, ChannelConfig, ChannelState};
 use warp_core::AppId;
 
 // Entry point for the Sublight (warp-fork) local-only build.
@@ -13,11 +13,6 @@ fn main() -> Result<()> {
         ChannelConfig {
             app_id: AppId::new("local", "sublight", "Sublight"),
             logfile_name: "sublight.log".into(),
-            server_config: WarpServerConfig::production(),
-            oz_config: OzConfig::production(),
-            telemetry_config: None,
-            crash_reporting_config: None,
-            autoupdate_config: None,
             mcp_static_config: None,
         },
     );
