@@ -325,17 +325,10 @@ pub enum WorkspaceAction {
         entrypoint: AgentModeEntrypoint,
     },
     OpenCloudAgentSetupGuide,
-    AttemptLoginGatedAIUpgrade,
     /// Dismisses the Wayland crash recovery banner and opens a link to our docs page with more
     /// information.
     #[cfg(target_os = "linux")]
     DismissWaylandCrashRecoveryBannerAndOpenLink,
-    /// Open a new pane with its input in AI mode
-    /// with query "Fix this" with error name and details from AI summary.
-    FixInAgentMode {
-        query: String,
-    },
-    OpenAIFactCollection,
     OpenMCPServerCollection,
     FocusTerminalViewInWorkspace {
         terminal_view_id: EntityId,
@@ -543,7 +536,6 @@ impl WorkspaceAction {
             | ScrollToSettingsWidget { .. }
             | NewTabInAgentMode { .. }
             | NewPaneInAgentMode { .. }
-            | FixInAgentMode { .. }
             | RunWorkflow { .. }
             | OpenFileInNewTab { .. }
             | RestoreOrNavigateToConversation { .. }
@@ -654,7 +646,6 @@ impl WorkspaceAction {
             | RunCommand { .. }
             | InsertInInput { .. }
             | QueuePromptForConversation { .. }
-            | AttemptLoginGatedAIUpgrade
             | UndoTrash(_)
             | OpenFilePath { .. }
             | ViewObjectInWarpDrive(_)
@@ -662,7 +653,6 @@ impl WorkspaceAction {
             | SignInAnonymousWebUser
             | TabHoverWidthStart { .. }
             | TabHoverWidthEnd
-            | OpenAIFactCollection
             | OpenMCPServerCollection
             | FocusTerminalViewInWorkspace { .. }
             | FocusPane(..)
