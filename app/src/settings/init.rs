@@ -6,7 +6,6 @@ use warpui::{AppContext, SingletonEntity};
 use warpui_extras::user_preferences;
 
 use super::app_icon::AppIconSettings;
-use super::app_installation_detection::UserAppInstallDetectionSettings;
 use super::initializer::SettingsInitializer;
 use super::native_preference::NativePreferenceSettings;
 use super::{
@@ -72,7 +71,6 @@ pub fn register_all_settings(ctx: &mut AppContext) {
     AccessibilitySettings::register(ctx);
     NativePreferenceSettings::register(ctx);
     WarpDrivePrivacySettings::register(ctx);
-    UserAppInstallDetectionSettings::register(ctx);
     AppIconSettings::register(ctx);
     AppEditorSettings::register(ctx);
     InputSettings::register(ctx);
