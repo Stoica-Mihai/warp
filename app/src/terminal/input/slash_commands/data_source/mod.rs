@@ -37,7 +37,6 @@ pub struct DataSourceArgs {
 /// Context needed to decide which slash commands are enabled.
 struct ActiveCommandsContext {
     session_context: Availability,
-    is_orchestration_enabled: bool,
     active_conversation_is_cloud_oz: bool,
     has_default_host: bool,
     is_cli_agent_input: bool,
@@ -201,10 +200,8 @@ impl SlashCommandDataSource {
             .is_some()
             || UserWorkspaces::as_ref(ctx).default_host_slug().is_some();
 
-        let ai_settings = AISettings::as_ref(ctx);
         ActiveCommandsContext {
             session_context,
-            is_orchestration_enabled: ai_settings.is_orchestration_enabled(ctx),
             active_conversation_is_cloud_oz: self.active_conversation_is_cloud_oz(ctx),
             has_default_host,
             is_cli_agent_input,
@@ -217,9 +214,6 @@ impl SlashCommandDataSource {
         context: &ActiveCommandsContext,
     ) -> bool {
         if !command.is_active(context.session_context) {
-            return false;
-        }
-        if command.name == commands::ORCHESTRATE_NAME && !context.is_orchestration_enabled {
             return false;
         }
         // /continue-locally only applies to cloud Oz conversations. Local conversations

@@ -15,7 +15,6 @@ use super::{Event, PaneConfiguration, TerminalAction, TerminalViewState};
 use crate::ai::conversation_types::ConversationStatus;
 use crate::terminal::view::agent_view_state::agent_view_bg_fill;
 use crate::appearance::Appearance;
-use crate::features::FeatureFlag;
 use crate::menu::{MenuItem, MenuItemFields};
 use crate::pane_group::focus_state::{PaneFocusHandle, PaneGroupFocusEvent, PaneGroupFocusState};
 use crate::pane_group::pane::view::header::components::{
@@ -278,48 +277,12 @@ impl TerminalView {
         (right_row.finish(), min_width)
     }
 
-    fn render_parent_conversation_header_card(
-        &self,
-        _app: &AppContext,
-    ) -> Option<Box<dyn Element>> {
-        None
-    }
-
-    fn maybe_add_parent_navigation_card(
-        &self,
-        header: Box<dyn Element>,
-        parent_conversation_header_card: Option<Box<dyn Element>>,
-        _app: &AppContext,
-    ) -> Box<dyn Element> {
-        if !FeatureFlag::OrchestrationV2.is_enabled() {
-            return header;
-        }
-
-        if let Some(parent_card) = parent_conversation_header_card {
-            Flex::column()
-                .with_cross_axis_alignment(CrossAxisAlignment::Stretch)
-                .with_child(
-                    Container::new(parent_card)
-                        .with_padding_left(4.)
-                        .with_padding_right(4.)
-                        .with_padding_top(4.)
-                        .with_padding_bottom(2.)
-                        .finish(),
-                )
-                .with_child(header)
-                .finish()
-        } else {
-            header
-        }
-    }
-
     fn render_terminal_pane_header(
         &self,
         header_ctx: &view::HeaderRenderContext,
         app: &AppContext,
     ) -> Box<dyn Element> {
         let is_fullscreen_agent_view = false;
-        let parent_conversation_header_card = self.render_parent_conversation_header_card(app);
 
         let left = self.maybe_render_header_back_button(app);
         let center = self.render_header_title(is_fullscreen_agent_view, header_ctx, app);
@@ -346,11 +309,7 @@ impl TerminalView {
             header_ctx.draggable_state.clone(),
             app,
         );
-        let header = self.maybe_add_parent_navigation_card(
-            draggable_header,
-            parent_conversation_header_card,
-            app,
-        );
+        let header = draggable_header;
 
         if is_fullscreen_agent_view {
             Container::new(header)

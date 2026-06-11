@@ -2,14 +2,7 @@ use chrono::Utc;
 use warpui::{App, SingletonEntity};
 
 use super::*;
-use crate::auth::AuthStateProvider;
 use crate::test_util::settings::initialize_settings_for_tests;
-use crate::workspaces::user_workspaces::UserWorkspaces;
-
-fn add_ai_enablement_dependencies_for_test(app: &mut App) {
-    app.add_singleton_model(|_| AuthStateProvider::new_for_test());
-    app.add_singleton_model(UserWorkspaces::default_mock);
-}
 
 // FocusedTerminalInfo Tests
 
@@ -250,33 +243,6 @@ fn test_update_only_restored_toggles() {
     });
 }
 
-#[test]
-fn orchestration_v2_enables_orchestration_when_ai_is_enabled() {
-    let _orchestration_v2_flag = FeatureFlag::OrchestrationV2.override_enabled(true);
-
-    App::test((), |mut app| async move {
-        initialize_settings_for_tests(&mut app);
-        add_ai_enablement_dependencies_for_test(&mut app);
-
-        AISettings::handle(&app).read(&app, |settings, ctx| {
-            assert!(settings.is_orchestration_enabled(ctx));
-        });
-    });
-}
-
-#[test]
-fn orchestration_v2_disabled_disables_orchestration() {
-    let _orchestration_v2_flag = FeatureFlag::OrchestrationV2.override_enabled(false);
-
-    App::test((), |mut app| async move {
-        initialize_settings_for_tests(&mut app);
-        add_ai_enablement_dependencies_for_test(&mut app);
-
-        AISettings::handle(&app).read(&app, |settings, ctx| {
-            assert!(!settings.is_orchestration_enabled(ctx));
-        });
-    });
-}
 #[test]
 fn test_mark_quota_banner_as_dismissed() {
     App::test((), |mut app| async move {

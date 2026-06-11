@@ -5,7 +5,6 @@ use std::{env, fmt};
 use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
 use url::Url;
 use warp_core::channel::ChannelState;
-use warp_core::features::FeatureFlag;
 
 use crate::agent::OutputFormat;
 
@@ -293,11 +292,9 @@ impl Args {
                 })
         });
         // Hide the message subcommand from help text.
-        if !FeatureFlag::OrchestrationV2.is_enabled() {
-            command = command.mut_subcommand("run", |run_cmd| {
-                run_cmd.mut_subcommand("message", |c| c.hide(true))
-            });
-        }
+        command = command.mut_subcommand("run", |run_cmd| {
+            run_cmd.mut_subcommand("message", |c| c.hide(true))
+        });
 
         // Hide the artifact subcommand from help text.
         command = command.mut_subcommand("artifact", |c| c.hide(true));
