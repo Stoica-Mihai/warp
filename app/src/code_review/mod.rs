@@ -47,8 +47,6 @@ pub struct CodeReviewPanelArg {
 #[derive(Clone, Debug, PartialEq)]
 pub enum DiffSetScope {
     All,
-    /// A single repo-relative file path in the diff set.
-    File(String),
 }
 
 /// Register keybindings for code review functionality.

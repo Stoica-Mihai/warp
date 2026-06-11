@@ -111,17 +111,6 @@ pub enum CodeReviewContextDestination {
     RichInput,
 }
 
-/// Scope of a diff set attachment initiated from code review.
-#[derive(Clone, Copy, Debug, Serialize)]
-#[cfg_attr(not(feature = "local_fs"), allow(dead_code))]
-pub enum DiffSetContextScope {
-    /// Attach the full diff set for the current review.
-    #[serde(rename = "all")]
-    All,
-    /// Attach the diff set for a single file.
-    #[serde(rename = "file")]
-    File,
-}
 
 /// Pane state change for minimize/maximize events.
 #[derive(Clone, Copy, Debug, Serialize)]
