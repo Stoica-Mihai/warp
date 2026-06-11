@@ -124,11 +124,6 @@ impl PaneContent for FilePane {
                         session: session.clone(),
                     })
                 }
-                LinkEvent::OpenWarpDriveLink { open_warp_drive_args } => {
-                    ctx.emit(crate::pane_group::Event::OpenWarpDriveLink {
-                        open_warp_drive_args: open_warp_drive_args.clone(),
-                    })
-                }
                 LinkEvent::StartLocalSession { path } => {
                     pane_group.add_session_in_directory(
                         crate::pane_group::Direction::Right,

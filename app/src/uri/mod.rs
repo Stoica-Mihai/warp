@@ -1,5 +1,4 @@
 mod docker;
-pub mod parse_url_paths;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
