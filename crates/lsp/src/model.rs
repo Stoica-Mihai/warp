@@ -46,7 +46,6 @@ impl Default for LanguageServerId {
     }
 }
 
-#[cfg_attr(target_arch = "wasm32", allow(dead_code))]
 pub enum LspState {
     Stopped {
         manually_stopped: bool,
@@ -501,7 +500,6 @@ impl LspServerModel {
         })
     }
 
-    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     fn handle_server_notification(
         &mut self,
         notification: ServerNotificationEvent,
@@ -526,7 +524,6 @@ impl LspServerModel {
         }
     }
 
-    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     fn handle_progress_update(
         &mut self,
         progress_params: ProgressParams,

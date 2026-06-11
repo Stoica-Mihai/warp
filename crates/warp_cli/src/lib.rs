@@ -1,4 +1,3 @@
-#![cfg_attr(target_family = "wasm", allow(dead_code))]
 
 use std::path::Path;
 use std::{env, fmt};
@@ -174,11 +173,6 @@ impl Args {
     /// Parses command-line arguments from the operating environment. May exit early if arguments
     /// are incorrectly specified.
     pub fn from_env() -> Self {
-        cfg_if::cfg_if! {
-            // wasm doesn't have any concept of an environment, so skip parsing and return defaults
-            if #[cfg(target_family = "wasm")] {
-                Args::default()
-            } else {
                 use clap::FromArgMatches as _;
 
                 // Check for disabled commands before parsing to prevent help from showing (e.g.
@@ -266,8 +260,6 @@ impl Args {
                         warp_util::windows::attach_to_parent_console();
                         err.exit()
                     })
-            }
-        }
     }
 
     /// Construct the [`clap::Command`] that backs `Args`.

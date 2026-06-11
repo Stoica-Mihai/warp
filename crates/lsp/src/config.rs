@@ -87,7 +87,6 @@ impl LanguageId {
 
 /// Configuration for spawning an LSP server process.
 #[derive(Clone)]
-#[cfg_attr(target_arch = "wasm32", allow(dead_code))]
 pub struct LspServerConfig {
     server_type: LSPServerType,
     initial_workspace: PathBuf,

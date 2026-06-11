@@ -108,22 +108,15 @@ pub fn init_wgpu_instance(display_handle: Box<dyn WgpuHasDisplayHandle>) {
         });
     };
 
-    cfg_if::cfg_if! {
-        if #[cfg(target_family = "wasm")] {
-            // On wasm, synchronously initialize the wgpu static variable.
-            init_static_var(None);
-        } else {
-            // On other platforms, initialize the wgpu static variable in a separate thread to parallelize
-            // wgpu instance initialization with other application initialization.  We block until we have
-            // acquired the lock on the instance, ensuring that this function doesn't return until it is
-            // safe to call `get_wgpu_instance()`.
-            let (tx, rx) = std::sync::mpsc::channel();
-            std::thread::spawn(move || {
-                init_static_var(Some(tx));
-            });
-            let _ = rx.recv();
-        }
-    }
+    // Initialize the wgpu static variable in a separate thread to parallelize wgpu instance
+    // initialization with other application initialization.  We block until we have acquired the
+    // lock on the instance, ensuring that this function doesn't return until it is safe to call
+    // `get_wgpu_instance()`.
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        init_static_var(Some(tx));
+    });
+    let _ = rx.recv();
 }
 
 /// Helper function to get a [`wgpu::Instance`].

@@ -1,6 +1,5 @@
 // Most of this module is dead code on web as it is not possible to retrieve
 // external secrets from the browser.
-#![cfg_attr(target_family = "wasm", allow(dead_code, unused_variables))]
 
 use serde::{Deserialize, Serialize};
 use warp_util::path::ShellFamily;

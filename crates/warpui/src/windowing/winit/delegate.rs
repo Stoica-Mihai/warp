@@ -158,19 +158,13 @@ pub struct AppDelegate {
 
 impl AppDelegate {
     pub fn new(event_loop_proxy: EventLoopProxy<super::CustomEvent>) -> Result<Self> {
-        cfg_if::cfg_if! {
-            if #[cfg(target_family = "wasm")] {
-                let global_hotkey_handler = None;
-            } else {
-                let global_hotkey_handler = match GlobalHotKeyHandler::new(event_loop_proxy.clone()) {
-                    Ok(handler) => Some(handler),
-                    Err(err) => {
-                        log::error!("Error creating global hotkey handler: {err:?}");
-                        None
-                    }
-                };
+        let global_hotkey_handler = match GlobalHotKeyHandler::new(event_loop_proxy.clone()) {
+            Ok(handler) => Some(handler),
+            Err(err) => {
+                log::error!("Error creating global hotkey handler: {err:?}");
+                None
             }
-        }
+        };
         Ok(Self {
             event_loop_proxy,
             clipboard: Box::<InMemoryClipboard>::default(),
@@ -185,9 +179,7 @@ impl AppDelegate {
     /// matching against the display server raw handle.
     pub fn use_platform_clipboard(&mut self) {
         cfg_if::cfg_if! {
-            if #[cfg(target_family = "wasm")] {
-                self.clipboard = Box::new(super::wasm::WebClipboard::new());
-            } else if #[cfg(any(target_os = "linux", target_os = "freebsd"))] {
+            if #[cfg(any(target_os = "linux", target_os = "freebsd"))] {
                 match super::linux::LinuxClipboard::new() {
                     Ok(clipboard) => self.clipboard = Box::new(clipboard),
                     Err(err) => {

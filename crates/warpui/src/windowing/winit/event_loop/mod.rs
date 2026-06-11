@@ -1655,13 +1655,6 @@ impl EventLoop {
         match clipboard_event {
             #[allow(unused_variables)]
             ClipboardEvent::Paste(content) => {
-                cfg_if::cfg_if! {
-                    if #[cfg(target_family = "wasm")] {
-                        self.ui_app.update(|ctx| {
-                            ctx.clipboard().save(content);
-                        })
-                    }
-                }
                 self.ui_app
                     .dispatch_standard_action(active_window_id, StandardAction::Paste);
             }

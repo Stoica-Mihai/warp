@@ -259,27 +259,7 @@ async fn select_adapter(
     SurfaceConfiguration,
     HashSet<wgpu::Backend>,
 )> {
-    cfg_if::cfg_if! {
-        if #[cfg(target_family = "wasm")] {
-            let power_preference = match gpu_power_preference {
-                GPUPowerPreference::LowPower => wgpu::PowerPreference::LowPower,
-                GPUPowerPreference::HighPerformance => wgpu::PowerPreference::HighPerformance,
-            };
-            let request_adapter_options = wgpu::RequestAdapterOptions {
-                power_preference,
-                force_fallback_adapter: false,
-                compatible_surface: Some(surface),
-            };
-
-            let adapter = instance.request_adapter(&request_adapter_options).await.ok()?;
-            let adapters = [adapter].into_iter();
-        } else {
-            let adapters = instance
-                .enumerate_adapters(backends)
-                .await
-                .into_iter();
-            }
-    }
+    let adapters = instance.enumerate_adapters(backends).await.into_iter();
 
     log::info!("Enabled wgpu backends: {backends:?}");
 

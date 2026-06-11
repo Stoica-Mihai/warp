@@ -38,7 +38,6 @@ pub struct DocumentSyncState {
 pub struct LspService {
     jsonrpc_service: JsonRpcService,
     server_capabilities: Option<lsp_types::ServerCapabilities>,
-    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     open_documents: Arc<Mutex<HashMap<PathBuf, DocumentSyncState>>>,
     watched_files_registry: Arc<Mutex<WatchedFilesRegistry>>,
     notify_tx: async_channel::Sender<ServerNotificationEvent>,
@@ -128,7 +127,6 @@ impl LspServerRequestHandler {
 
 impl LspService {
     /// Creates a new LspService with the given JsonRpcService.
-    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     pub(crate) fn new(
         jsonrpc_service: JsonRpcService,
         notify_tx: async_channel::Sender<ServerNotificationEvent>,
@@ -159,7 +157,6 @@ impl LspService {
         Ok(service)
     }
 
-    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     pub(crate) async fn initialize(&mut self, params: InitializeParams) -> Result<()> {
         let response = self.send_request::<request::Initialize>(params).await?;
         self.server_capabilities = Some(response.capabilities);
